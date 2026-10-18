@@ -49,4 +49,13 @@ foreach ($f in @("taxonomy.js", "semantic.js", "analyzer.js", "ui.js", "ui.css",
 $staleNative = Join-Path $nativeSrc "settings.js"
 if (Test-Path $staleNative) { Remove-Item $staleNative -Force }
 
-Write-Output "Synced: engine/src -> ui/mobile-expo/src, ui/web/src;  ui/web -> ui/mobile-native/www"
+# --- Web app (React): engine served as classic scripts from public/engine ---
+$webAppEngine = Join-Path $root "ui\web-app\public\engine"
+if (Test-Path (Join-Path $root "ui\web-app")) {
+  New-Item -ItemType Directory -Path $webAppEngine -Force | Out-Null
+  foreach ($f in @("taxonomy.js", "semantic.js", "analyzer.js")) {
+    Copy-Item (Join-Path $root "engine\src\$f") (Join-Path $webAppEngine $f) -Force
+  }
+}
+
+Write-Output "Synced: engine/src -> ui/mobile-expo/src, ui/web/src, ui/web-app/public/engine;  ui/web -> ui/mobile-native/www"

@@ -1,7 +1,7 @@
 # Vector ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Finalized Architecture & Workflow
 
 **Pre-Generation Security Diagnosis of Cloud Infrastructure Prompts Using NLP**
-Version 0.7.2 Ãƒâ€šÃ‚Â· AWS-only Ãƒâ€šÃ‚Â· rule-based NLP Ãƒâ€šÃ‚Â· fully offline
+Version 0.8.0 Ãƒâ€šÃ‚Â· AWS-only Ãƒâ€šÃ‚Â· rule-based NLP Ãƒâ€šÃ‚Â· fully offline
 
 > Companion documents: `MARKET-ANALYSIS.md` (why), `ROADMAP.md` (plan),
 > `COURSE-PLAN-MAPPING.md` (syllabus links).
@@ -36,6 +36,12 @@ Version 0.7.2 Ãƒâ€šÃ‚Â· AWS-only Ãƒâ€šÃ‚Â· rule-based NLP 
 **One rule holds the whole design together:** every surface is a *client* of the
 same engine. That is why the extension, CLI, both mobile apps and the web demo
 return identical results for the same prompt.
+
+> **v0.8.0 clients:** in addition to the surfaces shown above, two
+> teammate-contributed clients live in `ui/web-app/` (React + Vite) and
+> `ui/android/` (Kotlin + Jetpack Compose). Both call the same `engine/src`, so
+> their results match every other surface. The client code carries the UI only;
+> all analysis data comes from the engine. See `CREDITS.md`.
 
 ---
 

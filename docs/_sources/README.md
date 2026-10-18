@@ -184,6 +184,26 @@ engine/test/run-tests.js     29 unit tests
 tools/                icon generator, packaging script
 ```
 
+## Clients (v0.8.0)
+
+Every client calls the same engine, so they all return identical results:
+
+| Client | Path | Stack |
+|---|---|---|
+| Chrome/Edge extension | `ui/extension/` | Manifest V3 (popup, in-page panel, options) |
+| Web demo | `ui/web/` | static HTML/JS (GitHub Pages) |
+| Web app | `ui/web-app/` | React + Vite + Tailwind (`npm run webapp:install`, then `npm run webapp`) |
+| Mobile (iOS + Android) | `ui/mobile-expo/` | React Native / Expo |
+| Mobile (Android) | `ui/mobile-native/` | Capacitor (wraps the web client) |
+| Native Android | `ui/android/` | Kotlin + Jetpack Compose |
+
+**Brand:** the logo is a dark-green tile (`#2D5D4F`) with a gold V (`#FACB43`),
+generated for every surface by `tools/make-icons.js` (`npm run icons`).
+
+**Credits:** the React web client (`ui/web-app`) and the native Android client
+(`ui/android`) are UI contributions from teammate Satya Sree Pada; see
+`CREDITS.md`.
+
 ## To keep the code small for a rewrite
 
 Everything extra is isolated. If you need fewer files, you can delete

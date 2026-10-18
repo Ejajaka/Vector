@@ -2,7 +2,7 @@
   "expo": {
     "name": "Vector",
     "slug": "vector-security",
-    "version": "0.1.0",
+    "version": "0.8.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "assetBundlePatterns": [

@@ -413,6 +413,7 @@ Notes:
 | 0.7.0 | Security Delta Analysis: compare a prompt against its previous version (added / still missing / regressed controls, new risks, score movement) |
 | 0.7.1 | Security Delta clarity (plain-language headline + colour-coded blocks); fix: "encrypted with KMS" is no longer mistaken for a KMS resource |
 | 0.7.2 | What Changed reacts live to accepted clauses via projectDelta() |
+| 0.8.0 | unified version across all clients; new React web client (`ui/web-app`) and native Kotlin Android client (`ui/android`), both wired to the shared `engine/src`; green/gold Vector brand logo across every surface; removed all hardcoded/demo data from the web client |
 
 ---
 

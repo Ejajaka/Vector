@@ -1,7 +1,7 @@
 # Vector - Complete Build Roadmap (How Everything Was Made)
 
 **Pre-Generation Security Diagnosis of Cloud Infrastructure Prompts Using NLP**
-Version 0.7.2 - AWS-only - rule-based NLP - fully offline
+Version 0.8.0 - AWS-only - rule-based NLP - fully offline
 
 > This is the **reimplementation guide**. It records, in order, every step that was
 > taken to build this project: the decisions, the code, the exact commands, the

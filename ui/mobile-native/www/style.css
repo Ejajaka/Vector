@@ -32,8 +32,8 @@ html, body {
 .m-logo {
   width: 34px; height: 34px; border-radius: 9px;
   display: grid; place-items: center;
-  color: #fff; font-weight: 700;
-  background: linear-gradient(135deg, #6366f1, #0ea5e9);
+  color: #facb43; font-weight: 700;
+  background: #2d5d4f;
 }
 
 .m-title { flex: 1; }

@@ -1,7 +1,7 @@
 # Vector ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Market & Competitive Analysis
 
 **Pre-Generation Security Diagnosis of Cloud Infrastructure Prompts Using NLP**
-Version 0.7.2 Ãƒâ€šÃ‚Â· AWS-only Ãƒâ€šÃ‚Â· rule-based NLP Ãƒâ€šÃ‚Â· fully offline
+Version 0.8.0 Ãƒâ€šÃ‚Â· AWS-only Ãƒâ€šÃ‚Â· rule-based NLP Ãƒâ€šÃ‚Â· fully offline
 
 ---
 

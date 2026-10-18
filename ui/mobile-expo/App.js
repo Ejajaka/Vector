@@ -469,8 +469,8 @@ function Card({ id, accepted, onToggle, color, badge, title, desc, clause, tf })
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#0f172a" },
   header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, backgroundColor: "#111827", borderBottomWidth: 1, borderBottomColor: "#1f2937" },
-  logo: { width: 36, height: 36, borderRadius: 10, backgroundColor: "#6366f1", alignItems: "center", justifyContent: "center", marginRight: 10 },
-  logoText: { color: "#fff", fontWeight: "800", fontSize: 17 },
+  logo: { width: 36, height: 36, borderRadius: 10, backgroundColor: "#2d5d4f", alignItems: "center", justifyContent: "center", marginRight: 10 },
+  logoText: { color: "#facb43", fontWeight: "800", fontSize: 17 },
   h1: { fontSize: 17, fontWeight: "800", color: "#f9fafb" },
   sub: { fontSize: 12, color: "#a5b4fc", fontWeight: "700" },
   iconBtn: { borderWidth: 1, borderColor: "#334155", borderRadius: 9, width: 40, height: 40, alignItems: "center", justifyContent: "center" },
