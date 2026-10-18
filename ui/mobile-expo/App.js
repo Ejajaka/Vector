@@ -1,542 +1,397 @@
-// Vector - React Native (Expo) app. Reuses the shared rule engine (src/).
-// Designed to stay readable: a live summary in the header, confirmed gaps shown
-// first, clarification/optional behind a toggle, and a toast on "Add clause".
-import React, { useState } from "react";
-import {
-  ScrollView,
-  View,
-  Text,
-  TextInput,
-  Pressable,
-  ActivityIndicator,
-  Share,
-  StyleSheet,
-} from "react-native";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
+// Vector - React Native (Expo) client. UI ported to match the native Android
+// client; every analysis comes from the shared rule engine (src/analyzer.js).
+// No hardcoded/sample data.
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
+import * as Clipboard from 'expo-clipboard';
 
-const VectorAnalyzer = require("./src/analyzer");
-const VectorLLM = require("./src/llm");
+import { ThemeProvider, useTheme } from './src/theme';
+import { analyzePrompt, buildImprovedPrompt, eligibleClauseIds, metricsFrom, EXAMPLE_PROMPTS } from './src/vector';
+import { loadHistory, addToHistory, deleteFromHistory, clearHistory } from './src/storage';
+import { Icon, Snackbar, NetworkIndicator, NetworkDialog } from './src/ui';
 
-// One resource, no risky statements: a calm first impression.
-const SAMPLE = "Create an S3 bucket to store user documents.";
+import HomeScreen from './src/screens/HomeScreen';
+import AnalyzeScreen from './src/screens/AnalyzeScreen';
+import ResultsScreen from './src/screens/ResultsScreen';
+import ImprovedPromptScreen from './src/screens/ImprovedPromptScreen';
+import HistoryScreen from './src/screens/HistoryScreen';
+import OnboardingScreen from './src/screens/OnboardingScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
 
-const DEFAULTS = {
-  apiKey: "",
-  baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
-  model: "gemini-2.5-flash",
+const TITLES = {
+  HOME: { title: 'Vector', subtitle: 'AWS Cloud Security Diagnosis' },
+  ANALYZE: { title: 'Analyze Prompt' },
+  RESULTS: { title: 'Security Findings', subtitle: 'Pre-generation evaluation' },
+  IMPROVED_PROMPT: { title: 'Improved Prompt', subtitle: 'Hardened requirements preview' },
+  HISTORY: { title: 'Analysis History' },
+  SETTINGS: { title: 'Settings' },
+  ONBOARDING: { title: 'Onboarding' },
 };
 
-const RISK_COLOR = {
-  CRITICAL: "#f87171",
-  HIGH: "#f87171",
-  MEDIUM: "#fbbf24",
-  LOW: "#4ade80",
-  MINIMAL: "#4ade80",
-};
-const SEV_COLOR = { high: "#f87171", medium: "#fbbf24", low: "#4ade80" };
+const NAV = [
+  { screen: 'HOME', label: 'Home', icon: 'Home', testID: 'nav_home' },
+  { screen: 'ANALYZE', label: 'Analyze', icon: 'Analytics', testID: 'nav_analyze' },
+  { screen: 'HISTORY', label: 'History', icon: 'History', testID: 'nav_history' },
+  { screen: 'SETTINGS', label: 'Settings', icon: 'Settings', testID: 'nav_settings' },
+];
 
-function buildImproved(prompt, clauses) {
-  const list = (clauses || []).filter(Boolean);
-  if (!list.length) return String(prompt || "").trim();
-  return String(prompt || "").trim() + "\n\nSecurity requirements:\n" + list.map((c) => "- " + c).join("\n");
-}
-
-function project(report, accepted) {
-  return VectorAnalyzer.project(report, accepted);
-}
-
-export default function App() {
-  const [prompt, setPrompt] = useState("");
-  const [report, setReport] = useState(null);
-  const [accepted, setAccepted] = useState({});
-  const [settings, setSettings] = useState(DEFAULTS);
-  const [showSettings, setShowSettings] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [scanning, setScanning] = useState(false);
-  const [status, setStatus] = useState("");
-  const [toast, setToast] = useState("");
-  const [showClarify, setShowClarify] = useState(false);
-  const [showHarden, setShowHarden] = useState(false);
-  const [prevReport, setPrevReport] = useState(null);
-  const [showDelta, setShowDelta] = useState(false);
-
-  // --- on-device history + Security Delta (no chrome.storage here) ---
-  function readHistory() {
-    try { return JSON.parse(localStorage.getItem("vectorHistory") || "[]"); } catch (e) { return []; }
-  }
-  function addHistory(rep) {
-    try {
-      const list = readHistory();
-      list.unshift(VectorAnalyzer.snapshot(rep));
-      localStorage.setItem("vectorHistory", JSON.stringify(list.slice(0, 20)));
-    } catch (e) { /* ignore */ }
-  }
-  function findComparable(rep) {
-    if (!rep || rep.outOfScope) return null;
-    const cur = new Set((rep.resources || []).map((r) => r.id));
-    return readHistory().find((h) => {
-      if (!h || !Array.isArray(h.missing) || !Array.isArray(h.mentioned) || h.skipped) return false;
-      const prev = new Set(h.resources || []);
-      if (cur.size === 0 && prev.size === 0) return true;
-      return prev.size === cur.size && Array.from(prev).every((id) => cur.has(id));
-    }) || null;
-  }
-
-  function flash(msg) {
-    setToast(msg);
-    setTimeout(() => setToast(""), 1400);
-  }
-
-  function acceptedClauses(rep, acc) {
-    const out = [];
-    for (const id of Object.keys(acc)) {
-      if (!acc[id]) continue;
-      const m = rep.missing.find((x) => x.id === id);
-      if (m) out.push(m.clause);
-      const f = rep.riskyFindings.find((x) => x.id === id);
-      if (f) out.push(f.fix);
-    }
-    return out;
-  }
-
-  function analyze(text) {
-    const p = (text !== undefined ? text : prompt).trim();
-    if (!p) {
-      setStatus("Enter a prompt first");
-      return;
-    }
-    const rep = VectorAnalyzer.analyze(p, { strictMode: false });
-    setReport(rep);
-    setAccepted({});
-    setShowClarify(false);
-    setShowHarden(false);
-    setShowDelta(true);
-
-    // Security Delta against the last comparable snapshot kept on the device.
-    // The delta itself is derived at render time (see `liveDelta`) so it also
-    // reflects any clauses the user has accepted.
-    const prev = findComparable(rep);
-    setPrevReport(prev);
-    addHistory(rep);
-
-    setStatus("");
-    if (rep.needsDeepScan && settings.apiKey) runDeepScan(rep);
-  }
-
-  async function runDeepScan(rep) {
-    const target = rep || report;
-    if (!target) return;
-    if (!settings.apiKey) {
-      setShowSettings(true);
-      setStatus("Add an API key for deep scan");
-      return;
-    }
-    setBusy(true);
-    try {
-      const result = await VectorLLM.deepScan(target.prompt, settings);
-      setReport(VectorAnalyzer.mergeFindings(target, result.findings));
-      setStatus("");
-      flash("Deep scan merged (" + result.via + ")");
-    } catch (e) {
-      setStatus(e.message || "Deep scan failed");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  function toggle(id, label) {
-    setAccepted((prev) => {
-      const next = Object.assign({}, prev, { [id]: !prev[id] });
-      const proj = report ? project(report, next) : null;
-      if (proj && next[id]) flash(label + " added Â· coverage " + proj.coverageScore + "%");
-      return next;
-    });
-  }
-
-  function hardenNow() {
-    const p = (report ? report.prompt : prompt).trim();
-    if (!p) {
-      setStatus("Enter a prompt first");
-      return;
-    }
-    const h = VectorAnalyzer.harden(p);
-    setReport(h.report);
-    setAccepted({});
-    setShowClarify(false);
-    setShowHarden(false);
-    flash("Hardened Â· risk " + h.report.riskScore + " Â· coverage " + h.report.coverageScore + "%");
-  }
-
-  const improved = report ? buildImproved(report.prompt, acceptedClauses(report, accepted)) : "";
-  const proj = report ? project(report, accepted) : null;
-
-  // Delta is derived from the projected state so accepting a clause updates it
-  // immediately, without needing another analysis.
-  const liveDelta = (report && prevReport)
-    ? VectorAnalyzer.projectDelta(prevReport, report, accepted)
-    : null;
-
-  const core = report ? report.missing.filter((m) => (m.tier || "clarify") === "core") : [];
-  const clarify = report ? report.missing.filter((m) => (m.tier || "clarify") === "clarify") : [];
-  const harden = report ? report.missing.filter((m) => (m.tier || "clarify") === "harden") : [];
-
+function TopBar({ title, subtitle, canBack, onBack }) {
+  const t = useTheme();
   return (
-    <SafeAreaProvider>
-      <SafeAreaView style={styles.safe} edges={["top", "left", "right", "bottom"]}>
-        <StatusBar style="light" />
-
-        <View style={styles.header}>
-          <View style={styles.logo}><Text style={styles.logoText}>V</Text></View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.h1}>Vector</Text>
-            <Text style={styles.sub}>
-              {report
-                ? report.riskLevel + " " + proj.riskScore + "  Â·  coverage " + proj.coverageScore + "%"
-                : "AWS prompt security"}
-            </Text>
-          </View>
-          <Pressable style={styles.iconBtn} onPress={() => setShowSettings((s) => !s)}>
-            <Text style={styles.iconText}>âš™</Text>
-          </Pressable>
-        </View>
-
-        <ScrollView
-          contentContainerStyle={styles.body}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-        >
-          {showSettings ? (
-            <View style={styles.settings}>
-              <Text style={styles.label}>Deep scan API key (optional)</Text>
-              <TextInput
-                style={styles.input}
-                value={settings.apiKey}
-                onChangeText={(t) => setSettings(Object.assign({}, settings, { apiKey: t }))}
-                placeholder="AIza..."
-                placeholderTextColor="#9ca3af"
-                autoCapitalize="none"
-                secureTextEntry
-              />
-              <Text style={styles.label}>Base URL</Text>
-              <TextInput
-                style={styles.input}
-                value={settings.baseUrl}
-                onChangeText={(t) => setSettings(Object.assign({}, settings, { baseUrl: t }))}
-                autoCapitalize="none"
-                autoCorrect={false}
-                placeholderTextColor="#9ca3af"
-              />
-              <Text style={styles.label}>Model</Text>
-              <TextInput
-                style={styles.input}
-                value={settings.model}
-                onChangeText={(t) => setSettings(Object.assign({}, settings, { model: t }))}
-                autoCapitalize="none"
-                autoCorrect={false}
-                placeholderTextColor="#9ca3af"
-              />
-            </View>
-          ) : null}
-
-          <Text style={styles.label}>AWS infrastructure prompt</Text>
-          <TextInput
-            style={styles.textarea}
-            value={prompt}
-            onChangeText={setPrompt}
-            placeholder="e.g. Create an S3 bucket for user documents."
-            placeholderTextColor="#9ca3af"
-            multiline
-          />
-
-          <View style={styles.row}>
-            <Pressable style={styles.ghostBtn} onPress={() => { setPrompt(SAMPLE); analyze(SAMPLE); }}>
-              <Text style={styles.ghostText}>Sample</Text>
-            </Pressable>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Pressable style={styles.ghostBtn} onPress={() => runDeepScan()} disabled={busy}>
-                {busy ? <ActivityIndicator size="small" color="#818cf8" /> : <Text style={styles.ghostText}>Deep scan</Text>}
-              </Pressable>
-              <Pressable style={styles.primaryBtn} onPress={() => analyze()}>
-                <Text style={styles.primaryText}>Analyze</Text>
-              </Pressable>
-            </View>
-          </View>
-
-          {status ? <Text style={styles.status}>{status}</Text> : null}
-
-          {scanning ? (
-            <View style={styles.results}>
-              <View style={styles.warn}>
-                <Text style={styles.warnText}>Running deep scan on this promptâ€¦</Text>
-              </View>
-            </View>
-          ) : report && report.outOfScope ? (
-            <View style={styles.results}>
-              <View style={styles.warn}>
-                <Text style={styles.warnText}>{report.feedback[0]}</Text>
-              </View>
-            </View>
-          ) : report && report.aiClean && !report.missing.length && !report.riskyFindings.length ? (
-            <View style={styles.results}>
-              <View style={styles.ok}>
-                <Text style={styles.okText}>
-                  No issues found. This prompt already covers the required AWS security controls.
-                </Text>
-              </View>
-              <Text style={styles.disclaimer}>{report.disclaimer}</Text>
-            </View>
-          ) : report ? (
-            <View style={styles.results}>
-              {report.nonAwsLikely ? (
-                <View style={styles.warn}>
-                  <Text style={styles.warnText}>
-                    This looks like a non-AWS cloud prompt. Vector is AWS-specific.
-                  </Text>
-                </View>
-              ) : null}
-
-              <View style={[styles.riskCard, { borderLeftColor: RISK_COLOR[report.riskLevel] || "#94a3b8" }]}>
-                <View style={styles.riskTop}>
-                  <Text style={[styles.riskScore, { color: RISK_COLOR[report.riskLevel] || "#94a3b8" }]}>{proj.riskScore}</Text>
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={[styles.riskLevel, { color: RISK_COLOR[report.riskLevel] || "#94a3b8" }]}>
-                      {report.riskLevel} RISK
-                    </Text>
-                    <Text style={styles.riskMeta}>
-                      started {report.riskScore} Â· coverage {report.coverageScore}% â†’ {proj.coverageScore}%
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.covTrack}>
-                  <View style={[styles.covFill, { width: Math.max(2, proj.coverageScore) + "%" }]} />
-                </View>
-                <View style={styles.tierRow}>
-                  <Text style={[styles.tierChip, { color: "#f87171" }]}>{core.length} confirmed</Text>
-                  <Text style={[styles.tierChip, { color: "#fbbf24" }]}>{clarify.length} clarify</Text>
-                  <Text style={[styles.tierChip, { color: "#60a5fa" }]}>{harden.length} optional</Text>
-                </View>
-                <Pressable style={styles.acceptTop} onPress={hardenNow}>
-                  <Text style={styles.acceptTopText}>Harden prompt â†’ risk 0</Text>
-                </Pressable>
-                {report.needsDeepScan ? (
-                  <Text style={styles.note}>
-                    {settings.apiKey
-                      ? "Low confidence" + (busy ? " â€” running Deep scanâ€¦" : " â€” Deep scan applied/available")
-                      : "Low confidence â€” add an API key in âš™ to run Deep scan automatically."}
-                  </Text>
-                ) : null}
-              </View>
-
-              {liveDelta ? (
-                <View>
-                  <Pressable style={styles.toggle} onPress={() => setShowDelta((s) => !s)}>
-                    <Text style={styles.toggleText}>
-                      {showDelta ? "- Hide" : "+ Show"} Security Delta ({liveDelta.verdict})
-                    </Text>
-                  </Pressable>
-                  {showDelta ? (
-                    <View style={styles.deltaCard}>
-                      <View style={styles.deltaScores}>
-                        <Text style={styles.deltaScore}>
-                          Risk {liveDelta.risk.from} â†’ {liveDelta.risk.to}{" "}
-                          <Text style={{ color: liveDelta.risk.direction === "down" ? "#4ade80" : liveDelta.risk.direction === "up" ? "#f87171" : "#94a3b8" }}>
-                            {liveDelta.risk.direction === "down" ? "â–¼" : liveDelta.risk.direction === "up" ? "â–²" : "â€“"} {Math.abs(liveDelta.risk.delta)}
-                          </Text>
-                        </Text>
-                        <Text style={styles.deltaScore}>
-                          Coverage {liveDelta.coverage.from}% â†’ {liveDelta.coverage.to}%{" "}
-                          <Text style={{ color: liveDelta.coverage.direction === "up" ? "#4ade80" : liveDelta.coverage.direction === "down" ? "#f87171" : "#94a3b8" }}>
-                            {liveDelta.coverage.direction === "up" ? "â–²" : liveDelta.coverage.direction === "down" ? "â–¼" : "â€“"} {Math.abs(liveDelta.coverage.delta)}%
-                          </Text>
-                        </Text>
-                      </View>
-                      <Text style={styles.deltaLabel}>Added</Text>
-                      <Text style={styles.deltaItems}>{liveDelta.added.length ? liveDelta.added.map((a) => a.label).join(", ") : "None"}</Text>
-                      <Text style={styles.deltaLabel}>Still missing</Text>
-                      <Text style={styles.deltaItems}>{liveDelta.stillMissing.length ? liveDelta.stillMissing.map((a) => a.label).join(", ") : "None"}</Text>
-                      <Text style={styles.deltaLabel}>Newly missing</Text>
-                      <Text style={styles.deltaItems}>{liveDelta.newlyMissing.length ? liveDelta.newlyMissing.map((a) => a.label).join(", ") : "None"}</Text>
-                      <Text style={styles.deltaLabel}>New risks</Text>
-                      <Text style={styles.deltaItems}>{liveDelta.newRisks.length ? liveDelta.newRisks.map((a) => a.label).join(", ") : "None"}</Text>
-                      {liveDelta.resources.changed ? (
-                        <Text style={styles.deltaWarn}>Resource set changed ({liveDelta.resources.from} â†’ {liveDelta.resources.to}); scores are not directly comparable.</Text>
-                      ) : null}
-                    </View>
-                  ) : null}
-                </View>
-              ) : null}
-
-              {report.riskyFindings.length ? (
-                <View>
-                  <Text style={styles.h2}>Risky ({report.riskyFindings.length})</Text>
-                  {report.riskyFindings.map((f) => (
-                    <Card key={f.id} id={f.id} accepted={accepted} onToggle={toggle} color="#f87171"
-                      badge={f.severity} title={f.label} desc={f.description} clause={"Fix: " + f.fix} />
-                  ))}
-                </View>
-              ) : null}
-
-              <Text style={styles.h2}>Confirmed gaps ({core.length})</Text>
-              {core.length === 0 ? <Text style={styles.none}>None. âœ“</Text> : null}
-              {core.map((m) => (
-                <Card key={m.id} id={m.id} accepted={accepted} onToggle={toggle}
-                  color={SEV_COLOR[m.severity] || "#fbbf24"}
-                  badge={m.severity + (m.source === "ai" ? " Â· AI" : "")}
-                  title={m.label} desc={m.description} clause={m.clause} tf={m.tf} />
-              ))}
-
-              {clarify.length ? (
-                <View>
-                  <Pressable style={styles.toggle} onPress={() => setShowClarify((s) => !s)}>
-                    <Text style={styles.toggleText}>
-                      {showClarify ? "âˆ’ Hide" : "+ Show"} clarification ({clarify.length})
-                    </Text>
-                  </Pressable>
-                  {showClarify
-                    ? clarify.map((m) => (
-                        <Card key={m.id} id={m.id} accepted={accepted} onToggle={toggle}
-                          color={SEV_COLOR[m.severity] || "#fbbf24"}
-                          badge={m.severity + (m.source === "ai" ? " Â· AI" : "")}
-                          title={m.label} desc={m.description} clause={m.clause} tf={m.tf} />
-                      ))
-                    : null}
-                </View>
-              ) : null}
-
-              {harden.length ? (
-                <View>
-                  <Pressable style={styles.toggle} onPress={() => setShowHarden((s) => !s)}>
-                    <Text style={styles.toggleText}>
-                      {showHarden ? "âˆ’ Hide" : "+ Show"} optional hardening ({harden.length})
-                    </Text>
-                  </Pressable>
-                  {showHarden
-                    ? harden.map((m) => (
-                        <Card key={m.id} id={m.id} accepted={accepted} onToggle={toggle}
-                          color={SEV_COLOR[m.severity] || "#4ade80"}
-                          badge={m.severity + (m.source === "ai" ? " Â· AI" : "")}
-                          title={m.label} desc={m.description} clause={m.clause} tf={m.tf} />
-                      ))
-                    : null}
-                </View>
-              ) : null}
-
-              <View style={styles.rowBetween}>
-                <Text style={styles.h2}>Improved prompt</Text>
-                <Pressable onPress={() => Share.share({ message: improved })}>
-                  <Text style={styles.link}>Share</Text>
-                </Pressable>
-              </View>
-              <Text style={styles.improved}>{improved}</Text>
-              <Text style={styles.disclaimer}>{report.disclaimer}</Text>
-            </View>
-          ) : null}
-        </ScrollView>
-
-        {toast ? (
-          <View style={styles.toast} pointerEvents="none">
-            <Text style={styles.toastText}>{toast}</Text>
-          </View>
-        ) : null}
-      </SafeAreaView>
-    </SafeAreaProvider>
-  );
-}
-
-function Card({ id, accepted, onToggle, color, badge, title, desc, clause, tf }) {
-  const on = !!accepted[id];
-  return (
-    <View style={[styles.card, { borderLeftColor: color }, on && styles.cardOn]}>
-      <View style={styles.cardHead}>
-        <View style={[styles.badge, { borderColor: color }]}>
-          <Text style={[styles.badgeText, { color }]}>{badge}</Text>
-        </View>
-        <Text style={styles.cardTitle}>{title}</Text>
+    <View style={{ backgroundColor: t.background, borderBottomWidth: 1, borderBottomColor: t.outline, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10 }}>
+      {canBack ? (
+        <Pressable testID="top_bar_back_button" onPress={onBack} hitSlop={8} style={{ padding: 6, marginRight: 4 }}>
+          <Icon name="ArrowBack" size={22} color={t.onBackground} />
+        </Pressable>
+      ) : null}
+      <View style={{ width: 24, height: 24, borderRadius: 7, backgroundColor: t.logoBg, alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={{ color: t.logoFg, fontWeight: '800', fontSize: 13 }}>V</Text>
       </View>
-      {desc ? <Text style={styles.cardDesc}>{desc}</Text> : null}
-      {clause ? <Text style={styles.clause}>{clause}</Text> : null}
-      {tf ? <Text style={styles.tf}>Terraform: {tf}</Text> : null}
-      <Pressable style={[styles.smallBtn, on && styles.smallBtnOn]} onPress={() => onToggle(id, title)}>
-        <Text style={[styles.smallBtnText, on && styles.smallBtnTextOn]}>
-          {on ? "Added âœ“" : "+ Add clause"}
-        </Text>
-      </Pressable>
+      <View style={{ width: 8 }} />
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontSize: 18, fontWeight: '700', color: t.onBackground }}>{title}</Text>
+        {subtitle ? <Text style={{ fontSize: 12, color: t.onSurfaceVariant }}>{subtitle}</Text> : null}
+      </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#0f172a" },
-  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, backgroundColor: "#111827", borderBottomWidth: 1, borderBottomColor: "#1f2937" },
-  logo: { width: 36, height: 36, borderRadius: 10, backgroundColor: "#2d5d4f", alignItems: "center", justifyContent: "center", marginRight: 10 },
-  logoText: { color: "#facb43", fontWeight: "800", fontSize: 17 },
-  h1: { fontSize: 17, fontWeight: "800", color: "#f9fafb" },
-  sub: { fontSize: 12, color: "#a5b4fc", fontWeight: "700" },
-  iconBtn: { borderWidth: 1, borderColor: "#334155", borderRadius: 9, width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  iconText: { fontSize: 19, color: "#e5e7eb" },
+function BottomBar({ current, onNavigate }) {
+  const t = useTheme();
+  const activeTab = current === 'RESULTS' || current === 'IMPROVED_PROMPT' ? 'ANALYZE' : current;
+  return (
+    <View style={{ flexDirection: 'row', backgroundColor: t.surface, borderTopWidth: 1, borderTopColor: t.outline, paddingVertical: 8 }}>
+      {NAV.map((item) => {
+        const active = activeTab === item.screen;
+        return (
+          <Pressable
+            key={item.screen}
+            testID={item.testID}
+            onPress={() => onNavigate(item.screen)}
+            style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <View style={{ borderRadius: 16, paddingHorizontal: 16, paddingVertical: 4, backgroundColor: active ? t.primary : 'transparent' }}>
+              <Icon name={item.icon} size={22} color={active ? '#FFFFFF' : t.onSurfaceVariant} />
+            </View>
+            <Text style={{ marginTop: 2, fontSize: 11, fontWeight: '500', color: active ? t.primary : t.onSurfaceVariant }}>{item.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
 
-  body: { padding: 16, paddingBottom: 60, backgroundColor: "#0f172a" },
-  settings: { borderWidth: 1, borderColor: "#1f2937", borderRadius: 12, padding: 14, marginBottom: 16, backgroundColor: "#111827" },
-  label: { fontSize: 13, fontWeight: "700", marginBottom: 6, color: "#e5e7eb" },
-  input: { borderWidth: 1, borderColor: "#334155", borderRadius: 9, padding: 10, marginBottom: 10, fontSize: 14, color: "#f9fafb", backgroundColor: "#0f172a" },
-  textarea: { borderWidth: 1, borderColor: "#334155", borderRadius: 12, padding: 12, minHeight: 110, fontSize: 14, color: "#f9fafb", backgroundColor: "#111827", textAlignVertical: "top" },
+function Shell({ themeMode, setThemeMode }) {
+  const t = useTheme();
 
-  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 12 },
-  rowBetween: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 22 },
-  ghostBtn: { paddingVertical: 8, paddingHorizontal: 12, marginRight: 8 },
-  ghostText: { color: "#c7d2fe", fontWeight: "700" },
-  primaryBtn: { backgroundColor: "#6366f1", borderRadius: 10, paddingVertical: 11, paddingHorizontal: 18 },
-  primaryText: { color: "#fff", fontWeight: "800" },
-  status: { marginTop: 10, color: "#9ca3af", fontSize: 12 },
-  link: { color: "#818cf8", fontWeight: "700", fontSize: 13 },
+  const [screen, setScreen] = useState('ONBOARDING');
+  const [onboardingCompleted, setOnboardingCompleted] = useState(false);
+  const [simulated, setSimulated] = useState(false);
+  const [showNetwork, setShowNetwork] = useState(false);
 
-  results: { marginTop: 16 },
-  warn: { backgroundColor: "#78350f", borderRadius: 10, padding: 12, marginBottom: 12 },
-  warnText: { color: "#fde68a", fontSize: 12 },
-  ok: { backgroundColor: "#052e16", borderWidth: 1, borderColor: "#16a34a", borderRadius: 10, padding: 12, marginBottom: 12 },
-  okText: { color: "#4ade80", fontSize: 12.5 },
+  const [promptInput, setPromptInput] = useState('');
+  const [inputError, setInputError] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysis, setAnalysis] = useState(null);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [improvedText, setImprovedText] = useState('');
 
-  riskCard: { borderWidth: 1, borderColor: "#1f2937", borderLeftWidth: 5, borderRadius: 12, padding: 14, backgroundColor: "#111827" },
-  riskTop: { flexDirection: "row", alignItems: "center" },
-  riskScore: { fontSize: 42, fontWeight: "900" },
-  riskLevel: { fontSize: 13, fontWeight: "800" },
-  riskMeta: { fontSize: 11, color: "#9ca3af", marginTop: 2 },
-  covTrack: { height: 8, borderRadius: 4, backgroundColor: "#1f2937", marginTop: 10, overflow: "hidden" },
-  covFill: { height: 8, borderRadius: 4, backgroundColor: "#22c55e" },
-  tierRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 10 },
-  tierChip: { fontSize: 11, fontWeight: "700" },
-  acceptTop: { marginTop: 12, borderWidth: 1, borderColor: "#6366f1", borderRadius: 9, paddingVertical: 9, alignItems: "center" },
-  acceptTopText: { color: "#a5b4fc", fontWeight: "700", fontSize: 12 },
-  note: { marginTop: 10, fontSize: 11, color: "#fbbf24" },
-  deltaCard: { borderWidth: 1, borderColor: "#334155", borderRadius: 12, padding: 12, marginBottom: 10, backgroundColor: "#0b1220" },
-  deltaScores: { flexDirection: "row", gap: 16, marginBottom: 8, flexWrap: "wrap" },
-  deltaScore: { fontSize: 13, fontWeight: "700", color: "#e2e8f0" },
-  deltaLabel: { fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, color: "#94a3b8", marginTop: 8 },
-  deltaItems: { fontSize: 12, color: "#cbd5e1", marginTop: 2 },
-  deltaWarn: { marginTop: 10, fontSize: 11, color: "#fbbf24" },
+  const [history, setHistory] = useState([]);
+  const [search, setSearch] = useState('');
+  const [filterRisk, setFilterRisk] = useState(null);
+  const [sort, setSort] = useState('NEWEST');
+  const [snackbar, setSnackbar] = useState(null);
 
-  h2: { fontSize: 15, fontWeight: "800", marginTop: 20, color: "#f9fafb" },
-  none: { color: "#4ade80", fontSize: 13, marginTop: 6 },
-  toggle: { marginTop: 16, borderWidth: 1, borderColor: "#334155", borderRadius: 10, paddingVertical: 10, alignItems: "center" },
-  toggleText: { color: "#c7d2fe", fontWeight: "700", fontSize: 13 },
+  const online = !simulated;
 
-  card: { borderWidth: 1, borderColor: "#1f2937", borderLeftWidth: 4, borderRadius: 12, padding: 12, marginBottom: 10, backgroundColor: "#111827" },
-  cardOn: { backgroundColor: "#052e16", borderColor: "#16a34a" },
-  cardHead: { flexDirection: "row", alignItems: "center", flexWrap: "wrap" },
-  badge: { borderWidth: 1, borderRadius: 5, paddingHorizontal: 6, paddingVertical: 1, marginRight: 8 },
-  badgeText: { fontSize: 10, fontWeight: "800", textTransform: "uppercase" },
-  cardTitle: { fontSize: 14, fontWeight: "700", color: "#f9fafb", flexShrink: 1 },
-  cardDesc: { fontSize: 12, color: "#cbd5e1", marginTop: 6, lineHeight: 17 },
-  clause: { fontFamily: "monospace", fontSize: 11.5, color: "#e2e8f0", backgroundColor: "#0b1220", padding: 9, borderRadius: 8, marginTop: 8, lineHeight: 17 },
-  tf: { fontSize: 11, color: "#94a3b8", marginTop: 6, lineHeight: 15 },
-  smallBtn: { alignSelf: "flex-start", borderWidth: 1, borderColor: "#6366f1", borderRadius: 8, paddingVertical: 7, paddingHorizontal: 12, marginTop: 10 },
-  smallBtnOn: { borderColor: "#16a34a", backgroundColor: "#052e16" },
-  smallBtnText: { color: "#a5b4fc", fontWeight: "700", fontSize: 12 },
-  smallBtnTextOn: { color: "#4ade80" },
-  improved: { fontFamily: "monospace", fontSize: 12, color: "#e2e8f0", backgroundColor: "#0b1220", padding: 12, borderRadius: 10, marginTop: 6, lineHeight: 18 },
-  disclaimer: { marginTop: 18, fontSize: 11, fontStyle: "italic", color: "#94a3b8" },
+  useEffect(() => {
+    loadHistory().then(setHistory);
+  }, []);
 
-  toast: { position: "absolute", left: 20, right: 20, bottom: 24, backgroundColor: "#16a34a", borderRadius: 10, paddingVertical: 10, paddingHorizontal: 14, alignItems: "center" },
-  toastText: { color: "#fff", fontWeight: "700", fontSize: 13 },
-});
+  const flash = useCallback((msg) => {
+    setSnackbar(msg);
+    setTimeout(() => setSnackbar((cur) => (cur === msg ? null : cur)), 1800);
+  }, []);
+
+  const metrics = useMemo(() => metricsFrom(history), [history]);
+
+  const filteredHistory = useMemo(() => {
+    let list = history.slice();
+    if (search.trim()) {
+      const q = search.toLowerCase().trim();
+      list = list.filter((x) => x.prompt.toLowerCase().includes(q));
+    }
+    if (filterRisk) list = list.filter((x) => x.riskLevel === filterRisk);
+    list.sort((a, b) => (sort === 'HIGHEST_RISK' ? b.riskScore - a.riskScore : b.timestamp - a.timestamp));
+    return list;
+  }, [history, search, filterRisk, sort]);
+
+  const selectedClauses = useCallback(
+    (ids) => {
+      if (!analysis) return [];
+      return analysis.findings.filter((f) => ids.has(f.id) && f.isSelectable).map((f) => f.securityClause).filter(Boolean);
+    },
+    [analysis]
+  );
+
+  const refreshImproved = useCallback(
+    (ids) => {
+      if (!analysis) return;
+      setImprovedText(buildImprovedPrompt(analysis.prompt, selectedClauses(ids)));
+    },
+    [analysis, selectedClauses]
+  );
+
+  const navigateTo = useCallback((next) => setScreen(next), []);
+
+  const handleBack = useCallback(() => {
+    if (screen === 'RESULTS' || screen === 'IMPROVED_PROMPT') setScreen('ANALYZE');
+    else if (screen === 'ONBOARDING' && onboardingCompleted) setScreen('HOME');
+  }, [screen, onboardingCompleted]);
+
+  const finishOnboarding = useCallback(() => {
+    setOnboardingCompleted(true);
+    setScreen('HOME');
+  }, []);
+
+  const runAnalysis = useCallback(
+    async (text) => {
+      const value = (text !== undefined ? text : promptInput).trim();
+      if (!value) {
+        setInputError('Please enter an AWS infrastructure prompt or select an example.');
+        return;
+      }
+      setIsAnalyzing(true);
+      setInputError(null);
+      try {
+        const result = analyzePrompt(value);
+        setAnalysis(result);
+        const ids = new Set(eligibleClauseIds(result));
+        setSelectedIds(ids);
+        setImprovedText(buildImprovedPrompt(result.prompt, result.findings.filter((f) => ids.has(f.id)).map((f) => f.securityClause)));
+        const updated = await addToHistory(result);
+        setHistory(updated);
+        setScreen('RESULTS');
+      } catch (e) {
+        if (e.code === 'empty') setInputError(e.message);
+        else flash('Analysis failed: ' + e.message);
+      } finally {
+        setIsAnalyzing(false);
+      }
+    },
+    [promptInput, flash]
+  );
+
+  const handleAnalyze = useCallback(
+    (isDeepScan) => {
+      if (isDeepScan && !online) {
+        flash('Deep Scan is unavailable while offline. Executing on-device Rule-Based Analysis.');
+        runAnalysis(undefined);
+        return;
+      }
+      runAnalysis(undefined);
+    },
+    [online, flash, runAnalysis]
+  );
+
+  const selectExample = useCallback((text) => {
+    setPromptInput(text);
+    setInputError(null);
+  }, []);
+
+  const toggleClause = useCallback(
+    (id) => {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        refreshImproved(next);
+        return next;
+      });
+    },
+    [refreshImproved]
+  );
+
+  const selectAll = useCallback(() => {
+    if (!analysis) return;
+    const ids = new Set(eligibleClauseIds(analysis));
+    setSelectedIds(ids);
+    refreshImproved(ids);
+  }, [analysis, refreshImproved]);
+
+  const clearAll = useCallback(() => {
+    const ids = new Set();
+    setSelectedIds(ids);
+    refreshImproved(ids);
+  }, [refreshImproved]);
+
+  const reopen = useCallback(
+    (item) => {
+      setAnalysis(item);
+      setPromptInput(item.prompt);
+      const ids = new Set(eligibleClauseIds(item));
+      setSelectedIds(ids);
+      setImprovedText(buildImprovedPrompt(item.prompt, item.findings.filter((f) => ids.has(f.id)).map((f) => f.securityClause)));
+      setScreen('RESULTS');
+    },
+    []
+  );
+
+  const deleteItem = useCallback(
+    async (id) => {
+      const updated = await deleteFromHistory(id);
+      setHistory(updated);
+      flash('Analysis deleted from history.');
+    },
+    [flash]
+  );
+
+  const clearAllHistory = useCallback(async () => {
+    const updated = await clearHistory();
+    setHistory(updated);
+    flash('All analysis history cleared.');
+  }, [flash]);
+
+  const resetToOriginal = useCallback(() => {
+    if (!analysis) return;
+    setImprovedText(analysis.prompt);
+    setSelectedIds(new Set());
+  }, [analysis]);
+
+  const reanalyze = useCallback(() => {
+    const text = improvedText.trim();
+    if (!text) return;
+    setPromptInput(text);
+    runAnalysis(text);
+  }, [improvedText, runAnalysis]);
+
+  const copyImproved = useCallback(async () => {
+    try {
+      await Clipboard.setStringAsync(improvedText);
+      flash('Improved prompt copied to clipboard!');
+    } catch (e) {
+      flash('Failed to copy to clipboard: ' + (e.message || 'unknown error'));
+    }
+  }, [improvedText, flash]);
+
+  const toggleOffline = useCallback(
+    (value) => {
+      setSimulated(value === true);
+      flash(value === true ? 'Switched to Offline mode.' : 'Switched to Online mode.');
+    },
+    [flash]
+  );
+
+  if (screen === 'ONBOARDING') {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.background }} edges={['top', 'left', 'right', 'bottom']}>
+        <StatusBar style={t.mode === 'dark' ? 'light' : 'dark'} />
+        <OnboardingScreen onFinish={finishOnboarding} />
+        <Snackbar message={snackbar} />
+      </SafeAreaView>
+    );
+  }
+
+  const meta = TITLES[screen] || TITLES.HOME;
+  const canBack = screen === 'RESULTS' || screen === 'IMPROVED_PROMPT';
+  const showNetworkIndicator = screen === 'HOME' || screen === 'ANALYZE' || screen === 'HISTORY';
+  const showBottomBar = screen !== 'IMPROVED_PROMPT';
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.background }} edges={['top', 'left', 'right', 'bottom']}>
+      <StatusBar style={t.mode === 'dark' ? 'light' : 'dark'} />
+      <TopBar title={meta.title} subtitle={meta.subtitle} canBack={canBack} onBack={handleBack} />
+
+      {showNetworkIndicator ? (
+        <NetworkIndicator online={online} simulated={simulated} onPress={() => setShowNetwork(true)} />
+      ) : null}
+
+      <View style={{ flex: 1 }}>
+        {screen === 'HOME' ? (
+          <HomeScreen metrics={metrics} recentAnalyses={history} onStartAnalysis={() => navigateTo('ANALYZE')} onReopenAnalysis={reopen} />
+        ) : null}
+        {screen === 'ANALYZE' ? (
+          <AnalyzeScreen
+            promptInput={promptInput}
+            inputError={inputError}
+            isAnalyzing={isAnalyzing}
+            examplePrompts={EXAMPLE_PROMPTS}
+            onPromptChange={(v) => {
+              setPromptInput(v);
+              if (inputError) setInputError(null);
+            }}
+            onClearPrompt={() => {
+              setPromptInput('');
+              setInputError(null);
+            }}
+            onSelectExample={selectExample}
+            onAnalyze={handleAnalyze}
+          />
+        ) : null}
+        {screen === 'RESULTS' && analysis ? (
+          <ResultsScreen
+            analysis={analysis}
+            selectedIds={selectedIds}
+            onToggle={toggleClause}
+            onSelectAll={selectAll}
+            onClearAll={clearAll}
+            onNavigateToImproved={() => navigateTo('IMPROVED_PROMPT')}
+          />
+        ) : null}
+        {screen === 'IMPROVED_PROMPT' ? (
+          <ImprovedPromptScreen
+            improvedPromptText={improvedText}
+            selectedClauseCount={selectedIds.size}
+            onTextChanged={setImprovedText}
+            onResetToOriginal={resetToOriginal}
+            onReanalyze={reanalyze}
+            onCopy={copyImproved}
+          />
+        ) : null}
+        {screen === 'HISTORY' ? (
+          <HistoryScreen
+            analyses={filteredHistory}
+            searchQuery={search}
+            filterRisk={filterRisk}
+            sortOrder={sort}
+            onSearchChange={setSearch}
+            onFilterRiskChange={setFilterRisk}
+            onSortChange={setSort}
+            onReopen={reopen}
+            onDelete={deleteItem}
+            onClear={clearAllHistory}
+            onNavigateToAnalyze={() => navigateTo('ANALYZE')}
+          />
+        ) : null}
+        {screen === 'SETTINGS' ? (
+          <SettingsScreen
+            themeMode={themeMode}
+            isOnline={online}
+            isSimulated={simulated}
+            onThemeModeChange={setThemeMode}
+            onToggleOffline={toggleOffline}
+            onOpenOnboarding={() => navigateTo('ONBOARDING')}
+          />
+        ) : null}
+      </View>
+
+      {showBottomBar ? <BottomBar current={screen} onNavigate={navigateTo} /> : null}
+
+      <Snackbar message={snackbar} />
+      <NetworkDialog visible={showNetwork} online={online} simulated={simulated} onClose={() => setShowNetwork(false)} onToggleOffline={toggleOffline} />
+    </SafeAreaView>
+  );
+}
+
+export default function App() {
+  const [themeMode, setThemeMode] = useState('SYSTEM');
+  return (
+    <ThemeProvider themeMode={themeMode}>
+      <SafeAreaProvider>
+        <Shell themeMode={themeMode} setThemeMode={setThemeMode} />
+      </SafeAreaProvider>
+    </ThemeProvider>
+  );
+}

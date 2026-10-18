@@ -7,6 +7,10 @@
   `engine/src`. All hardcoded/demo data removed; every analysis is a real engine
   call.
 - **New client - native Android** (`ui/android`, teammate UI, Kotlin/Compose).
+- **Expo mobile app ported** (`ui/mobile-expo`): the full Android UI (Onboarding,
+  Home, Analyze, Results, Improved Prompt, History, Settings + bottom nav,
+  network indicator) rebuilt in React Native and wired to the shared engine.
+  Bundles cleanly with `npx expo export`.
 - **New brand logo** - dark-green tile `#2D5D4F` + gold V `#FACB43` - applied to
   all icons, store logo, Android launchers, splash screens and in-app marks.
 - `ui/web-app` dependencies trimmed; it now installs without `--legacy-peer-deps`.

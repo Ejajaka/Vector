@@ -1,80 +1,73 @@
 # Vector Mobile (React Native / Expo)
 
-React Native version of Vector for **iOS and Android**, reusing the same rule
-engine as the extension and the Capacitor app.
+React Native client for **iOS and Android**. The UI is a full port of the native
+Android client (`ui/android`), and it reuses the same shared rule engine
+(`engine/src`) as every other Vector surface. All analysis data comes from the
+engine - there is **no hardcoded or sample data**.
 
-## Verified in this repo
+## Screens (bottom navigation)
 
-- JSX parses cleanly (`@babel/parser`).
-- `npx expo export --platform ios` â†’ **iOS bundle built** (Hermes bytecode, 1.5 MB).
-- `npx expo export --platform android` â†’ **Android bundle built** (1.5 MB).
+| Screen | Purpose |
+|---|---|
+| Onboarding | 4-page intro (first launch): zero-deployment risk, the 3-step workflow, history/metrics, readiness |
+| Home | Hero + metrics (Total, Avg Risk, Avg Coverage, High-Risk) + recent analyses |
+| Analyze | Prompt input, example prompts, `Analyze Prompt` and `Deep Scan` |
+| Results | Risk badge, coverage, resources, tabs (Missing / Detected / Risky), selectable clauses |
+| Improved Prompt | Editable hardened prompt, Copy, Re-analyze, Reset |
+| History | Search, risk filter, sort, reopen/delete, clear-all |
+| Settings | Light/Dark/System theme, engine status, network + simulate-offline, about |
 
-Runs on **Expo SDK 57 / React Native 0.86 / React 19**, which matches the current
-**Expo Go** app (older SDKs are rejected by Expo Go).
+An online/offline `PersistentNetworkIndicator` appears on Home/Analyze/History,
+matching the Android client.
 
-That proves the app code and engine imports compile for both platforms.
-A native `.ipa`/`.apk` still has to be produced (see below).
-
-## The no-Mac path (important)
-
-**You do not need a Mac to run this on an iPhone.** Expo Go lets you run the app
-on a real device over the network:
+## Run
 
 ```powershell
-cd mobile-native-expo
+cd ui/mobile-expo
 npm install
-npm run sync        # copy the shared engine into engine/src/
-npx expo start
+npm run sync        # copy the shared engine into src/ (taxonomy, semantic, analyzer)
+npx expo start       # then scan the QR code with Expo Go
 ```
 
-Or use the helper that advertises the correct LAN IP automatically (fixes the
-"couldn't connect to the server" / blank screen on a phone):
+Run on **Expo SDK 57 / React Native 0.86 / React 19** (matches the current Expo
+Go app).
 
-```powershell
-npm run start:device
-```
+## Verification
 
-In the app: **Sample** â†’ **Analyze** â†’ **Harden prompt â†’ risk 0** (one tap)
-produces a prompt that re-analyses to risk 0 / coverage 100%.
+- `npx expo export --platform android` -> **bundles cleanly** (689 modules, Hermes
+  bytecode). This proves every screen, component and engine import compiles.
 
-Then install **Expo Go** on the phone and scan the QR code. Instant demo, no
-build, no Apple account.
+## Dependencies
 
-## Store builds (EAS, cloud)
-
-Requires an Expo account (free tier) and:
-- Apple App Store: **Apple Developer Program, $99/year**
-- Google Play: **$25 one-time**
-
-```powershell
-npm install -g eas-cli
-eas login
-eas build -p ios --profile production       # builds in the cloud, no Mac
-eas build -p android --profile production
-eas submit -p ios
-eas submit -p android
-```
-
-Store metadata can reuse `../ui/store/privacy-policy.html` and `../ui/store/listing.md`.
+Beyond Expo itself: `@expo/vector-icons` (Material icons),
+`expo-clipboard` (Copy Improved Prompt) and
+`@react-native-async-storage/async-storage` (local history).
 
 ## Files
 
 ```
 ui/mobile-expo/
-  App.js                 single-screen UI (React Native components)
-  app.json               Expo config (bundle id com.vector.security)
-  package.json           Expo SDK 57 (RN 0.86, React 19)
-  babel.config.js
-  sync-engine.ps1        copies ../src engine files into engine/src/
-  engine/src/                   taxonomy.js, semantic.js, analyzer.js, llm.js (generated)
+  App.js                     app shell: theme, navigation, top/bottom bars, state
+  src/theme.js               light/dark palette + risk helpers
+  src/vector.js              engine adapter -> AnalysisResult model (no demo data)
+  src/storage.js             AsyncStorage history
+  src/ui.js                  shared components (cards, badges, finding card, dialogs)
+  src/screens/HomeScreen.js
+  src/screens/AnalyzeScreen.js
+  src/screens/ResultsScreen.js
+  src/screens/ImprovedPromptScreen.js
+  src/screens/HistoryScreen.js
+  src/screens/OnboardingScreen.js
+  src/screens/SettingsScreen.js
+  src/analyzer.js ...        (generated copies of the shared engine)
+  app.json / package.json / babel.config.js
+  sync-engine.ps1
 ```
 
 ## Caveats
 
-- `ui.js` (DOM) is **not** reused; React Native has its own UI. Only the pure
-  engine is shared.
-- This duplicates the Capacitor app in `../mobile`. For an RN requirement, use
-  this one and ignore/remove the Capacitor one, or keep both (they share the
-  same engine).
-- Not launched on a device here (no emulator/simulator). Run `npx expo start`
-  and verify the UI before submitting.
+- `ui.js` (DOM renderer) is not reused; React Native has its own components. Only
+  the pure engine is shared.
+- History is stored with AsyncStorage on the device; there is no seeded data.
+- Not launched on a device/emulator in the build environment here. Run
+  `npx expo start` and verify the UI on a phone before submitting.
