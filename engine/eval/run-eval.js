@@ -1,4 +1,4 @@
-"use strict";
+﻿"use strict";
 
 /**
  * Vector evaluation harness.
@@ -108,7 +108,7 @@ function evaluate(file) {
 }
 
 const files = process.argv.slice(2);
-const toRun = files.length ? files : ["dataset.json", "dataset2.json", "heldout.json"];
+const toRun = files.length ? files : ["dataset.json", "dataset2.json", "heldout.json", "heldout2.json"];
 const results = toRun.map(evaluate);
 
 const worstF1 = Math.min.apply(null, results.map((r) => r.flagF1));

@@ -32,6 +32,10 @@
 - **Evaluation tooling:** added `npm run eval:controls` (per-control
   precision/recall/F1 across the labelled sets) and `npm run verify:all`
   (tests + eval + per-control + probe + extension package in one command).
+- **100-case held-out suite** (`engine/eval/heldout2.json`, 25 AWS scenarios x 4
+  variants) labelled independently of the rules and not used for tuning.
+  Result: missing-constraint **F1 0.941** (P 93.6 / R 94.6), risky **F1 0.821**,
+  1 negation failure. Per-control metrics included; κ label scaffold added.
 - **Design system refresh (from the Android client):** geometric V logo,
   accessible risk palette (`#C05621` high, `#9E7D1B` medium, `#2E6F40` low),
   Risk Findings Distribution card, report download, About screen, and revised

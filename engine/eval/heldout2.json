@@ -1,0 +1,2348 @@
+{
+  "version": 1,
+  "note": "Held-out suite (100 cases) generated independently of the rule patterns and NOT used to tune them. Labels follow dataset.json conventions: mustFlag = should be reported missing; mustNotFlag = stated/not applicable and must not be flagged. Because the labels were produced by the project author with AI assistance, they should be reviewed by a second human annotator before quoting as a benchmark.",
+  "cases": [
+    {
+      "id": "h2-s3-plain",
+      "category": "storage",
+      "prompt": "Create an S3 bucket to store customer invoices.",
+      "mustFlag": [
+        "public_access_block",
+        "encryption_at_rest",
+        "audit_logging",
+        "versioning",
+        "data_classification"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-s3-secure",
+      "category": "storage",
+      "prompt": "Create a private S3 bucket encrypted at rest with KMS, block all public access, enable versioning and CloudTrail logging in eu-west-1.",
+      "mustFlag": [],
+      "mustNotFlag": [
+        "public_access_block",
+        "encryption_at_rest",
+        "audit_logging",
+        "versioning",
+        "regional_restriction"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-s3-risky",
+      "category": "storage",
+      "prompt": "Create a public S3 bucket for hosting marketing assets.",
+      "mustFlag": [
+        "encryption_at_rest",
+        "audit_logging"
+      ],
+      "mustNotFlag": [],
+      "risky": [
+        "public_bucket"
+      ],
+      "notRisky": [
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-s3-neg",
+      "category": "storage",
+      "prompt": "Create an S3 bucket but do not allow public access.",
+      "mustFlag": [
+        "encryption_at_rest",
+        "audit_logging"
+      ],
+      "mustNotFlag": [
+        "public_access_block"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-ec2-plain",
+      "category": "compute",
+      "prompt": "Launch an EC2 instance to run the billing service.",
+      "mustFlag": [
+        "network_restricted",
+        "network_isolation",
+        "secrets_management",
+        "imdsv2",
+        "audit_logging",
+        "encryption_at_rest"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-ec2-secure",
+      "category": "compute",
+      "prompt": "Launch an EC2 instance in a private subnet with a restricted security group, IMDSv2 required, EBS encrypted with KMS and CloudTrail logging.",
+      "mustFlag": [],
+      "mustNotFlag": [
+        "network_restricted",
+        "network_isolation",
+        "imdsv2",
+        "encryption_at_rest",
+        "audit_logging"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-ec2-risky",
+      "category": "compute",
+      "prompt": "Launch an EC2 instance with SSH open to 0.0.0.0/0.",
+      "mustFlag": [
+        "audit_logging",
+        "encryption_at_rest"
+      ],
+      "mustNotFlag": [],
+      "risky": [
+        "open_ssh"
+      ],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-ec2-neg",
+      "category": "compute",
+      "prompt": "Launch an EC2 instance without public SSH access.",
+      "mustFlag": [
+        "encryption_at_rest",
+        "audit_logging"
+      ],
+      "mustNotFlag": [
+        "network_restricted"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-rds-plain",
+      "category": "database",
+      "prompt": "Create an RDS PostgreSQL database for orders.",
+      "mustFlag": [
+        "public_access_block",
+        "network_restricted",
+        "secrets_management",
+        "backup_recovery",
+        "encryption_at_rest",
+        "audit_logging"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-rds-secure",
+      "category": "database",
+      "prompt": "Create an RDS database in a private subnet, encrypted at rest with KMS, not public, with Secrets Manager credentials, automated backups and CloudTrail logging in ap-south-1.",
+      "mustFlag": [],
+      "mustNotFlag": [
+        "public_access_block",
+        "network_restricted",
+        "encryption_at_rest",
+        "secrets_management",
+        "backup_recovery",
+        "audit_logging",
+        "regional_restriction"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-rds-risky",
+      "category": "database",
+      "prompt": "Create an RDS database that is publicly accessible.",
+      "mustFlag": [
+        "encryption_at_rest",
+        "audit_logging"
+      ],
+      "mustNotFlag": [],
+      "risky": [
+        "public_database"
+      ],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-rds-neg",
+      "category": "database",
+      "prompt": "Create an RDS database with no public endpoint.",
+      "mustFlag": [
+        "encryption_at_rest",
+        "audit_logging"
+      ],
+      "mustNotFlag": [
+        "public_access_block"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-dynamodb-plain",
+      "category": "database",
+      "prompt": "Create a DynamoDB table for shopping carts.",
+      "mustFlag": [
+        "backup_recovery",
+        "encryption_at_rest",
+        "audit_logging"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-dynamodb-secure",
+      "category": "database",
+      "prompt": "Create a DynamoDB table with encryption at rest, point-in-time recovery, CloudTrail logging and least privilege IAM.",
+      "mustFlag": [],
+      "mustNotFlag": [
+        "encryption_at_rest",
+        "backup_recovery",
+        "audit_logging",
+        "least_privilege_iam"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-dynamodb-risky",
+      "category": "database",
+      "prompt": "Create a DynamoDB table with backups disabled.",
+      "mustFlag": [
+        "encryption_at_rest",
+        "audit_logging"
+      ],
+      "mustNotFlag": [],
+      "risky": [
+        "no_backup"
+      ],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-dynamodb-neg",
+      "category": "database",
+      "prompt": "Create a DynamoDB table without any encryption.",
+      "mustFlag": [
+        "backup_recovery",
+        "audit_logging"
+      ],
+      "mustNotFlag": [],
+      "risky": [
+        "no_encryption"
+      ],
+      "notRisky": [
+        "public_bucket",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-lambda-plain",
+      "category": "serverless",
+      "prompt": "Create a Lambda function to process uploads.",
+      "mustFlag": [
+        "no_wildcard_policy",
+        "secrets_management",
+        "monitoring_alerting",
+        "least_privilege_iam"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-lambda-secure",
+      "category": "serverless",
+      "prompt": "Create a Lambda function with a least privilege role, no wildcard permissions, Secrets Manager credentials and CloudWatch alerts.",
+      "mustFlag": [],
+      "mustNotFlag": [
+        "least_privilege_iam",
+        "no_wildcard_policy",
+        "secrets_management",
+        "monitoring_alerting"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-lambda-risky",
+      "category": "serverless",
+      "prompt": "Create a Lambda function whose role has wildcard permissions.",
+      "mustFlag": [
+        "secrets_management"
+      ],
+      "mustNotFlag": [],
+      "risky": [
+        "wildcard_iam"
+      ],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-lambda-neg",
+      "category": "serverless",
+      "prompt": "Create a Lambda function without wildcard IAM permissions.",
+      "mustFlag": [
+        "secrets_management",
+        "monitoring_alerting"
+      ],
+      "mustNotFlag": [
+        "no_wildcard_policy"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-sqs-plain",
+      "category": "messaging",
+      "prompt": "Create an SQS queue for background jobs.",
+      "mustFlag": [
+        "encryption_at_rest",
+        "key_rotation",
+        "audit_logging"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-sqs-secure",
+      "category": "messaging",
+      "prompt": "Create an SQS queue encrypted at rest with a rotating KMS key and CloudTrail logging.",
+      "mustFlag": [],
+      "mustNotFlag": [
+        "encryption_at_rest",
+        "key_rotation",
+        "audit_logging"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-sqs-risky",
+      "category": "messaging",
+      "prompt": "Create an SQS queue with no encryption.",
+      "mustFlag": [
+        "key_rotation",
+        "audit_logging"
+      ],
+      "mustNotFlag": [],
+      "risky": [
+        "no_encryption"
+      ],
+      "notRisky": [
+        "public_bucket",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-sqs-neg",
+      "category": "messaging",
+      "prompt": "Create an SQS queue with logging disabled.",
+      "mustFlag": [
+        "encryption_at_rest"
+      ],
+      "mustNotFlag": [],
+      "risky": [
+        "disabled_logging"
+      ],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-sns-plain",
+      "category": "messaging",
+      "prompt": "Create an SNS topic for alerts.",
+      "mustFlag": [
+        "encryption_at_rest",
+        "audit_logging",
+        "least_privilege_iam"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-sns-secure",
+      "category": "messaging",
+      "prompt": "Create an SNS topic encrypted at rest with least privilege publishing and CloudTrail logging.",
+      "mustFlag": [],
+      "mustNotFlag": [
+        "encryption_at_rest",
+        "audit_logging",
+        "least_privilege_iam"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-sns-risky",
+      "category": "messaging",
+      "prompt": "Create an SNS topic with a wildcard IAM policy.",
+      "mustFlag": [
+        "encryption_at_rest",
+        "audit_logging"
+      ],
+      "mustNotFlag": [],
+      "risky": [
+        "wildcard_iam"
+      ],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-sns-neg",
+      "category": "messaging",
+      "prompt": "Create an SNS topic without encryption.",
+      "mustFlag": [
+        "audit_logging"
+      ],
+      "mustNotFlag": [],
+      "risky": [
+        "no_encryption"
+      ],
+      "notRisky": [
+        "public_bucket",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-eks-plain",
+      "category": "containers",
+      "prompt": "Deploy a Kubernetes cluster on AWS for payments.",
+      "mustFlag": [
+        "network_isolation",
+        "secrets_management",
+        "vulnerability_scanning",
+        "audit_logging",
+        "key_rotation"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-eks-secure",
+      "category": "containers",
+      "prompt": "Deploy an EKS cluster in a private VPC with Secrets Manager, image scanning, CloudTrail logging and KMS key rotation.",
+      "mustFlag": [],
+      "mustNotFlag": [
+        "network_isolation",
+        "secrets_management",
+        "vulnerability_scanning",
+        "audit_logging",
+        "key_rotation"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-eks-risky",
+      "category": "containers",
+      "prompt": "Deploy a Kubernetes cluster with a wildcard admin role.",
+      "mustFlag": [
+        "network_isolation",
+        "secrets_management",
+        "audit_logging"
+      ],
+      "mustNotFlag": [],
+      "risky": [
+        "wildcard_iam"
+      ],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-eks-neg",
+      "category": "containers",
+      "prompt": "Deploy an EKS cluster without public access to the API.",
+      "mustFlag": [
+        "secrets_management",
+        "audit_logging"
+      ],
+      "mustNotFlag": [
+        "network_isolation"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-ecs-plain",
+      "category": "containers",
+      "prompt": "Run a container on ECS Fargate for the API.",
+      "mustFlag": [
+        "network_isolation",
+        "secrets_management",
+        "audit_logging",
+        "vulnerability_scanning"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-ecs-secure",
+      "category": "containers",
+      "prompt": "Run an ECS Fargate service in private subnets with Secrets Manager, image scanning and CloudTrail logging.",
+      "mustFlag": [],
+      "mustNotFlag": [
+        "network_isolation",
+        "secrets_management",
+        "audit_logging",
+        "vulnerability_scanning"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-ecs-risky",
+      "category": "containers",
+      "prompt": "Run an ECS task with the database password hard-coded in the image.",
+      "mustFlag": [
+        "secrets_management"
+      ],
+      "mustNotFlag": [],
+      "risky": [
+        "hardcoded_secret"
+      ],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-ecs-neg",
+      "category": "containers",
+      "prompt": "Run an ECS service without hard-coded credentials.",
+      "mustFlag": [
+        "audit_logging"
+      ],
+      "mustNotFlag": [
+        "secrets_management"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-cloudfront-plain",
+      "category": "network",
+      "prompt": "Put CloudFront in front of an S3 bucket.",
+      "mustFlag": [
+        "public_access_block",
+        "certificate_management",
+        "waf_protection"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-cloudfront-secure",
+      "category": "network",
+      "prompt": "Put CloudFront in front of a private S3 bucket with an ACM certificate and WAF.",
+      "mustFlag": [],
+      "mustNotFlag": [
+        "public_access_block",
+        "certificate_management",
+        "waf_protection"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-cloudfront-risky",
+      "category": "network",
+      "prompt": "Put CloudFront in front of a public S3 bucket.",
+      "mustFlag": [
+        "certificate_management",
+        "waf_protection"
+      ],
+      "mustNotFlag": [],
+      "risky": [
+        "public_bucket"
+      ],
+      "notRisky": [
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-cloudfront-neg",
+      "category": "network",
+      "prompt": "Put CloudFront in front of an S3 bucket that is not public.",
+      "mustFlag": [
+        "certificate_management",
+        "waf_protection"
+      ],
+      "mustNotFlag": [
+        "public_access_block"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-alb-plain",
+      "category": "network",
+      "prompt": "Create an Application Load Balancer for the web app.",
+      "mustFlag": [
+        "network_restricted",
+        "certificate_management",
+        "encryption_in_transit",
+        "waf_protection"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-alb-secure",
+      "category": "network",
+      "prompt": "Create an ALB with a restricted security group, ACM certificate, TLS and WAF.",
+      "mustFlag": [],
+      "mustNotFlag": [
+        "network_restricted",
+        "certificate_management",
+        "encryption_in_transit",
+        "waf_protection"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-alb-risky",
+      "category": "network",
+      "prompt": "Create an internet-facing ALB with no WAF.",
+      "mustFlag": [
+        "encryption_in_transit",
+        "certificate_management"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-alb-neg",
+      "category": "network",
+      "prompt": "Create an ALB that does not allow public access.",
+      "mustFlag": [
+        "certificate_management",
+        "encryption_in_transit"
+      ],
+      "mustNotFlag": [
+        "network_restricted"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-apigw-plain",
+      "category": "network",
+      "prompt": "Create an API Gateway for the mobile app.",
+      "mustFlag": [
+        "waf_protection",
+        "certificate_management",
+        "secrets_management",
+        "monitoring_alerting"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-apigw-secure",
+      "category": "network",
+      "prompt": "Create an API Gateway with WAF, an ACM certificate, Secrets Manager integration and monitoring.",
+      "mustFlag": [],
+      "mustNotFlag": [
+        "waf_protection",
+        "certificate_management",
+        "secrets_management",
+        "monitoring_alerting"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-apigw-risky",
+      "category": "network",
+      "prompt": "Create an API Gateway with an open endpoint and no throttling.",
+      "mustFlag": [
+        "certificate_management",
+        "monitoring_alerting"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-apigw-neg",
+      "category": "network",
+      "prompt": "Create an API Gateway without public access.",
+      "mustFlag": [
+        "waf_protection",
+        "certificate_management"
+      ],
+      "mustNotFlag": [
+        "network_restricted"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-iam-plain",
+      "category": "identity",
+      "prompt": "Create IAM users for the engineering team.",
+      "mustFlag": [
+        "mfa",
+        "password_policy",
+        "session_management",
+        "scp_permission_boundary",
+        "audit_logging"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-iam-secure",
+      "category": "identity",
+      "prompt": "Create IAM users with MFA, a strong password policy, session limits and CloudTrail logging.",
+      "mustFlag": [],
+      "mustNotFlag": [
+        "mfa",
+        "password_policy",
+        "session_management",
+        "audit_logging"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-iam-risky",
+      "category": "identity",
+      "prompt": "Create an admin IAM user without MFA.",
+      "mustFlag": [
+        "password_policy",
+        "session_management"
+      ],
+      "mustNotFlag": [],
+      "risky": [
+        "weak_auth"
+      ],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup"
+      ]
+    },
+    {
+      "id": "h2-iam-neg",
+      "category": "identity",
+      "prompt": "Create IAM users that do not have wildcard permissions.",
+      "mustFlag": [
+        "mfa",
+        "audit_logging"
+      ],
+      "mustNotFlag": [
+        "no_wildcard_policy"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-sagemaker-plain",
+      "category": "ml",
+      "prompt": "Deploy a SageMaker endpoint for recommendations.",
+      "mustFlag": [
+        "network_restricted",
+        "data_classification",
+        "secrets_management",
+        "key_rotation",
+        "data_residency"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-sagemaker-secure",
+      "category": "ml",
+      "prompt": "Deploy a SageMaker endpoint in a private VPC with classified data, Secrets Manager, KMS rotation and ap-south-1 residency.",
+      "mustFlag": [],
+      "mustNotFlag": [
+        "network_restricted",
+        "data_classification",
+        "secrets_management",
+        "key_rotation",
+        "data_residency"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-sagemaker-risky",
+      "category": "ml",
+      "prompt": "Deploy a SageMaker endpoint with a public endpoint.",
+      "mustFlag": [
+        "secrets_management",
+        "data_classification"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-sagemaker-neg",
+      "category": "ml",
+      "prompt": "Deploy a SageMaker endpoint without public access.",
+      "mustFlag": [
+        "secrets_management",
+        "data_classification"
+      ],
+      "mustNotFlag": [
+        "network_restricted"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-kms-plain",
+      "category": "encryption",
+      "prompt": "Create a KMS key for the application.",
+      "mustFlag": [
+        "key_rotation",
+        "audit_logging",
+        "least_privilege_iam"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-kms-secure",
+      "category": "encryption",
+      "prompt": "Create a KMS key with automatic rotation, a least privilege policy and CloudTrail logging.",
+      "mustFlag": [],
+      "mustNotFlag": [
+        "key_rotation",
+        "least_privilege_iam",
+        "audit_logging"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-kms-risky",
+      "category": "encryption",
+      "prompt": "Create a KMS key with a wildcard key policy.",
+      "mustFlag": [
+        "key_rotation",
+        "audit_logging"
+      ],
+      "mustNotFlag": [],
+      "risky": [
+        "wildcard_iam"
+      ],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-kms-neg",
+      "category": "encryption",
+      "prompt": "Create a KMS key without a wildcard policy.",
+      "mustFlag": [
+        "key_rotation",
+        "audit_logging"
+      ],
+      "mustNotFlag": [
+        "no_wildcard_policy"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-secrets-plain",
+      "category": "secrets",
+      "prompt": "Store the database password in Secrets Manager.",
+      "mustFlag": [
+        "key_rotation",
+        "audit_logging",
+        "least_privilege_iam"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-secrets-secure",
+      "category": "secrets",
+      "prompt": "Store the database password in Secrets Manager with rotation, least privilege access and CloudTrail logging.",
+      "mustFlag": [],
+      "mustNotFlag": [
+        "key_rotation",
+        "least_privilege_iam",
+        "audit_logging"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-secrets-risky",
+      "category": "secrets",
+      "prompt": "Store the database password in a config file.",
+      "mustFlag": [
+        "secrets_management"
+      ],
+      "mustNotFlag": [],
+      "risky": [
+        "hardcoded_secret"
+      ],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-secrets-neg",
+      "category": "secrets",
+      "prompt": "Do not hard-code the database password; use Secrets Manager.",
+      "mustFlag": [
+        "audit_logging"
+      ],
+      "mustNotFlag": [
+        "secrets_management"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-backup-plain",
+      "category": "backup",
+      "prompt": "Configure AWS Backup for our volumes.",
+      "mustFlag": [
+        "encryption_at_rest",
+        "key_rotation",
+        "audit_logging",
+        "data_residency"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-backup-secure",
+      "category": "backup",
+      "prompt": "Configure AWS Backup with KMS encryption, key rotation, CloudTrail logging and eu-west-1 residency.",
+      "mustFlag": [],
+      "mustNotFlag": [
+        "encryption_at_rest",
+        "key_rotation",
+        "audit_logging",
+        "data_residency"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-backup-risky",
+      "category": "backup",
+      "prompt": "Configure AWS Backup with backups disabled.",
+      "mustFlag": [
+        "encryption_at_rest",
+        "audit_logging"
+      ],
+      "mustNotFlag": [],
+      "risky": [
+        "no_backup"
+      ],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-backup-neg",
+      "category": "backup",
+      "prompt": "Configure AWS Backup without public access.",
+      "mustFlag": [
+        "encryption_at_rest",
+        "audit_logging"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-config-plain",
+      "category": "compliance",
+      "prompt": "Enable AWS Config for compliance.",
+      "mustFlag": [
+        "audit_logging",
+        "monitoring_alerting",
+        "least_privilege_iam"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-config-secure",
+      "category": "compliance",
+      "prompt": "Enable AWS Config with CloudTrail logging, alerting and least privilege access.",
+      "mustFlag": [],
+      "mustNotFlag": [
+        "audit_logging",
+        "monitoring_alerting",
+        "least_privilege_iam"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-config-risky",
+      "category": "compliance",
+      "prompt": "Enable AWS Config with logging disabled.",
+      "mustFlag": [
+        "monitoring_alerting"
+      ],
+      "mustNotFlag": [],
+      "risky": [
+        "disabled_logging"
+      ],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-config-neg",
+      "category": "compliance",
+      "prompt": "Enable AWS Config without public access.",
+      "mustFlag": [
+        "monitoring_alerting"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-guardduty-plain",
+      "category": "monitoring",
+      "prompt": "Enable GuardDuty for threat detection.",
+      "mustFlag": [
+        "monitoring_alerting",
+        "audit_logging"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-guardduty-secure",
+      "category": "monitoring",
+      "prompt": "Enable GuardDuty with CloudWatch alerts and CloudTrail logging.",
+      "mustFlag": [],
+      "mustNotFlag": [
+        "monitoring_alerting",
+        "audit_logging"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-guardduty-risky",
+      "category": "monitoring",
+      "prompt": "Enable GuardDuty with alerting disabled.",
+      "mustFlag": [
+        "audit_logging"
+      ],
+      "mustNotFlag": [],
+      "risky": [
+        "disabled_logging"
+      ],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-guardduty-neg",
+      "category": "monitoring",
+      "prompt": "Enable GuardDuty without public access.",
+      "mustFlag": [
+        "monitoring_alerting"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-cognito-plain",
+      "category": "identity",
+      "prompt": "Create a Cognito user pool for the app.",
+      "mustFlag": [
+        "mfa",
+        "password_policy",
+        "encryption_at_rest",
+        "audit_logging"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-cognito-secure",
+      "category": "identity",
+      "prompt": "Create a Cognito user pool with MFA, a strong password policy, encryption at rest and CloudTrail logging.",
+      "mustFlag": [],
+      "mustNotFlag": [
+        "mfa",
+        "password_policy",
+        "encryption_at_rest",
+        "audit_logging"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-cognito-risky",
+      "category": "identity",
+      "prompt": "Create a Cognito user pool without MFA.",
+      "mustFlag": [
+        "password_policy",
+        "encryption_at_rest"
+      ],
+      "mustNotFlag": [],
+      "risky": [
+        "weak_auth"
+      ],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup"
+      ]
+    },
+    {
+      "id": "h2-cognito-neg",
+      "category": "identity",
+      "prompt": "Create a Cognito user pool without weak passwords.",
+      "mustFlag": [
+        "mfa",
+        "audit_logging"
+      ],
+      "mustNotFlag": [
+        "password_policy"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-opensearch-plain",
+      "category": "analytics",
+      "prompt": "Create an OpenSearch domain for logs.",
+      "mustFlag": [
+        "encryption_at_rest",
+        "encryption_in_transit",
+        "network_restricted",
+        "audit_logging"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-opensearch-secure",
+      "category": "analytics",
+      "prompt": "Create an OpenSearch domain with encryption at rest and in transit, a restricted security group and CloudTrail logging.",
+      "mustFlag": [],
+      "mustNotFlag": [
+        "encryption_at_rest",
+        "encryption_in_transit",
+        "network_restricted",
+        "audit_logging"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-opensearch-risky",
+      "category": "analytics",
+      "prompt": "Create a public OpenSearch domain.",
+      "mustFlag": [
+        "encryption_at_rest",
+        "audit_logging"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-opensearch-neg",
+      "category": "analytics",
+      "prompt": "Create an OpenSearch domain without public access.",
+      "mustFlag": [
+        "encryption_at_rest",
+        "audit_logging"
+      ],
+      "mustNotFlag": [
+        "network_restricted"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-redshift-plain",
+      "category": "analytics",
+      "prompt": "Create a Redshift cluster for analytics.",
+      "mustFlag": [
+        "encryption_at_rest",
+        "public_access_block",
+        "audit_logging",
+        "backup_recovery"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-redshift-secure",
+      "category": "analytics",
+      "prompt": "Create a private Redshift cluster encrypted at rest with CloudTrail logging and automated backups.",
+      "mustFlag": [],
+      "mustNotFlag": [
+        "encryption_at_rest",
+        "public_access_block",
+        "audit_logging",
+        "backup_recovery"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-redshift-risky",
+      "category": "analytics",
+      "prompt": "Create a publicly accessible Redshift cluster.",
+      "mustFlag": [
+        "encryption_at_rest",
+        "audit_logging"
+      ],
+      "mustNotFlag": [],
+      "risky": [
+        "public_database"
+      ],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-redshift-neg",
+      "category": "analytics",
+      "prompt": "Create a Redshift cluster that is not public.",
+      "mustFlag": [
+        "encryption_at_rest",
+        "audit_logging"
+      ],
+      "mustNotFlag": [
+        "public_access_block"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-elasticache-plain",
+      "category": "database",
+      "prompt": "Create an ElastiCache Redis cluster.",
+      "mustFlag": [
+        "encryption_at_rest",
+        "encryption_in_transit",
+        "network_isolation",
+        "audit_logging"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-elasticache-secure",
+      "category": "database",
+      "prompt": "Create an ElastiCache Redis cluster with encryption at rest and in transit, in a private subnet, with CloudTrail logging.",
+      "mustFlag": [],
+      "mustNotFlag": [
+        "encryption_at_rest",
+        "encryption_in_transit",
+        "network_isolation",
+        "audit_logging"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-elasticache-risky",
+      "category": "database",
+      "prompt": "Create a public ElastiCache cluster.",
+      "mustFlag": [
+        "encryption_at_rest",
+        "encryption_in_transit"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-elasticache-neg",
+      "category": "database",
+      "prompt": "Create an ElastiCache cluster without public access.",
+      "mustFlag": [
+        "encryption_at_rest",
+        "audit_logging"
+      ],
+      "mustNotFlag": [
+        "network_isolation"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-efs-plain",
+      "category": "storage",
+      "prompt": "Create an EFS file system for shared files.",
+      "mustFlag": [
+        "encryption_at_rest",
+        "backup_recovery",
+        "audit_logging",
+        "network_isolation"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-efs-secure",
+      "category": "storage",
+      "prompt": "Create an EFS file system encrypted at rest, with backups, in a private subnet and CloudTrail logging.",
+      "mustFlag": [],
+      "mustNotFlag": [
+        "encryption_at_rest",
+        "backup_recovery",
+        "network_isolation",
+        "audit_logging"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-efs-risky",
+      "category": "storage",
+      "prompt": "Create an unencrypted EFS file system.",
+      "mustFlag": [
+        "backup_recovery",
+        "audit_logging"
+      ],
+      "mustNotFlag": [],
+      "risky": [
+        "no_encryption"
+      ],
+      "notRisky": [
+        "public_bucket",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-efs-neg",
+      "category": "storage",
+      "prompt": "Create an EFS file system that is not public.",
+      "mustFlag": [
+        "encryption_at_rest",
+        "audit_logging"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-transfer-plain",
+      "category": "storage",
+      "prompt": "Set up an SFTP server using Transfer Family.",
+      "mustFlag": [
+        "network_restricted",
+        "public_access_block",
+        "encryption_in_transit"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-transfer-secure",
+      "category": "storage",
+      "prompt": "Set up an SFTP server on Transfer Family with a restricted security group, private access and TLS.",
+      "mustFlag": [],
+      "mustNotFlag": [
+        "network_restricted",
+        "public_access_block",
+        "encryption_in_transit"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-transfer-risky",
+      "category": "storage",
+      "prompt": "Set up a public SFTP server using Transfer Family.",
+      "mustFlag": [
+        "encryption_in_transit"
+      ],
+      "mustNotFlag": [],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    },
+    {
+      "id": "h2-transfer-neg",
+      "category": "storage",
+      "prompt": "Set up an SFTP server without public access.",
+      "mustFlag": [
+        "encryption_in_transit"
+      ],
+      "mustNotFlag": [
+        "public_access_block"
+      ],
+      "risky": [],
+      "notRisky": [
+        "public_bucket",
+        "no_encryption",
+        "open_ssh",
+        "wildcard_iam",
+        "public_database",
+        "hardcoded_secret",
+        "disabled_logging",
+        "no_backup",
+        "weak_auth"
+      ]
+    }
+  ]
+}

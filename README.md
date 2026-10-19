@@ -107,11 +107,27 @@ npm run downstream     # insecure vs hardened Terraform demo
 npm run verify:all     # tests + eval + per-control + probe + package
 ```
 
-The labelled sets are small and were tuned after seeing failures, so treat the
-reported scores as indicative rather than a benchmark. The paraphrase probe is
-more honest about generalisation: tuned sets score ~100%, while a never-tuned
-held-out set scores lower - pure-rule recall on arbitrary paraphrase has a
-ceiling, which is why the optional deep scan exists.
+The three original labelled sets are small and were tuned after seeing failures,
+so their scores are optimistic. `heldout2.json` is a **100-case suite labelled
+independently of the rules and not used for tuning**; it is the honest number:
+
+| Set | Missing-constraint F1 | Risky F1 | Negation failures |
+|---|---|---|---|
+| dataset.json (39) + dataset2.json (59) + heldout.json (14) | 1.000 | 1.000 | 0 |
+| **heldout2.json (100, held out)** | **0.941** (P 93.6 / R 94.6) | **0.821** (P 94.1 / R 72.7) | 1 |
+
+Weakest controls on the held-out suite: `network_isolation` (recall 66.7%) and
+`monitoring_alerting` (77.8%); `no_wildcard_policy` and `network_restricted`
+have lower precision because of negation phrasing ("without public access",
+"do not have wildcard permissions"). The paraphrase probe is stricter still
+(arbitrary wording): tuned sets ~100%, never-tuned held-out set 58%.
+
+**Inter-annotator agreement:** `engine/eval/labels/heldout2-annotator-a.json`
+holds the first annotation; a second human should fill
+`heldout2-annotator-b.TEMPLATE.json`, then run
+`npm run kappa -- engine/eval/labels/heldout2-annotator-a.json engine/eval/labels/heldout2-annotator-b.json`.
+The current labels were produced by the author with AI assistance, so they
+should be reviewed before being quoted as a benchmark.
 
 ## One-tap harden
 

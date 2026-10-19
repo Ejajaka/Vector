@@ -1,4 +1,4 @@
-"use strict";
+﻿"use strict";
 
 /**
  * Per-control precision / recall / F1 across the labelled evaluation sets.
@@ -19,7 +19,9 @@ const fs = require("fs");
 const path = require("path");
 const V = require(path.join(__dirname, "..", "src", "analyzer.js"));
 
-const FILES = ["dataset.json", "dataset2.json", "heldout.json"];
+const FILES = process.argv.slice(2).length
+  ? process.argv.slice(2)
+  : ["dataset.json", "dataset2.json", "heldout.json", "heldout2.json"];
 const stats = {}; // id -> { tp, fp, fn }
 const seen = new Set();
 

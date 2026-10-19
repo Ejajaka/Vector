@@ -1,0 +1,363 @@
+{
+  "h2-s3-plain": [
+    "public_access_block",
+    "encryption_at_rest",
+    "audit_logging",
+    "versioning",
+    "data_classification"
+  ],
+  "h2-s3-secure": [],
+  "h2-s3-risky": [
+    "encryption_at_rest",
+    "audit_logging"
+  ],
+  "h2-s3-neg": [
+    "encryption_at_rest",
+    "audit_logging"
+  ],
+  "h2-ec2-plain": [
+    "network_restricted",
+    "network_isolation",
+    "secrets_management",
+    "imdsv2",
+    "audit_logging",
+    "encryption_at_rest"
+  ],
+  "h2-ec2-secure": [],
+  "h2-ec2-risky": [
+    "audit_logging",
+    "encryption_at_rest"
+  ],
+  "h2-ec2-neg": [
+    "encryption_at_rest",
+    "audit_logging"
+  ],
+  "h2-rds-plain": [
+    "public_access_block",
+    "network_restricted",
+    "secrets_management",
+    "backup_recovery",
+    "encryption_at_rest",
+    "audit_logging"
+  ],
+  "h2-rds-secure": [],
+  "h2-rds-risky": [
+    "encryption_at_rest",
+    "audit_logging"
+  ],
+  "h2-rds-neg": [
+    "encryption_at_rest",
+    "audit_logging"
+  ],
+  "h2-dynamodb-plain": [
+    "backup_recovery",
+    "encryption_at_rest",
+    "audit_logging"
+  ],
+  "h2-dynamodb-secure": [],
+  "h2-dynamodb-risky": [
+    "encryption_at_rest",
+    "audit_logging"
+  ],
+  "h2-dynamodb-neg": [
+    "backup_recovery",
+    "audit_logging"
+  ],
+  "h2-lambda-plain": [
+    "no_wildcard_policy",
+    "secrets_management",
+    "monitoring_alerting",
+    "least_privilege_iam"
+  ],
+  "h2-lambda-secure": [],
+  "h2-lambda-risky": [
+    "secrets_management"
+  ],
+  "h2-lambda-neg": [
+    "secrets_management",
+    "monitoring_alerting"
+  ],
+  "h2-sqs-plain": [
+    "encryption_at_rest",
+    "key_rotation",
+    "audit_logging"
+  ],
+  "h2-sqs-secure": [],
+  "h2-sqs-risky": [
+    "key_rotation",
+    "audit_logging"
+  ],
+  "h2-sqs-neg": [
+    "encryption_at_rest"
+  ],
+  "h2-sns-plain": [
+    "encryption_at_rest",
+    "audit_logging",
+    "least_privilege_iam"
+  ],
+  "h2-sns-secure": [],
+  "h2-sns-risky": [
+    "encryption_at_rest",
+    "audit_logging"
+  ],
+  "h2-sns-neg": [
+    "audit_logging"
+  ],
+  "h2-eks-plain": [
+    "network_isolation",
+    "secrets_management",
+    "vulnerability_scanning",
+    "audit_logging",
+    "key_rotation"
+  ],
+  "h2-eks-secure": [],
+  "h2-eks-risky": [
+    "network_isolation",
+    "secrets_management",
+    "audit_logging"
+  ],
+  "h2-eks-neg": [
+    "secrets_management",
+    "audit_logging"
+  ],
+  "h2-ecs-plain": [
+    "network_isolation",
+    "secrets_management",
+    "audit_logging",
+    "vulnerability_scanning"
+  ],
+  "h2-ecs-secure": [],
+  "h2-ecs-risky": [
+    "secrets_management"
+  ],
+  "h2-ecs-neg": [
+    "audit_logging"
+  ],
+  "h2-cloudfront-plain": [
+    "public_access_block",
+    "certificate_management",
+    "waf_protection"
+  ],
+  "h2-cloudfront-secure": [],
+  "h2-cloudfront-risky": [
+    "certificate_management",
+    "waf_protection"
+  ],
+  "h2-cloudfront-neg": [
+    "certificate_management",
+    "waf_protection"
+  ],
+  "h2-alb-plain": [
+    "network_restricted",
+    "certificate_management",
+    "encryption_in_transit",
+    "waf_protection"
+  ],
+  "h2-alb-secure": [],
+  "h2-alb-risky": [
+    "encryption_in_transit",
+    "certificate_management"
+  ],
+  "h2-alb-neg": [
+    "certificate_management",
+    "encryption_in_transit"
+  ],
+  "h2-apigw-plain": [
+    "waf_protection",
+    "certificate_management",
+    "secrets_management",
+    "monitoring_alerting"
+  ],
+  "h2-apigw-secure": [],
+  "h2-apigw-risky": [
+    "certificate_management",
+    "monitoring_alerting"
+  ],
+  "h2-apigw-neg": [
+    "waf_protection",
+    "certificate_management"
+  ],
+  "h2-iam-plain": [
+    "mfa",
+    "password_policy",
+    "session_management",
+    "scp_permission_boundary",
+    "audit_logging"
+  ],
+  "h2-iam-secure": [],
+  "h2-iam-risky": [
+    "password_policy",
+    "session_management"
+  ],
+  "h2-iam-neg": [
+    "mfa",
+    "audit_logging"
+  ],
+  "h2-sagemaker-plain": [
+    "network_restricted",
+    "data_classification",
+    "secrets_management",
+    "key_rotation",
+    "data_residency"
+  ],
+  "h2-sagemaker-secure": [],
+  "h2-sagemaker-risky": [
+    "secrets_management",
+    "data_classification"
+  ],
+  "h2-sagemaker-neg": [
+    "secrets_management",
+    "data_classification"
+  ],
+  "h2-kms-plain": [
+    "key_rotation",
+    "audit_logging",
+    "least_privilege_iam"
+  ],
+  "h2-kms-secure": [],
+  "h2-kms-risky": [
+    "key_rotation",
+    "audit_logging"
+  ],
+  "h2-kms-neg": [
+    "key_rotation",
+    "audit_logging"
+  ],
+  "h2-secrets-plain": [
+    "key_rotation",
+    "audit_logging",
+    "least_privilege_iam"
+  ],
+  "h2-secrets-secure": [],
+  "h2-secrets-risky": [
+    "secrets_management"
+  ],
+  "h2-secrets-neg": [
+    "audit_logging"
+  ],
+  "h2-backup-plain": [
+    "encryption_at_rest",
+    "key_rotation",
+    "audit_logging",
+    "data_residency"
+  ],
+  "h2-backup-secure": [],
+  "h2-backup-risky": [
+    "encryption_at_rest",
+    "audit_logging"
+  ],
+  "h2-backup-neg": [
+    "encryption_at_rest",
+    "audit_logging"
+  ],
+  "h2-config-plain": [
+    "audit_logging",
+    "monitoring_alerting",
+    "least_privilege_iam"
+  ],
+  "h2-config-secure": [],
+  "h2-config-risky": [
+    "monitoring_alerting"
+  ],
+  "h2-config-neg": [
+    "monitoring_alerting"
+  ],
+  "h2-guardduty-plain": [
+    "monitoring_alerting",
+    "audit_logging"
+  ],
+  "h2-guardduty-secure": [],
+  "h2-guardduty-risky": [
+    "audit_logging"
+  ],
+  "h2-guardduty-neg": [
+    "monitoring_alerting"
+  ],
+  "h2-cognito-plain": [
+    "mfa",
+    "password_policy",
+    "encryption_at_rest",
+    "audit_logging"
+  ],
+  "h2-cognito-secure": [],
+  "h2-cognito-risky": [
+    "password_policy",
+    "encryption_at_rest"
+  ],
+  "h2-cognito-neg": [
+    "mfa",
+    "audit_logging"
+  ],
+  "h2-opensearch-plain": [
+    "encryption_at_rest",
+    "encryption_in_transit",
+    "network_restricted",
+    "audit_logging"
+  ],
+  "h2-opensearch-secure": [],
+  "h2-opensearch-risky": [
+    "encryption_at_rest",
+    "audit_logging"
+  ],
+  "h2-opensearch-neg": [
+    "encryption_at_rest",
+    "audit_logging"
+  ],
+  "h2-redshift-plain": [
+    "encryption_at_rest",
+    "public_access_block",
+    "audit_logging",
+    "backup_recovery"
+  ],
+  "h2-redshift-secure": [],
+  "h2-redshift-risky": [
+    "encryption_at_rest",
+    "audit_logging"
+  ],
+  "h2-redshift-neg": [
+    "encryption_at_rest",
+    "audit_logging"
+  ],
+  "h2-elasticache-plain": [
+    "encryption_at_rest",
+    "encryption_in_transit",
+    "network_isolation",
+    "audit_logging"
+  ],
+  "h2-elasticache-secure": [],
+  "h2-elasticache-risky": [
+    "encryption_at_rest",
+    "encryption_in_transit"
+  ],
+  "h2-elasticache-neg": [
+    "encryption_at_rest",
+    "audit_logging"
+  ],
+  "h2-efs-plain": [
+    "encryption_at_rest",
+    "backup_recovery",
+    "audit_logging",
+    "network_isolation"
+  ],
+  "h2-efs-secure": [],
+  "h2-efs-risky": [
+    "backup_recovery",
+    "audit_logging"
+  ],
+  "h2-efs-neg": [
+    "encryption_at_rest",
+    "audit_logging"
+  ],
+  "h2-transfer-plain": [
+    "network_restricted",
+    "public_access_block",
+    "encryption_in_transit"
+  ],
+  "h2-transfer-secure": [],
+  "h2-transfer-risky": [
+    "encryption_in_transit"
+  ],
+  "h2-transfer-neg": [
+    "encryption_in_transit"
+  ]
+}
