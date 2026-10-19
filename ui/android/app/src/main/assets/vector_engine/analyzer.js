@@ -483,9 +483,34 @@ function computeRisk(relevantCounts, findings) {
   const ratio = missingWeight / Math.max(1, maxWeight);
   let score = 100 * Math.pow(ratio, 1.4);
   let riskyWeight = 0;
-  for (const f of findings) riskyWeight += severityRank(f.severity) * 1.5;
+  const countedRiskGroups = new Set();
+  for (const f of findings) {
+    const group = riskGroup(f);
+    if (group && countedRiskGroups.has(group)) continue;
+    if (group) countedRiskGroups.add(group);
+    riskyWeight += severityRank(f.severity) * 1.5;
+  }
   const riskyBump = Math.min(55, riskyWeight * 9);
   return Math.min(100, Math.round(score + riskyBump));
+}
+
+function canonicalFindingLabel(label) {
+  const compact = String(label || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (/hardcoded(credential|secret)s?/.test(compact)) return "hardcodedcredentials";
+  if (/unencrypteddata|disableencryption/.test(compact)) return "encryptiondisabled";
+  if (/disablecloudtrail|loggingdisabled/.test(compact)) return "loggingdisabled";
+  if (/wildcard.*iam|iam.*wildcard/.test(compact)) return "wildcardiam";
+  return compact;
+}
+
+function riskGroup(finding) {
+  const id = String(finding && finding.id || "").toLowerCase();
+  const text = String(finding && (finding.label || finding.description) || "").toLowerCase();
+  if (id === "hardcoded_secret" || /hard[- ]?coded credentials?/.test(text)) return "hardcoded_credentials";
+  if (id === "no_encryption" || /unencrypted data|disable encryption/.test(text)) return "encryption_disabled";
+  if (id === "disabled_logging" || /disable cloudtrail|logging disabled/.test(text)) return "logging_disabled";
+  if (id === "open_ssh" || /open ssh|unrestricted inbound|0\.0\.0\.0\/0/.test(text)) return "unrestricted_inbound";
+  return "";
 }
 
 /**
@@ -510,8 +535,12 @@ function project(report, accepted) {
     missingWeight += typeof m.weight === "number" ? m.weight : severityRank(m.severity);
   }
   let riskyWeight = 0;
+  const countedRiskGroups = new Set();
   for (const f of report.riskyFindings) {
     if (on(f.id)) continue;
+    const group = riskGroup(f);
+    if (group && countedRiskGroups.has(group)) continue;
+    if (group) countedRiskGroups.add(group);
     riskyWeight += typeof f.weight === "number" ? f.weight : severityRank(f.severity) * 1.5;
   }
 
@@ -803,6 +832,28 @@ function analyze(prompt, options) {
 
   riskyFindings.sort((a, b) => severityRank(b.severity) - severityRank(a.severity));
 
+  // Keep explicit unsafe requests visible for remediation, but do not count
+  // the same control as both an omission and an independent risk contribution.
+  const explicitlyRiskyControls = new Set();
+  const riskControlMap = {
+    open_ssh: ["network_restricted"],
+    public_bucket: ["public_access_block"],
+    wildcard_iam: ["least_privilege_iam", "no_wildcard_policy"],
+    no_encryption: ["encryption_at_rest"],
+    hardcoded_secret: ["secrets_management"],
+    disabled_logging: ["audit_logging"]
+  };
+  for (const riskyFinding of riskyFindings) {
+    for (const controlId of riskControlMap[riskyFinding.id] || []) explicitlyRiskyControls.add(controlId);
+  }
+  for (const missingFinding of missing) {
+    if (explicitlyRiskyControls.has(missingFinding.id)) {
+      missingFinding.explicitlyRisky = true;
+      const requirement = relevantCounts.find((item) => item.id === missingFinding.id);
+      if (requirement) requirement.missing = false;
+    }
+  }
+
   let riskScore = computeRisk(relevantCounts, riskyFindings);
   riskScore = Math.min(100, Math.round(riskScore * envFactor));
   const riskMeta = riskLevelFromScore(riskScore);
@@ -915,13 +966,25 @@ function mergeFindings(report, external) {
   let missing = report.missing.slice();
   const mentioned = report.mentioned.slice();
   const riskyFindings = report.riskyFindings.slice();
-  const seenMissing = new Set(missing.map((m) => (m.label || "").toLowerCase()));
-  const seenRisky = new Set(riskyFindings.map((r) => (r.label || "").toLowerCase()));
+  const seenMissing = new Set(missing.map((m) => canonicalFindingLabel(m.label)));
+  const seenRisky = new Set(riskyFindings.map((r) => canonicalFindingLabel(r.label)));
 
   for (const m of external.missing || []) {
     if (!m || !m.label) continue;
-    if (seenMissing.has(m.label.toLowerCase())) continue;
-    seenMissing.add(m.label.toLowerCase());
+    const key = canonicalFindingLabel(m.label);
+    if (seenMissing.has(key)) {
+      const existing = missing.find((item) => canonicalFindingLabel(item.label) === key);
+      if (existing && existing.source !== "ai") {
+        Object.assign(existing, {
+          source: "ai",
+          aiDuplicate: true,
+          description: m.description || existing.description,
+          clause: m.clause || existing.clause
+        });
+      }
+      continue;
+    }
+    seenMissing.add(key);
     missing.push({
       id: m.id || "ai_" + missing.length,
       label: m.label,
@@ -940,8 +1003,20 @@ function mergeFindings(report, external) {
 
   for (const r of external.risky || []) {
     if (!r || !r.label) continue;
-    if (seenRisky.has(r.label.toLowerCase())) continue;
-    seenRisky.add(r.label.toLowerCase());
+    const key = canonicalFindingLabel(r.label);
+    if (seenRisky.has(key)) {
+      const existing = riskyFindings.find((item) => canonicalFindingLabel(item.label) === key);
+      if (existing && existing.source !== "ai") {
+        Object.assign(existing, {
+          source: "ai",
+          aiDuplicate: true,
+          description: r.description || existing.description,
+          fix: r.fix || existing.fix
+        });
+      }
+      continue;
+    }
+    seenRisky.add(key);
     riskyFindings.push({
       id: r.id || "ai_risky_" + riskyFindings.length,
       label: r.label,
@@ -1005,7 +1080,11 @@ function mergeFindings(report, external) {
     .reduce((a, m) => a + (m.weight || 0), 0);
   const ratio = coreMissingWeight / Math.max(1, coreTotal || report.totalWeight || 1);
   let riskyWeight = 0;
+  const countedRiskGroups = new Set();
   for (const f of riskyFindings) {
+    const group = riskGroup(f);
+    if (group && countedRiskGroups.has(group)) continue;
+    if (group) countedRiskGroups.add(group);
     riskyWeight += typeof f.weight === "number" ? f.weight : severityRank(f.severity) * 1.5;
   }
   const base = Math.min(100, Math.round(100 * Math.pow(ratio, 1.4) + Math.min(55, riskyWeight * 9)));
