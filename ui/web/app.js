@@ -169,8 +169,8 @@
   function setHint() {
     const t = report.tierCounts || { core: 0, clarify: 0, harden: 0 };
     el.hint.textContent =
-      report.riskLevel + " " + report.riskScore + "/100 Â· coverage " + report.coverageScore +
-      "% Â· " + t.core + " confirmed";
+      report.riskLevel + " " + report.riskScore + "/100 · coverage " + report.coverageScore +
+      "% · " + t.core + " confirmed";
   }
 
   function analyzeNow() {

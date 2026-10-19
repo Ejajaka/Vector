@@ -90,11 +90,11 @@ export default function HomeScreen({ metrics, recentAnalyses, onStartAnalysis, o
 
       <View style={{ flexDirection: 'row', gap: 10 }}>
         <MetricCard testID="metric_total_analyses" title="Saved Analyses" value={hasData ? String(metrics.totalAnalyses) : '0'} subtitle={hasData ? 'Evaluated prompts' : 'No saved analyses'} icon="Analytics" accent={t.primary} />
-        <MetricCard testID="metric_avg_risk" title="Avg Risk Profile" value={hasData ? `${metrics.averageRiskScore}/100` : 'â€”'} subtitle={hasData ? 'Aggregate score' : 'Awaiting runs'} icon="Shield" accent={avgRiskAccent} />
+        <MetricCard testID="metric_avg_risk" title="Avg Risk Profile" value={hasData ? `${metrics.averageRiskScore}/100` : '—'} subtitle={hasData ? 'Aggregate score' : 'Awaiting runs'} icon="Shield" accent={avgRiskAccent} />
       </View>
       <View style={{ height: 10 }} />
       <View style={{ flexDirection: 'row', gap: 10 }}>
-        <MetricCard testID="metric_avg_coverage" title="Avg Coverage" value={hasData ? `${metrics.averageCoverage}%` : 'â€”'} subtitle={hasData ? 'Controls present' : 'Awaiting runs'} icon="VerifiedUser" accent={t.primary} />
+        <MetricCard testID="metric_avg_coverage" title="Avg Coverage" value={hasData ? `${metrics.averageCoverage}%` : '—'} subtitle={hasData ? 'Controls present' : 'Awaiting runs'} icon="VerifiedUser" accent={t.primary} />
         <MetricCard testID="metric_high_risk" title="Elevated Risks" value={hasData ? String(metrics.highRiskCount) : '0'} subtitle={hasData ? 'Critical / High' : 'Clean profile'} icon="Warning" accent={RISK.HIGH} />
       </View>
 

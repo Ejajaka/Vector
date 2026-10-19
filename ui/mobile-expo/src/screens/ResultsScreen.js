@@ -8,7 +8,7 @@ const SEV_RANK = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
 function markdownReport(analysis, improvedText) {
   const date = new Date(analysis.timestamp).toISOString();
   const lines = [];
-  lines.push('# Vector â€” Security Diagnosis Report', '');
+  lines.push('# Vector — Security Diagnosis Report', '');
   lines.push(`**Date:** ${date}`);
   lines.push(`**Analysis ID:** \`${analysis.id}\``);
   lines.push(`**Overall Risk Score:** ${analysis.riskScore}/100 (${analysis.riskLevel})`);

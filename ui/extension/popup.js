@@ -75,7 +75,7 @@
     state.accepted = {};
     render();
     setHint();
-    toast("Hardened Â· risk " + report.riskScore + " Â· coverage " + report.coverageScore + "%");
+    toast("Hardened · risk " + report.riskScore + " · coverage " + report.coverageScore + "%");
   }
 
   function setHint() {
