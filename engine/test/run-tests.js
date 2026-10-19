@@ -623,6 +623,41 @@ test("mergeFindings: an AI finding is labelled ai", () => {
   assert.ok(merged.missing.some((m) => m.source === "ai"));
 });
 
+test("contradiction: enabling then disabling encryption is flagged", () => {
+  const r = analyze("Create a private S3 bucket. Enable encryption at rest. Disable encryption at rest.");
+  assert.ok(r.riskyFindings.some((f) => f.id === "contradiction_encryption_at_rest"));
+  assert.ok(r.feedback.some((f) => /Conflicting requirements/i.test(f)));
+});
+
+test("contradiction: public access requested while also blocked", () => {
+  const r = analyze("Create a publicly accessible S3 bucket. Block all public access and allow access only to authorized users.");
+  assert.ok(r.riskyFindings.some((f) => f.id === "contradiction_public_access"));
+});
+
+test("public read-only with safeguards is risky but not maximum", () => {
+  const r = analyze(
+    "Create an S3 bucket for public website images. Allow public read access to objects, but prohibit public writes and deletes. Enable encryption, enforce TLS, and grant administrative permissions only to authorized IAM roles."
+  );
+  assert.ok(r.riskScore > 0 && r.riskScore < 100, "expected 0 < risk < 100, got " + r.riskScore);
+  const pub = r.riskyFindings.find((f) => f.id === "public_bucket");
+  assert.ok(pub && pub.severity === "medium", "read-only public exposure should be medium");
+});
+
+test("risk: a secure private bucket scores low", () => {
+  const r = analyze(
+    "Create a private S3 bucket for website images. Block all public access and ACLs. Enable encryption at rest, enforce TLS 1.2 or higher, grant least-privilege IAM access, enable CloudTrail and access logging, enable versioning, and define a retention policy."
+  );
+  assert.ok(r.riskScore < 30, "expected low risk, got " + r.riskScore);
+});
+
+test("resources: 'website images' is storage, not EC2/ALB", () => {
+  const r = analyze("Create a private S3 bucket for website images.");
+  const ids = r.resources.map((x) => x.id);
+  assert.ok(ids.includes("s3"));
+  assert.ok(!ids.includes("ec2"));
+  assert.ok(!ids.includes("load_balancer"));
+});
+
 (async function run() {
   for (const t of queue) {
     try {

@@ -36,6 +36,15 @@
   variants) labelled independently of the rules and not used for tuning.
   Result: missing-constraint **F1 0.941** (P 93.6 / R 94.6), risky **F1 0.821**,
   1 negation failure. Per-control metrics included; κ label scaffold added.
+- **Scoring fixes (from real prompt tests):**
+  - risk now reflects missing **core** controls + risky statements only, so
+    optional gaps no longer make a secure prompt look dangerous;
+  - contradictory requirements ("enable encryption ... disable encryption",
+    "public access ... block public access") are reported as explicit findings;
+  - public read-only access is graded medium rather than maximum;
+  - "website images/files/content" no longer mis-expands to EC2/load-balancer;
+  - "only authorized IAM roles" now satisfies least privilege.
+  5 new unit tests (81 total).
 - **Design system refresh (from the Android client):** geometric V logo,
   accessible risk palette (`#C05621` high, `#9E7D1B` medium, `#2E6F40` low),
   Risk Findings Distribution card, report download, About screen, and revised

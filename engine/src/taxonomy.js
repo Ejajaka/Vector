@@ -104,6 +104,7 @@ const REQUIREMENTS = [
       "only what (it|they) needs?", "minimal permissions?",
       "don'?t (give|grant|allow)[^.]{0,50}(more (permissions|privileges)|excess)",
       "smallest (set of )?(permissions|privileges|access)",
+      "only (to )?authorized (iam )?roles?", "authorized (iam )?roles?",
     ]
   },
   {
@@ -335,7 +336,7 @@ const REQUIREMENTS = [
     clause:
       "Require IMDSv2 and disable IMDSv1 on all instances.",
     standards: ["AWS FSBP EC2.8", "CIS AWS 5.x"],
-    patterns: ["imds", "imdsv2", "metadata service", "instance metadata", "session token"]
+    patterns: ["imdsv2", "imds v2", "metadata service", "instance metadata", "session token"]
   },
   {
     id: "mfa",
@@ -766,7 +767,7 @@ const SYNONYMS = [
   { test: /\b(container(s)?|docker|orchestrat)\b/i, add: " kubernetes eks " },
   { test: /\b(cache|caching)\b/i, add: " redis elasticache " },
   { test: /\b(message queue|queue|broker|messaging)\b/i, add: " sqs " },
-  { test: /\b(webserver|web server|web application|web app|website|web service)\b/i, add: " ec2 load balancer " },
+  { id: "web_hosting", test: /\b(webserver|web server|web application|web app|website|web service)\b/i, add: " ec2 load balancer " },
   { test: /\b(file system|shared files?|nfs)\b/i, add: " efs " },
   { test: /\b(stream|streaming|real.?time data)\b/i, add: " kinesis " },
   { test: /\b(data lake|analytics|etl|pipeline)\b/i, add: " s3 glue " },
@@ -811,12 +812,14 @@ const RISKY_PATTERNS = [
   },
   {
     id: "public_bucket",
-    pattern: "public\\s+(?:s3\\s+|aws\\s+|amazon\\s+)?(?:bucket|blob|storage|files?|object)|public(ly)? (bucket|blob|readable|writable)|world[- ]readable|world[- ]writable|make\\s+(?:it|the|this|a|my)?\\s*(?:s3|aws|amazon|the)?\\s*(?:bucket|blob|storage|files?|object)?\\s*public|public[- ]read|public[- ]write|anonymous (access|read)",
+    pattern: "public\\s+(?:s3\\s+|aws\\s+|amazon\\s+)?(?:bucket|blob|storage|files?|object)|public(ly)? (bucket|blob|readable|writable)|world[- ]readable|world[- ]writable|make\\s+(?:it|the|this|a|my)?\\s*(?:s3|aws|amazon|the)?\\s*(?:bucket|blob|storage|files?|object)?\\s*public|public[- ]read|public[- ]write|anonymous (access|read)|public(ly)? accessible\\s+(?:s3\\s+|aws\\s+|amazon\\s+)?(?:bucket|blob|storage|objects?|files?)|public\\s+(?:website|web)\\s+(?:images?|files?|content|assets)",
     neutralize: [
       [/make\s+(?:it|the|this|a|my)?\s*(?:s3|aws|amazon|the)?\s*(?:bucket|blob|storage|files?|object)?\s*public/gi, "keep the storage private"],
       [/world[- ]readable/gi, "private"],
       [/world[- ]writable/gi, "private"],
-      [/public(ly)? (bucket|blob|readable|writable)/gi, "private storage"]
+      [/public(ly)? (bucket|blob|readable|writable)/gi, "private storage"],
+      [/public(ly)? accessible\s+(?:s3\s+|aws\s+|amazon\s+)?(?:bucket|blob|storage|objects?|files?)/gi, "private storage"],
+      [/public\s+(?:website|web)\s+(?:images?|files?|content|assets)/gi, "private website content"]
     ],
     label: "Publicly exposed storage",
     severity: "high",

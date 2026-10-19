@@ -99,7 +99,15 @@ function tokenize(text) {
 /** Append canonical nouns for everyday synonyms so detection fires. */
 function expandSynonyms(text) {
   let out = text;
+  // "website images/files/content" is storage content, not a hosted web tier.
+  // Only expand "website" to compute/load-balancer when it is being hosted.
+  const websiteIsContent =
+    /\bwebsite\b\s+(images?|files?|content|assets|media|photos|logos?|documents?)\b/i.test(text);
   for (const s of SYNONYMS) {
+    if (s.id === "web_hosting") {
+      if (!websiteIsContent && s.test.test(text)) out += s.add;
+      continue;
+    }
     if (s.test.test(text)) out += s.add;
   }
   return out;
@@ -342,19 +350,24 @@ function detectRequirement(requirement, text) {
     const sm = stemMatch(requirement, text);
     if (sm) matches = [sm];
   }
-  if (matches.length === 0) return { present: false, negated: false };
-  const positive = matches.some((m) => {
+  if (matches.length === 0) return { present: false, negated: false, contradiction: false };
+
+  let positive = false;
+  let negatedAny = false;
+  for (const m of matches) {
     const end = m.index + m.value.length;
-    if (isNegatedBefore(text, m.index)) return false;
-    if (isNegatedAfter(text, end)) return false;
+    if (isNegatedBefore(text, m.index) || isNegatedAfter(text, end)) {
+      negatedAny = true;
+      continue;
+    }
     // e.g. encryption_at_rest must not be satisfied by "encryption in transit"
     if (requirement.notAfter) {
       const seg = text.slice(end, end + 20);
-      if (requirement.notAfter.some((p) => new RegExp(p, "i").test(seg))) return false;
+      if (requirement.notAfter.some((p) => new RegExp(p, "i").test(seg))) continue;
     }
-    return true;
-  });
-  return { present: positive, negated: !positive };
+    positive = true;
+  }
+  return { present: positive, negated: !positive, contradiction: positive && negatedAny };
 }
 
 function severityRank(s) {
@@ -435,6 +448,8 @@ function dedupeRiskyFindings(text, risky) {
     while ((m = re.exec(text)) !== null) {
       if (m.index === re.lastIndex) re.lastIndex++;
       if (isNegatedBefore(text, m.index)) continue;
+      // "database with no public endpoint" is a safe restriction, not exposure.
+      if (/\b(no|not|non[- ]?|without)\b[^.]{0,25}\b(public|internet)\b/i.test(m[0])) continue;
       matched = true;
       break;
     }
@@ -454,14 +469,19 @@ function dedupeRiskyFindings(text, risky) {
 }
 
 function computeRisk(relevantCounts, findings) {
+  // Risk reflects missing CORE controls plus risky statements. Clarify/harden
+  // gaps still reduce coverage, but must not make a largely secure prompt look
+  // dangerous (the old formula counted every optional gap as risk).
+  const core = relevantCounts.filter((x) => (x.tier || "clarify") === "core");
+  const list = core.length ? core : relevantCounts;
   let missingWeight = 0;
   let maxWeight = 0;
-  for (const item of relevantCounts) {
+  for (const item of list) {
     maxWeight += item.weight;
     if (item.missing) missingWeight += item.weight;
   }
   const ratio = missingWeight / Math.max(1, maxWeight);
-  let score = 100 * Math.pow(ratio, 1.5);
+  let score = 100 * Math.pow(ratio, 1.4);
   let riskyWeight = 0;
   for (const f of findings) riskyWeight += severityRank(f.severity) * 1.5;
   const riskyBump = Math.min(55, riskyWeight * 9);
@@ -479,8 +499,13 @@ function project(report, accepted) {
   accepted = accepted || {};
   const on = (id) => !!accepted[id];
 
+  // Match analyze(): risk is driven by CORE missing controls + risky statements.
+  const coreMissing = (report.missing || []).filter((m) => (m.tier || "clarify") === "core");
+  const useCore = coreMissing.length > 0 || (report.coreTotalWeight || 0) > 0;
+  const list = useCore ? coreMissing : (report.missing || []);
+
   let missingWeight = 0;
-  for (const m of report.missing) {
+  for (const m of list) {
     if (on(m.id)) continue;
     missingWeight += typeof m.weight === "number" ? m.weight : severityRank(m.severity);
   }
@@ -490,8 +515,9 @@ function project(report, accepted) {
     riskyWeight += typeof f.weight === "number" ? f.weight : severityRank(f.severity) * 1.5;
   }
 
-  const ratio = missingWeight / Math.max(1, report.totalWeight || 1);
-  const base = Math.min(100, Math.round(100 * Math.pow(ratio, 1.5) + Math.min(55, riskyWeight * 9)));
+  const denom = useCore ? (report.coreTotalWeight || 1) : (report.totalWeight || 1);
+  const ratio = missingWeight / Math.max(1, denom);
+  const base = Math.min(100, Math.round(100 * Math.pow(ratio, 1.4) + Math.min(55, riskyWeight * 9)));
   const riskScore = Math.min(100, Math.round(base * (report.envFactor || 1)));
 
   const total = report.stats.mentioned + report.stats.missing;
@@ -659,6 +685,7 @@ function analyze(prompt, options) {
   const mentioned = [];
   let missing = [];
   const relevantCounts = [];
+  const contradictions = [];
 
   for (const req of requirements) {
     if (!relevantIds.has(req.id)) continue;
@@ -666,7 +693,8 @@ function analyze(prompt, options) {
     const baseSeverity = options.strictMode && req.severity === "medium" ? "high" : req.severity;
     const weight = severityRank(baseSeverity) * (TIER_MULT[tier] || 1);
     const res = detectRequirement(req, normalized);
-    relevantCounts.push({ id: req.id, weight: weight, missing: !res.present });
+    relevantCounts.push({ id: req.id, weight: weight, missing: !res.present, tier: tier });
+    if (res.contradiction) contradictions.push({ id: req.id, label: req.label });
 
     if (res.present) {
       mentioned.push({
@@ -724,6 +752,51 @@ function analyze(prompt, options) {
 
   missing.sort((a, b) => severityRank(b.severity) - severityRank(a.severity));
   const riskyFindings = dedupeRiskyFindings(normalized, risky);
+
+  // Explicit contradictions: a control that the prompt both requires and disables.
+  for (const c of contradictions) {
+    riskyFindings.push({
+      id: "contradiction_" + c.id,
+      label: "Conflicting requirements: " + c.label,
+      severity: "high",
+      weight: severityRank("high") * 1.5,
+      description: "The prompt both requires and disables " + c.label.toLowerCase() + ".",
+      fix: "Remove the conflicting instruction and state one clear requirement.",
+      source: "rule",
+      contradiction: true
+    });
+  }
+
+  // Cross-control conflict: public access requested while also being blocked.
+  if (
+    mentioned.some((m) => m.id === "public_access_block") &&
+    riskyFindings.some((f) => f.id === "public_bucket")
+  ) {
+    riskyFindings.push({
+      id: "contradiction_public_access",
+      label: "Conflicting requirements: public access",
+      severity: "high",
+      weight: severityRank("high") * 1.5,
+      description: "The prompt asks for public access while also blocking it.",
+      fix: "Decide whether the resource is public or private and state one requirement.",
+      source: "rule",
+      contradiction: true
+    });
+  }
+
+  // Intentional public READ (no public writes/deletes) is less severe than a
+  // fully public bucket.
+  for (const f of riskyFindings) {
+    if (
+      f.id === "public_bucket" &&
+      /read[- ]only|public read|prohibit (public )?(writes?|deletes?)|no public (writes?|deletes?)/i.test(normalized)
+    ) {
+      f.severity = "medium";
+      f.weight = severityRank("medium") * 1.5;
+      f.description = "Public read-only access is intentional, but exposure still needs review.";
+    }
+  }
+
   riskyFindings.sort((a, b) => severityRank(b.severity) - severityRank(a.severity));
 
   let riskScore = computeRisk(relevantCounts, riskyFindings);
@@ -741,6 +814,9 @@ function analyze(prompt, options) {
   const totalControls = mentioned.length + missing.length;
   const coverageScore = totalControls ? Math.round((100 * mentioned.length) / totalControls) : 100;
   const totalWeight = relevantCounts.reduce(function (a, r) { return a + r.weight; }, 0);
+  const coreTotalWeight = relevantCounts
+    .filter(function (r) { return r.tier === "core"; })
+    .reduce(function (a, r) { return a + r.weight; }, 0);
 
   const tierCounts = { core: 0, clarify: 0, harden: 0 };
   for (const m of missing) tierCounts[m.tier || "clarify"]++;
@@ -763,6 +839,13 @@ function analyze(prompt, options) {
   }
   if (missing.length) {
     feedback.push(missing.length + " security constraint(s) missing — add them so the generator does not have to guess.");
+  }
+  const conflictLabels = contradictions.map((c) => c.label);
+  if (riskyFindings.some((f) => f.id === "contradiction_public_access")) {
+    conflictLabels.push("public access vs. blocking public access");
+  }
+  if (conflictLabels.length) {
+    feedback.push("Conflicting requirements detected: " + conflictLabels.join(", ") + ". Resolve these before generating code.");
   }
   if (!missing.length && !riskyFindings.length) {
     feedback.push("No missing security constraints detected for the recognised resources. Review organisation-specific rules.");
@@ -792,6 +875,7 @@ function analyze(prompt, options) {
     coverage: baselineOnly ? "baseline" : "targeted",
     coverageScore: coverageScore,
     totalWeight: totalWeight,
+    coreTotalWeight: coreTotalWeight,
     tierCounts: tierCounts,
     semanticRelated: semanticRelated,
     nonAwsLikely: nonAwsLikely,
