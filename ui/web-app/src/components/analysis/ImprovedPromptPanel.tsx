@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Copy, Check, RotateCcw, Play, Edit3, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { useToast } from '../ui/Toast.tsx';
 
@@ -25,11 +25,19 @@ export const ImprovedPromptPanel: React.FC<ImprovedPromptPanelProps> = ({
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [manualText, setManualText] = useState(improvedPrompt);
+  const manualTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Sync manualText when improvedPrompt updates from clause selections
-  React.useEffect(() => {
+  useEffect(() => {
     setManualText(improvedPrompt);
   }, [improvedPrompt]);
+
+  useEffect(() => {
+    const textarea = manualTextareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${Math.max(textarea.scrollHeight, 180)}px`;
+  }, [manualText, isEditing]);
 
   const activeDisplayText = isEditing ? manualText : improvedPrompt;
 
@@ -121,13 +129,14 @@ export const ImprovedPromptPanel: React.FC<ImprovedPromptPanelProps> = ({
       <div className="relative">
         {isEditing ? (
           <textarea
+            ref={manualTextareaRef}
             value={manualText}
             onChange={(e) => {
               setManualText(e.target.value);
               if (onUpdateManualPrompt) onUpdateManualPrompt(e.target.value);
             }}
             rows={10}
-            className="w-full rounded-lg border border-[#49686C] bg-[#FFFFFF] p-3.5 text-xs font-mono text-[#283638] focus:outline-none focus:ring-1 focus:ring-[#49686C] leading-relaxed resize-y"
+            className="w-full overflow-hidden rounded-lg border border-[#49686C] bg-[#FFFFFF] p-3.5 text-xs font-mono text-[#283638] focus:outline-none focus:ring-1 focus:ring-[#49686C] leading-relaxed resize-none min-h-[180px]"
           />
         ) : (
           <div className="rounded-lg border border-[#E5E2D8] bg-[#FAFAF8] p-3.5 max-h-[360px] overflow-y-auto text-xs font-mono text-[#283638] leading-relaxed whitespace-pre-wrap select-all">

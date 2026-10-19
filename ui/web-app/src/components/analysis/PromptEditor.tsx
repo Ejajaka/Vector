@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Play, Sparkles, RotateCcw, ShieldCheck, AlertCircle, Info, X } from 'lucide-react';
 
 interface PromptEditorProps {
@@ -20,6 +20,14 @@ export const PromptEditor: React.FC<PromptEditorProps> = ({
 }) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showDeepScanModal, setShowDeepScanModal] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${Math.max(textarea.scrollHeight, 110)}px`;
+  }, [promptText]);
 
   const handleClear = () => {
     setPromptText('');
@@ -69,6 +77,7 @@ export const PromptEditor: React.FC<PromptEditorProps> = ({
         <div className="relative">
           <textarea
             id="prompt-input"
+            ref={textareaRef}
             value={promptText}
             onChange={(e) => {
               setPromptText(e.target.value);
@@ -76,7 +85,7 @@ export const PromptEditor: React.FC<PromptEditorProps> = ({
             }}
             placeholder="Example: Create an S3 bucket to store customer documents and deploy an EC2 instance running a web application behind an Application Load Balancer."
             rows={4}
-            className="w-full rounded-lg border border-[#E5E2D8] bg-[#FAFAF8] p-3.5 text-sm text-[#283638] placeholder-[#737A72]/70 focus:bg-[#FFFFFF] focus:border-[#49686C] focus:ring-2 focus:ring-[#49686C]/10 focus:outline-none transition-all resize-y min-h-[110px]"
+            className="w-full overflow-hidden rounded-lg border border-[#E5E2D8] bg-[#FAFAF8] p-3.5 text-sm text-[#283638] placeholder-[#737A72]/70 focus:bg-[#FFFFFF] focus:border-[#49686C] focus:ring-2 focus:ring-[#49686C]/10 focus:outline-none transition-colors resize-none min-h-[110px]"
           />
         </div>
 

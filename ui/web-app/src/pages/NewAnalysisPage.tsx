@@ -51,7 +51,10 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({
   }, [initialResult]);
 
   // The active result being inspected
-  const currentResult = activeViewVersion === 'revised' && revisedResult ? revisedResult : originalResult;
+  // Never fall back to the original result while the revised tab is active.
+  // That fallback made the version labels and displayed findings disagree
+  // during re-analysis state updates.
+  const currentResult = activeViewVersion === 'revised' ? revisedResult : originalResult;
 
   // Selected findings objects
   const allEligibleFindings: SecurityFinding[] = currentResult
@@ -61,8 +64,10 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({
   const selectedFindingObjects = allEligibleFindings.filter(f => selectedFindingIds.has(f.id));
 
   // Compute live improved prompt
-  const improvedPromptText = originalResult
-    ? buildImprovedPrompt(originalResult.prompt, selectedFindingObjects)
+  const activePrompt = currentResult?.prompt || promptText;
+
+  const improvedPromptText = currentResult
+    ? buildImprovedPrompt(activePrompt, selectedFindingObjects)
     : '';
 
   // Compute projected metrics if on original view
@@ -145,10 +150,12 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({
 
   const handleReanalyze = async (revisedPrompt: string) => {
     setIsReanalyzing(true);
+    setRevisedResult(null);
     try {
       const res = await defaultAnalyzer.analyze(revisedPrompt);
       setRevisedResult(res);
       setActiveViewVersion('revised');
+      setSelectedFindingIds(new Set());
       // Save revised to history
       historyStorage.save(res);
       toast('Improved prompt re-analyzed successfully', 'success');
@@ -184,6 +191,7 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({
 
   const handleResetToOriginal = () => {
     setSelectedFindingIds(new Set());
+    setActiveViewVersion('original');
     toast('Reset prompt to original text', 'info');
   };
 
@@ -432,7 +440,7 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({
             {/* Right Column: Improved Prompt Generator */}
             <div className="lg:col-span-5">
               <ImprovedPromptPanel
-                originalPrompt={originalResult ? originalResult.prompt : promptText}
+                originalPrompt={activePrompt}
                 improvedPrompt={improvedPromptText || promptText}
                 selectedCount={selectedFindingIds.size}
                 onResetPrompt={handleResetToOriginal}
