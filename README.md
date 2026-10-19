@@ -78,9 +78,12 @@ node engine/cli/vector-cli.js analyze --policy docs/examples/policy-cis.json "De
 
 Two tiers are tried in order:
 
-1. On-device: Chrome's built-in model via the browser Prompt API. No API key and
-   no network, used automatically when available.
-2. Hosted: an OpenAI-compatible endpoint, configured with a key in Settings.
+1. Hosted: an OpenAI-compatible endpoint, configured with a key in Settings.
+2. On-device: Chrome's built-in model via the browser Prompt API. No API key and
+   no network; used when no hosted key is configured.
+
+A configured key always wins, because a browser can expose the on-device API
+while its service is unavailable.
 
 Only controls the rules may have missed are requested; the response can also
 confirm low-priority rule findings that are already covered. Results are merged

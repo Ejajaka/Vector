@@ -3,9 +3,12 @@
 /**
  * Vector optional "deep scan".
  *
- * Two ways to run it, tried in this order:
- *   1. On-device  - Chrome's built-in model (Gemini Nano). No API key, no network.
- *   2. Hosted API - OpenAI-compatible endpoint. Needs an API key.
+ * Two ways to run it:
+ *   1. Hosted API - OpenAI-compatible endpoint. Needs an API key.
+ *   2. On-device  - Chrome's built-in model (Gemini Nano). No API key, no network.
+ *
+ * A configured hosted key always wins: the browser may expose a LanguageModel
+ * object whose service is not actually running, and waiting on it would hang.
  *
  * Either way we only ASK an existing model for controls we may have missed and
  * merge the answer back in. We never train or ship our own model.
@@ -157,19 +160,15 @@
   }
 
   /**
-   * Run a deep scan, preferring the free on-device model.
-   * Resolves to { findings, via } where via is "on-device" or "api".
+   * Run a deep scan. A configured hosted key takes priority; otherwise the free
+   * on-device model is used. Resolves to { findings, via }.
    */
   async function deepScan(prompt, settings, ruleReport) {
-    if (localAvailable()) {
-      try {
-        return { findings: await localDeepScan(prompt, ruleReport), via: "on-device" };
-      } catch (e) {
-        // fall through to hosted if a key exists
-      }
-    }
     if (settings && settings.apiKey) {
       return { findings: await hostedDeepScan(prompt, settings, ruleReport), via: "api" };
+    }
+    if (localAvailable()) {
+      return { findings: await localDeepScan(prompt, ruleReport), via: "on-device" };
     }
     throw new Error("Deep scan needs the on-device model or an API key.");
   }

@@ -652,6 +652,32 @@ test("mergeFindings: satisfied never overrides a core rule finding", () => {
   assert.ok(!merged.overridden.includes(core.id));
 });
 
+test("deep scan: a configured API key wins over the on-device model", async () => {
+  const origFetch = global.fetch;
+  let localUsed = false;
+  globalThis.self = globalThis;
+  globalThis.LanguageModel = {
+    availability: async () => "available",
+    create: async () => {
+      localUsed = true;
+      return { prompt: async () => '{"missing":[]}', destroy() {} };
+    }
+  };
+  global.fetch = async () => ({
+    ok: true,
+    json: async () => ({ choices: [{ message: { content: '{"missing":[]}' } }] })
+  });
+  try {
+    const out = await require("../src/llm").deepScan("p", { apiKey: "k", baseUrl: "https://x/v1", model: "m" }, { missing: [] });
+    assert.strictEqual(out.via, "api");
+    assert.strictEqual(localUsed, false);
+  } finally {
+    global.fetch = origFetch;
+    delete globalThis.LanguageModel;
+    delete globalThis.self;
+  }
+});
+
 test("contradiction: enabling then disabling encryption is flagged", () => {
   const r = analyze("Create a private S3 bucket. Enable encryption at rest. Disable encryption at rest.");
   assert.ok(r.riskyFindings.some((f) => f.id === "contradiction_encryption_at_rest"));
