@@ -82,6 +82,35 @@ object LlmDeepScanner {
         if (baseUrl.isBlank()) throw IllegalStateException("Base URL is empty.")
         if (!settings.isConfigured) throw IllegalStateException("No API key set.")
 
+        if (baseUrl.contains("generativelanguage.googleapis.com")) {
+            val nativeBase = baseUrl.removeSuffix("/openai")
+            val nativeBody = JSONObject().apply {
+                put("systemInstruction", JSONObject().put("parts", JSONArray().put(JSONObject().put("text", SYSTEM_PROMPT))))
+                put("contents", JSONArray().put(JSONObject().apply {
+                    put("role", "user")
+                    put("parts", JSONArray().put(JSONObject().put("text", userMessage(prompt, ruleMissingLabels))))
+                }))
+                put("generationConfig", JSONObject().put("temperature", 0))
+            }
+            val nativeRequest = Request.Builder()
+                .url("$nativeBase/models/${settings.model.ifBlank { "gemini-2.5-flash" }.removePrefix("models/")}:generateContent?key=${java.net.URLEncoder.encode(settings.apiKey, "UTF-8")}")
+                .header("Content-Type", "application/json")
+                .post(nativeBody.toString().toRequestBody("application/json".toMediaType()))
+                .build()
+            client.newCall(nativeRequest).execute().use { response ->
+                val raw = response.body?.string().orEmpty()
+                if (!response.isSuccessful) {
+                    val detail = runCatching { JSONObject(raw).optJSONObject("error")?.optString("message").orEmpty() }.getOrDefault("")
+                    throw IllegalStateException("Deep scan failed (${response.code})${if (detail.isNotBlank()) ": $detail" else ""}")
+                }
+                val content = JSONObject(raw).optJSONArray("candidates")
+                    ?.optJSONObject(0)?.optJSONObject("content")?.optJSONArray("parts")
+                    ?.let { parts -> (0 until parts.length()).joinToString("") { parts.optJSONObject(it)?.optString("text").orEmpty() } }
+                    .orEmpty()
+                return@withContext parseFindings(content)
+            }
+        }
+
         val body = JSONObject().apply {
             put("model", settings.model.ifBlank { "gemini-2.5-flash" }.removePrefix("models/"))
             put("temperature", 0)

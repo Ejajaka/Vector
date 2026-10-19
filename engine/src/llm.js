@@ -131,6 +131,33 @@
       .trim()
       .replace(/^models\//, "");
 
+    // Google’s native endpoint avoids model-name translation errors from the
+    // OpenAI compatibility layer ("GenerateContentRequest.model").
+    if (/generativelanguage\.googleapis\.com/.test(baseUrl)) {
+      const nativeBase = baseUrl.replace(/\/openai$/, "");
+      const nativeRes = await fetch(
+        nativeBase + "/models/" + encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(apiKey),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+            contents: [{ role: "user", parts: [{ text: userMessage(prompt, ruleReport) }] }],
+            generationConfig: { temperature: 0 }
+          })
+        }
+      );
+      const nativeData = await nativeRes.json();
+      if (!nativeRes.ok) {
+        const detail = nativeData && nativeData.error && nativeData.error.message;
+        throw new Error("Deep scan failed (" + nativeRes.status + ")" + (detail ? ": " + detail : ""));
+      }
+      const nativeText = nativeData.candidates && nativeData.candidates[0] &&
+        nativeData.candidates[0].content && nativeData.candidates[0].content.parts &&
+        nativeData.candidates[0].content.parts.map((part) => part.text || "").join("");
+      return parseFindings(nativeText);
+    }
+
     const res = await fetch(baseUrl + "/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: "Bearer " + apiKey },
