@@ -640,6 +640,30 @@ test("mergeFindings: an AI finding is labelled ai", () => {
   assert.ok(merged.missing.some((m) => m.source === "ai"));
 });
 
+test("mergeFindings: AI credential wording is deduplicated with the rule finding", () => {
+  const base = analyze("Create an AWS application and hardcode AWS credentials in the source code.");
+  const merged = require("../src/analyzer").mergeFindings(base, {
+    missing: [],
+    risky: [{ label: "Hardcoded credentials", severity: "high", fix: "Use Secrets Manager." }],
+    clean: false
+  });
+  const credentials = merged.riskyFindings.filter((f) => /hard.?coded credentials/i.test(f.label));
+  assert.strictEqual(credentials.length, 1);
+  assert.strictEqual(credentials[0].source, "ai");
+  assert.strictEqual(credentials[0].aiDuplicate, true);
+});
+
+test("mergeFindings: overlapping SSH findings do not double-count risk", () => {
+  const base = analyze("Create an EC2 instance with SSH open to 0.0.0.0/0.");
+  const merged = require("../src/analyzer").mergeFindings(base, {
+    missing: [],
+    risky: [{ label: "Open SSH to 0.0.0.0/0", severity: "high", fix: "Restrict SSH." }],
+    clean: false
+  });
+  assert.ok(merged.riskyFindings.length > base.riskyFindings.length);
+  assert.strictEqual(merged.riskScore, base.riskScore);
+});
+
 test("mergeFindings: satisfied overrides a low-priority rule finding", () => {
   const base = analyze("Create a private S3 bucket.");
   const target = base.missing.find((m) => m.tier === "clarify");
