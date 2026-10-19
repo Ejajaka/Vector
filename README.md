@@ -49,7 +49,7 @@ Every client calls the same engine, so results are identical everywhere.
 
 ## Run the web app
 
-**Live:** https://ejajaka.github.io/vector/ (GitHub Pages, served from the `gh-pages` branch)
+**Live:** https://ejajaka.github.io/Vector/ (GitHub Pages, served from the `gh-pages` branch)
 
 ```powershell
 npm run webapp:install    # first time only
