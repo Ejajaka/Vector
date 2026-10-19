@@ -163,7 +163,12 @@ function isNegatedBefore(text, index) {
   const parts = window.split(CLAUSE_SPLIT);
   const clause = parts[parts.length - 1] || "";
   const hits = clause.match(NEGATION_RE_G);
-  return !!(hits && hits.length % 2 === 1);
+  if (!hits || hits.length === 0) return false;
+  // "not without encryption" is a double negative and means the control IS
+  // required. Two adjacent negative words ("without unnecessary wildcards")
+  // are not a double negative; they strengthen the same restriction.
+  if (/\b(?:not|never)\s+without\b/i.test(clause)) return false;
+  return true;
 }
 
 /** True if the match is immediately followed by a disabling word ("logging disabled"). */
@@ -356,7 +361,7 @@ function detectRequirement(requirement, text) {
   let negatedAny = false;
   for (const m of matches) {
     const end = m.index + m.value.length;
-    if (isNegatedBefore(text, m.index) || isNegatedAfter(text, end)) {
+    if (!requirement.negationSafe && (isNegatedBefore(text, m.index) || isNegatedAfter(text, end))) {
       negatedAny = true;
       continue;
     }

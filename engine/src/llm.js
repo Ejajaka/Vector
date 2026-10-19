@@ -186,15 +186,46 @@
       requestBody.response_format = { type: "json_object" };
     }
 
-    const res = await fetch(baseUrl + "/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: "Bearer " + apiKey },
-      body: JSON.stringify(requestBody)
-    });
+    const postChat = () =>
+      fetch(baseUrl + "/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + apiKey },
+        body: JSON.stringify(requestBody)
+      });
+
+    let res = await postChat();
     if (!res.ok) {
+      let rawError = "";
+      try {
+        rawError = await res.text();
+      } catch (e) {
+        /* ignore */
+      }
+      // Groq's constrained JSON decoder can reject a prompt outright with
+      // "Failed to generate JSON". Retry once without JSON mode and let the
+      // tolerant parser handle the prose-wrapped JSON.
+      if (
+        requestBody.response_format &&
+        res.status === 400 &&
+        /failed to generate json|failed_generation/i.test(rawError)
+      ) {
+        delete requestBody.response_format;
+        res = await postChat();
+        if (res.ok) {
+          const retryData = await res.json();
+          const retryText = retryData.choices && retryData.choices[0] &&
+            retryData.choices[0].message && retryData.choices[0].message.content;
+          return parseFindings(retryText);
+        }
+        try {
+          rawError = await res.text();
+        } catch (e) {
+          /* ignore */
+        }
+      }
       let detail = "";
       try {
-        const body = await res.json();
+        const body = JSON.parse(rawError);
         const err = Array.isArray(body) ? body[0] && body[0].error : body && body.error;
         detail = (err && (err.message || err.status)) || "";
       } catch (e) {

@@ -226,6 +226,36 @@ test("LLM: hostedDeepScan throws without a key", async () => {
   await assert.rejects(() => VectorLLM.hostedDeepScan("p", {}), /API key/);
 });
 
+test("LLM: Groq JSON-mode failure retries without response_format", async () => {
+  const realFetch = global.fetch;
+  let calls = 0;
+  global.fetch = async () => {
+    calls++;
+    if (calls === 1) {
+      return {
+        ok: false,
+        status: 400,
+        text: async () => '{"error":{"message":"Failed to generate JSON. Please adjust your prompt."}}'
+      };
+    }
+    return {
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: '{"missing":[],"risky":[]}' } }] })
+    };
+  };
+  try {
+    const out = await VectorLLM.hostedDeepScan("p", {
+      apiKey: "k",
+      baseUrl: "https://api.groq.com/openai/v1",
+      model: "m"
+    });
+    assert.strictEqual(calls, 2);
+    assert.strictEqual(out.clean, true);
+  } finally {
+    global.fetch = realFetch;
+  }
+});
+
 test("LLM: localAvailable is false when there is no browser model", () => {
   assert.strictEqual(VectorLLM.localAvailable(), false);
 });
@@ -586,6 +616,23 @@ test("scope: explicit non-AWS cloud prompts get no AWS score", () => {
     assert.strictEqual(r.riskScore, 0);
     assert.strictEqual(r.missing.length, 0);
   }
+});
+
+test("secure prompt: 'without unnecessary wildcards' is satisfying, not risky", () => {
+  const r = analyze(
+    "Create an AWS application. Use least-privilege IAM roles without unnecessary wildcard permissions. " +
+      "Enable encryption at rest and TLS in transit. Keep S3 and RDS private. " +
+      "Enable CloudTrail and use Secrets Manager. Restrict SSH to a trusted CIDR range."
+  );
+  assert.ok(!r.riskyFindings.some((f) => f.id === "wildcard_iam"));
+  assert.ok(r.mentioned.some((m) => m.id === "no_wildcard_policy"));
+  assert.ok(r.riskScore < 20, "secure prompt should have low risk, got " + r.riskScore);
+});
+
+test("contradiction: private S3 then publicly readable and writable", () => {
+  const r = analyze("Keep the S3 bucket private. Later, make it publicly readable and writable by anyone.");
+  assert.ok(r.riskyFindings.some((f) => f.id === "public_bucket"));
+  assert.ok(r.riskyFindings.some((f) => f.id === "contradiction_public_access"));
 });
 
 test("scope: real infrastructure prompts stay in scope", () => {

@@ -117,7 +117,13 @@ const REQUIREMENTS = [
     clause:
       "In IAM policies use explicit actions and explicit resources instead of '*', scoped to the minimum required.",
     standards: ["AWS FSBP IAM.1", "CIS AWS 1.16"],
-    patterns: ["no wildcard", "explicit actions", "explicit resources", "deny \\*", "avoid \\*", "no \\*:"]
+    negationSafe: true,
+    patterns: [
+      "no wildcard", "explicit actions", "explicit resources", "deny \\*", "avoid \\*", "no \\*:",
+      "without (?:unnecessary |any )?wildcards?", "no unnecessary wildcards?",
+      "avoid (?:unnecessary |using )?wildcards?", "not use (?:any )?wildcards?",
+      "do not use wildcards?"
+    ]
   },
   {
     id: "network_restricted",
