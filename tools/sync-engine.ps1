@@ -20,6 +20,13 @@ New-Item -ItemType Directory -Path $expoDst -Force | Out-Null
 foreach ($f in @("taxonomy.js", "semantic.js", "analyzer.js", "llm.js")) {
   Copy-Item (Join-Path $root "engine\src\$f") (Join-Path $expoDst $f) -Force
 }
+
+# --- Native Android app: the same engine runs in an offscreen WebView ---
+$androidAssets = Join-Path $root "ui\android\app\src\main\assets\vector_engine"
+New-Item -ItemType Directory -Path $androidAssets -Force | Out-Null
+foreach ($f in @("taxonomy.js", "semantic.js", "analyzer.js")) {
+  Copy-Item (Join-Path $root "engine\src\$f") (Join-Path $androidAssets $f) -Force
+}
 foreach ($f in @("ui.js", "ui.css", "settings.js")) {
   $stale = Join-Path $expoDst $f
   if (Test-Path $stale) { Remove-Item $stale -Force }

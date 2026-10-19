@@ -4,7 +4,7 @@ import android.app.Application
 import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.data.analyzer.VectorRuleAnalyzer
+import com.example.data.analyzer.VectorJsAnalyzer
 import com.example.data.llm.DeepScanResult
 import com.example.data.llm.DeepScanSettings
 import com.example.data.llm.LlmDeepScanner
@@ -50,7 +50,8 @@ enum class HistorySort {
 class VectorViewModel(application: Application) : AndroidViewModel(application) {
 
     private val prefs = application.getSharedPreferences("vector_app_prefs", Context.MODE_PRIVATE)
-    private val analyzerRepository: AnalyzerRepository = VectorRuleAnalyzer()
+    // Android executes the same engine/src JavaScript as the web clients.
+    private val analyzerRepository: AnalyzerRepository = VectorJsAnalyzer(application)
     private val historyRepository: HistoryRepository = LocalHistoryRepository(application)
     private val networkMonitor = NetworkMonitor(application)
 
@@ -420,6 +421,11 @@ class VectorViewModel(application: Application) : AndroidViewModel(application) 
             .filter { selectedIds.contains(it.id) }
             .map { it.securityClause }
         _improvedPromptText.value = analyzerRepository.buildImprovedPrompt(analysis.prompt, clauses)
+    }
+
+    override fun onCleared() {
+        (analyzerRepository as? VectorJsAnalyzer)?.close()
+        super.onCleared()
     }
 
     fun onImprovedPromptTextChange(newText: String) {

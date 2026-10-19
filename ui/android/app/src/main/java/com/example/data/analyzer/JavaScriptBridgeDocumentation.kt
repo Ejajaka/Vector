@@ -25,11 +25,10 @@ package com.example.data.analyzer
  *                  AnalyzerRepository (Clean Kotlin Interface)
  *                     ┌───────────────┴───────────────┐
  *                     ▼                               ▼
- *            VectorRuleAnalyzer (Native)     VectorJsBridgeAdapter (WebView / QuickJS)
+ *                              VectorJsAnalyzer (WebView)
  *
  * Integration Strategy for VectorJsBridgeAdapter:
- * - Load `vector_engine.bundle.js` into an offscreen headless Android WebView or embedded
- *   QuickJS / Duktape runtime.
+ * - Load `assets/vector_engine/{taxonomy,semantic,analyzer}.js` into an offscreen WebView.
  * - Inject a JavaScript interface (`@JavascriptInterface`) or execute scripts via
  *   `evaluateJavascript("VectorAnalyzer.analyze(" + JSON.quote(prompt) + ")")`.
  * - Map the returned JSON output directly to Kotlin's [AnalysisResult] and [SecurityFinding]
@@ -38,7 +37,7 @@ package com.example.data.analyzer
  *   analysis runs via the embedded JavaScript engine or the native rule-based analyzer.
  */
 object JavaScriptBridgeDocumentation {
-    const val JS_ENGINE_ENTRY_POINT = "assets/vector_engine.bundle.js"
+    const val JS_ENGINE_ENTRY_POINT = "assets/vector_engine/analyzer.js"
 
     val CORE_METHODS = listOf(
         "VectorAnalyzer.analyze(prompt, options)",
