@@ -1,8 +1,10 @@
 // Shared Vector UI components (React Native). Mirrors the Android design system.
+// NOTE: named components.js (not ui.js) because tools/sync-engine.ps1 deletes
+// ui.js from this folder (it is the DOM renderer in engine/src).
 import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Modal, Switch, ActivityIndicator } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useTheme, RISK, riskColor, riskLabel, alpha } from './theme';
+import { useTheme, RISK, RISK_SEGMENT, riskColor, riskLabel, alpha } from './theme';
 
 export function Icon({ name, size = 20, color, style }) {
   const t = useTheme();
@@ -10,10 +12,11 @@ export function Icon({ name, size = 20, color, style }) {
   return <MaterialIcons name={glyph} size={size} color={color || t.onSurface} style={style} />;
 }
 
-export function Card({ children, style, onPress, borderColor, bg }) {
+export function Card({ children, style, onPress, borderColor, bg, testID }) {
   const t = useTheme();
   const content = (
     <View
+      testID={testID}
       style={[
         {
           backgroundColor: bg || t.surface,
@@ -63,7 +66,7 @@ export function PrimaryButton({ label, icon, onPress, disabled, loading, height 
       ]}
     >
       {loading ? <ActivityIndicator size="small" color={color} /> : icon ? <Icon name={icon} size={18} color={color} /> : null}
-      {loading ? <View style={{ width: 8 }} /> : icon ? <View style={{ width: 8 }} /> : null}
+      {loading || icon ? <View style={{ width: 8 }} /> : null}
       <Text style={{ color, fontSize: 14, fontWeight: '700' }}>{label}</Text>
     </Pressable>
   );
@@ -126,12 +129,17 @@ export function MetricCard({ title, value, subtitle, icon, accent, testID }) {
 export function RiskScoreBadge({ score, level, style }) {
   const t = useTheme();
   const color = riskColor(level);
-  const bg = level === 'CRITICAL' || level === 'HIGH' ? alpha(color, 0.15) : level === 'MEDIUM' ? alpha(color, 0.25) : t.softGreen;
-  const textColor = level === 'CRITICAL' || level === 'HIGH' ? color : level === 'MEDIUM' ? '#8A7112' : t.darkTeal;
+  const bg =
+    level === 'CRITICAL' || level === 'HIGH'
+      ? alpha(color, 0.15)
+      : level === 'MEDIUM'
+      ? alpha(t.mustard, 0.22)
+      : t.softGreen;
+  const textColor = level === 'LOW' || level === 'MINIMAL' ? RISK.LOW : color;
   return (
     <View
       style={[
-        { flexDirection: 'row', alignItems: 'center', borderRadius: 12, backgroundColor: bg, borderWidth: 1, borderColor: alpha(textColor, 0.4), paddingHorizontal: 10, paddingVertical: 5 },
+        { flexDirection: 'row', alignItems: 'center', borderRadius: 10, backgroundColor: bg, borderWidth: 1, borderColor: alpha(textColor, 0.45), paddingHorizontal: 10, paddingVertical: 5 },
         style,
       ]}
     >
@@ -147,8 +155,8 @@ export function RiskScoreBadge({ score, level, style }) {
 export function AwsResourceChip({ name }) {
   const t = useTheme();
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', borderRadius: 20, backgroundColor: t.surfaceVariant, borderWidth: 1, borderColor: t.outline, paddingHorizontal: 10, paddingVertical: 6 }}>
-      <Icon name="Cloud" size={16} color={t.primary} />
+    <View style={{ flexDirection: 'row', alignItems: 'center', borderRadius: 16, backgroundColor: t.surfaceVariant, borderWidth: 1, borderColor: t.outline, paddingHorizontal: 10, paddingVertical: 6 }}>
+      <Icon name="Cloud" size={15} color={t.primary} />
       <View style={{ width: 6 }} />
       <Text style={{ fontSize: 12, fontWeight: '500', color: t.onSurface }}>{name}</Text>
     </View>
@@ -184,10 +192,80 @@ export function ProgressBar({ value, color, track }) {
   );
 }
 
+// Aggregated finding severity distribution across all saved analyses.
+export function riskDistribution(analyses) {
+  const d = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 };
+  (analyses || []).forEach((a) => {
+    (a.findings || []).forEach((f) => {
+      if (d[f.severity] !== undefined) d[f.severity] += 1;
+    });
+  });
+  const total = d.CRITICAL + d.HIGH + d.MEDIUM + d.LOW;
+  return { ...d, total, totalAnalyses: (analyses || []).length };
+}
+
+export function RiskDistributionCard({ analyses }) {
+  const t = useTheme();
+  const dist = riskDistribution(analyses);
+  const pct = (n) => (dist.total > 0 ? Math.round((n / dist.total) * 100) : 0);
+  const rows = [
+    { key: 'CRITICAL', label: 'Critical', color: RISK_SEGMENT.CRITICAL },
+    { key: 'HIGH', label: 'High', color: RISK_SEGMENT.HIGH },
+    { key: 'MEDIUM', label: 'Medium', color: RISK_SEGMENT.MEDIUM },
+    { key: 'LOW', label: 'Low', color: RISK_SEGMENT.LOW },
+  ];
+
+  return (
+    <View testID="risk_distribution_card" style={{ backgroundColor: t.surface, borderWidth: 1, borderColor: t.outline, borderRadius: 16, padding: 16 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1 }}>
+          <Icon name="PieChart" size={20} color={t.primary} />
+          <View style={{ width: 8 }} />
+          <Text style={{ fontSize: 16, fontWeight: '700', color: t.onSurface }}>Risk Findings Distribution</Text>
+        </View>
+        <View style={{ borderRadius: 6, backgroundColor: t.surfaceVariant, paddingHorizontal: 8, paddingVertical: 3 }}>
+          <Text style={{ fontSize: 10, fontWeight: '700', color: t.onSurfaceVariant }}>{dist.total} findings</Text>
+        </View>
+      </View>
+
+      <View style={{ height: 14 }} />
+      {dist.total === 0 ? (
+        <Text style={{ fontSize: 12, color: t.onSurfaceVariant, textAlign: 'center', paddingVertical: 12 }}>
+          No findings recorded yet. Run an analysis to visualize your security risk profile.
+        </Text>
+      ) : (
+        <>
+          <View style={{ flexDirection: 'row', height: 14, borderRadius: 7, overflow: 'hidden', backgroundColor: t.surfaceVariant }}>
+            {rows.map((r) =>
+              dist[r.key] > 0 ? (
+                <View key={r.key} style={{ flex: dist[r.key], height: 14, backgroundColor: r.color }} />
+              ) : null
+            )}
+          </View>
+          <View style={{ height: 14 }} />
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            {rows.map((r) => (
+              <View key={r.key} style={{ flex: 1, paddingHorizontal: 2 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: r.color }} />
+                  <View style={{ width: 4 }} />
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: t.onSurfaceVariant }}>{r.label}</Text>
+                </View>
+                <Text style={{ marginTop: 2, fontSize: 16, fontWeight: '700', color: t.onSurface }}>{dist[r.key]}</Text>
+                <Text style={{ fontSize: 11, color: t.onSurfaceVariant }}>{pct(dist[r.key])}%</Text>
+              </View>
+            ))}
+          </View>
+        </>
+      )}
+    </View>
+  );
+}
+
 export function Tag({ label, bg, fg }) {
   const t = useTheme();
   return (
-    <View style={{ borderRadius: 8, backgroundColor: bg || t.primaryContainer, paddingHorizontal: 8, paddingVertical: 3 }}>
+    <View style={{ borderRadius: 6, backgroundColor: bg || t.primaryContainer, paddingHorizontal: 8, paddingVertical: 2 }}>
       <Text style={{ fontSize: 11, fontWeight: '700', color: fg || t.onPrimaryContainer }}>{label}</Text>
     </View>
   );
@@ -205,13 +283,13 @@ export function FindingCard({ finding, selected, onToggleSelect }) {
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1 }}>
-            <View style={{ borderRadius: 8, backgroundColor: alpha(color, 0.15), borderWidth: 1, borderColor: alpha(color, 0.5), paddingHorizontal: 8, paddingVertical: 3 }}>
-              <Text style={{ fontSize: 11, fontWeight: '700', color }}>{riskLabel(finding.severity)}</Text>
+            <View style={{ borderRadius: 6, backgroundColor: alpha(color, 0.15), borderWidth: 1, borderColor: alpha(color, 0.45), paddingHorizontal: 8, paddingVertical: 3 }}>
+              <Text style={{ fontSize: 10, fontWeight: '700', color }}>{riskLabel(finding.severity)}</Text>
             </View>
             {finding.affectedResource ? (
               <>
                 <View style={{ width: 8 }} />
-                <Text numberOfLines={1} style={{ flexShrink: 1, fontSize: 11, fontWeight: '500', color: t.onSurfaceVariant }}>
+                <Text numberOfLines={1} style={{ flexShrink: 1, fontSize: 10, fontWeight: '600', color: t.onSurfaceVariant }}>
                   {finding.affectedResource}
                 </Text>
               </>
@@ -245,8 +323,8 @@ export function FindingCard({ finding, selected, onToggleSelect }) {
               {selected ? <Icon name="Check" size={16} color="#FFFFFF" /> : null}
             </View>
             <View style={{ width: 6 }} />
-            <Text style={{ fontSize: 14, fontWeight: '500', color: selected ? t.primary : t.onSurface }}>
-              Add to improved prompt
+            <Text style={{ fontSize: 14, fontWeight: '600', color: selected ? t.primary : t.onSurface }}>
+              Add security clause to improved prompt
             </Text>
           </Pressable>
         ) : null}
@@ -254,14 +332,14 @@ export function FindingCard({ finding, selected, onToggleSelect }) {
         {expanded ? (
           <View style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: alpha(t.outline, 0.5), paddingTop: 12 }}>
             <Text style={{ fontSize: 12, fontWeight: '700', color: t.onSurface }}>Why this matters:</Text>
-            <Text style={{ marginTop: 4, fontSize: 12, color: t.onSurfaceVariant }}>{finding.whyItMatters || '-'}</Text>
+            <Text style={{ marginTop: 4, fontSize: 12, color: t.onSurfaceVariant, lineHeight: 18 }}>{finding.whyItMatters || '-'}</Text>
             <View style={{ height: 10 }} />
             <Text style={{ fontSize: 12, fontWeight: '700', color: t.primary }}>Recommended fix:</Text>
-            <Text style={{ marginTop: 4, fontSize: 12, color: t.onSurfaceVariant }}>{finding.recommendedFix || '-'}</Text>
+            <Text style={{ marginTop: 4, fontSize: 12, color: t.onSurfaceVariant, lineHeight: 18 }}>{finding.recommendedFix || '-'}</Text>
             <View style={{ height: 10 }} />
             <Text style={{ fontSize: 12, fontWeight: '700', color: t.onSurface }}>Recommended security clause:</Text>
             <View style={{ marginTop: 4, borderRadius: 8, backgroundColor: t.surfaceVariant, borderWidth: 1, borderColor: t.outline, padding: 10 }}>
-              <Text style={{ fontSize: 12, color: t.onSurface, fontFamily: 'monospace' }}>{finding.securityClause || '-'}</Text>
+              <Text style={{ fontSize: 12, color: t.onSurface, fontFamily: 'monospace', lineHeight: 17 }}>{finding.securityClause || '-'}</Text>
             </View>
           </View>
         ) : null}
@@ -283,7 +361,7 @@ export function NetworkIndicator({ online, simulated, onPress }) {
   const t = useTheme();
   const bg = online ? t.surface : alpha(t.mustard, 0.18);
   const borderColor = online ? t.outline : t.mustard;
-  const dot = online ? '#4A7C59' : t.error;
+  const dot = online ? RISK.LOW : t.error;
   return (
     <Pressable testID="network_status_indicator" onPress={onPress} style={({ pressed }) => ({ marginHorizontal: 16, marginTop: 8, opacity: pressed ? 0.85 : 1 })}>
       <View style={{ borderRadius: 12, backgroundColor: bg, borderWidth: 1, borderColor, paddingHorizontal: 12, paddingVertical: 8 }}>
@@ -327,7 +405,7 @@ export function NetworkDialog({ visible, online, simulated, onClose, onToggleOff
       <View style={styles.dialogBackdrop}>
         <View style={{ width: '100%', maxWidth: 420, backgroundColor: t.surface, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: t.outline }}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Icon name={online ? 'CloudDone' : 'CloudOff'} size={24} color={online ? '#4A7C59' : t.error} />
+            <Icon name={online ? 'CloudDone' : 'CloudOff'} size={24} color={online ? RISK.LOW : t.error} />
             <View style={{ width: 10 }} />
             <Text style={{ fontSize: 18, fontWeight: '700', color: t.onSurface }}>{online ? 'Network: Online' : 'Network: Offline'}</Text>
           </View>
@@ -335,7 +413,7 @@ export function NetworkDialog({ visible, online, simulated, onClose, onToggleOff
 
           <View style={{ borderRadius: 12, backgroundColor: t.surfaceVariant, padding: 12 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Icon name="CheckCircle" size={18} color="#4A7C59" />
+              <Icon name="CheckCircle" size={18} color={RISK.LOW} />
               <View style={{ width: 6 }} />
               <Text style={{ fontSize: 14, fontWeight: '700', color: t.onSurface }}>Rule-Based Analysis: Active</Text>
             </View>

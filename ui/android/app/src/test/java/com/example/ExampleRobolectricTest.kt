@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.example.data.analyzer.VectorRuleAnalyzer
 import com.example.data.model.FindingType
 import com.example.data.model.RiskLevel
+import com.example.data.model.generateMarkdownReport
 import com.example.data.repository.LocalHistoryRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -91,5 +92,42 @@ class ExampleRobolectricTest {
 
         monitor.setSimulatedOffline(null)
         assertFalse(monitor.isSimulated())
+    }
+
+    @Test
+    fun `test finding risk distribution aggregates real saved findings`() = runBlocking {
+        val analyzer = VectorRuleAnalyzer()
+        val criticalAnalysis = analyzer.analyze("Create a public S3 bucket and open SSH to 0.0.0.0/0.")
+        val standardAnalysis = analyzer.analyze("Create an S3 bucket with encryption enabled.")
+
+        val distribution = com.example.data.model.FindingRiskDistribution.fromAnalyses(
+            listOf(criticalAnalysis, standardAnalysis)
+        )
+
+        assertFalse(distribution.isEmpty)
+        assertTrue("Critical count should be >= 2", distribution.criticalCount >= 2)
+        assertEquals(2, distribution.totalAnalyses)
+        assertTrue("Total findings should exceed 0", distribution.totalFindings > 0)
+        assertTrue(distribution.criticalPercentage > 0f)
+    }
+
+    @Test
+    fun `test markdown report generation contains all required fields`() = runBlocking {
+        val analyzer = VectorRuleAnalyzer()
+        val prompt = "Create a public S3 bucket for customer documents."
+        val analysis = analyzer.analyze(prompt)
+        val improved = analyzer.buildImprovedPrompt(prompt, listOf("Enable Block Public Access on S3."))
+
+        val report = analysis.generateMarkdownReport(improved)
+
+        assertTrue(report.contains("# Vector — Security Diagnosis Report"))
+        assertTrue(report.contains("Overall Risk Score:"))
+        assertTrue(report.contains("Security Coverage:"))
+        assertTrue(report.contains("1. Evaluated Prompt"))
+        assertTrue(report.contains(prompt))
+        assertTrue(report.contains("2. Detected AWS Resources"))
+        assertTrue(report.contains("3. Security Findings Summary"))
+        assertTrue(report.contains("4. Hardened Infrastructure Prompt"))
+        assertTrue(report.contains("Enable Block Public Access on S3."))
     }
 }

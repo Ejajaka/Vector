@@ -48,4 +48,4 @@ export interface AnalyzerAdapter {
   deepScan?(prompt: string): Promise<AnalysisResult>;
 }
 
-export type ActiveTab = 'overview' | 'new-analysis' | 'history' | 'guidelines' | 'settings';
+export type ActiveTab = 'about' | 'overview' | 'new-analysis' | 'history' | 'guidelines' | 'settings';

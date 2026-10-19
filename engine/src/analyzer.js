@@ -53,11 +53,11 @@ const STOPWORDS = new Set([
 ]);
 
 const RISK_LEVELS = [
-  { min: 75, level: "CRITICAL", color: "#b91c1c" },
-  { min: 50, level: "HIGH", color: "#dc2626" },
-  { min: 25, level: "MEDIUM", color: "#d97706" },
-  { min: 1, level: "LOW", color: "#16a34a" },
-  { min: 0, level: "MINIMAL", color: "#16a34a" }
+  { min: 75, level: "CRITICAL", color: "#B94D42" },
+  { min: 50, level: "HIGH", color: "#C05621" },
+  { min: 25, level: "MEDIUM", color: "#9E7D1B" },
+  { min: 1, level: "LOW", color: "#2E6F40" },
+  { min: 0, level: "MINIMAL", color: "#2E6F40" }
 ];
 
 // How much each relevance tier contributes to the risk score. Clarifications
@@ -459,7 +459,7 @@ function analyze(prompt, options) {
       riskyFindings: [],
       riskScore: 0,
       riskLevel: "MINIMAL",
-      riskColor: "#16a34a",
+      riskColor: "#2E6F40",
       coverage: "out-of-scope",
       coverageScore: 0,
       totalWeight: 0,

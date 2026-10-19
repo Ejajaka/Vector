@@ -28,7 +28,8 @@ enum class Screen {
     RESULTS,
     IMPROVED_PROMPT,
     HISTORY,
-    SETTINGS
+    SETTINGS,
+    ABOUT
 }
 
 enum class ThemeMode {

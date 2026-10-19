@@ -1,4 +1,4 @@
-// Vector - React Native (Expo) client. UI ported to match the native Android
+﻿// Vector - React Native (Expo) client. UI ported to match the native Android
 // client; every analysis comes from the shared rule engine (src/analyzer.js).
 // No hardcoded/sample data.
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -10,7 +10,7 @@ import * as Clipboard from 'expo-clipboard';
 import { ThemeProvider, useTheme } from './src/theme';
 import { analyzePrompt, buildImprovedPrompt, eligibleClauseIds, metricsFrom, EXAMPLE_PROMPTS } from './src/vector';
 import { loadHistory, addToHistory, deleteFromHistory, clearHistory } from './src/storage';
-import { Icon, Snackbar, NetworkIndicator, NetworkDialog } from './src/ui';
+import { Icon, Snackbar, NetworkIndicator, NetworkDialog } from './src/components';
 
 import HomeScreen from './src/screens/HomeScreen';
 import AnalyzeScreen from './src/screens/AnalyzeScreen';
@@ -19,6 +19,7 @@ import ImprovedPromptScreen from './src/screens/ImprovedPromptScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import AboutScreen from './src/screens/AboutScreen';
 
 const TITLES = {
   HOME: { title: 'Vector', subtitle: 'AWS Cloud Security Diagnosis' },
@@ -27,11 +28,12 @@ const TITLES = {
   IMPROVED_PROMPT: { title: 'Improved Prompt', subtitle: 'Hardened requirements preview' },
   HISTORY: { title: 'Analysis History' },
   SETTINGS: { title: 'Settings' },
+  ABOUT: { title: 'About Vector', subtitle: 'Architecture security diagnosis' },
   ONBOARDING: { title: 'Onboarding' },
 };
 
 const NAV = [
-  { screen: 'HOME', label: 'Home', icon: 'Home', testID: 'nav_home' },
+  { screen: 'HOME', label: 'Overview', icon: 'Home', testID: 'nav_home' },
   { screen: 'ANALYZE', label: 'Analyze', icon: 'Analytics', testID: 'nav_analyze' },
   { screen: 'HISTORY', label: 'History', icon: 'History', testID: 'nav_history' },
   { screen: 'SETTINGS', label: 'Settings', icon: 'Settings', testID: 'nav_settings' },
@@ -60,7 +62,7 @@ function TopBar({ title, subtitle, canBack, onBack }) {
 
 function BottomBar({ current, onNavigate }) {
   const t = useTheme();
-  const activeTab = current === 'RESULTS' || current === 'IMPROVED_PROMPT' ? 'ANALYZE' : current;
+  const activeTab = current === 'RESULTS' || current === 'IMPROVED_PROMPT' ? 'ANALYZE' : (current === 'ABOUT' ? 'SETTINGS' : current);
   return (
     <View style={{ flexDirection: 'row', backgroundColor: t.surface, borderTopWidth: 1, borderTopColor: t.outline, paddingVertical: 8 }}>
       {NAV.map((item) => {
@@ -148,6 +150,7 @@ function Shell({ themeMode, setThemeMode }) {
 
   const handleBack = useCallback(() => {
     if (screen === 'RESULTS' || screen === 'IMPROVED_PROMPT') setScreen('ANALYZE');
+    else if (screen === 'ABOUT') setScreen('HOME');
     else if (screen === 'ONBOARDING' && onboardingCompleted) setScreen('HOME');
   }, [screen, onboardingCompleted]);
 
@@ -295,7 +298,7 @@ function Shell({ themeMode, setThemeMode }) {
   }
 
   const meta = TITLES[screen] || TITLES.HOME;
-  const canBack = screen === 'RESULTS' || screen === 'IMPROVED_PROMPT';
+  const canBack = screen === 'RESULTS' || screen === 'IMPROVED_PROMPT' || screen === 'ABOUT';
   const showNetworkIndicator = screen === 'HOME' || screen === 'ANALYZE' || screen === 'HISTORY';
   const showBottomBar = screen !== 'IMPROVED_PROMPT';
 
@@ -310,7 +313,14 @@ function Shell({ themeMode, setThemeMode }) {
 
       <View style={{ flex: 1 }}>
         {screen === 'HOME' ? (
-          <HomeScreen metrics={metrics} recentAnalyses={history} onStartAnalysis={() => navigateTo('ANALYZE')} onReopenAnalysis={reopen} />
+          <HomeScreen
+            metrics={metrics}
+            recentAnalyses={history}
+            onStartAnalysis={() => navigateTo('ANALYZE')}
+            onReopenAnalysis={reopen}
+            onNavigateToHistory={() => navigateTo('HISTORY')}
+            onNavigateToAbout={() => navigateTo('ABOUT')}
+          />
         ) : null}
         {screen === 'ANALYZE' ? (
           <AnalyzeScreen
@@ -338,6 +348,8 @@ function Shell({ themeMode, setThemeMode }) {
             onSelectAll={selectAll}
             onClearAll={clearAll}
             onNavigateToImproved={() => navigateTo('IMPROVED_PROMPT')}
+            improvedText={improvedText}
+            onSnackbar={flash}
           />
         ) : null}
         {screen === 'IMPROVED_PROMPT' ? (
@@ -373,7 +385,11 @@ function Shell({ themeMode, setThemeMode }) {
             onThemeModeChange={setThemeMode}
             onToggleOffline={toggleOffline}
             onOpenOnboarding={() => navigateTo('ONBOARDING')}
+            onOpenAbout={() => navigateTo('ABOUT')}
           />
+        ) : null}
+        {screen === 'ABOUT' ? (
+          <AboutScreen onAnalyzePrompt={() => navigateTo('ANALYZE')} />
         ) : null}
       </View>
 

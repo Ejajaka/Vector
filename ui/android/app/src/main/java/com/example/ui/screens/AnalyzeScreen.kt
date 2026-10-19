@@ -2,7 +2,6 @@ package com.example.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -26,7 +24,6 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Radar
-import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -52,7 +49,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.ExamplePrompt
 import com.example.ui.theme.VectorCriticalRed
-import com.example.ui.theme.VectorDarkTeal
 import com.example.ui.theme.VectorMustardYellow
 import com.example.ui.theme.VectorPrimaryTeal
 
@@ -83,7 +79,7 @@ fun AnalyzeScreen(
         // Screen Header
         Column {
             Text(
-                text = "New Security Analysis",
+                text = "New Security Diagnosis",
                 style = MaterialTheme.typography.headlineSmall.copy(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
@@ -91,9 +87,10 @@ fun AnalyzeScreen(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Describe your AWS infrastructure and identify missing security requirements before generating code.",
+                text = "Enter an AWS architecture prompt to examine resource configurations, detect dangerous exposures, and discover missing security controls.",
                 style = MaterialTheme.typography.bodyMedium.copy(
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 20.sp
                 )
             )
         }
@@ -119,7 +116,7 @@ fun AnalyzeScreen(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Select an Example Prompt",
+                        text = "Sample Infrastructure Prompts",
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -139,7 +136,7 @@ fun AnalyzeScreen(
                             .testTag("example_chip_$index"),
                         shape = RoundedCornerShape(10.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f))
                     ) {
                         Column(modifier = Modifier.padding(10.dp)) {
                             Text(
@@ -210,11 +207,11 @@ fun AnalyzeScreen(
                     onValueChange = onPromptChange,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(160.dp)
+                        .height(180.dp)
                         .testTag("analyze_prompt_input"),
                     placeholder = {
                         Text(
-                            text = "Example: Create an S3 bucket for customer documents and deploy an EC2 instance running a web application.",
+                            text = "Describe your architecture (e.g., Create an S3 bucket for documents and deploy an EC2 instance behind an ALB with RDS database)...",
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                             )
@@ -250,7 +247,7 @@ fun AnalyzeScreen(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "Rule-based analysis works offline",
+                            text = "Deterministic NLP • Private & offline",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 11.sp
@@ -309,7 +306,7 @@ fun AnalyzeScreen(
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "Analyzing Infrastructure...",
+                        text = "Analyzing Security Requirements...",
                         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
                     )
                 } else {
@@ -346,7 +343,7 @@ fun AnalyzeScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Deep Scan",
+                    text = "Deep Scan (Simulated Policy Check)",
                     style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
                 )
             }

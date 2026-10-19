@@ -14,7 +14,7 @@ private val LightColorScheme = lightColorScheme(
     onPrimaryContainer = VectorDarkTeal,
     secondary = VectorMustardYellow,
     onSecondary = VectorDarkTeal,
-    secondaryContainer = Color(0xFFF9F5E6),
+    secondaryContainer = Color(0xFFFBF8EE),
     onSecondaryContainer = VectorPrimaryText,
     tertiary = VectorDarkTeal,
     onTertiary = Color.White,
@@ -22,9 +22,10 @@ private val LightColorScheme = lightColorScheme(
     onBackground = VectorPrimaryText,
     surface = VectorCardBackground,
     onSurface = VectorPrimaryText,
-    surfaceVariant = Color(0xFFF0EEE5),
+    surfaceVariant = Color(0xFFEFECE2),
     onSurfaceVariant = VectorSecondaryText,
     outline = VectorBorder,
+    outlineVariant = Color(0xFFECE9DF),
     error = VectorCriticalRed,
     onError = Color.White
 )
@@ -32,23 +33,24 @@ private val LightColorScheme = lightColorScheme(
 private val DarkColorScheme = darkColorScheme(
     primary = VectorDarkPrimaryTeal,
     onPrimary = VectorDarkBackground,
-    primaryContainer = VectorDarkTeal,
-    onPrimaryContainer = Color(0xFFE4EBDD),
-    secondary = VectorMustardYellow,
+    primaryContainer = VectorDarkDarkTeal,
+    onPrimaryContainer = Color(0xFFE6EFE6),
+    secondary = VectorDarkMustardYellow,
     onSecondary = VectorDarkBackground,
-    secondaryContainer = Color(0xFF3B3928),
-    onSecondaryContainer = Color(0xFFF7ECC2),
-    tertiary = VectorSoftGreen,
+    secondaryContainer = Color(0xFF33301E),
+    onSecondaryContainer = Color(0xFFF9ECA8),
+    tertiary = VectorDarkMustardYellow,
     onTertiary = VectorDarkBackground,
     background = VectorDarkBackground,
     onBackground = VectorDarkText,
-    surface = VectorDarkCardBackground,
+    surface = VectorDarkSurface,
     onSurface = VectorDarkText,
-    surfaceVariant = Color(0xFF263336),
+    surfaceVariant = VectorDarkSurfaceVariant,
     onSurfaceVariant = VectorDarkSecondaryText,
     outline = VectorDarkBorder,
-    error = Color(0xFFE26D62),
-    onError = Color.White
+    outlineVariant = Color(0xFF3B4B4F),
+    error = VectorDarkCriticalRed,
+    onError = VectorDarkBackground
 )
 
 @Composable
@@ -64,3 +66,4 @@ fun VectorTheme(
         content = content
     )
 }
+

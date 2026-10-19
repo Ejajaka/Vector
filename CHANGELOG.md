@@ -1,4 +1,4 @@
-# Changelog
+﻿# Changelog
 
 ## 0.8.0
 - **Version unified** to `0.8.0` across the engine, CLI, extension manifest, web
@@ -15,6 +15,11 @@
   all icons, store logo, Android launchers, splash screens and in-app marks.
 - `ui/web-app` dependencies trimmed; it now installs without `--legacy-peer-deps`.
 - Engine logic is unchanged: `engine/src` remains the single source of truth.
+- **Design system refresh (from the Android client):** geometric V logo,
+  accessible risk palette (`#C05621` high, `#9E7D1B` medium, `#2E6F40` low),
+  Risk Findings Distribution card, report download, About screen, and revised
+  screen copy across `ui/android`, `ui/web-app`, `ui/web`, `ui/mobile-native`
+  and `ui/mobile-expo`.
 
 ## 0.7.x
 - 0.7.0 Security Delta Analysis; 0.7.1 delta clarity + KMS fix; 0.7.2 live

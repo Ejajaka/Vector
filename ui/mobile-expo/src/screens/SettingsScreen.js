@@ -1,7 +1,7 @@
-import React from 'react';
+﻿import React from 'react';
 import { ScrollView, View, Text, Switch, Pressable } from 'react-native';
 import { useTheme, alpha } from '../theme';
-import { Card, Icon, FilterChip } from '../ui';
+import { Card, Icon, FilterChip } from '../components';
 
 function CardHeader({ icon, title }) {
   const t = useTheme();
@@ -19,12 +19,28 @@ function Divider() {
   return <View style={{ height: 1, backgroundColor: alpha(t.outline, 0.5), marginVertical: 14 }} />;
 }
 
-export default function SettingsScreen({ themeMode, isOnline, isSimulated, onThemeModeChange, onToggleOffline, onOpenOnboarding }) {
+export default function SettingsScreen({ themeMode, isOnline, isSimulated, onThemeModeChange, onToggleOffline, onOpenOnboarding, onOpenAbout }) {
   const t = useTheme();
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
       <Text style={{ fontSize: 24, fontWeight: '700', color: t.onBackground }}>Settings</Text>
+
+      {/* About Vector */}
+      <View style={{ height: 16 }} />
+      <Card testID="settings_open_about_card" onPress={onOpenAbout} borderColor={t.primary} style={{ padding: 16 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: t.primaryContainer, alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="Security" size={22} color={t.onPrimaryContainer} />
+          </View>
+          <View style={{ width: 12 }} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: t.onSurface }}>About Vector</Text>
+            <Text style={{ fontSize: 12, color: t.onSurfaceVariant }}>Product overview, analysis approach & responsible use guidelines.</Text>
+          </View>
+          <Icon name="ArrowForward" size={20} color={t.primary} />
+        </View>
+      </Card>
 
       {/* Appearance */}
       <View style={{ height: 16 }} />
@@ -94,7 +110,7 @@ export default function SettingsScreen({ themeMode, isOnline, isSimulated, onThe
               <Icon name={isOnline ? 'CloudDone' : 'CloudOff'} size={16} color={isOnline ? t.primary : t.error} />
             </View>
             <Text style={{ fontSize: 12, color: t.onSurfaceVariant }}>
-              {isOnline ? 'Connected • Rule-based analysis and online checks ready.' : 'Offline • Rule-based analysis works offline. Deep scan is unavailable.'}
+              {isOnline ? 'Connected â€¢ Rule-based analysis and online checks ready.' : 'Offline â€¢ Rule-based analysis works offline. Deep scan is unavailable.'}
             </Text>
           </View>
           <View style={{ borderRadius: 8, backgroundColor: isOnline ? t.primaryContainer : t.errorContainer, paddingHorizontal: 8, paddingVertical: 4 }}>
@@ -124,7 +140,7 @@ export default function SettingsScreen({ themeMode, isOnline, isSimulated, onThe
           <Text style={{ fontSize: 11, fontWeight: '700', color: t.onSurface }}>Upstream Core Methods Mapped:</Text>
           {['VectorAnalyzer.analyze(prompt, options)', 'VectorAnalyzer.mergeFindings(base, delta)', 'VectorAnalyzer.project(riskScore, clauses)', 'VectorAnalyzer.harden(prompt)'].map((m) => (
             <Text key={m} style={{ marginTop: 4, fontSize: 11, color: t.primary, fontFamily: 'monospace' }}>
-              {'• ' + m}
+              {'â€¢ ' + m}
             </Text>
           ))}
         </View>

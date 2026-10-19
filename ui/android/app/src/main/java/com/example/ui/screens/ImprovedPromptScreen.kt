@@ -4,7 +4,9 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,14 +18,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -38,6 +41,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -69,9 +73,9 @@ fun ImprovedPromptScreen(
             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
             val clip = ClipData.newPlainText("Vector Improved Prompt", text)
             clipboard.setPrimaryClip(clip)
-            onShowSnackbar("Improved prompt copied to clipboard!")
+            onShowSnackbar("Hardened prompt copied to clipboard.")
         } catch (e: Exception) {
-            onShowSnackbar("Failed to copy to clipboard: ${e.message}")
+            onShowSnackbar("Failed to copy: ${e.message}")
         }
     }
 
@@ -88,7 +92,7 @@ fun ImprovedPromptScreen(
         // Title and Subtitle
         Column {
             Text(
-                text = "Improved Prompt",
+                text = "Hardened Prompt Preview",
                 style = MaterialTheme.typography.headlineSmall.copy(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
@@ -96,14 +100,15 @@ fun ImprovedPromptScreen(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Original prompt hardened with $selectedClauseCount selected security requirement clauses.",
+                text = "Your prompt augmented with $selectedClauseCount selected security requirement clauses to enforce secure defaults prior to generation.",
                 style = MaterialTheme.typography.bodyMedium.copy(
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 20.sp
                 )
             )
         }
 
-        // Editable Prompt Card
+        // Terminal/Code-style Prompt Card
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(18.dp),
@@ -113,21 +118,45 @@ fun ImprovedPromptScreen(
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
+                // Header Bar (Terminal style)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Hardened Prompt Preview",
-                        style = MaterialTheme.typography.labelLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFE57368))
                         )
-                    )
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(VectorMustardYellow)
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(VectorPrimaryTeal)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "hardened-prompt.txt",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontFamily = FontFamily.Monospace,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        )
+                    }
 
                     Surface(
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(6.dp),
                         color = MaterialTheme.colorScheme.primaryContainer
                     ) {
                         Text(
@@ -136,24 +165,25 @@ fun ImprovedPromptScreen(
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             ),
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 OutlinedTextField(
                     value = improvedPromptText,
                     onValueChange = onTextChanged,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(240.dp)
+                        .height(260.dp)
                         .testTag("improved_prompt_editor"),
                     textStyle = MaterialTheme.typography.bodySmall.copy(
                         fontFamily = FontFamily.Monospace,
                         fontSize = 13.sp,
-                        lineHeight = 18.sp
+                        lineHeight = 19.sp,
+                        color = MaterialTheme.colorScheme.onSurface
                     ),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -162,19 +192,32 @@ fun ImprovedPromptScreen(
                     )
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                Text(
-                    text = "Tip: You can customize or edit clauses directly before copying or re-analyzing.",
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 11.sp
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${improvedPromptText.length} characters",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     )
-                )
+
+                    Text(
+                        text = "Edit freely before copying",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 11.sp
+                        )
+                    )
+                }
             }
         }
 
-        // Primary & Secondary Action Buttons
+        // Action Buttons
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             // Copy Button
             Button(

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { View, Text, ScrollView, Pressable, useWindowDimensions } from 'react-native';
 import { useTheme } from '../theme';
-import { Card, PrimaryButton, Icon } from '../ui';
+import { Card, PrimaryButton, Icon } from '../components';
 
 const STEPS = [
   {
@@ -18,7 +18,7 @@ const STEPS = [
   },
   {
     badge: 'THE 3-STEP WORKFLOW',
-    title: 'Analyze • Review • Improve',
+    title: 'Analyze â€¢ Review â€¢ Improve',
     subtitle: 'Hardening your cloud infrastructure prompts takes just three seamless steps.',
     icon: 'Tune',
     features: [

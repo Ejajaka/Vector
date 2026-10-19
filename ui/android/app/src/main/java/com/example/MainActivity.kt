@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import com.example.ui.components.PersistentNetworkIndicator
 import com.example.ui.components.VectorBottomBar
 import com.example.ui.components.VectorTopBar
+import com.example.ui.screens.AboutScreen
 import com.example.ui.screens.AnalyzeScreen
 import com.example.ui.screens.HistoryScreen
 import com.example.ui.screens.HomeScreen
@@ -89,10 +90,13 @@ fun VectorApp(viewModel: VectorViewModel) {
 
     val canNavigateBack = currentScreen == Screen.RESULTS ||
             currentScreen == Screen.IMPROVED_PROMPT ||
+            currentScreen == Screen.ABOUT ||
             (currentScreen == Screen.ONBOARDING && isOnboardingCompleted)
 
-    BackHandler(enabled = canNavigateBack) {
-        viewModel.handleBack()
+    BackHandler(enabled = currentScreen != Screen.HOME && currentScreen != Screen.ONBOARDING) {
+        if (!viewModel.handleBack()) {
+            viewModel.navigateTo(Screen.HOME)
+        }
     }
 
     if (currentScreen == Screen.ONBOARDING) {
@@ -115,6 +119,7 @@ fun VectorApp(viewModel: VectorViewModel) {
         Screen.IMPROVED_PROMPT -> "Improved Prompt"
         Screen.HISTORY -> "Analysis History"
         Screen.SETTINGS -> "Settings"
+        Screen.ABOUT -> "About Vector"
         Screen.ONBOARDING -> "Onboarding"
     }
 
@@ -122,6 +127,7 @@ fun VectorApp(viewModel: VectorViewModel) {
         Screen.HOME -> "AWS Cloud Security Diagnosis"
         Screen.RESULTS -> "Pre-generation evaluation"
         Screen.IMPROVED_PROMPT -> "Hardened requirements preview"
+        Screen.ABOUT -> "Architecture security diagnosis"
         else -> null
     }
 
@@ -171,6 +177,8 @@ fun VectorApp(viewModel: VectorViewModel) {
                         demoModeActive = demoMode,
                         onStartAnalysis = { viewModel.navigateTo(Screen.ANALYZE) },
                         onReopenAnalysis = { analysis -> viewModel.reopenAnalysis(analysis) },
+                        onNavigateToHistory = { viewModel.navigateTo(Screen.HISTORY) },
+                        onNavigateToAbout = { viewModel.navigateTo(Screen.ABOUT) },
                         modifier = screenModifier
                     )
                 }
@@ -193,10 +201,12 @@ fun VectorApp(viewModel: VectorViewModel) {
                         ResultsScreen(
                             analysis = analysis,
                             selectedClauseIds = selectedClauseIds,
+                            improvedPromptText = improvedPromptText,
                             onToggleSelectClause = { viewModel.toggleClauseSelection(it) },
                             onSelectAll = { viewModel.selectAllRecommendations() },
                             onClearAll = { viewModel.clearAllRecommendations() },
                             onNavigateToImprovedPrompt = { viewModel.navigateTo(Screen.IMPROVED_PROMPT) },
+                            onShowSnackbar = { viewModel.showSnackbar(it) },
                             modifier = screenModifier
                         )
                     } else {
@@ -246,6 +256,13 @@ fun VectorApp(viewModel: VectorViewModel) {
                         onDemoModeChange = { viewModel.setDemoMode(it) },
                         onToggleSimulatedOffline = { viewModel.setSimulatedOffline(it) },
                         onOpenOnboarding = { viewModel.startOnboarding() },
+                        onOpenAbout = { viewModel.navigateTo(Screen.ABOUT) },
+                        modifier = screenModifier
+                    )
+                }
+                Screen.ABOUT -> {
+                    AboutScreen(
+                        onAnalyzePrompt = { viewModel.navigateTo(Screen.ANALYZE) },
                         modifier = screenModifier
                     )
                 }

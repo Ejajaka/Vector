@@ -17,7 +17,21 @@
     results: document.getElementById("results"),
     improvedWrap: document.getElementById("improved-wrap"),
     improved: document.getElementById("improved"),
-    copy: document.getElementById("btn-copy")
+    copy: document.getElementById("btn-copy"),
+    aboutBtn: document.getElementById("btn-about"),
+    aboutAnalyze: document.getElementById("about-analyze"),
+    viewAnalyze: document.getElementById("view-analyze"),
+    viewAbout: document.getElementById("view-about"),
+    riskDist: document.getElementById("risk-dist"),
+    riskDistBody: document.getElementById("risk-dist-body"),
+    riskDistCount: document.getElementById("risk-dist-count")
+  };
+
+  const RISK_COLORS = {
+    CRITICAL: "#B94D42",
+    HIGH: "#C05621",
+    MEDIUM: "#D1B653",
+    LOW: "#2E6F40"
   };
 
   const DEFAULTS = {
@@ -65,8 +79,54 @@
     }) || null;
   }
 
-  function toast(msg) {
-    let t = document.querySelector(".m-toast");
+  function switchView(view) {
+    document.querySelectorAll(".m-tab").forEach(function (t) {
+      t.classList.toggle("active", t.getAttribute("data-view") === view);
+    });
+    el.viewAnalyze.classList.toggle("hidden", view !== "analyze");
+    el.viewAbout.classList.toggle("hidden", view !== "about");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // Aggregated risk distribution over the saved history snapshots.
+  function renderRiskDistribution() {
+    const list = readHistory();
+    const dist = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 };
+    list.forEach(function (h) {
+      const lvl = h && h.riskLevel;
+      if (lvl && dist[lvl] !== undefined) dist[lvl]++;
+    });
+    const total = dist.CRITICAL + dist.HIGH + dist.MEDIUM + dist.LOW;
+    el.riskDistCount.textContent = total + " analyses";
+    if (!list.length || !total) {
+      el.riskDist.classList.add("hidden");
+      return;
+    }
+    el.riskDist.classList.remove("hidden");
+    const rows = [
+      ["CRITICAL", "Critical"],
+      ["HIGH", "High"],
+      ["MEDIUM", "Medium"],
+      ["LOW", "Low"]
+    ];
+    let bar = "";
+    rows.forEach(function (r) {
+      if (dist[r[0]] > 0) {
+        bar += '<div style="flex:' + dist[r[0]] + ';background:' + RISK_COLORS[r[0]] + '"></div>';
+      }
+    });
+    let legend = "";
+    rows.forEach(function (r) {
+      const pct = Math.round((dist[r[0]] / total) * 100);
+      legend +=
+        '<div class="m-dist-item"><div class="m-dist-label"><span class="m-dist-dot" style="background:' +
+        RISK_COLORS[r[0]] + '"></span>' + r[1] + '</div><div class="m-dist-count">' + dist[r[0]] +
+        '</div><div class="m-dist-pct">' + pct + '%</div></div>';
+    });
+    el.riskDistBody.innerHTML = '<div class="m-dist-bar">' + bar + '</div><div class="m-dist-legend">' + legend + '</div>';
+  }
+
+  function toast(msg) {    let t = document.querySelector(".m-toast");
     if (!t) {
       t = document.createElement("div");
       t.className = "vp-toast m-toast";
@@ -123,6 +183,7 @@
     prevReport = findComparable(report);
     hadHistory = !!prevReport;
     addHistory(report);
+    renderRiskDistribution();
     el.results.classList.remove("hidden");
     render();
     setHint();
@@ -183,6 +244,11 @@
   el.deep.addEventListener("click", deepScanNow);
   el.copy.addEventListener("click", copyImproved);
   el.settingsBtn.addEventListener("click", function () { el.settings.classList.toggle("hidden"); });
+  document.querySelectorAll(".m-tab").forEach(function (t) {
+    t.addEventListener("click", function () { switchView(t.getAttribute("data-view")); });
+  });
+  if (el.aboutBtn) el.aboutBtn.addEventListener("click", function () { switchView("about"); });
+  if (el.aboutAnalyze) el.aboutAnalyze.addEventListener("click", function () { switchView("analyze"); });
   el.save.addEventListener("click", function () {
     settings = {
       apiKey: el.key.value.trim(),
@@ -198,4 +264,5 @@
   el.key.value = settings.apiKey || "";
   el.url.value = settings.baseUrl || "";
   el.model.value = settings.model || "";
+  renderRiskDistribution();
 })();

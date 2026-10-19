@@ -20,12 +20,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -59,8 +59,9 @@ import com.example.data.model.AnalysisResult
 import com.example.data.model.RiskLevel
 import com.example.ui.components.RiskScoreBadge
 import com.example.ui.theme.VectorCriticalRed
-import com.example.ui.theme.VectorDarkTeal
-import com.example.ui.theme.VectorPrimaryTeal
+import com.example.ui.theme.VectorHighRisk
+import com.example.ui.theme.VectorLowRisk
+import com.example.ui.theme.VectorMediumRisk
 import com.example.ui.viewmodel.HistorySort
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -105,7 +106,7 @@ fun HistoryScreen(
                     )
                 )
                 Text(
-                    text = "${analyses.size} records found",
+                    text = "${analyses.size} saved record(s)",
                     style = MaterialTheme.typography.bodySmall.copy(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -135,7 +136,7 @@ fun HistoryScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag("history_search_input"),
-            placeholder = { Text("Search by prompt text or service...") },
+            placeholder = { Text("Filter past analyses by prompt keyword...") },
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Search,
@@ -148,7 +149,7 @@ fun HistoryScreen(
                     IconButton(onClick = { onSearchChange("") }) {
                         Icon(
                             imageVector = Icons.Default.Clear,
-                            contentDescription = "Clear search",
+                            contentDescription = "Clear search query",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -173,7 +174,7 @@ fun HistoryScreen(
                 FilterChip(
                     selected = filterRisk == null,
                     onClick = { onFilterRiskChange(null) },
-                    label = { Text("All Risks") },
+                    label = { Text("All (${analyses.size})") },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                         selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -186,7 +187,7 @@ fun HistoryScreen(
                     onClick = { onFilterRiskChange(if (filterRisk == RiskLevel.CRITICAL) null else RiskLevel.CRITICAL) },
                     label = { Text("Critical") },
                     colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = VectorCriticalRed.copy(alpha = 0.2f),
+                        selectedContainerColor = VectorCriticalRed.copy(alpha = 0.18f),
                         selectedLabelColor = VectorCriticalRed
                     )
                 )
@@ -195,27 +196,38 @@ fun HistoryScreen(
                 FilterChip(
                     selected = filterRisk == RiskLevel.HIGH,
                     onClick = { onFilterRiskChange(if (filterRisk == RiskLevel.HIGH) null else RiskLevel.HIGH) },
-                    label = { Text("High") }
+                    label = { Text("High") },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = VectorHighRisk.copy(alpha = 0.18f),
+                        selectedLabelColor = VectorHighRisk
+                    )
                 )
             }
             item {
                 FilterChip(
                     selected = filterRisk == RiskLevel.MEDIUM,
                     onClick = { onFilterRiskChange(if (filterRisk == RiskLevel.MEDIUM) null else RiskLevel.MEDIUM) },
-                    label = { Text("Medium") }
+                    label = { Text("Medium") },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = VectorMediumRisk.copy(alpha = 0.18f),
+                        selectedLabelColor = VectorMediumRisk
+                    )
                 )
             }
             item {
                 FilterChip(
                     selected = filterRisk == RiskLevel.LOW,
                     onClick = { onFilterRiskChange(if (filterRisk == RiskLevel.LOW) null else RiskLevel.LOW) },
-                    label = { Text("Low") }
+                    label = { Text("Low") },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = VectorLowRisk.copy(alpha = 0.18f),
+                        selectedLabelColor = VectorLowRisk
+                    )
                 )
             }
 
             item {
                 Spacer(modifier = Modifier.width(4.dp))
-                // Toggle Sort
                 OutlinedButton(
                     onClick = {
                         onSortChange(
@@ -226,10 +238,10 @@ fun HistoryScreen(
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Icon(imageVector = Icons.Default.Sort, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Icon(imageVector = Icons.AutoMirrored.Filled.Sort, contentDescription = null, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = if (sortOrder == HistorySort.NEWEST) "Sort: Newest" else "Sort: Risk",
+                        text = if (sortOrder == HistorySort.NEWEST) "Newest" else "Highest Risk",
                         fontSize = 12.sp
                     )
                 }
@@ -270,12 +282,13 @@ fun HistoryScreen(
                             Icon(
                                 imageVector = Icons.Default.History,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
                             )
                         }
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = if (searchQuery.isNotEmpty()) "No matching analyses" else "No analysis history",
+                            text = if (searchQuery.isNotEmpty()) "No matching analyses found" else "No saved analysis history",
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -283,8 +296,8 @@ fun HistoryScreen(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = if (searchQuery.isNotEmpty()) "Try adjusting your search or risk filter."
-                            else "Your past prompt security scans and improved prompts will appear here.",
+                            text = if (searchQuery.isNotEmpty()) "Try adjusting your search keywords or risk severity filter."
+                            else "Your past AWS infrastructure prompt evaluations will appear here for auditing and re-analysis.",
                             style = MaterialTheme.typography.bodySmall.copy(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             ),
@@ -326,7 +339,7 @@ fun HistoryScreen(
         AlertDialog(
             onDismissRequest = { showClearConfirmDialog = false },
             title = { Text("Clear All History?") },
-            text = { Text("This will permanently remove all saved analysis records from local storage.") },
+            text = { Text("This will permanently remove all saved analysis records from local storage. This action cannot be undone.") },
             confirmButton = {
                 Button(
                     onClick = {
@@ -451,7 +464,7 @@ fun HistoryItemCard(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Icon(
-                        imageVector = Icons.Default.ArrowForward,
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(14.dp)

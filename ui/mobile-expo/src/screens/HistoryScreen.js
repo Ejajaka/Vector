@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { ScrollView, View, Text, TextInput, Pressable, Modal } from 'react-native';
-import { useTheme, riskColor } from '../theme';
-import { Card, RiskScoreBadge, Icon, FilterChip, PrimaryButton, OutlinedButton } from '../ui';
+import { useTheme, riskColor, alpha } from '../theme';
+import { Card, RiskScoreBadge, Icon, FilterChip, PrimaryButton, OutlinedButton } from '../components';
 
 const FILTERS = [
-  { key: null, label: 'All Risks' },
+  { key: null, label: 'All' },
   { key: 'CRITICAL', label: 'Critical' },
   { key: 'HIGH', label: 'High' },
   { key: 'MEDIUM', label: 'Medium' },
@@ -27,7 +27,7 @@ function HistoryItem({ item, onReopen, onDelete }) {
       </Text>
       <View style={{ marginTop: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <Text style={{ flexShrink: 1, fontSize: 11, color: t.onSurfaceVariant }}>
-          {`${date}  •  ${item.securityCoverage}% coverage`}
+          {`${date}  â€¢  ${item.securityCoverage}% coverage`}
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Text style={{ fontSize: 12, fontWeight: '700', color: t.primary }}>Reopen</Text>
@@ -61,7 +61,7 @@ export default function HistoryScreen({
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <View>
           <Text style={{ fontSize: 24, fontWeight: '700', color: t.onBackground }}>Analysis History</Text>
-          <Text style={{ fontSize: 12, color: t.onSurfaceVariant }}>{analyses.length} records found</Text>
+          <Text style={{ fontSize: 12, color: t.onSurfaceVariant }}>{analyses.length} saved record(s)</Text>
         </View>
         {analyses.length > 0 ? (
           <Pressable testID="clear_history_icon_button" onPress={() => setConfirmClear(true)} hitSlop={8} style={{ padding: 6 }}>
@@ -77,7 +77,7 @@ export default function HistoryScreen({
           testID="history_search_input"
           value={searchQuery}
           onChangeText={onSearchChange}
-          placeholder="Search by prompt text or service..."
+          placeholder="Filter past analyses by prompt keyword..."
           placeholderTextColor={t.onSurfaceVariant + '99'}
           style={{ flex: 1, paddingVertical: 10, paddingHorizontal: 8, color: t.onSurface, fontSize: 14 }}
         />
@@ -93,15 +93,15 @@ export default function HistoryScreen({
         {FILTERS.map((f) => (
           <FilterChip
             key={String(f.key)}
-            label={f.label}
+            label={f.key === null ? `All (${analyses.length})` : f.label}
             selected={filterRisk === f.key}
-            selectedBg={f.key === 'CRITICAL' ? 'rgba(185,77,66,0.2)' : undefined}
-            selectedFg={f.key === 'CRITICAL' ? riskColor('CRITICAL') : undefined}
+            selectedBg={f.key ? alpha(riskColor(f.key), 0.18) : undefined}
+            selectedFg={f.key ? riskColor(f.key) : undefined}
             onPress={() => onFilterRiskChange(filterRisk === f.key ? null : f.key)}
           />
         ))}
         <View style={{ width: 4 }} />
-        <OutlinedButton compact label={sortOrder === 'NEWEST' ? 'Sort: Newest' : 'Sort: Risk'} icon="Sort" onPress={() => onSortChange(sortOrder === 'NEWEST' ? 'HIGHEST_RISK' : 'NEWEST')} />
+        <OutlinedButton compact label={sortOrder === 'NEWEST' ? 'Newest' : 'Highest Risk'} icon="Sort" onPress={() => onSortChange(sortOrder === 'NEWEST' ? 'HIGHEST_RISK' : 'NEWEST')} />
       </ScrollView>
 
       <View style={{ height: 12 }} />
@@ -111,10 +111,10 @@ export default function HistoryScreen({
             <Icon name="History" size={24} color={t.onSurfaceVariant} />
           </View>
           <View style={{ height: 12 }} />
-          <Text style={{ fontSize: 16, fontWeight: '700', color: t.onSurface }}>{searching ? 'No matching analyses' : 'No analysis history'}</Text>
+          <Text style={{ fontSize: 16, fontWeight: '700', color: t.onSurface }}>{searching ? 'No matching analyses found' : 'No saved analysis history'}</Text>
           <View style={{ height: 4 }} />
           <Text style={{ fontSize: 12, color: t.onSurfaceVariant, textAlign: 'center' }}>
-            {searching ? 'Try adjusting your search or risk filter.' : 'Your past prompt security scans and improved prompts will appear here.'}
+            {searching ? 'Try adjusting your search keywords or risk severity filter.' : 'Your past AWS infrastructure prompt evaluations will appear here for auditing and re-analysis.'}
           </Text>
           <View style={{ height: 16 }} />
           <Pressable onPress={onNavigateToAnalyze} style={({ pressed }) => ({ borderRadius: 10, backgroundColor: t.primary, paddingHorizontal: 20, paddingVertical: 10, opacity: pressed ? 0.9 : 1 })}>
@@ -130,7 +130,7 @@ export default function HistoryScreen({
           <View style={{ width: '100%', maxWidth: 380, backgroundColor: t.surface, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: t.outline }}>
             <Text style={{ fontSize: 18, fontWeight: '700', color: t.onSurface }}>Clear All History?</Text>
             <Text style={{ marginTop: 8, fontSize: 13, color: t.onSurfaceVariant }}>
-              This will permanently remove all saved analysis records from local storage.
+              This will permanently remove all saved analysis records from local storage. This action cannot be undone.
             </Text>
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 18 }}>
               <Pressable onPress={() => setConfirmClear(false)} style={{ paddingHorizontal: 14, paddingVertical: 9 }}>

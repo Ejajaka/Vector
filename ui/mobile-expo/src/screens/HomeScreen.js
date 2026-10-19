@@ -1,7 +1,8 @@
-import React from 'react';
+﻿import React from 'react';
 import { ScrollView, View, Text, Pressable } from 'react-native';
-import { useTheme, riskColor, riskLabel } from '../theme';
-import { Card, MetricCard, RiskScoreBadge, Icon } from '../ui';
+import { useTheme, riskColor, riskLabel, RISK } from '../theme';
+import { Card, MetricCard, RiskScoreBadge, Icon, RiskDistributionCard } from '../components';
+import VectorLogo from '../VectorLogo';
 
 function RecentRow({ item, onPress }) {
   const t = useTheme();
@@ -17,7 +18,7 @@ function RecentRow({ item, onPress }) {
       </Text>
       <View style={{ marginTop: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <Text style={{ fontSize: 12, color: t.onSurfaceVariant }}>
-          {`Coverage: ${item.securityCoverage}%  •  ${item.detectedResources.length} Resources`}
+          {`Coverage: ${item.securityCoverage}%  â€¢  ${item.detectedResources.length} Resources`}
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Text style={{ fontSize: 12, fontWeight: '700', color: t.primary }}>View</Text>
@@ -29,51 +30,72 @@ function RecentRow({ item, onPress }) {
   );
 }
 
-export default function HomeScreen({ metrics, recentAnalyses, onStartAnalysis, onReopenAnalysis }) {
+export default function HomeScreen({ metrics, recentAnalyses, onStartAnalysis, onReopenAnalysis, onNavigateToHistory, onNavigateToAbout }) {
   const t = useTheme();
   const hasData = metrics.totalAnalyses > 0;
-  const avgRiskAccent = metrics.averageRiskScore >= 60 ? '#B94D42' : '#D1B653';
+  const avgRiskAccent = metrics.averageRiskScore >= 60 ? RISK.CRITICAL : t.mustard;
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
       {/* Hero */}
-      <View style={{ backgroundColor: t.darkTeal, borderRadius: 20, padding: 20 }}>
+      <View style={{ backgroundColor: t.darkTeal, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(229,226,216,0.3)', padding: 20 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <View style={{ borderRadius: 12, backgroundColor: 'rgba(209,182,83,0.2)', borderWidth: 1, borderColor: 'rgba(209,182,83,0.4)', paddingHorizontal: 10, paddingVertical: 4 }}>
-            <Text style={{ fontSize: 11, fontWeight: '700', color: '#D1B653', letterSpacing: 1 }}>AWS PRE-GENERATION DIAGNOSIS</Text>
+          <View style={{ borderRadius: 8, backgroundColor: 'rgba(209,182,83,0.2)', borderWidth: 1, borderColor: 'rgba(209,182,83,0.45)', paddingHorizontal: 9, paddingVertical: 4 }}>
+            <Text style={{ fontSize: 10, fontWeight: '700', color: '#D1B653', letterSpacing: 1 }}>AWS PRE-GENERATION SECURITY</Text>
           </View>
-          <Icon name="Security" size={24} color="#D1B653" />
+          <VectorLogo size={30} dark />
         </View>
         <View style={{ height: 14 }} />
         <Text style={{ fontSize: 28, fontWeight: '700', color: '#FFFFFF' }}>Vector</Text>
         <View style={{ height: 4 }} />
-        <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', lineHeight: 20 }}>
-          Secure your infrastructure prompts before code generation.
+        <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.88)', lineHeight: 21 }}>
+          Identify security gaps in AWS infrastructure prompts before they become part of generated code.
         </Text>
         <View style={{ height: 18 }} />
-        <Pressable
-          testID="home_new_analysis_button"
-          onPress={onStartAnalysis}
-          style={({ pressed }) => ({ height: 48, borderRadius: 12, backgroundColor: '#D1B653', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.9 : 1 })}
-        >
-          <Icon name="Analytics" size={18} color="#30494B" />
-          <View style={{ width: 8 }} />
-          <Text style={{ fontSize: 14, fontWeight: '700', color: '#30494B' }}>New Security Analysis</Text>
-        </Pressable>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <Pressable
+            testID="home_new_analysis_button"
+            onPress={onStartAnalysis}
+            style={({ pressed }) => ({ flex: 1.5, height: 48, borderRadius: 12, backgroundColor: '#D1B653', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.9 : 1 })}
+          >
+            <Icon name="Analytics" size={18} color="#30494B" />
+            <View style={{ width: 8 }} />
+            <Text style={{ fontSize: 14, fontWeight: '700', color: '#30494B' }}>Start New Analysis</Text>
+          </Pressable>
+          <Pressable
+            testID="home_about_button"
+            onPress={onNavigateToAbout}
+            style={({ pressed }) => ({ flex: 1, height: 48, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.85 : 1 })}
+          >
+            <Icon name="Info" size={16} color="#FFFFFF" />
+            <View style={{ width: 6 }} />
+            <Text style={{ fontSize: 12, fontWeight: '600', color: '#FFFFFF' }}>About</Text>
+          </Pressable>
+        </View>
       </View>
 
       <View style={{ height: 16 }} />
-      <Text style={{ fontSize: 16, fontWeight: '700', color: t.onBackground }}>Security Diagnosis Metrics</Text>
+      <RiskDistributionCard analyses={recentAnalyses} />
+
+      <View style={{ height: 16 }} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Text style={{ fontSize: 16, fontWeight: '700', color: t.onBackground }}>Saved Analysis Activity</Text>
+        {recentAnalyses.length > 0 ? (
+          <Pressable onPress={onNavigateToHistory} style={{ paddingVertical: 4 }}>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: t.primary }}>View History</Text>
+          </Pressable>
+        ) : null}
+      </View>
       <View style={{ height: 12 }} />
 
       <View style={{ flexDirection: 'row', gap: 10 }}>
-        <MetricCard testID="metric_total_analyses" title="Total Analyses" value={hasData ? String(metrics.totalAnalyses) : '—'} subtitle={hasData ? 'Evaluated prompts' : 'No analyses yet'} icon="Analytics" accent="#49686C" />
-        <MetricCard testID="metric_avg_risk" title="Avg Risk Score" value={hasData ? `${metrics.averageRiskScore}/100` : '—'} subtitle={hasData ? 'Risk profile' : 'No data'} icon="Shield" accent={avgRiskAccent} />
+        <MetricCard testID="metric_total_analyses" title="Saved Analyses" value={hasData ? String(metrics.totalAnalyses) : '0'} subtitle={hasData ? 'Evaluated prompts' : 'No saved analyses'} icon="Analytics" accent={t.primary} />
+        <MetricCard testID="metric_avg_risk" title="Avg Risk Profile" value={hasData ? `${metrics.averageRiskScore}/100` : 'â€”'} subtitle={hasData ? 'Aggregate score' : 'Awaiting runs'} icon="Shield" accent={avgRiskAccent} />
       </View>
       <View style={{ height: 10 }} />
       <View style={{ flexDirection: 'row', gap: 10 }}>
-        <MetricCard testID="metric_avg_coverage" title="Avg Security Coverage" value={hasData ? `${metrics.averageCoverage}%` : '—'} subtitle={hasData ? 'Controls present' : 'No data'} icon="VerifiedUser" accent="#49686C" />
-        <MetricCard testID="metric_high_risk" title="High-Risk Analyses" value={hasData ? String(metrics.highRiskCount) : '—'} subtitle={hasData ? 'Critical / High' : 'No data'} icon="Warning" accent="#B94D42" />
+        <MetricCard testID="metric_avg_coverage" title="Avg Coverage" value={hasData ? `${metrics.averageCoverage}%` : 'â€”'} subtitle={hasData ? 'Controls present' : 'Awaiting runs'} icon="VerifiedUser" accent={t.primary} />
+        <MetricCard testID="metric_high_risk" title="Elevated Risks" value={hasData ? String(metrics.highRiskCount) : '0'} subtitle={hasData ? 'Critical / High' : 'Clean profile'} icon="Warning" accent={RISK.HIGH} />
       </View>
 
       <View style={{ height: 20 }} />
@@ -83,20 +105,20 @@ export default function HomeScreen({ metrics, recentAnalyses, onStartAnalysis, o
       {recentAnalyses.length === 0 ? (
         <Card style={{ padding: 28, alignItems: 'center' }}>
           <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: t.surfaceVariant, alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="Info" size={24} color={t.onSurfaceVariant} />
+            <Icon name="Security" size={24} color={t.primary} />
           </View>
           <View style={{ height: 12 }} />
-          <Text style={{ fontSize: 16, fontWeight: '700', color: t.onSurface }}>No analyses recorded</Text>
+          <Text style={{ fontSize: 16, fontWeight: '700', color: t.onSurface }}>No analyses recorded yet</Text>
           <View style={{ height: 4 }} />
           <Text style={{ fontSize: 12, color: t.onSurfaceVariant, textAlign: 'center' }}>
-            Run your first AWS prompt analysis to evaluate security findings and coverage.
+            Evaluate your first AWS infrastructure prompt to detect risky patterns and missing security controls.
           </Text>
           <View style={{ height: 16 }} />
           <Pressable
             onPress={onStartAnalysis}
             style={({ pressed }) => ({ borderRadius: 10, backgroundColor: t.primary, paddingHorizontal: 20, paddingVertical: 10, opacity: pressed ? 0.9 : 1 })}
           >
-            <Text style={{ color: t.onPrimary, fontWeight: '700' }}>Run Analysis</Text>
+            <Text style={{ color: t.onPrimary, fontWeight: '700' }}>Run First Analysis</Text>
           </Pressable>
         </Card>
       ) : (

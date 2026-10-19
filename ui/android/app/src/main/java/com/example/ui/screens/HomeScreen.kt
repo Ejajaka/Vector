@@ -19,8 +19,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Analytics
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Shield
@@ -32,9 +32,11 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,13 +48,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.AnalysisMetrics
 import com.example.data.model.AnalysisResult
+import com.example.data.model.FindingRiskDistribution
 import com.example.ui.components.MetricCard
+import com.example.ui.components.RiskDistributionCard
 import com.example.ui.components.RiskScoreBadge
+import com.example.ui.components.VectorLogo
 import com.example.ui.theme.VectorCriticalRed
 import com.example.ui.theme.VectorDarkTeal
+import com.example.ui.theme.VectorHighRisk
 import com.example.ui.theme.VectorMustardYellow
 import com.example.ui.theme.VectorPrimaryTeal
-import com.example.ui.theme.VectorSoftGreen
 
 @Composable
 fun HomeScreen(
@@ -61,15 +66,21 @@ fun HomeScreen(
     demoModeActive: Boolean,
     onStartAnalysis: () -> Unit,
     onReopenAnalysis: (AnalysisResult) -> Unit,
+    onNavigateToHistory: () -> Unit = {},
+    onNavigateToAbout: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val riskDistribution = remember(recentAnalyses) {
+        FindingRiskDistribution.fromAnalyses(recentAnalyses)
+    }
+
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Welcome Hero Card
+        // Welcome Hero Card with Vector Brand Identity
         item {
             Spacer(modifier = Modifier.height(4.dp))
             Card(
@@ -77,7 +88,8 @@ fun HomeScreen(
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = VectorDarkTeal
-                )
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
             ) {
                 Column(
                     modifier = Modifier.padding(20.dp)
@@ -88,27 +100,22 @@ fun HomeScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Surface(
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(8.dp),
                             color = VectorMustardYellow.copy(alpha = 0.2f),
-                            border = BorderStroke(1.dp, VectorMustardYellow.copy(alpha = 0.4f))
+                            border = BorderStroke(1.dp, VectorMustardYellow.copy(alpha = 0.45f))
                         ) {
                             Text(
-                                text = "AWS PRE-GENERATION DIAGNOSIS",
+                                text = "AWS PRE-GENERATION SECURITY",
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Bold,
                                     color = VectorMustardYellow,
                                     letterSpacing = 1.sp
                                 ),
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
                             )
                         }
 
-                        Icon(
-                            imageVector = Icons.Default.Security,
-                            contentDescription = null,
-                            tint = VectorMustardYellow,
-                            modifier = Modifier.size(24.dp)
-                        )
+                        VectorLogo(modifier = Modifier.size(30.dp), isDark = true)
                     }
 
                     Spacer(modifier = Modifier.height(14.dp))
@@ -124,56 +131,109 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(4.dp))
 
                     Text(
-                        text = "Secure your infrastructure prompts before code generation.",
+                        text = "Identify security gaps in AWS infrastructure prompts before they become part of generated code.",
                         style = MaterialTheme.typography.bodyMedium.copy(
-                            color = Color.White.copy(alpha = 0.85f),
-                            lineHeight = 20.sp
+                            color = Color.White.copy(alpha = 0.88f),
+                            lineHeight = 21.sp
                         )
                     )
 
                     Spacer(modifier = Modifier.height(18.dp))
 
-                    Button(
-                        onClick = onStartAnalysis,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .testTag("home_new_analysis_button"),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = VectorMustardYellow,
-                            contentColor = VectorDarkTeal
-                        )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Analytics,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "New Security Analysis",
-                            style = MaterialTheme.typography.labelLarge.copy(
-                                fontWeight = FontWeight.Bold
+                        Button(
+                            onClick = onStartAnalysis,
+                            modifier = Modifier
+                                .weight(1.5f)
+                                .height(48.dp)
+                                .testTag("home_new_analysis_button"),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = VectorMustardYellow,
+                                contentColor = VectorDarkTeal
                             )
-                        )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Analytics,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Start New Analysis",
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        }
+
+                        OutlinedButton(
+                            onClick = onNavigateToAbout,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                                .testTag("home_about_button"),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.4f)),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = Color.White
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "About",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
+                            )
+                        }
                     }
                 }
             }
         }
 
-        // Metrics Section Header
+        // Risk Findings Distribution Visualization (Native Compose Segmented Bar & Stats)
         item {
-            Text(
-                text = "Security Diagnosis Metrics",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            )
+            RiskDistributionCard(distribution = riskDistribution)
         }
 
-        // 2x2 Compact Metric Cards
+        // Summary Metrics Section Header
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Saved Analysis Activity",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                )
+
+                if (recentAnalyses.isNotEmpty()) {
+                    Text(
+                        text = "View History",
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        ),
+                        modifier = Modifier
+                            .clickable { onNavigateToHistory() }
+                            .padding(vertical = 4.dp)
+                    )
+                }
+            }
+        }
+
+        // 2x2 Clean Metric Cards
         item {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(
@@ -181,9 +241,9 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     MetricCard(
-                        title = "Total Analyses",
-                        value = if (metrics.totalAnalyses > 0) "${metrics.totalAnalyses}" else "—",
-                        subtitle = if (metrics.totalAnalyses > 0) "Evaluated prompts" else "No analyses yet",
+                        title = "Saved Analyses",
+                        value = if (metrics.totalAnalyses > 0) "${metrics.totalAnalyses}" else "0",
+                        subtitle = if (metrics.totalAnalyses > 0) "Evaluated prompts" else "No saved analyses",
                         icon = Icons.Default.Analytics,
                         accentColor = VectorPrimaryTeal,
                         modifier = Modifier
@@ -191,9 +251,9 @@ fun HomeScreen(
                             .testTag("metric_total_analyses")
                     )
                     MetricCard(
-                        title = "Avg Risk Score",
+                        title = "Avg Risk Profile",
                         value = if (metrics.totalAnalyses > 0) "${metrics.averageRiskScore}/100" else "—",
-                        subtitle = if (metrics.totalAnalyses > 0) "Risk profile" else "No data",
+                        subtitle = if (metrics.totalAnalyses > 0) "Aggregate score" else "Awaiting runs",
                         icon = Icons.Default.Shield,
                         accentColor = if (metrics.averageRiskScore >= 60) VectorCriticalRed else VectorMustardYellow,
                         modifier = Modifier
@@ -207,9 +267,9 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     MetricCard(
-                        title = "Avg Security Coverage",
+                        title = "Avg Coverage",
                         value = if (metrics.totalAnalyses > 0) "${metrics.averageCoverage}%" else "—",
-                        subtitle = if (metrics.totalAnalyses > 0) "Controls present" else "No data",
+                        subtitle = if (metrics.totalAnalyses > 0) "Controls present" else "Awaiting runs",
                         icon = Icons.Default.Verified,
                         accentColor = VectorPrimaryTeal,
                         modifier = Modifier
@@ -217,11 +277,11 @@ fun HomeScreen(
                             .testTag("metric_avg_coverage")
                     )
                     MetricCard(
-                        title = "High-Risk Analyses",
-                        value = if (metrics.totalAnalyses > 0) "${metrics.highRiskCount}" else "—",
-                        subtitle = if (metrics.totalAnalyses > 0) "Critical / High" else "No data",
+                        title = "Elevated Risks",
+                        value = if (metrics.totalAnalyses > 0) "${metrics.highRiskCount}" else "0",
+                        subtitle = if (metrics.totalAnalyses > 0) "Critical / High" else "Clean profile",
                         icon = Icons.Default.Warning,
-                        accentColor = VectorCriticalRed,
+                        accentColor = VectorHighRisk,
                         modifier = Modifier
                             .weight(1f)
                             .testTag("metric_high_risk")
@@ -246,17 +306,17 @@ fun HomeScreen(
                 )
                 if (demoModeActive && recentAnalyses.any { it.isDemo }) {
                     Surface(
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(6.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant,
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                     ) {
                         Text(
-                            text = "Sample Data Included",
+                            text = "Sample Data Active",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 11.sp
                             ),
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
                         )
                     }
                 }
@@ -287,14 +347,15 @@ fun HomeScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Info,
+                                imageVector = Icons.Default.Security,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
                             )
                         }
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = "No analyses recorded",
+                            text = "No analyses recorded yet",
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -302,7 +363,7 @@ fun HomeScreen(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Run your first AWS prompt analysis to evaluate security findings and coverage.",
+                            text = "Evaluate your first AWS infrastructure prompt to detect risky patterns and missing security controls.",
                             style = MaterialTheme.typography.bodySmall.copy(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             ),
@@ -316,7 +377,7 @@ fun HomeScreen(
                                 containerColor = MaterialTheme.colorScheme.primary
                             )
                         ) {
-                            Text("Run Analysis")
+                            Text("Run First Analysis")
                         }
                     }
                 }
@@ -370,7 +431,7 @@ fun RecentAnalysisCard(
                         color = MaterialTheme.colorScheme.secondaryContainer
                     ) {
                         Text(
-                            text = "DEMO SAMPLE",
+                            text = "SAMPLE",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
@@ -419,7 +480,7 @@ fun RecentAnalysisCard(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Icon(
-                        imageVector = Icons.Default.ArrowForward,
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                         contentDescription = "View details",
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(14.dp)

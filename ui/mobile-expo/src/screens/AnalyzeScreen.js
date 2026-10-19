@@ -1,7 +1,7 @@
-import React from 'react';
+﻿import React from 'react';
 import { ScrollView, View, Text, TextInput, Pressable } from 'react-native';
 import { useTheme } from '../theme';
-import { Card, PrimaryButton, OutlinedButton, Icon } from '../ui';
+import { Card, PrimaryButton, OutlinedButton, Icon } from '../components';
 
 export default function AnalyzeScreen({
   promptInput,
@@ -16,10 +16,10 @@ export default function AnalyzeScreen({
   const t = useTheme();
   return (
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
-      <Text style={{ fontSize: 24, fontWeight: '700', color: t.onBackground }}>New Security Analysis</Text>
+      <Text style={{ fontSize: 24, fontWeight: '700', color: t.onBackground }}>New Security Diagnosis</Text>
       <View style={{ height: 4 }} />
       <Text style={{ fontSize: 14, color: t.onSurfaceVariant }}>
-        Describe your AWS infrastructure and identify missing security requirements before generating code.
+        Enter an AWS architecture prompt to examine resource configurations, detect dangerous exposures, and discover missing security controls.
       </Text>
 
       <View style={{ height: 16 }} />
@@ -28,7 +28,7 @@ export default function AnalyzeScreen({
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Icon name="Lightbulb" size={18} color="#D1B653" />
           <View style={{ width: 6 }} />
-          <Text style={{ fontSize: 14, fontWeight: '700', color: t.onSurface }}>Select an Example Prompt</Text>
+          <Text style={{ fontSize: 14, fontWeight: '700', color: t.onSurface }}>Sample Infrastructure Prompts</Text>
         </View>
         <View style={{ height: 10 }} />
         {examplePrompts.map((ex, i) => (
@@ -72,10 +72,10 @@ export default function AnalyzeScreen({
           value={promptInput}
           onChangeText={onPromptChange}
           multiline
-          placeholder="Example: Create an S3 bucket for customer documents and deploy an EC2 instance running a web application."
+          placeholder="Describe your architecture (e.g., Create an S3 bucket for documents and deploy an EC2 instance behind an ALB with RDS database)..."
           placeholderTextColor={t.onSurfaceVariant + '99'}
           style={{
-            minHeight: 160,
+            minHeight: 180,
             borderRadius: 12,
             borderWidth: 1,
             borderColor: t.outline,
@@ -92,7 +92,7 @@ export default function AnalyzeScreen({
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Icon name="CloudDone" size={14} color="#49686C" />
             <View style={{ width: 4 }} />
-            <Text style={{ fontSize: 11, color: t.onSurfaceVariant }}>Rule-based analysis works offline</Text>
+            <Text style={{ fontSize: 11, color: t.onSurfaceVariant }}>{"Deterministic NLP \u2022 Private & offline"}</Text>
           </View>
         </View>
         {inputError ? (
@@ -107,7 +107,7 @@ export default function AnalyzeScreen({
       <View style={{ height: 16 }} />
       <PrimaryButton
         testID="analyze_button"
-        label={isAnalyzing ? 'Analyzing Infrastructure...' : 'Analyze Prompt'}
+        label={isAnalyzing ? 'Analyzing Security Requirements...' : 'Analyze Prompt'}
         icon={isAnalyzing ? null : 'Analytics'}
         loading={isAnalyzing}
         disabled={isAnalyzing}
@@ -131,7 +131,7 @@ export default function AnalyzeScreen({
       >
         <Icon name="Radar" size={18} color="#49686C" />
         <View style={{ width: 8 }} />
-        <Text style={{ fontSize: 14, fontWeight: '600', color: '#49686C' }}>Deep Scan</Text>
+        <Text style={{ fontSize: 14, fontWeight: '600', color: '#49686C' }}>Deep Scan (Simulated Policy Check)</Text>
       </Pressable>
     </ScrollView>
   );
