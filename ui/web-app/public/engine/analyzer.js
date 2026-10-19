@@ -828,6 +828,28 @@ function analyze(prompt, options) {
 
   riskyFindings.sort((a, b) => severityRank(b.severity) - severityRank(a.severity));
 
+  // Keep explicit unsafe requests visible for remediation, but do not count
+  // the same control as both an omission and an independent risk contribution.
+  const explicitlyRiskyControls = new Set();
+  const riskControlMap = {
+    open_ssh: ["network_restricted"],
+    public_bucket: ["public_access_block"],
+    wildcard_iam: ["least_privilege_iam", "no_wildcard_policy"],
+    no_encryption: ["encryption_at_rest"],
+    hardcoded_secret: ["secrets_management"],
+    disabled_logging: ["audit_logging"]
+  };
+  for (const riskyFinding of riskyFindings) {
+    for (const controlId of riskControlMap[riskyFinding.id] || []) explicitlyRiskyControls.add(controlId);
+  }
+  for (const missingFinding of missing) {
+    if (explicitlyRiskyControls.has(missingFinding.id)) {
+      missingFinding.explicitlyRisky = true;
+      const requirement = relevantCounts.find((item) => item.id === missingFinding.id);
+      if (requirement) requirement.missing = false;
+    }
+  }
+
   let riskScore = computeRisk(relevantCounts, riskyFindings);
   riskScore = Math.min(100, Math.round(riskScore * envFactor));
   const riskMeta = riskLevelFromScore(riskScore);

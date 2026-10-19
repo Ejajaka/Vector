@@ -871,7 +871,7 @@ const RISKY_PATTERNS = [
   },
   {
     id: "disabled_logging",
-    pattern: "disable log|no log|without log|turn off log|stop logging|remove logging|logging (is )?(disabled|off)|logs? (are )?(disabled|off)",
+    pattern: "disable log|no log|without log|turn off (?:(cloudtrail|audit|access) )?logging|stop logging|remove logging|logging (is )?(disabled|off)|logs? (are )?(disabled|off)",
     neutralize: [
       [/disable (logging|logs?)/gi, "enable logging"],
       [/logging (is )?(disabled|off)/gi, "logging enabled"],

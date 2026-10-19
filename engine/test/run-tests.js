@@ -746,6 +746,14 @@ test("risk: a secure private bucket scores low", () => {
   assert.ok(r.riskScore < 30, "expected low risk, got " + r.riskScore);
 });
 
+test("risk: explicit unsafe controls are marked without double-counting omission risk", () => {
+  const r = analyze("Create an S3 bucket, disable encryption, and turn off CloudTrail logging.");
+  assert.ok(r.missing.find((m) => m.id === "encryption_at_rest").explicitlyRisky);
+  assert.ok(!r.missing.some((m) => m.id === "audit_logging"));
+  assert.ok(r.riskyFindings.some((f) => f.id === "no_encryption"));
+  assert.ok(r.riskyFindings.some((f) => f.id === "disabled_logging"));
+});
+
 test("resources: 'website images' is storage, not EC2/ALB", () => {
   const r = analyze("Create a private S3 bucket for website images.");
   const ids = r.resources.map((x) => x.id);

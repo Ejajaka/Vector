@@ -167,6 +167,11 @@ export const SecurityRequirementsList: React.FC<SecurityRequirementsListProps> =
                             AI
                           </span>
                         )}
+                        {finding.explicitlyRisky && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#FDF2F0] text-[#B94D42] border border-[#F0C4BF]">
+                            Explicitly risky
+                          </span>
+                        )}
                         {finding.dimension && (
                           <span className="text-[11px] text-[#737A72] font-medium">
                             · {finding.dimension}
@@ -260,6 +265,11 @@ export const SecurityRequirementsList: React.FC<SecurityRequirementsListProps> =
                         {finding.source === 'ai' && (
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#E4EBDD] text-[#30494B] border border-[#CFE2C8]">
                             AI
+                          </span>
+                        )}
+                        {finding.explicitlyRisky && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#FDF2F0] text-[#B94D42] border border-[#F0C4BF]">
+                            Explicitly risky
                           </span>
                         )}
                         {finding.appliesTo && (

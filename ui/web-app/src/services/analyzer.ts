@@ -85,7 +85,8 @@ function mapFinding(f: any): SecurityFinding {
     tier: f.tier,
     clause: f.clause,
     fix: f.fix,
-    source: f.source === 'ai' ? 'ai' : 'rule'
+    source: f.source === 'ai' ? 'ai' : 'rule',
+    explicitlyRisky: !!f.explicitlyRisky
   };
 }
 

@@ -21,6 +21,7 @@ export interface SecurityFinding {
   fix?: string;
   appliesTo?: string[];
   source?: FindingSource;
+  explicitlyRisky?: boolean;
   selected?: boolean;
   whyItMatters?: string;
   riskyStatement?: string;
