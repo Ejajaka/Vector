@@ -414,11 +414,13 @@ fun OnboardingScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Get Started & Go to Home",
+                        text = "Get Started",
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
+                            fontSize = 15.sp
+                        ),
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
             } else {

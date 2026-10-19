@@ -217,14 +217,17 @@ export function RiskDistributionCard({ analyses }) {
 
   return (
     <View testID="risk_distribution_card" style={{ backgroundColor: t.surface, borderWidth: 1, borderColor: t.outline, borderRadius: 16, padding: 16 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1 }}>
+      <View>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Icon name="PieChart" size={20} color={t.primary} />
           <View style={{ width: 8 }} />
-          <Text style={{ fontSize: 16, fontWeight: '700', color: t.onSurface }}>Risk Findings Distribution</Text>
+          <Text numberOfLines={1} style={{ flexShrink: 1, fontSize: 16, fontWeight: '700', color: t.onSurface }}>
+            Risk Findings Distribution
+          </Text>
         </View>
-        <View style={{ borderRadius: 6, backgroundColor: t.surfaceVariant, paddingHorizontal: 8, paddingVertical: 3 }}>
-          <Text style={{ fontSize: 10, fontWeight: '700', color: t.onSurfaceVariant }}>{dist.total} findings</Text>
+        <View style={{ height: 6 }} />
+        <View style={{ alignSelf: 'flex-start', borderRadius: 6, backgroundColor: t.surfaceVariant, paddingHorizontal: 8, paddingVertical: 3 }}>
+          <Text numberOfLines={1} style={{ fontSize: 10, fontWeight: '700', color: t.onSurfaceVariant }}>{dist.total} findings</Text>
         </View>
       </View>
 

@@ -1,20 +1,20 @@
-// Custom Vector brand mark: a geometric "V" with teal + mustard facets.
-// Mirrors VectorLogo in ui/android VectorComponents.kt.
+// Vector brand mark: a dark-green rounded tile (#2D5D4F) with a bold gold V
+// (#FACB43) - the project's official logo.
 import React from 'react';
-import Svg, { Path, Circle } from 'react-native-svg';
-import { useTheme } from './theme';
+import Svg, { Rect, Path } from 'react-native-svg';
 
-export default function VectorLogo({ size = 28, dark = false }) {
-  const t = useTheme();
-  const teal = dark ? (t.mode === 'dark' ? '#6F999D' : '#49686C') : t.primary;
-  const yellow = dark ? (t.mode === 'dark' ? '#E2C969' : '#D1B653') : t.mustard;
-  const deep = dark ? (t.mode === 'dark' ? '#8AB4B8' : '#30494B') : t.darkTeal;
-
+export default function VectorLogo({ size = 28 }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 100 100">
-      <Path d="M12,16 L36,16 L50,78 L34,78 Z" fill={teal} />
-      <Path d="M64,16 L88,16 L58,84 L44,84 Z" fill={yellow} />
-      <Circle cx="50" cy="82" r="8" fill={deep} />
+      <Rect x="0" y="0" width="100" height="100" rx="24" fill="#2D5D4F" />
+      <Path
+        d="M30 30 L50 72 L70 30"
+        stroke="#FACB43"
+        strokeWidth="16"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
     </Svg>
   );
 }

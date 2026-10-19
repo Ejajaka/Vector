@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -150,6 +151,7 @@ fun HomeScreen(
                                 .height(48.dp)
                                 .testTag("home_new_analysis_button"),
                             shape = RoundedCornerShape(12.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = VectorMustardYellow,
                                 contentColor = VectorDarkTeal
@@ -162,10 +164,13 @@ fun HomeScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Start New Analysis",
+                                text = "New Analysis",
                                 style = MaterialTheme.typography.labelLarge.copy(
-                                    fontWeight = FontWeight.Bold
-                                )
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp
+                                ),
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
 
@@ -176,6 +181,7 @@ fun HomeScreen(
                                 .height(48.dp)
                                 .testTag("home_about_button"),
                             shape = RoundedCornerShape(12.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
                             border = BorderStroke(1.dp, Color.White.copy(alpha = 0.4f)),
                             colors = ButtonDefaults.outlinedButtonColors(
                                 contentColor = Color.White
@@ -189,7 +195,12 @@ fun HomeScreen(
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = "About",
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 12.sp
+                                ),
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
                     }

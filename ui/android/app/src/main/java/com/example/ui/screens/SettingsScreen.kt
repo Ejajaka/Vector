@@ -1,8 +1,10 @@
-package com.example.ui.screens
+﻿package com.example.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,7 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -56,6 +57,7 @@ import com.example.data.analyzer.JavaScriptBridgeDocumentation
 import com.example.ui.theme.VectorDarkTeal
 import com.example.ui.theme.VectorMustardYellow
 import com.example.ui.theme.VectorPrimaryTeal
+import com.example.ui.components.VectorLogo
 import com.example.ui.viewmodel.ThemeMode
 
 @Composable
@@ -113,20 +115,7 @@ fun SettingsScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Security,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
+                    VectorLogo(modifier = Modifier.size(28.dp))
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
@@ -183,7 +172,9 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     FilterChip(
@@ -299,7 +290,7 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
+                    Column(modifier = Modifier.weight(1f).padding(end = 10.dp)) {
                         Text(
                             text = "Core Rule-Based Engine",
                             style = MaterialTheme.typography.bodyMedium.copy(
@@ -405,8 +396,8 @@ fun SettingsScreen(
                             )
                         }
                         Text(
-                            text = if (isOnline) "Connected • Rule-based analysis and online checks ready."
-                            else "Offline • Rule-based analysis works offline. Deep scan is unavailable.",
+                            text = if (isOnline) "Connected â€¢ Rule-based analysis and online checks ready."
+                            else "Offline â€¢ Rule-based analysis works offline. Deep scan is unavailable.",
                             style = MaterialTheme.typography.bodySmall.copy(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -520,7 +511,7 @@ fun SettingsScreen(
                         Spacer(modifier = Modifier.height(4.dp))
                         JavaScriptBridgeDocumentation.CORE_METHODS.forEach { method ->
                             Text(
-                                text = "• $method",
+                                text = "â€¢ $method",
                                 style = MaterialTheme.typography.bodySmall.copy(
                                     fontFamily = FontFamily.Monospace,
                                     fontSize = 11.sp,

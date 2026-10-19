@@ -60,7 +60,7 @@ export default function HomeScreen({ metrics, recentAnalyses, onStartAnalysis, o
           >
             <Icon name="Analytics" size={18} color="#30494B" />
             <View style={{ width: 8 }} />
-            <Text style={{ fontSize: 14, fontWeight: '700', color: '#30494B' }}>Start New Analysis</Text>
+            <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: '700', color: '#30494B' }}>Start New Analysis</Text>
           </Pressable>
           <Pressable
             testID="home_about_button"
@@ -69,7 +69,7 @@ export default function HomeScreen({ metrics, recentAnalyses, onStartAnalysis, o
           >
             <Icon name="Info" size={16} color="#FFFFFF" />
             <View style={{ width: 6 }} />
-            <Text style={{ fontSize: 12, fontWeight: '600', color: '#FFFFFF' }}>About</Text>
+            <Text numberOfLines={1} style={{ fontSize: 12, fontWeight: '600', color: '#FFFFFF' }}>About</Text>
           </Pressable>
         </View>
       </View>

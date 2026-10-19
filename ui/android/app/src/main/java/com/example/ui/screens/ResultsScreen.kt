@@ -485,8 +485,11 @@ fun ResultsScreen(
                 Text(
                     text = "Review Improved Prompt (${selectedClauseIds.size})",
                     style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.Bold
-                    )
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    ),
+                    maxLines = 1,
+                    softWrap = false
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Icon(

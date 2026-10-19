@@ -58,13 +58,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.AwsResource
@@ -84,47 +87,38 @@ import com.example.ui.theme.VectorSoftGreen
 import com.example.ui.viewmodel.Screen
 
 /**
- * Custom Vector Brand Logo:
- * A bold geometric "V" with precision teal & mustard yellow facets.
+ * Vector brand mark: a dark-green rounded tile (#2D5D4F) with a bold gold V
+ * (#FACB43) - the project's official logo.
  */
 @Composable
 fun VectorLogo(
     modifier: Modifier = Modifier.size(28.dp),
     isDark: Boolean = false
 ) {
-    val tealColor = if (isDark) VectorDarkPrimaryTeal else VectorPrimaryTeal
-    val yellowColor = if (isDark) VectorDarkMustardYellow else VectorMustardYellow
-    val deepTealColor = if (isDark) Color(0xFF8AB4B8) else VectorDarkTeal
-
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
+        val radius = w * 0.24f
 
-        // Left Stem (Teal)
-        val leftPath = Path().apply {
-            moveTo(w * 0.12f, h * 0.16f)
-            lineTo(w * 0.36f, h * 0.16f)
-            lineTo(w * 0.50f, h * 0.78f)
-            lineTo(w * 0.34f, h * 0.78f)
-            close()
-        }
-        drawPath(leftPath, color = tealColor)
+        drawRoundRect(
+            color = Color(0xFF2D5D4F),
+            cornerRadius = CornerRadius(radius, radius)
+        )
 
-        // Right Stem (Mustard Yellow)
-        val rightPath = Path().apply {
-            moveTo(w * 0.64f, h * 0.16f)
-            lineTo(w * 0.88f, h * 0.16f)
-            lineTo(w * 0.58f, h * 0.84f)
-            lineTo(w * 0.44f, h * 0.84f)
-            close()
-        }
-        drawPath(rightPath, color = yellowColor)
-
-        // Apex Accent Dot / Shield Apex
-        drawCircle(
-            color = deepTealColor,
-            radius = w * 0.08f,
-            center = Offset(w * 0.50f, h * 0.82f)
+        val stroke = w * 0.16f
+        drawLine(
+            color = Color(0xFFFACB43),
+            start = Offset(w * 0.30f, h * 0.30f),
+            end = Offset(w * 0.50f, h * 0.72f),
+            strokeWidth = stroke,
+            cap = StrokeCap.Round
+        )
+        drawLine(
+            color = Color(0xFFFACB43),
+            start = Offset(w * 0.70f, h * 0.30f),
+            end = Offset(w * 0.50f, h * 0.72f),
+            strokeWidth = stroke,
+            cap = StrokeCap.Round
         )
     }
 }
@@ -275,11 +269,7 @@ fun RiskDistributionCard(
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.PieChart,
@@ -293,10 +283,13 @@ fun RiskDistributionCard(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
-                        )
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
                     )
                 }
-
+                Spacer(modifier = Modifier.height(6.dp))
                 Surface(
                     shape = RoundedCornerShape(6.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant
@@ -307,6 +300,8 @@ fun RiskDistributionCard(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         ),
+                        maxLines = 1,
+                        softWrap = false,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                     )
                 }
