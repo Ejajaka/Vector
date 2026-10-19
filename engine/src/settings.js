@@ -1,4 +1,4 @@
-"use strict";
+﻿"use strict";
 
 /**
  * Shared settings + analysis helper for the popup, options page and content script.
@@ -10,7 +10,7 @@
     apiKey: "",
     baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
     model: "gemini-2.5-flash",
-    autoDeepScan: false,
+    autoDeepScan: true,
     strictMode: false,
     policyText: ""
   };
