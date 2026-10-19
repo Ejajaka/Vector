@@ -15,6 +15,13 @@
   all icons, store logo, Android launchers, splash screens and in-app marks.
 - `ui/web-app` dependencies trimmed; it now installs without `--legacy-peer-deps`.
 - Engine logic is unchanged: `engine/src` remains the single source of truth.
+- **Engine recall improvements:** expanded paraphrase/abbreviation lexicons
+  (AZs, OTP, audit records, KMS rotation, "smallest permissions", "different
+  region", public address, short-lived credentials, "private network", etc.),
+  an explicit-control scope signal (security statements are analysed even with
+  no AWS resource named), and an explicit-mention relevance pass. Added
+  `npm run probe` (paraphrase recall: 51/54; independent unseen set 13/16).
+  Existing tests stay 76/76 and eval F1 1.000.
 - **Design system refresh (from the Android client):** geometric V logo,
   accessible risk palette (`#C05621` high, `#9E7D1B` medium, `#2E6F40` low),
   Risk Findings Distribution card, report download, About screen, and revised

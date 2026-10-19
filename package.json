@@ -6,6 +6,7 @@
   "scripts": {
     "test": "node engine/test/run-tests.js",
     "eval": "node engine/eval/run-eval.js",
+    "probe": "node engine/eval/paraphrase-probe.js",
     "downstream": "node engine/eval/downstream/run-downstream.js",
     "study": "node engine/eval/downstream/run-llm-study.js",
     "kappa": "node engine/eval/kappa.js",
