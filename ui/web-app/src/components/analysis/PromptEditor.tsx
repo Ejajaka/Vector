@@ -6,13 +6,17 @@ interface PromptEditorProps {
   setPromptText: (text: string) => void;
   onAnalyze: (text: string) => void;
   isLoading: boolean;
+  onDeepScan?: () => void;
+  deepScanAvailable?: boolean;
 }
 
 export const PromptEditor: React.FC<PromptEditorProps> = ({
   promptText,
   setPromptText,
   onAnalyze,
-  isLoading
+  isLoading,
+  onDeepScan,
+  deepScanAvailable = false
 }) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showDeepScanModal, setShowDeepScanModal] = useState(false);
@@ -94,9 +98,16 @@ export const PromptEditor: React.FC<PromptEditorProps> = ({
             {/* Deep Scan button (with unconfigured info modal) */}
             <button
               type="button"
-              onClick={() => setShowDeepScanModal(true)}
+              onClick={() => {
+                if (deepScanAvailable && onDeepScan) onDeepScan();
+                else setShowDeepScanModal(true);
+              }}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-[#E5E2D8] bg-[#FFFFFF] hover:bg-[#F6F4EC] text-xs font-semibold text-[#283638] transition-colors"
-              title="Optional deep semantic scan"
+              title={
+                deepScanAvailable
+                  ? 'Run the LLM deep scan and merge with the rules'
+                  : 'Optional deep semantic scan (configure in Settings)'
+              }
             >
               <Sparkles className="w-3.5 h-3.5 text-[#D1B653]" />
               <span>Deep Scan</span>
@@ -151,13 +162,13 @@ export const PromptEditor: React.FC<PromptEditorProps> = ({
             </div>
             <div className="py-4 space-y-2.5 text-xs text-[#737A72] leading-relaxed">
               <p>
-                <strong>Deep Scan is currently unconfigured in this client demo.</strong>
+                <strong>Deep Scan is not configured.</strong>
               </p>
               <p>
-                The primary Vector diagnosis engine executes entirely offline using deterministic rule sets matching CIS AWS foundations and AWS Well-Architected frameworks.
+                Add a Gemini/OpenAI-compatible API key in <strong>Settings</strong>, or use a browser with the built-in on-device model. Low-confidence analyses will then run the LLM automatically and merge its findings with the rules.
               </p>
               <p>
-                To enable multi-pass semantic deep scanning, connect a backend LLM integration endpoint in Settings or configure your local Vector server.
+                The rule-based engine still works fully offline without it.
               </p>
             </div>
             <div className="flex justify-end pt-2">

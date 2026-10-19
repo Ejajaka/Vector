@@ -18,7 +18,7 @@ const STEPS = [
   },
   {
     badge: 'THE 3-STEP WORKFLOW',
-    title: 'Analyze â€¢ Review â€¢ Improve',
+    title: 'Analyze • Review • Improve',
     subtitle: 'Hardening your cloud infrastructure prompts takes just three seamless steps.',
     icon: 'Tune',
     features: [

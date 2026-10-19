@@ -178,6 +178,7 @@
     if (!prompt) { el.hint.textContent = "Enter a prompt first"; return; }
     report = VectorAnalyzer.analyze(prompt, { strictMode: false });
     state.accepted = {};
+    const willScan = report.needsDeepScan && (VectorLLM.localAvailable() || !!settings.apiKey);
     // Security Delta against the last comparable local snapshot. The delta is
     // recomputed in render() so it also reflects accepted clauses.
     prevReport = findComparable(report);
@@ -185,15 +186,21 @@
     addHistory(report);
     renderRiskDistribution();
     el.results.classList.remove("hidden");
-    render();
-    setHint();
-    if (report.needsDeepScan && settings.apiKey) deepScanNow();
+    if (willScan) {
+      el.results.innerHTML = '<div class="v-busy">Analysing and deep scanning this prompt&hellip;</div>';
+      el.improvedWrap.classList.add("hidden");
+      el.hint.textContent = "Deep scan in progress...";
+      deepScanNow();
+    } else {
+      render();
+      setHint();
+    }
   }
 
   async function deepScanNow() {
     const prompt = el.prompt.value.trim();
     if (!prompt) return;
-    if (!settings.apiKey) {
+    if (!VectorLLM.localAvailable() && !settings.apiKey) {
       el.settings.classList.remove("hidden");
       el.status.textContent = "Add an API key for deep scan.";
       return;
@@ -205,7 +212,7 @@
     el.results.innerHTML = '<div class="v-busy">Running deep scan on this prompt&hellip;</div>';
     el.improvedWrap.classList.add("hidden");
     try {
-      const result = await VectorLLM.deepScan(prompt, settings);
+      const result = await VectorLLM.deepScan(prompt, settings, base);
       report = VectorAnalyzer.mergeFindings(base, result.findings);
       render();
       setHint();

@@ -908,7 +908,8 @@ function analyze(prompt, options) {
  */
 function mergeFindings(report, external) {
   if (!external) return report;
-  const missing = report.missing.slice();
+  let missing = report.missing.slice();
+  const mentioned = report.mentioned.slice();
   const riskyFindings = report.riskyFindings.slice();
   const seenMissing = new Set(missing.map((m) => (m.label || "").toLowerCase()));
   const seenRisky = new Set(riskyFindings.map((r) => (r.label || "").toLowerCase()));
@@ -948,32 +949,85 @@ function mergeFindings(report, external) {
     });
   }
 
+  // The LLM may override a LOW-PRIORITY rule finding it judges already stated.
+  // Core controls are never dropped on the model's word (safety first).
+  const satisfiedLabels = new Set(
+    (external.satisfied || [])
+      .map((s) => String(typeof s === "string" ? s : (s && s.label) || "").toLowerCase().trim())
+      .filter(Boolean)
+  );
+  const overridden = [];
+  if (satisfiedLabels.size) {
+    const keep = [];
+    for (const m of missing) {
+      const lowPriority = (m.tier || "clarify") !== "core";
+      const hit = satisfiedLabels.has(String(m.label || "").toLowerCase().trim());
+      if (m.source !== "ai" && lowPriority && hit) {
+        overridden.push(m.id);
+        mentioned.push(Object.assign({}, m, { source: "ai", note: "AI confirmed already stated" }));
+      } else {
+        keep.push(m);
+      }
+    }
+    missing = keep;
+  }
+
   missing.sort((a, b) => severityRank(b.severity) - severityRank(a.severity));
   riskyFindings.sort((a, b) => severityRank(b.severity) - severityRank(a.severity));
 
-  const merged = Object.assign({}, report, { missing, riskyFindings });
+  const merged = Object.assign({}, report, {
+    missing,
+    mentioned,
+    riskyFindings,
+    overridden
+  });
   merged.stats = {
     resources: report.stats.resources,
-    mentioned: report.stats.mentioned,
+    mentioned: mentioned.length,
     missing: missing.length,
     risky: riskyFindings.length
   };
   const tierCounts = { core: 0, clarify: 0, harden: 0 };
   for (const m of missing) tierCounts[m.tier || "clarify"]++;
   merged.tierCounts = tierCounts;
-  merged.totalWeight = report.totalWeight + missing
-    .filter((m) => m.source === "ai")
+
+  // Recompute risk with the same core-only formula as analyze().
+  const aiCoreAdded = missing
+    .filter((m) => m.source === "ai" && (m.tier || "clarify") === "core")
     .reduce((a, m) => a + (m.weight || 0), 0);
-  let extra = 0;
-  for (const m of missing) if (m.source === "ai") extra += severityRank(m.severity);
-  for (const r of riskyFindings) if (r.source === "ai") extra += severityRank(r.severity) * 1.5;
-  merged.riskScore = Math.min(100, report.riskScore + Math.round(extra * 3));
+  const coreTotal = (report.coreTotalWeight || 0) + aiCoreAdded;
+  const coreMissingWeight = missing
+    .filter((m) => (m.tier || "clarify") === "core")
+    .reduce((a, m) => a + (m.weight || 0), 0);
+  const ratio = coreMissingWeight / Math.max(1, coreTotal || report.totalWeight || 1);
+  let riskyWeight = 0;
+  for (const f of riskyFindings) {
+    riskyWeight += typeof f.weight === "number" ? f.weight : severityRank(f.severity) * 1.5;
+  }
+  const base = Math.min(100, Math.round(100 * Math.pow(ratio, 1.4) + Math.min(55, riskyWeight * 9)));
+  merged.riskScore = Math.min(100, Math.round(base * (report.envFactor || 1)));
   const meta = riskLevelFromScore(merged.riskScore);
   merged.riskLevel = meta.level;
   merged.riskColor = meta.color;
-  merged.feedback = report.feedback.concat(
-    extra > 0 ? ["Deep scan added " + (missing.filter((m) => m.source === "ai").length + riskyFindings.filter((r) => r.source === "ai").length) + " additional finding(s)."] : []
-  );
+  const totalControls = mentioned.length + missing.length;
+  merged.coverageScore = totalControls ? Math.round((100 * mentioned.length) / totalControls) : 100;
+  merged.totalWeight =
+    (report.totalWeight || 0) +
+    missing.filter((m) => m.source === "ai").reduce((a, m) => a + (m.weight || 0), 0);
+  merged.coreTotalWeight = coreTotal;
+
+  const aiCount =
+    missing.filter((m) => m.source === "ai").length +
+    riskyFindings.filter((r) => r.source === "ai").length;
+  const feedback = (report.feedback || []).slice();
+  if (aiCount) feedback.push("Deep scan added " + aiCount + " additional finding(s).");
+  if (overridden.length) {
+    feedback.push(
+      "Deep scan overrode " + overridden.length +
+      " low-priority rule finding(s) it judged already stated."
+    );
+  }
+  merged.feedback = feedback;
 
   // If the model says there is nothing further to flag AND the rules found
   // nothing risky, present a clean state.

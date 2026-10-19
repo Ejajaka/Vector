@@ -1,31 +1,28 @@
 import type {
   AnalysisResult,
-  AnalyzerAdapter,
   SecurityFinding,
   FindingSeverity,
   RiskLevel
 } from '../types/analysis.ts';
+import { loadSettings, deepScanAvailable } from './settings.ts';
 
 /**
  * Adapter over the shared Vector rule engine (engine/src), exposed on
- * globalThis.VectorAnalyzer by the classic scripts in index.html. This is the
- * real, deterministic offline engine used by every Vector surface - there is
- * no mock analyzer and no hardcoded/sample analysis data here.
+ * globalThis.VectorAnalyzer by the classic scripts in index.html, plus the
+ * optional deep scan (globalThis.VectorLLM). Same engine, same merge policy as
+ * the extension and mobile clients - there is no mock or sample data here.
  */
-export class VectorEngineAnalyzer implements AnalyzerAdapter {
+export class VectorEngineAnalyzer {
   isAvailable(): boolean {
     return typeof globalThis !== 'undefined' && !!(globalThis as any).VectorAnalyzer;
   }
 
-  async analyze(prompt: string): Promise<AnalysisResult> {
+  /** Raw rule-engine report (not mapped). Throws for empty/out-of-scope input. */
+  analyzeReport(prompt: string): any {
     const engine = (globalThis as any).VectorAnalyzer;
-    if (!engine) {
-      throw new Error('The Vector rule engine failed to load.');
-    }
+    if (!engine) throw new Error('The Vector rule engine failed to load.');
     const trimmed = prompt.trim();
-    if (!trimmed) {
-      throw new Error('Prompt cannot be empty.');
-    }
+    if (!trimmed) throw new Error('Prompt cannot be empty.');
     const report = engine.analyze(trimmed, { strictMode: false });
     if (report.outOfScope) {
       throw new Error(
@@ -33,13 +30,40 @@ export class VectorEngineAnalyzer implements AnalyzerAdapter {
           'This does not look like an AWS infrastructure prompt.'
       );
     }
+    return report;
+  }
+
+  /** Map an existing engine report to the UI model. */
+  resultFromReport(report: any): AnalysisResult {
     return toAnalysisResult(report);
   }
 
-  async deepScan(_prompt: string): Promise<AnalysisResult> {
-    throw new Error(
-      'Deep Scan requires a configured Vector semantic integration or backend model endpoint. In this client, rule-based offline diagnosis is the active engine.'
-    );
+  async analyze(prompt: string): Promise<AnalysisResult> {
+    return this.resultFromReport(this.analyzeReport(prompt));
+  }
+
+  /** True when an on-device model or a hosted API key is configured. */
+  isDeepScanAvailable(): boolean {
+    const llm = (globalThis as any).VectorLLM;
+    return !!llm && deepScanAvailable(loadSettings());
+  }
+
+  /**
+   * Run the LLM deep scan against an existing rule report, merge with the
+   * shared policy, and return the merged UI result. Throws when unavailable.
+   */
+  async deepScan(
+    prompt: string,
+    baseReport?: any
+  ): Promise<{ result: AnalysisResult; via: string }> {
+    const llm = (globalThis as any).VectorLLM;
+    const engine = (globalThis as any).VectorAnalyzer;
+    if (!llm || !engine) throw new Error('Deep scan is not available in this client.');
+    const report = baseReport || this.analyzeReport(prompt);
+    const settings = loadSettings();
+    const out = await llm.deepScan(report.prompt, settings, report);
+    const merged = engine.mergeFindings(report, out.findings);
+    return { result: this.resultFromReport(merged), via: out.via };
   }
 }
 
@@ -86,6 +110,4 @@ function toAnalysisResult(report: any): AnalysisResult {
   };
 }
 
-// The single adapter instance. Every analysis the UI renders comes from the
-// shared rule engine.
-export const defaultAnalyzer: AnalyzerAdapter = new VectorEngineAnalyzer();
+export const defaultAnalyzer = new VectorEngineAnalyzer();

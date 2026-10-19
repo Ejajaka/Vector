@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { AnalysisResult, SecurityFinding } from '../types/analysis.ts';
 import { defaultAnalyzer } from '../services/analyzer.ts';
+import { loadSettings } from '../services/settings.ts';
 import { historyStorage } from '../services/historyStorage.ts';
 import { buildImprovedPrompt, projectMetrics } from '../services/promptBuilder.ts';
 import { PromptEditor } from '../components/analysis/PromptEditor.tsx';
@@ -72,14 +73,43 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({
   const handleAnalyze = async (text: string) => {
     setIsLoading(true);
     try {
-      const res = await defaultAnalyzer.analyze(text);
+      const report = defaultAnalyzer.analyzeReport(text);
+      const settings = loadSettings();
+      let res: AnalysisResult;
+      let aiUsed = false;
+
+      // Low confidence / low coverage -> run the LLM, merge, then reveal the
+      // combined answer once (never show rule-only results first).
+      if (
+        settings.autoDeepScan &&
+        report.needsDeepScan &&
+        defaultAnalyzer.isDeepScanAvailable()
+      ) {
+        setOriginalResult(null);
+        setRevisedResult(null);
+        setSelectedFindingIds(new Set());
+        try {
+          const out = await defaultAnalyzer.deepScan(text, report);
+          res = out.result;
+          aiUsed = true;
+        } catch (scanErr: any) {
+          res = defaultAnalyzer.resultFromReport(report);
+          toast(scanErr.message || 'Deep scan failed — showing rule-based result.', 'error');
+        }
+      } else {
+        res = defaultAnalyzer.resultFromReport(report);
+      }
+
       setOriginalResult(res);
       setRevisedResult(null);
       setActiveViewVersion('original');
       setSelectedFindingIds(new Set());
       // Save to history
       historyStorage.save(res);
-      toast('Prompt analysis complete', 'success');
+      toast(
+        aiUsed ? 'Analysis complete (rules + deep scan)' : 'Prompt analysis complete',
+        'success'
+      );
 
       // Accessibility scroll
       setTimeout(() => {
@@ -87,6 +117,27 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({
       }, 100);
     } catch (err: any) {
       toast(err.message || 'Failed to analyze prompt.', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeepScan = async (text: string) => {
+    setIsLoading(true);
+    try {
+      const report = defaultAnalyzer.analyzeReport(text);
+      const out = await defaultAnalyzer.deepScan(text, report);
+      setOriginalResult(out.result);
+      setRevisedResult(null);
+      setActiveViewVersion('original');
+      setSelectedFindingIds(new Set());
+      historyStorage.save(out.result);
+      toast(`Deep scan merged (${out.via})`, 'success');
+      setTimeout(() => {
+        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    } catch (err: any) {
+      toast(err.message || 'Deep scan failed.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -264,6 +315,8 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({
         setPromptText={setPromptText}
         onAnalyze={handleAnalyze}
         isLoading={isLoading}
+        onDeepScan={() => handleDeepScan(promptText)}
+        deepScanAvailable={defaultAnalyzer.isDeepScanAvailable()}
       />
 
       {/* Results Section */}

@@ -623,6 +623,35 @@ test("mergeFindings: an AI finding is labelled ai", () => {
   assert.ok(merged.missing.some((m) => m.source === "ai"));
 });
 
+test("mergeFindings: satisfied overrides a low-priority rule finding", () => {
+  const base = analyze("Create a private S3 bucket.");
+  const target = base.missing.find((m) => m.tier === "clarify");
+  assert.ok(target, "expected a clarify-tier finding");
+  const merged = require("../src/analyzer").mergeFindings(base, {
+    missing: [],
+    risky: [],
+    satisfied: [{ label: target.label }],
+    clean: false
+  });
+  assert.ok(!merged.missing.some((m) => m.id === target.id));
+  assert.ok(merged.overridden.includes(target.id));
+  assert.ok(merged.mentioned.some((m) => m.id === target.id && m.source === "ai"));
+});
+
+test("mergeFindings: satisfied never overrides a core rule finding", () => {
+  const base = analyze("Create an S3 bucket.");
+  const core = base.missing.find((m) => m.tier === "core");
+  assert.ok(core, "expected a core-tier finding");
+  const merged = require("../src/analyzer").mergeFindings(base, {
+    missing: [],
+    risky: [],
+    satisfied: [{ label: core.label }],
+    clean: false
+  });
+  assert.ok(merged.missing.some((m) => m.id === core.id));
+  assert.ok(!merged.overridden.includes(core.id));
+});
+
 test("contradiction: enabling then disabling encryption is flagged", () => {
   const r = analyze("Create a private S3 bucket. Enable encryption at rest. Disable encryption at rest.");
   assert.ok(r.riskyFindings.some((f) => f.id === "contradiction_encryption_at_rest"));

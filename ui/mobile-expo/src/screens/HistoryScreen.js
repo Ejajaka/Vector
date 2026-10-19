@@ -27,7 +27,7 @@ function HistoryItem({ item, onReopen, onDelete }) {
       </Text>
       <View style={{ marginTop: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <Text style={{ flexShrink: 1, fontSize: 11, color: t.onSurfaceVariant }}>
-          {`${date}  â€¢  ${item.securityCoverage}% coverage`}
+          {`${date}  •  ${item.securityCoverage}% coverage`}
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Text style={{ fontSize: 12, fontWeight: '700', color: t.primary }}>Reopen</Text>

@@ -16,12 +16,29 @@
   const SYSTEM_PROMPT =
     "You are an AWS cloud security reviewer. Given an infrastructure prompt, " +
     "list security controls that are MISSING from it (do not repeat ones already stated). " +
+    "You may also be given a list of controls the rule engine flagged as missing; if the " +
+    "prompt actually satisfies any of them, list their EXACT labels in \"satisfied\". " +
     "Reply with STRICT JSON only: " +
     '{"missing":[{"label":"","severity":"high|medium|low","description":"","clause":""}],' +
-    '"risky":[{"label":"","severity":"high|medium|low","description":"","fix":""}]}. ' +
-    "If nothing is missing and nothing is risky, return empty arrays: " +
-    '{"missing":[],"risky":[]}. ' +
-    "At most 10 missing and 5 risky. Each clause is one imperative sentence.";
+    '"risky":[{"label":"","severity":"high|medium|low","description":"","fix":""}],' +
+    '"satisfied":["exact label from the supplied rule list"]}. ' +
+    "If nothing is missing and nothing is risky, return empty arrays. " +
+    "At most 10 missing, 5 risky and 10 satisfied. Each clause is one imperative sentence.";
+
+  function userMessage(prompt, ruleReport) {
+    let msg = "Infrastructure prompt:\n\n" + String(prompt || "");
+    const labels = ((ruleReport && ruleReport.missing) || [])
+      .map((m) => m && m.label)
+      .filter(Boolean);
+    if (labels.length) {
+      msg +=
+        "\n\nThe rule engine flagged these exact controls as missing:\n" +
+        labels.map((l) => "- " + l).join("\n") +
+        "\n\nIf the prompt already satisfies any of these exact labels, list those labels in \"satisfied\". " +
+        "Only include a label when you are confident.";
+    }
+    return msg;
+  }
 
   function normSeverity(s) {
     const v = String(s || "").toLowerCase();
@@ -59,7 +76,18 @@
     // The model is told to return empty arrays when nothing is missing.
     // Mark that as "clean" so the UI can say "no issues" rather than showing
     // an empty, confusing report.
-    return { missing: missing, risky: risky, clean: missing.length === 0 && risky.length === 0 };
+    const satisfied = (Array.isArray(data.satisfied) ? data.satisfied : [])
+      .map((s) => (typeof s === "string" ? s : s && s.label))
+      .filter(Boolean)
+      .map((s) => String(s))
+      .slice(0, 10);
+
+    return {
+      missing: missing,
+      risky: risky,
+      satisfied: satisfied,
+      clean: missing.length === 0 && risky.length === 0
+    };
   }
 
   // --- Tier 1: on-device (Chrome built-in AI), no key and no network ---
@@ -72,7 +100,7 @@
     return !!localModel();
   }
 
-  async function localDeepScan(prompt) {
+  async function localDeepScan(prompt, ruleReport) {
     const LM = localModel();
     if (!LM) throw new Error("On-device model not available.");
     if (LM.availability) {
@@ -83,13 +111,13 @@
       }
     }
     const session = await LM.create({ systemPrompt: SYSTEM_PROMPT });
-    const text = await session.prompt("Infrastructure prompt:\n\n" + String(prompt || ""));
+    const text = await session.prompt(userMessage(prompt, ruleReport));
     if (session.destroy) session.destroy();
     return parseFindings(text);
   }
 
   // --- Tier 2: hosted API (OpenAI-compatible), needs a key ---
-  async function hostedDeepScan(prompt, settings) {
+  async function hostedDeepScan(prompt, settings, ruleReport) {
     const apiKey = settings && settings.apiKey;
     if (!apiKey) throw new Error("No API key set.");
     const baseUrl = ((settings && settings.baseUrl) || "https://api.openai.com/v1").replace(/\/+$/, "");
@@ -103,7 +131,7 @@
         temperature: 0,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: "Infrastructure prompt:\n\n" + String(prompt || "") }
+          { role: "user", content: userMessage(prompt, ruleReport) }
         ]
       })
     });
@@ -132,16 +160,16 @@
    * Run a deep scan, preferring the free on-device model.
    * Resolves to { findings, via } where via is "on-device" or "api".
    */
-  async function deepScan(prompt, settings) {
+  async function deepScan(prompt, settings, ruleReport) {
     if (localAvailable()) {
       try {
-        return { findings: await localDeepScan(prompt), via: "on-device" };
+        return { findings: await localDeepScan(prompt, ruleReport), via: "on-device" };
       } catch (e) {
         // fall through to hosted if a key exists
       }
     }
     if (settings && settings.apiKey) {
-      return { findings: await hostedDeepScan(prompt, settings), via: "api" };
+      return { findings: await hostedDeepScan(prompt, settings, ruleReport), via: "api" };
     }
     throw new Error("Deep scan needs the on-device model or an API key.");
   }

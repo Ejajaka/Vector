@@ -8,8 +8,11 @@ import { StatusBar } from 'expo-status-bar';
 import * as Clipboard from 'expo-clipboard';
 
 import { ThemeProvider, useTheme } from './src/theme';
-import { analyzePrompt, buildImprovedPrompt, eligibleClauseIds, metricsFrom, EXAMPLE_PROMPTS } from './src/vector';
+import { analyzeReport, mapReport, mergeReports, buildImprovedPrompt, eligibleClauseIds, metricsFrom, EXAMPLE_PROMPTS } from './src/vector';
 import { loadHistory, addToHistory, deleteFromHistory, clearHistory } from './src/storage';
+import { loadLlmSettings, saveLlmSettings, DEFAULT_LLM_SETTINGS } from './src/vectorSettings';
+
+const VectorLLM = require('./src/llm');
 import { Icon, Snackbar, NetworkIndicator, NetworkDialog } from './src/components';
 
 import HomeScreen from './src/screens/HomeScreen';
@@ -99,6 +102,7 @@ function Shell({ themeMode, setThemeMode }) {
   const [analysis, setAnalysis] = useState(null);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [improvedText, setImprovedText] = useState('');
+  const [llmSettings, setLlmSettings] = useState(DEFAULT_LLM_SETTINGS);
 
   const [history, setHistory] = useState([]);
   const [search, setSearch] = useState('');
@@ -110,6 +114,18 @@ function Shell({ themeMode, setThemeMode }) {
 
   useEffect(() => {
     loadHistory().then(setHistory);
+  }, []);
+
+  useEffect(() => {
+    loadLlmSettings().then(setLlmSettings);
+  }, []);
+
+  const updateLlmSettings = useCallback((patch) => {
+    setLlmSettings((prev) => {
+      const next = { ...prev, ...patch };
+      saveLlmSettings(next);
+      return next;
+    });
   }, []);
 
   const flash = useCallback((msg) => {
@@ -160,7 +176,7 @@ function Shell({ themeMode, setThemeMode }) {
   }, []);
 
   const runAnalysis = useCallback(
-    async (text) => {
+    async (text, forceDeep) => {
       const value = (text !== undefined ? text : promptInput).trim();
       if (!value) {
         setInputError('Please enter an AWS infrastructure prompt or select an example.');
@@ -169,7 +185,21 @@ function Shell({ themeMode, setThemeMode }) {
       setIsAnalyzing(true);
       setInputError(null);
       try {
-        const result = analyzePrompt(value);
+        const raw = analyzeReport(value);
+        const wantsDeep = !!forceDeep || (llmSettings.autoDeepScan && raw.needsDeepScan);
+        const canDeep = VectorLLM.localAvailable() || !!llmSettings.apiKey;
+        let report = raw;
+        if (wantsDeep && canDeep) {
+          try {
+            const out = await VectorLLM.deepScan(raw.prompt, llmSettings, raw);
+            report = mergeReports(raw, out.findings);
+          } catch (err) {
+            flash('Deep scan failed: ' + ((err && err.message) || 'unknown error') + '. Showing rule-based findings.');
+          }
+        } else if (forceDeep) {
+          flash('Deep Scan needs the on-device model or an API key. Showing rule-based findings.');
+        }
+        const result = mapReport(report);
         setAnalysis(result);
         const ids = new Set(eligibleClauseIds(result));
         setSelectedIds(ids);
@@ -184,19 +214,14 @@ function Shell({ themeMode, setThemeMode }) {
         setIsAnalyzing(false);
       }
     },
-    [promptInput, flash]
+    [promptInput, flash, llmSettings]
   );
 
   const handleAnalyze = useCallback(
     (isDeepScan) => {
-      if (isDeepScan && !online) {
-        flash('Deep Scan is unavailable while offline. Executing on-device Rule-Based Analysis.');
-        runAnalysis(undefined);
-        return;
-      }
-      runAnalysis(undefined);
+      runAnalysis(undefined, !!isDeepScan);
     },
-    [online, flash, runAnalysis]
+    [runAnalysis]
   );
 
   const selectExample = useCallback((text) => {
@@ -386,6 +411,9 @@ function Shell({ themeMode, setThemeMode }) {
             onToggleOffline={toggleOffline}
             onOpenOnboarding={() => navigateTo('ONBOARDING')}
             onOpenAbout={() => navigateTo('ABOUT')}
+            llmSettings={llmSettings}
+            onLlmSettingsChange={updateLlmSettings}
+            deepScanAvailable={VectorLLM.localAvailable() || !!llmSettings.apiKey}
           />
         ) : null}
         {screen === 'ABOUT' ? (

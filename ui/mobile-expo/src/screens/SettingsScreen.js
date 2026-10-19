@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { ScrollView, View, Text, Switch, Pressable } from 'react-native';
+import { ScrollView, View, Text, Switch, Pressable, TextInput } from 'react-native';
 import { useTheme, alpha } from '../theme';
 import { Card, Icon, FilterChip } from '../components';
 
@@ -19,8 +19,10 @@ function Divider() {
   return <View style={{ height: 1, backgroundColor: alpha(t.outline, 0.5), marginVertical: 14 }} />;
 }
 
-export default function SettingsScreen({ themeMode, isOnline, isSimulated, onThemeModeChange, onToggleOffline, onOpenOnboarding, onOpenAbout }) {
+export default function SettingsScreen({ themeMode, isOnline, isSimulated, onThemeModeChange, onToggleOffline, onOpenOnboarding, onOpenAbout, llmSettings, onLlmSettingsChange, deepScanAvailable }) {
   const t = useTheme();
+  const inputStyle = { borderWidth: 1, borderColor: t.outline, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, color: t.onSurface, backgroundColor: t.surface, fontSize: 13, marginTop: 4 };
+  const labelStyle = { fontSize: 11, fontWeight: '600', color: t.onSurfaceVariant, marginTop: 10 };
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
@@ -93,12 +95,63 @@ export default function SettingsScreen({ themeMode, isOnline, isSimulated, onThe
               <View style={{ width: 6 }} />
               <Icon name="Radar" size={16} color={t.onSurfaceVariant} />
             </View>
-            <Text style={{ fontSize: 12, color: t.onSurfaceVariant }}>External IAM/CloudFormation policy verification is not configured. Local rule-based scanning is active.</Text>
+            <Text style={{ fontSize: 12, color: t.onSurfaceVariant }}>
+              {deepScanAvailable
+                ? 'Configured. Low-confidence prompts are deep scanned and merged with the rule engine before results are shown.'
+                : 'Not configured. Add an API key below (or use the on-device model) to enable LLM deep scan.'}
+            </Text>
           </View>
-          <View style={{ borderRadius: 8, backgroundColor: t.surfaceVariant, paddingHorizontal: 8, paddingVertical: 4 }}>
-            <Text style={{ fontSize: 11, color: t.onSurfaceVariant }}>Offline Only</Text>
+          <View style={{ borderRadius: 8, backgroundColor: deepScanAvailable ? t.primaryContainer : t.surfaceVariant, paddingHorizontal: 8, paddingVertical: 4 }}>
+            <Text style={{ fontSize: 11, fontWeight: '700', color: deepScanAvailable ? t.onPrimaryContainer : t.onSurfaceVariant }}>{deepScanAvailable ? 'Ready' : 'Rules only'}</Text>
           </View>
         </View>
+
+        <Divider />
+
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <View style={{ flex: 1, paddingRight: 10 }}>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: t.onSurface }}>Auto deep scan</Text>
+            <Text style={{ fontSize: 11, color: t.onSurfaceVariant }}>Run the LLM automatically when the rule engine reports low confidence.</Text>
+          </View>
+          <Switch testID="settings_auto_deep_scan_switch" value={!!llmSettings.autoDeepScan} onValueChange={(v) => onLlmSettingsChange({ autoDeepScan: !!v })} trackColor={{ true: t.primary }} thumbColor="#FFFFFF" />
+        </View>
+
+        <Text style={labelStyle}>API key</Text>
+        <TextInput
+          testID="settings_api_key_input"
+          value={llmSettings.apiKey}
+          onChangeText={(v) => onLlmSettingsChange({ apiKey: v })}
+          placeholder="sk-..."
+          placeholderTextColor={t.onSurfaceVariant}
+          secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
+          style={inputStyle}
+        />
+
+        <Text style={labelStyle}>Base URL</Text>
+        <TextInput
+          testID="settings_base_url_input"
+          value={llmSettings.baseUrl}
+          onChangeText={(v) => onLlmSettingsChange({ baseUrl: v })}
+          placeholder="https://api.openai.com/v1"
+          placeholderTextColor={t.onSurfaceVariant}
+          autoCapitalize="none"
+          autoCorrect={false}
+          style={inputStyle}
+        />
+
+        <Text style={labelStyle}>Model</Text>
+        <TextInput
+          testID="settings_model_input"
+          value={llmSettings.model}
+          onChangeText={(v) => onLlmSettingsChange({ model: v })}
+          placeholder="gpt-4o-mini"
+          placeholderTextColor={t.onSurfaceVariant}
+          autoCapitalize="none"
+          autoCorrect={false}
+          style={inputStyle}
+        />
 
         <Divider />
 
@@ -110,7 +163,7 @@ export default function SettingsScreen({ themeMode, isOnline, isSimulated, onThe
               <Icon name={isOnline ? 'CloudDone' : 'CloudOff'} size={16} color={isOnline ? t.primary : t.error} />
             </View>
             <Text style={{ fontSize: 12, color: t.onSurfaceVariant }}>
-              {isOnline ? 'Connected â€¢ Rule-based analysis and online checks ready.' : 'Offline â€¢ Rule-based analysis works offline. Deep scan is unavailable.'}
+              {isOnline ? 'Connected • Rule-based analysis and online checks ready.' : 'Offline • Rule-based analysis works offline. Deep scan is unavailable.'}
             </Text>
           </View>
           <View style={{ borderRadius: 8, backgroundColor: isOnline ? t.primaryContainer : t.errorContainer, paddingHorizontal: 8, paddingVertical: 4 }}>
@@ -140,7 +193,7 @@ export default function SettingsScreen({ themeMode, isOnline, isSimulated, onThe
           <Text style={{ fontSize: 11, fontWeight: '700', color: t.onSurface }}>Upstream Core Methods Mapped:</Text>
           {['VectorAnalyzer.analyze(prompt, options)', 'VectorAnalyzer.mergeFindings(base, delta)', 'VectorAnalyzer.project(riskScore, clauses)', 'VectorAnalyzer.harden(prompt)'].map((m) => (
             <Text key={m} style={{ marginTop: 4, fontSize: 11, color: t.primary, fontFamily: 'monospace' }}>
-              {'â€¢ ' + m}
+              {'• ' + m}
             </Text>
           ))}
         </View>

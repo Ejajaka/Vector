@@ -162,6 +162,11 @@ export const SecurityRequirementsList: React.FC<SecurityRequirementsListProps> =
                           {finding.label}
                         </h4>
                         <SeverityBadge severity={finding.severity} />
+                        {finding.source === 'ai' && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#E4EBDD] text-[#30494B] border border-[#CFE2C8]">
+                            AI
+                          </span>
+                        )}
                         {finding.dimension && (
                           <span className="text-[11px] text-[#737A72] font-medium">
                             · {finding.dimension}
@@ -252,6 +257,11 @@ export const SecurityRequirementsList: React.FC<SecurityRequirementsListProps> =
                           {finding.label}
                         </h4>
                         <SeverityBadge severity={finding.severity} />
+                        {finding.source === 'ai' && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#E4EBDD] text-[#30494B] border border-[#CFE2C8]">
+                            AI
+                          </span>
+                        )}
                         {finding.appliesTo && (
                           <span className="text-[11px] text-[#737A72]">
                             · {finding.appliesTo.join(', ')}

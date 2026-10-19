@@ -53,7 +53,7 @@ if (Test-Path $staleNative) { Remove-Item $staleNative -Force }
 $webAppEngine = Join-Path $root "ui\web-app\public\engine"
 if (Test-Path (Join-Path $root "ui\web-app")) {
   New-Item -ItemType Directory -Path $webAppEngine -Force | Out-Null
-  foreach ($f in @("taxonomy.js", "semantic.js", "analyzer.js")) {
+  foreach ($f in @("taxonomy.js", "semantic.js", "analyzer.js", "llm.js")) {
     Copy-Item (Join-Path $root "engine\src\$f") (Join-Path $webAppEngine $f) -Force
   }
 }

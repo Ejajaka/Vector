@@ -29,7 +29,7 @@ jobs:
       - name: Sync shared engine into the web app
         run: |
           mkdir -p ui/web-app/public/engine
-          cp engine/src/taxonomy.js engine/src/semantic.js engine/src/analyzer.js ui/web-app/public/engine/
+          cp engine/src/taxonomy.js engine/src/semantic.js engine/src/analyzer.js engine/src/llm.js ui/web-app/public/engine/
 
       - name: Install dependencies
         working-directory: ui/web-app

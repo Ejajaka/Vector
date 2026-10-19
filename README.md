@@ -82,9 +82,13 @@ Two tiers are tried in order:
    no network, used automatically when available.
 2. Hosted: an OpenAI-compatible endpoint, configured with a key in Settings.
 
-Only controls the rules may have missed are requested, and each finding is
-labelled as AI or rule. If neither tier is available the extension still works
-on rules alone.
+Only controls the rules may have missed are requested; the response can also
+confirm low-priority rule findings that are already covered. Results are merged
+and revealed once (never rule-only first), and each finding is labelled AI or
+rule. Core controls are never dropped on the model's word. All clients support
+deep scan (React web app, extension, static demo, Expo and Android), with the
+API key, base URL, model and auto-scan toggle in Settings. If neither tier is
+available every client still works on rules alone.
 
 Because the in-page demo is limited by CORS, only providers that send CORS
 headers can be called from a web page (Gemini does). Use the extension or the

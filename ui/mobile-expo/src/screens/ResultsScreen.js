@@ -89,9 +89,9 @@ export default function ResultsScreen({ analysis, selectedIds, onToggle, onSelec
           <View style={{ marginTop: 14, borderRadius: 10, backgroundColor: t.surfaceVariant, borderWidth: 1, borderColor: t.outline, padding: 12 }}>
             <Text style={{ fontSize: 12, fontWeight: '700', color: t.onSurface }}>Metric Guidelines:</Text>
             <Text style={{ marginTop: 4, fontSize: 11, color: t.onSurfaceVariant, lineHeight: 16 }}>
-              â€¢ Risk Score (0-100): Calculated deterministically from detected risky configurations and missing security controls.{'\n'}
-              â€¢ Security Coverage: Ratio of specified controls versus total expected controls for detected AWS services.{'\n'}
-              â€¢ Confidence ({analysis.confidence}%): Reflects completeness of prompt structural parsing. Does not guarantee environment safety.
+              • Risk Score (0-100): Calculated deterministically from detected risky configurations and missing security controls.{'\n'}
+              • Security Coverage: Ratio of specified controls versus total expected controls for detected AWS services.{'\n'}
+              • Confidence ({analysis.confidence}%): Reflects completeness of prompt structural parsing. Does not guarantee environment safety.
             </Text>
           </View>
         ) : null}

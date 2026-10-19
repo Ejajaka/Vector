@@ -289,6 +289,14 @@ export function FindingCard({ finding, selected, onToggleSelect }) {
             <View style={{ borderRadius: 6, backgroundColor: alpha(color, 0.15), borderWidth: 1, borderColor: alpha(color, 0.45), paddingHorizontal: 8, paddingVertical: 3 }}>
               <Text style={{ fontSize: 10, fontWeight: '700', color }}>{riskLabel(finding.severity)}</Text>
             </View>
+            {finding.isAi ? (
+              <>
+                <View style={{ width: 6 }} />
+                <View style={{ borderRadius: 6, backgroundColor: t.primaryContainer, borderWidth: 1, borderColor: alpha(t.primary, 0.45), paddingHorizontal: 6, paddingVertical: 3 }}>
+                  <Text style={{ fontSize: 9, fontWeight: '800', color: t.onPrimaryContainer }}>AI</Text>
+                </View>
+              </>
+            ) : null}
             {finding.affectedResource ? (
               <>
                 <View style={{ width: 8 }} />

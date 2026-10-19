@@ -43,6 +43,7 @@ function toFinding(f, type, resourceLabelById) {
       recommendedFix: f.fix || '',
       securityClause: f.fix || '',
       isSelectable: true,
+      isAi: f.source === 'ai',
     };
   }
   const affected = (f.appliesTo || []).map((id) => resourceLabelById[id]).filter(Boolean);
@@ -57,10 +58,11 @@ function toFinding(f, type, resourceLabelById) {
     recommendedFix: f.tf ? `Terraform: ${f.tf}` : f.clause || '',
     securityClause: f.clause || '',
     isSelectable: type !== 'DETECTED_CONTROL',
+    isAi: f.source === 'ai',
   };
 }
 
-export function analyzePrompt(prompt) {
+export function analyzeReport(prompt) {
   const text = String(prompt || '').trim();
   if (!text) {
     const err = new Error('Please enter an AWS infrastructure prompt or select an example.');
@@ -73,7 +75,11 @@ export function analyzePrompt(prompt) {
     err.code = 'outOfScope';
     throw err;
   }
+  return report;
+}
 
+export function mapReport(report) {
+  const text = report.prompt || '';
   const resourceLabelById = {};
   (report.resources || []).forEach((r) => {
     resourceLabelById[r.id] = r.label;
@@ -86,12 +92,13 @@ export function analyzePrompt(prompt) {
 
   return {
     id: 'vec-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
-    prompt: report.prompt || text,
+    prompt: text,
     timestamp: Date.now(),
     riskScore: Math.round(report.riskScore || 0),
     riskLevel: normalizeLevel(report.riskLevel),
     securityCoverage: Math.round(report.coverageScore || 0),
     confidence: Math.round(report.confidenceScore || 0),
+    deepScanned: !!report.deepScanned,
     detectedResources: (report.resources || []).map((r) => ({
       id: r.id,
       name: r.label,
@@ -100,6 +107,14 @@ export function analyzePrompt(prompt) {
     })),
     findings,
   };
+}
+
+export function analyzePrompt(prompt) {
+  return mapReport(analyzeReport(prompt));
+}
+
+export function mergeReports(base, delta) {
+  return VectorAnalyzer.mergeFindings(base, delta);
 }
 
 export function eligibleClauseIds(analysis) {

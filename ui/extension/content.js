@@ -107,14 +107,23 @@
     panel.querySelector("#vector-empty").classList.add("hidden");
     report = VectorSettings.analyze(text, settings);
     state.accepted = {};
+    const willScan =
+      report.needsDeepScan && settings.autoDeepScan &&
+      (VectorLLM.localAvailable() || !!settings.apiKey);
     // Security Delta against the last comparable snapshot.
     VectorSettings.getComparable(report).then(function (prev) {
       prevReport = prev;
       hadHistory = !!prev;
       VectorSettings.addHistory(report);
-      render();
+      if (!willScan) render();
     });
-    render();
+    if (willScan) {
+      resultsEl.innerHTML = '<div class="v-busy">Analysing and deep scanning this prompt&hellip;</div>';
+      panel.querySelector("#vector-improved-wrap").classList.add("hidden");
+      deepScan();
+    } else {
+      render();
+    }
   }
 
   async function deepScan() {
@@ -127,7 +136,7 @@
     resultsEl.innerHTML = '<div class="v-busy">Running deep scan on this prompt&hellip;</div>';
     panel.querySelector("#vector-improved-wrap").classList.add("hidden");
     try {
-      const result = await VectorLLM.deepScan(base.prompt, settings);
+      const result = await VectorLLM.deepScan(base.prompt, settings, base);
       report = VectorAnalyzer.mergeFindings(base, result.findings);
       render();
     } catch (e) {

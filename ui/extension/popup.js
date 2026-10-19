@@ -103,19 +103,30 @@
     report = VectorSettings.analyze(prompt, settings);
     state.accepted = {};
 
+    const willScan =
+      report.needsDeepScan && settings.autoDeepScan &&
+      (VectorLLM.localAvailable() || !!settings.apiKey);
+
     // Security Delta: compare against the last comparable stored snapshot,
     // then store this one for the next comparison.
     VectorSettings.getComparable(report).then(function (prev) {
       prevReport = prev;
       hadHistory = !!prev;
       VectorSettings.addHistory(report);
-      render();
+      if (!willScan) render();
     });
 
     el.results.classList.remove("hidden");
-    render();
-    setHint();
-    if (report.needsDeepScan && settings.autoDeepScan) deepScanNow();
+    if (willScan) {
+      // Never show the rule-only answer first: reveal rules + AI together.
+      el.results.innerHTML = '<div class="v-busy">Analysing and deep scanning this prompt&hellip;</div>';
+      el.improvedWrap.classList.add("hidden");
+      el.hint.textContent = "Deep scan in progress...";
+      deepScanNow();
+    } else {
+      render();
+      setHint();
+    }
   }
 
   async function deepScanNow() {
@@ -137,7 +148,7 @@
     el.hint.textContent = "Deep scan in progress...";
 
     try {
-      const result = await VectorLLM.deepScan(prompt, settings);
+      const result = await VectorLLM.deepScan(prompt, settings, base);
       report = VectorAnalyzer.mergeFindings(base, result.findings);
       render();
       setHint();

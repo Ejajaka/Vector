@@ -18,7 +18,7 @@ function RecentRow({ item, onPress }) {
       </Text>
       <View style={{ marginTop: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <Text style={{ fontSize: 12, color: t.onSurfaceVariant }}>
-          {`Coverage: ${item.securityCoverage}%  â€¢  ${item.detectedResources.length} Resources`}
+          {`Coverage: ${item.securityCoverage}%  •  ${item.detectedResources.length} Resources`}
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Text style={{ fontSize: 12, fontWeight: '700', color: t.primary }}>View</Text>

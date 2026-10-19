@@ -14,6 +14,8 @@ import {
 import { historyStorage } from '../services/historyStorage.ts';
 import { useToast } from '../components/ui/Toast.tsx';
 import { useTheme } from '../context/ThemeContext.tsx';
+import { loadSettings, saveSettings, onDeviceModelAvailable } from '../services/settings.ts';
+import type { VectorSettings } from '../services/settings.ts';
 
 interface SettingsPageProps {
   onRefreshData?: () => void;
@@ -22,15 +24,20 @@ interface SettingsPageProps {
 export const SettingsPage: React.FC<SettingsPageProps> = ({ onRefreshData }) => {
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
-  const [deepScanEndpoint, setDeepScanEndpoint] = useState('');
+  const [settings, setSettings] = useState<VectorSettings>(() => loadSettings());
   const [isSaved, setIsSaved] = useState(false);
+  const onDevice = onDeviceModelAvailable();
 
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
+    saveSettings(settings);
     setIsSaved(true);
     toast('Settings saved locally', 'success');
     setTimeout(() => setIsSaved(false), 2000);
   };
+
+  const update = (patch: Partial<VectorSettings>) =>
+    setSettings((prev) => ({ ...prev, ...patch }));
 
   const handleClearData = () => {
     if (window.confirm('Clear all local analysis history?')) {
@@ -136,28 +143,61 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onRefreshData }) => 
           </p>
         </div>
 
-        <form onSubmit={handleSaveSettings} className="space-y-3 pt-2">
-          <div>
-            <label className="text-xs font-bold text-[#283638] block mb-1">
-              Optional Deep Scan Backend Endpoint
-            </label>
+        <form onSubmit={handleSaveSettings} className="space-y-4 pt-2">
+          <div className="flex items-center justify-between p-3 rounded-lg bg-[#FAFAF8] border border-[#E5E2D8]">
+            <div className="pr-4">
+              <span className="text-xs font-bold text-[#283638] block">Auto deep scan</span>
+              <span className="text-[11px] text-[#737A72]">
+                Run the LLM automatically when confidence or coverage is low, then merge with the rules.
+              </span>
+            </div>
             <input
-              type="text"
-              placeholder="e.g. http://localhost:8080/v1/deep-scan (optional)"
-              value={deepScanEndpoint}
-              onChange={(e) => setDeepScanEndpoint(e.target.value)}
-              className="w-full p-2.5 rounded-lg border border-[#E5E2D8] bg-[#FAFAF8] text-xs font-mono text-[#283638] focus:bg-white focus:outline-none focus:border-[#49686C]"
+              type="checkbox"
+              checked={settings.autoDeepScan}
+              onChange={(e) => update({ autoDeepScan: e.target.checked })}
+              className="h-4 w-4 accent-[#49686C]"
             />
-            <span className="text-[11px] text-[#737A72] block mt-1">
-              Optional endpoint for multi-pass semantic AI scanning. When unconfigured, the application relies exclusively on offline rule-based evaluation.
-            </span>
           </div>
 
-          <div className="flex justify-end pt-2">
-            <button
-              type="submit"
-              className="px-4 py-2 bg-[#49686C] text-white text-xs font-bold rounded-lg hover:bg-[#30494B] transition-colors"
-            >
+          <div>
+            <label className="text-xs font-bold text-[#283638] block mb-1">
+              Deep scan API key
+            </label>
+            <input
+              type="password"
+              placeholder="AIza... (or an OpenAI-compatible key)"
+              value={settings.apiKey}
+              onChange={(e) => update({ apiKey: e.target.value })}
+              autoComplete="off"
+              className="w-full p-2.5 rounded-lg border border-[#E5E2D8] bg-[#FAFAF8] text-xs font-mono text-[#283638] focus:bg-white focus:outline-none focus:border-[#49686C]"
+            />
+            <div className="flex flex-wrap gap-2 mt-2">
+              <button type="button" onClick={() => update({ baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', model: 'gemini-2.5-flash' })} className="px-2.5 py-1 rounded border border-[#E5E2D8] bg-white text-[11px] font-semibold text-[#49686C] hover:bg-[#F6F4EC]">Gemini</button>
+              <button type="button" onClick={() => update({ baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' })} className="px-2.5 py-1 rounded border border-[#E5E2D8] bg-white text-[11px] font-semibold text-[#49686C] hover:bg-[#F6F4EC]">OpenAI</button>
+              <button type="button" onClick={() => update({ baseUrl: 'https://openrouter.ai/api/v1', model: 'openai/gpt-4o-mini' })} className="px-2.5 py-1 rounded border border-[#E5E2D8] bg-white text-[11px] font-semibold text-[#49686C] hover:bg-[#F6F4EC]">OpenRouter</button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-bold text-[#283638] block mb-1">Base URL</label>
+              <input type="text" value={settings.baseUrl} onChange={(e) => update({ baseUrl: e.target.value })} className="w-full p-2.5 rounded-lg border border-[#E5E2D8] bg-[#FAFAF8] text-xs font-mono text-[#283638] focus:bg-white focus:outline-none focus:border-[#49686C]" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-[#283638] block mb-1">Model</label>
+              <input type="text" value={settings.model} onChange={(e) => update({ model: e.target.value })} className="w-full p-2.5 rounded-lg border border-[#E5E2D8] bg-[#FAFAF8] text-xs font-mono text-[#283638] focus:bg-white focus:outline-none focus:border-[#49686C]" />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-[11px] text-[#737A72]">
+              {onDevice
+                ? 'On-device model detected (no key needed).'
+                : settings.apiKey
+                ? 'Hosted key configured.'
+                : 'Not configured — rules only.'}
+            </span>
+            <button type="submit" className="px-4 py-2 bg-[#49686C] text-white text-xs font-bold rounded-lg hover:bg-[#30494B] transition-colors">
               {isSaved ? 'Saved' : 'Save Engine Settings'}
             </button>
           </div>
@@ -209,7 +249,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onRefreshData }) => 
           </div>
           <div>
             <span className="text-[#737A72] block">Execution Context</span>
-            <span className="font-bold text-[#283638]">Private Local Evaluation (Zero Egress)</span>
+            <span className="font-bold text-[#283638]">Rules run locally; deep scan is optional (on-device or your key)</span>
           </div>
         </div>
       </div>
