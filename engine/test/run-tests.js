@@ -664,6 +664,16 @@ test("mergeFindings: overlapping SSH findings do not double-count risk", () => {
   assert.strictEqual(merged.riskScore, base.riskScore);
 });
 
+test("mergeFindings: AI disable-encryption wording is deduplicated", () => {
+  const base = analyze("Create an S3 bucket and disable encryption.");
+  const merged = require("../src/analyzer").mergeFindings(base, {
+    missing: [],
+    risky: [{ label: "Disable encryption", severity: "high", fix: "Enable encryption." }],
+    clean: false
+  });
+  assert.strictEqual(merged.riskyFindings.filter((f) => /encrypt/i.test(f.label)).length, 1);
+});
+
 test("mergeFindings: satisfied overrides a low-priority rule finding", () => {
   const base = analyze("Create a private S3 bucket.");
   const target = base.missing.find((m) => m.tier === "clarify");

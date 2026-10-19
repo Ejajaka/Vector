@@ -497,6 +497,8 @@ function computeRisk(relevantCounts, findings) {
 function canonicalFindingLabel(label) {
   const compact = String(label || "").toLowerCase().replace(/[^a-z0-9]/g, "");
   if (/hardcoded(credential|secret)s?/.test(compact)) return "hardcodedcredentials";
+  if (/unencrypteddata|disableencryption/.test(compact)) return "encryptiondisabled";
+  if (/disablecloudtrail|loggingdisabled/.test(compact)) return "loggingdisabled";
   if (/wildcard.*iam|iam.*wildcard/.test(compact)) return "wildcardiam";
   return compact;
 }
@@ -505,6 +507,8 @@ function riskGroup(finding) {
   const id = String(finding && finding.id || "").toLowerCase();
   const text = String(finding && (finding.label || finding.description) || "").toLowerCase();
   if (id === "hardcoded_secret" || /hard[- ]?coded credentials?/.test(text)) return "hardcoded_credentials";
+  if (id === "no_encryption" || /unencrypted data|disable encryption/.test(text)) return "encryption_disabled";
+  if (id === "disabled_logging" || /disable cloudtrail|logging disabled/.test(text)) return "logging_disabled";
   if (id === "open_ssh" || /open ssh|unrestricted inbound|0\.0\.0\.0\/0/.test(text)) return "unrestricted_inbound";
   return "";
 }

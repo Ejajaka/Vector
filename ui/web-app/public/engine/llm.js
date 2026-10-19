@@ -26,7 +26,8 @@
     '"risky":[{"label":"","severity":"high|medium|low","description":"","fix":""}],' +
     '"satisfied":["exact label from the supplied rule list"]}. ' +
     "If nothing is missing and nothing is risky, return empty arrays. " +
-    "At most 10 missing, 5 risky and 10 satisfied. Each clause is one imperative sentence.";
+    "At most 10 missing, 5 risky and 10 satisfied. Each clause is one imperative sentence. " +
+    "Do not recommend TLS for SSH: SSH is its own encrypted protocol; recommend trusted source IPs or AWS Systems Manager Session Manager instead.";
 
   function userMessage(prompt, ruleReport) {
     let msg = "Infrastructure prompt:\n\n" + String(prompt || "");
