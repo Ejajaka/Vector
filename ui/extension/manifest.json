@@ -20,6 +20,17 @@
     }
   },
   "options_page": "options.html",
+  "web_accessible_resources": [
+    {
+      "resources": ["media/logo512.png"],
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*",
+        "https://claude.ai/*",
+        "https://gemini.google.com/*"
+      ]
+    }
+  ],
   "permissions": ["storage", "clipboardWrite"],
   "host_permissions": [
     "https://chatgpt.com/*",

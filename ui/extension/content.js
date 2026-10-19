@@ -42,7 +42,7 @@
     p.id = "vector-panel";
     p.innerHTML =
       '<div class="v-panel-head">' +
-      '<div class="v-panel-title"><span class="v-panel-logo">V</span> Vector</div>' +
+      '<div class="v-panel-title"><img class="v-panel-logo" src="' + chrome.runtime.getURL("media/logo512.png") + '" alt="Vector"> Vector</div>' +
       '<button class="v-btn ghost" id="vector-close" type="button">Close</button></div>' +
       '<div class="v-panel-body">' +
       '<div id="vector-empty" class="v-muted">Type your prompt in the chat box, then Analyze.</div>' +

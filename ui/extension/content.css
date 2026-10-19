@@ -71,12 +71,8 @@
   width: 24px;
   height: 24px;
   border-radius: 6px;
-  display: grid;
-  place-items: center;
-  color: #facb43;
-  font-weight: 700;
-  font-size: 13px;
-  background: #2d5d4f;
+  display: block;
+  object-fit: cover;
 }
 
 #vector-panel .v-panel-body {

@@ -27,11 +27,8 @@ body {
   width: 30px;
   height: 30px;
   border-radius: 8px;
-  display: grid;
-  place-items: center;
-  font-weight: 700;
-  color: #facb43;
-  background: #2d5d4f;
+  display: block;
+  object-fit: cover;
 }
 
 .vp-brand h1 {
