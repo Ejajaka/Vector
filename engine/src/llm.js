@@ -143,7 +143,7 @@
           body: JSON.stringify({
             systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
             contents: [{ role: "user", parts: [{ text: userMessage(prompt, ruleReport) }] }],
-            generationConfig: { temperature: 0 }
+            generationConfig: { temperature: 0, responseMimeType: "application/json" }
           })
         }
       );
