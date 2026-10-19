@@ -47,7 +47,7 @@ const REQUIREMENTS = [
     clause:
       "Encrypt data at rest; specify whether a customer-managed KMS key is required.",
     standards: ["CIS AWS 2.1.1", "AWS FSBP S3.4 / RDS.3", "NIST SP 800-53 SC-28"],
-    patterns: ["encrypt(ed|ion)?", "\\bkms\\b", "server[- ]side encryption", "sse[- ]?(s3|kms)", "aes[- ]?256", "at rest", "customer[- ]managed key", "\\bcmk\\b", "disk encryption", "scrambl(e|ed|ing)?", "on[- ]disk", "encrypt(ed|s)? (the )?(data|everything|objects|files|records|volumes?)", "encode[d]? (the )?data", "on (the )?volume", "before it (lands|is stored|hits)"],
+    patterns: ["encrypt(ed|ion)?", "\\bkms\\b", "server[- ]side encryption", "sse[- ]?(s3|kms)", "aes[- ]?256", "at rest", "customer[- ]managed key", "customer managed key", "kms key", "\\bcmk\\b", "disk encryption", "scrambl(e|ed|ing)?", "on[- ]disk", "encrypt(ed|s)? (the )?(data|everything|objects|files|records|volumes?)", "encode[d]? (the )?data", "on (the )?volume", "before it (lands|is stored|hits)", "(disk|volume|media)[^.]{0,30}(stolen|compromised|leaked)", "steal(a|s|ing)? (the )?(disks?|volumes?|media)"],
     notAfter: ["in transit", "over the (network|wire)"]
   },
   {
@@ -254,6 +254,7 @@ const REQUIREMENTS = [
       "store[^.]{0,20}(credential|password|secret)",
       "short[- ]lived (credentials?|keys?|tokens?)", "ephemeral credential",
       "long[- ]lived (keys?|credentials?)", "api (token|key)",
+      "never (store|commit|hard[- ]?code|put)[^.]{0,40}(token|secret|key|password)",
     ]
   },
   {

@@ -228,11 +228,120 @@ function pruneModifierResources(haystack, found) {
 }
 
 /**
+ * Light morphological stemmer: strips common inflectional suffixes so
+ * "rotate / rotating / rotated / rotation" collapse to the same stem.
+ * Deliberately conservative (3 passes, length guards) to avoid over-stemming.
+ */
+function stem(word) {
+  let s = String(word || "").toLowerCase();
+  for (let i = 0; i < 3; i++) {
+    const before = s;
+    if (s.length > 5 && s.endsWith("ation")) s = s.slice(0, -5) + "ate";
+    else if (s.length > 4 && s.endsWith("ies")) s = s.slice(0, -3) + "y";
+    else if (s.length > 5 && s.endsWith("ing")) s = s.slice(0, -3);
+    else if (s.length > 4 && s.endsWith("ed")) s = s.slice(0, -2);
+    else if (s.length > 4 && s.endsWith("es")) s = s.slice(0, -2);
+    else if (s.length > 4 && s.endsWith("ion")) s = s.slice(0, -3);
+    else if (s.length > 3 && s.endsWith("s") && !s.endsWith("ss")) s = s.slice(0, -1);
+    else if (s.length > 4 && s.endsWith("e")) s = s.slice(0, -1);
+    if (s === before) break;
+  }
+  return s;
+}
+
+/** True if a and b differ by at most one edit (Levenshtein distance <= 1). */
+function withinOneEdit(a, b) {
+  if (a === b) return true;
+  const la = a.length;
+  const lb = b.length;
+  if (Math.abs(la - lb) > 1) return false;
+  let i = 0;
+  while (i < la && i < lb && a[i] === b[i]) i++;
+  if (la === lb) {
+    // one substitution, and the rest must match
+    return a.slice(i + 1) === b.slice(i + 1);
+  }
+  // one insertion/deletion
+  return la > lb ? a.slice(i + 1) === b.slice(i) : a.slice(i) === b.slice(i + 1);
+}
+
+// Only patterns that are plain words/phrases (no regex metacharacters) are used
+// for the stemmed fallback; regex patterns are already handled directly.
+const PLAIN_PATTERN = /^[a-z0-9][a-z0-9 \-]*$/i;
+
+function phraseStems(req) {
+  if (req._stemPhrases) return req._stemPhrases;
+  const out = [];
+  for (const p of req.patterns || []) {
+    if (typeof p !== "string" || !PLAIN_PATTERN.test(p)) continue;
+    const words = p.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 2);
+    if (words.length) out.push(words.map(stem));
+  }
+  req._stemPhrases = out;
+  return out;
+}
+
+function stemTokenMatches(tokenStem, targetStem) {
+  if (tokenStem === targetStem) return true;
+  // Conservative fuzzy: one typo allowed only for reasonably long stems.
+  return targetStem.length >= 7 && withinOneEdit(tokenStem, targetStem);
+}
+
+/**
+ * Fallback matcher used only when the regex patterns found nothing: matches the
+ * stemmed words of plain patterns against the stemmed prompt tokens, allowing
+ * small gaps (e.g. "disks are encrypted" -> "disk encryption").
+ * Returns {index, value} like findMatches, or null.
+ */
+function stemMatch(requirement, text) {
+  const phrases = phraseStems(requirement);
+  if (!phrases.length) return null;
+  const low = text.toLowerCase();
+  const toks = [];
+  const re = /[a-z0-9]+/g;
+  let m;
+  while ((m = re.exec(low)) !== null) {
+    toks.push({ s: stem(m[0]), index: m.index, end: m.index + m[0].length });
+  }
+  if (!toks.length) return null;
+
+  for (const phrase of phrases) {
+    for (let i = 0; i < toks.length; i++) {
+      if (!stemTokenMatches(toks[i].s, phrase[0])) continue;
+      if (phrase.length === 1) {
+        return { index: toks[i].index, value: low.slice(toks[i].index, toks[i].end) };
+      }
+      // Word-order tolerant: every other stem must appear in a small window
+      // around the first match (e.g. "keys rotating" == "key rotation").
+      const lo = Math.max(0, i - 3);
+      const hi = Math.min(toks.length - 1, i + 3);
+      let all = true;
+      for (let k = 1; k < phrase.length; k++) {
+        let found = false;
+        for (let j = lo; j <= hi && !found; j++) {
+          if (j !== i && stemTokenMatches(toks[j].s, phrase[k])) found = true;
+        }
+        if (!found) { all = false; break; }
+      }
+      if (all) {
+        return { index: toks[lo].index, value: low.slice(toks[lo].index, toks[hi].end) };
+      }
+    }
+  }
+  return null;
+}
+
+/**
  * @returns {{present:boolean, negated:boolean}} negated=true means the only
  * mentions were explicitly negated (e.g. "do not encrypt").
  */
 function detectRequirement(requirement, text) {
-  const matches = findMatches(text, requirement.patterns);
+  let matches = findMatches(text, requirement.patterns);
+  // Morphological fallback: only when no literal/regex mention was found.
+  if (matches.length === 0) {
+    const sm = stemMatch(requirement, text);
+    if (sm) matches = [sm];
+  }
   if (matches.length === 0) return { present: false, negated: false };
   const positive = matches.some((m) => {
     const end = m.index + m.value.length;
@@ -449,7 +558,7 @@ function analyze(prompt, options) {
   // "private link") is in scope even when no AWS resource or intent verb is
   // present. Off-topic text ("tell me a joke", "a bucket of water") matches no
   // control patterns, so this does not weaken the scope guard.
-  const hasControlSignal = requirements.some((req) => findMatches(normalized, req.patterns).length > 0);
+  const hasControlSignal = requirements.some((req) => detectRequirement(req, normalized).present);
 
   const inScope =
     hasStrongTerm || intents.length > 0 || infraHits >= 2 || strongResource ||

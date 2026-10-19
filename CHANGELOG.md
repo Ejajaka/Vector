@@ -22,6 +22,13 @@
   no AWS resource named), and an explicit-mention relevance pass. Added
   `npm run probe` (paraphrase recall: 51/54; independent unseen set 13/16).
   Existing tests stay 76/76 and eval F1 1.000.
+- **Morphology-aware matching:** a light stemmer (rotate/rotating/rotation),
+  order-tolerant phrase matching across a small window, and conservative
+  1-edit fuzzy matching for long words. This is a fallback used only when the
+  literal patterns find nothing. `npm run probe` now also reports a
+  morphology set (10/10) and a never-tuned held-out set (11/19). Honest read:
+  pure-rule recall on arbitrary paraphrase is ~55-65%; hybrid/ML is needed to
+  go substantially higher.
 - **Design system refresh (from the Android client):** geometric V logo,
   accessible risk palette (`#C05621` high, `#9E7D1B` medium, `#2E6F40` low),
   Risk Findings Distribution card, report download, About screen, and revised
