@@ -345,7 +345,7 @@ fun AnalyzeScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Deep Scan (Simulated)",
+                    text = "Deep Scan",
                     style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
                     maxLines = 1,
                     softWrap = false

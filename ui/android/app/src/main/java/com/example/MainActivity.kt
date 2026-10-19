@@ -77,6 +77,7 @@ fun VectorApp(viewModel: VectorViewModel) {
     val historySort by viewModel.historySort.collectAsState()
     val themeMode by viewModel.themeMode.collectAsState()
     val snackbarMessage by viewModel.snackbarMessage.collectAsState()
+    val deepScanSettings by viewModel.deepScanSettings.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -162,6 +163,7 @@ fun VectorApp(viewModel: VectorViewModel) {
                 PersistentNetworkIndicator(
                     isOnline = isOnline,
                     isSimulated = isNetworkSimulated,
+                    deepScanConfigured = deepScanSettings.isConfigured,
                     onToggleSimulatedOffline = { viewModel.setSimulatedOffline(it) }
                 )
             }
@@ -253,6 +255,8 @@ fun VectorApp(viewModel: VectorViewModel) {
                         onToggleSimulatedOffline = { viewModel.setSimulatedOffline(it) },
                         onOpenOnboarding = { viewModel.startOnboarding() },
                         onOpenAbout = { viewModel.navigateTo(Screen.ABOUT) },
+                        deepScanSettings = deepScanSettings,
+                        onDeepScanSettingsChange = { viewModel.updateDeepScanSettings(it) },
                         modifier = screenModifier
                     )
                 }

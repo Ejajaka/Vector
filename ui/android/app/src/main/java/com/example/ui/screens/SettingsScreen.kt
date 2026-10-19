@@ -39,6 +39,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -51,9 +52,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.analyzer.JavaScriptBridgeDocumentation
+import com.example.data.llm.DeepScanSettings
 import com.example.ui.theme.VectorDarkTeal
 import com.example.ui.theme.VectorMustardYellow
 import com.example.ui.theme.VectorPrimaryTeal
@@ -69,6 +72,8 @@ fun SettingsScreen(
     onToggleSimulatedOffline: (Boolean?) -> Unit,
     onOpenOnboarding: () -> Unit,
     onOpenAbout: () -> Unit = {},
+    deepScanSettings: DeepScanSettings = DeepScanSettings(),
+    onDeepScanSettingsChange: (DeepScanSettings) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -347,7 +352,11 @@ fun SettingsScreen(
                             )
                         }
                         Text(
-                            text = "External IAM/CloudFormation policy verification is not configured. Local rule-based scanning is active.",
+                            text = if (deepScanSettings.isConfigured) {
+                                "Configured. Low-confidence prompts are deep scanned and merged with the rules before results are shown."
+                            } else {
+                                "Not configured. Add an API key below to enable LLM deep scan."
+                            },
                             style = MaterialTheme.typography.bodySmall.copy(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 12.sp
@@ -356,17 +365,103 @@ fun SettingsScreen(
                     }
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant
+                        color = if (deepScanSettings.isConfigured) {
+                            MaterialTheme.colorScheme.primaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant
+                        }
                     ) {
                         Text(
-                            text = "Offline Only",
+                            text = if (deepScanSettings.isConfigured) "Ready" else "Rules only",
                             style = MaterialTheme.typography.labelSmall.copy(
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                fontWeight = FontWeight.Bold,
+                                color = if (deepScanSettings.isConfigured) {
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                }
                             ),
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(14.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Auto deep scan toggle
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f).padding(end = 10.dp)) {
+                        Text(
+                            text = "Auto deep scan",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        )
+                        Text(
+                            text = "Run the LLM when the rule engine reports low coverage or confidence.",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 11.sp
+                            )
+                        )
+                    }
+                    Switch(
+                        checked = deepScanSettings.autoDeepScan,
+                        onCheckedChange = { onDeepScanSettingsChange(deepScanSettings.copy(autoDeepScan = it)) },
+                        modifier = Modifier.testTag("settings_auto_deep_scan_switch"),
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                OutlinedTextField(
+                    value = deepScanSettings.apiKey,
+                    onValueChange = { onDeepScanSettingsChange(deepScanSettings.copy(apiKey = it)) },
+                    label = { Text("API key") },
+                    placeholder = { Text("sk-...") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("settings_api_key_input")
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = deepScanSettings.baseUrl,
+                    onValueChange = { onDeepScanSettingsChange(deepScanSettings.copy(baseUrl = it)) },
+                    label = { Text("Base URL") },
+                    placeholder = { Text("https://api.openai.com/v1") },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("settings_base_url_input")
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = deepScanSettings.model,
+                    onValueChange = { onDeepScanSettingsChange(deepScanSettings.copy(model = it)) },
+                    label = { Text("Model") },
+                    placeholder = { Text("gpt-4o-mini") },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("settings_model_input")
+                )
 
                 Spacer(modifier = Modifier.height(14.dp))
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
@@ -396,8 +491,8 @@ fun SettingsScreen(
                             )
                         }
                         Text(
-                            text = if (isOnline) "Connected â€¢ Rule-based analysis and online checks ready."
-                            else "Offline â€¢ Rule-based analysis works offline. Deep scan is unavailable.",
+                            text = if (isOnline) "Connected • Rule-based analysis and online checks ready."
+                            else "Offline • Rule-based analysis works offline. Deep scan is unavailable.",
                             style = MaterialTheme.typography.bodySmall.copy(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -511,7 +606,7 @@ fun SettingsScreen(
                         Spacer(modifier = Modifier.height(4.dp))
                         JavaScriptBridgeDocumentation.CORE_METHODS.forEach { method ->
                             Text(
-                                text = "â€¢ $method",
+                                text = "• $method",
                                 style = MaterialTheme.typography.bodySmall.copy(
                                     fontFamily = FontFamily.Monospace,
                                     fontSize = 11.sp,
@@ -573,7 +668,7 @@ fun SettingsScreen(
                         )
                     )
                     Text(
-                        text = "1.0.0 (Native Android)",
+                        text = "0.8.0 (Native Android)",
                         style = MaterialTheme.typography.bodySmall.copy(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -594,7 +689,7 @@ fun SettingsScreen(
                         )
                     )
                     Text(
-                        text = "Vector-Core 1.2.0",
+                        text = "Vector-Core 0.8.0",
                         style = MaterialTheme.typography.bodySmall.copy(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface

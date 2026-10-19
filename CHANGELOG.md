@@ -7,6 +7,10 @@
   extension, static demo and Expo app now pass the rule report to the model;
   findings are labelled AI, and a low-priority rule finding the model confirms
   is moved to "mentioned" while core controls are never dropped.
+- **Native Android deep scan.** The Kotlin client now has the same hosted
+  deep-scan contract (OkHttp + shared system prompt), on-screen API key /
+  base URL / model / auto-scan settings, AI-labelled merged findings, and the
+  same "satisfied" override while protecting critical controls.
 - **Version unified** to `0.8.0` across the engine, CLI, extension manifest, web
   demo, React web client, Expo and Android clients.
 - **New client - React web app** (`ui/web-app`, teammate UI) wired to the shared

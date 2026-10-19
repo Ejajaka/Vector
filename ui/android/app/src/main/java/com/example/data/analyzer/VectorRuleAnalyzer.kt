@@ -1,4 +1,4 @@
-package com.example.data.analyzer
+﻿package com.example.data.analyzer
 
 import com.example.data.model.AnalysisResult
 import com.example.data.model.AwsResource
@@ -94,7 +94,7 @@ class VectorRuleAnalyzer : AnalyzerRepository {
             detectedResources = detectedResources,
             findings = findings,
             isDemo = false,
-            engineVersion = if (isDeepScan) "Vector DeepScan (Simulated Offline Mode)" else "Vector-Core 1.2.0 (Rule-based NLP)"
+            engineVersion = if (isDeepScan) "Vector DeepScan 0.8.0 (Rules + LLM)" else "Vector-Core 0.8.0 (Rule-based NLP)"
         )
     }
 

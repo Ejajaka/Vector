@@ -66,6 +66,7 @@ import com.example.ui.theme.VectorSoftGreen
 fun PersistentNetworkIndicator(
     isOnline: Boolean,
     isSimulated: Boolean,
+    deepScanConfigured: Boolean = false,
     onToggleSimulatedOffline: (Boolean?) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -174,7 +175,8 @@ fun PersistentNetworkIndicator(
             Spacer(modifier = Modifier.height(3.dp))
             Text(
                 text = if (isOnline) {
-                    "Rule-based analysis ready • Deep scan standby"
+                    if (deepScanConfigured) "Rule-based analysis ready • Deep scan ready"
+                    else "Rule-based analysis ready • Deep scan needs a key"
                 } else {
                     "Rule-based analysis is available offline • Deep scan is unavailable"
                 },
@@ -190,6 +192,7 @@ fun PersistentNetworkIndicator(
         NetworkDetailsDialog(
             isOnline = isOnline,
             isSimulated = isSimulated,
+            deepScanConfigured = deepScanConfigured,
             onDismiss = { showDetailsDialog = false },
             onToggleSimulatedOffline = onToggleSimulatedOffline
         )
@@ -200,6 +203,7 @@ fun PersistentNetworkIndicator(
 fun NetworkDetailsDialog(
     isOnline: Boolean,
     isSimulated: Boolean,
+    deepScanConfigured: Boolean = false,
     onDismiss: () -> Unit,
     onToggleSimulatedOffline: (Boolean?) -> Unit
 ) {
@@ -269,16 +273,23 @@ fun NetworkDetailsDialog(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = if (isOnline) "Deep Scan: Requires Config" else "Deep Scan: Unavailable Offline",
+                                text = when {
+                                    !isOnline -> "Deep Scan: Unavailable Offline"
+                                    deepScanConfigured -> "Deep Scan: Ready"
+                                    else -> "Deep Scan: Add API Key"
+                                },
                                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
                             )
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = if (isOnline) {
-                                "External policy simulation requires remote IAM and CloudFormation analyzers. Core rule-based diagnosis operates without configuration."
-                            } else {
-                                "Deep scanning requires an active network connection to external IAM and policy simulation engines. Switch to online mode or connect to Wi-Fi/cellular to enable deep scan."
+                            text = when {
+                                !isOnline ->
+                                    "Deep scan calls the hosted LLM, so it needs a network connection. Switch to online mode to enable it."
+                                deepScanConfigured ->
+                                    "Hosted LLM deep scan is configured. Low-coverage prompts are scanned and merged with the rule findings before results are shown."
+                                else ->
+                                    "Add an API key in Settings to enable hosted LLM deep scan. Core rule-based diagnosis works without it."
                             },
                             style = MaterialTheme.typography.bodySmall.copy(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,

@@ -1,4 +1,4 @@
-package com.example.data.model
+﻿package com.example.data.model
 
 import androidx.compose.ui.graphics.Color
 import com.example.ui.theme.VectorCriticalRed
@@ -47,7 +47,8 @@ data class SecurityFinding(
     val whyItMatters: String,
     val recommendedFix: String,
     val securityClause: String,
-    val isSelectable: Boolean = (type != FindingType.DETECTED_CONTROL)
+    val isSelectable: Boolean = (type != FindingType.DETECTED_CONTROL),
+    val isAi: Boolean = false
 )
 
 data class AnalysisResult(
@@ -61,7 +62,7 @@ data class AnalysisResult(
     val detectedResources: List<AwsResource>,
     val findings: List<SecurityFinding>,
     val isDemo: Boolean = false,
-    val engineVersion: String = "Vector-Core 1.2.0 (Rule-based NLP)"
+    val engineVersion: String = "Vector-Core 0.8.0 (Rule-based NLP)"
 ) {
     val missingControlsCount: Int
         get() = findings.count { it.type == FindingType.MISSING_CONTROL }

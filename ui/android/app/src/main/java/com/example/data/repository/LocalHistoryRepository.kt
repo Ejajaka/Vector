@@ -134,6 +134,7 @@ class LocalHistoryRepository(context: Context) : HistoryRepository {
             fObj.put("recommendedFix", f.recommendedFix)
             fObj.put("securityClause", f.securityClause)
             fObj.put("isSelectable", f.isSelectable)
+            fObj.put("isAi", f.isAi)
             fArray.put(fObj)
         }
         obj.put("findings", fArray)
@@ -149,7 +150,7 @@ class LocalHistoryRepository(context: Context) : HistoryRepository {
         val riskLevel = RiskLevel.valueOf(obj.optString("riskLevel", RiskLevel.fromScore(riskScore).name))
         val coverage = obj.getInt("securityCoverage")
         val confidence = obj.optInt("confidence", 92)
-        val engineVersion = obj.optString("engineVersion", "Vector-Core 1.2.0")
+        val engineVersion = obj.optString("engineVersion", "Vector-Core 0.8.0")
 
         val resList = mutableListOf<AwsResource>()
         val resArray = obj.optJSONArray("resources")
@@ -183,7 +184,8 @@ class LocalHistoryRepository(context: Context) : HistoryRepository {
                         whyItMatters = fObj.getString("whyItMatters"),
                         recommendedFix = fObj.getString("recommendedFix"),
                         securityClause = fObj.getString("securityClause"),
-                        isSelectable = fObj.optBoolean("isSelectable", true)
+                        isSelectable = fObj.optBoolean("isSelectable", true),
+                        isAi = fObj.optBoolean("isAi", false)
                     )
                 )
             }

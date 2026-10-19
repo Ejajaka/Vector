@@ -1,4 +1,4 @@
-package com.example.ui.screens
+﻿package com.example.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -448,7 +448,7 @@ fun AboutScreen(
 
                 Text(
                     text = "Vector uses deterministic NLP and rule-based analysis to examine infrastructure prompts and identify supported AWS resources and security-related patterns.\n\n" +
-                            "All core pattern extraction, resource detection (EC2, S3, RDS, ALB, VPC, IAM), and severity classifications run 100% on-device in Kotlin. Prompts remain completely confidential and never leave your mobile device. Deep scanning is an optional simulated policy check that can operate when external simulation infrastructure is connected.",
+                            "All core pattern extraction, resource detection (EC2, S3, RDS, ALB, VPC, IAM), and severity classifications run 100% on-device in Kotlin. Prompts remain completely confidential and never leave your mobile device unless you configure an API key for the optional hosted LLM deep scan, whose findings are merged with the on-device rules.",
                     style = MaterialTheme.typography.bodySmall.copy(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         lineHeight = 19.sp
