@@ -52,7 +52,22 @@
   function parseFindings(text) {
     const match = String(text || "").match(/\{[\s\S]*\}/);
     if (!match) throw new Error("Model returned no JSON.");
-    const data = JSON.parse(match[0]);
+    let data;
+    try {
+      data = JSON.parse(match[0]);
+    } catch (firstError) {
+      // Some compatible gateways still add trailing commas or raw control
+      // characters despite JSON mode. Repair only those unambiguous cases;
+      // never guess at broken quoted content.
+      const repaired = match[0]
+        .replace(/,\s*([}\]])/g, "$1")
+        .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, " ");
+      try {
+        data = JSON.parse(repaired);
+      } catch (secondError) {
+        throw new Error("Model returned invalid JSON. Run Deep Scan again or choose another model.");
+      }
+    }
 
     const missing = (Array.isArray(data.missing) ? data.missing : [])
       .filter((m) => m && m.label)

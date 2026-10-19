@@ -618,6 +618,11 @@ test("deep scan: empty result is marked clean", () => {
   assert.strictEqual(out2.clean, false);
 });
 
+test("deep scan: parser tolerates trailing commas from compatible gateways", () => {
+  const out = VectorLLMTests.parseFindings('{"missing":[{"label":"Object Lock",}],"risky":[],}');
+  assert.strictEqual(out.missing[0].label, "Object Lock");
+});
+
 test("mergeFindings: a clean AI result sets aiClean", () => {
   const base = analyze("Create an S3 bucket.");
   const empty = { missing: [], risky: [], clean: true };
