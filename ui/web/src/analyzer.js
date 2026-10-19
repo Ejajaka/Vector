@@ -445,8 +445,15 @@ function analyze(prompt, options) {
     }
   });
 
+  // An explicit security-control statement ("use a vault", "rotate the keys",
+  // "private link") is in scope even when no AWS resource or intent verb is
+  // present. Off-topic text ("tell me a joke", "a bucket of water") matches no
+  // control patterns, so this does not weaken the scope guard.
+  const hasControlSignal = requirements.some((req) => findMatches(normalized, req.patterns).length > 0);
+
   const inScope =
-    hasStrongTerm || intents.length > 0 || infraHits >= 2 || strongResource || hasRiskySignal;
+    hasStrongTerm || intents.length > 0 || infraHits >= 2 || strongResource ||
+    hasRiskySignal || hasControlSignal;
 
   if (!inScope) {
     return {
@@ -525,6 +532,18 @@ function analyze(prompt, options) {
     if (req.alwaysRequired) {
       relevantIds.add(req.id);
       if (!appliesTo.has(req.id)) appliesTo.set(req.id, ["Organisation policy"]);
+    }
+  }
+
+  // Explicitly stated controls count as relevant even when the resource-derived
+  // set did not include them (e.g. "private link", "rotate the keys",
+  // "spread across availability zones"). This improves recall without inventing
+  // missing findings: a control is only added when it is actually stated.
+  for (const req of requirements) {
+    if (relevantIds.has(req.id)) continue;
+    if (detectRequirement(req, normalized).present) {
+      relevantIds.add(req.id);
+      if (!appliesTo.has(req.id)) appliesTo.set(req.id, ["Explicitly stated"]);
     }
   }
 
