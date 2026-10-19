@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#6366f1" />
+  <meta name="theme-color" content="#2D5D4F" />
   <title>Vector - AWS Prompt Security</title>
   <link rel="stylesheet" href="src/ui.css" />
   <link rel="stylesheet" href="style.css" />
@@ -13,59 +13,132 @@
     <span class="m-logo">V</span>
     <div class="m-title">
       <h1>Vector</h1>
-      <p>Pre-generation security diagnosis (AWS)</p>
+      <p>AWS Cloud Security Diagnosis</p>
     </div>
-    <span class="m-version" style="font-size:11px;color:#6b7280;">v0.5.7</span>
+    <span class="m-version">v0.8.0</span>
+    <button id="btn-about" class="m-icon" type="button" aria-label="About">i</button>
     <button id="btn-settings" class="m-icon" type="button" aria-label="Settings">&#9881;</button>
   </header>
 
+  <nav class="m-tabs" role="tablist">
+    <button class="m-tab active" data-view="analyze" type="button">Analyze</button>
+    <button class="m-tab" data-view="about" type="button">About</button>
+  </nav>
+
   <main class="m-main">
-    <div id="settings" class="m-settings hidden">
-      <label class="m-field">
-        <span>Deep scan API key (optional, Gemini free tier by default)</span>
-        <input id="set-key" type="password" placeholder="AIza..." autocomplete="off" />
-      </label>
-      <label class="m-field">
-        <span>Base URL</span>
-        <input id="set-url" type="text" placeholder="https://generativelanguage.googleapis.com/v1beta/openai" />
-      </label>
-      <label class="m-field">
-        <span>Model</span>
-        <input id="set-model" type="text" placeholder="gemini-2.0-flash" />
-      </label>
+    <section id="view-analyze">
+      <div id="settings" class="m-settings hidden">
+        <label class="m-field">
+          <span>Deep scan API key (optional, Gemini free tier by default)</span>
+          <input id="set-key" type="password" placeholder="AIza..." autocomplete="off" />
+        </label>
+        <label class="m-field">
+          <span>Base URL</span>
+          <input id="set-url" type="text" placeholder="https://generativelanguage.googleapis.com/v1beta/openai" />
+        </label>
+        <label class="m-field">
+          <span>Model</span>
+          <input id="set-model" type="text" placeholder="gemini-2.5-flash" />
+        </label>
+        <div class="m-row">
+          <span id="set-status" class="v-muted"></span>
+          <button id="btn-save" class="v-btn primary" type="button">Save</button>
+        </div>
+      </div>
+
+      <h2 class="m-h1">New Security Diagnosis</h2>
+      <p class="m-sub">Enter an AWS architecture prompt to examine resource configurations, detect dangerous exposures, and discover missing security controls.</p>
+
+      <div id="risk-dist" class="m-card hidden">
+        <div class="m-card-head">
+          <span class="m-card-title">Risk Findings Distribution</span>
+          <span id="risk-dist-count" class="m-chip">0 findings</span>
+        </div>
+        <div id="risk-dist-body"></div>
+      </div>
+
+      <label class="m-label" for="prompt">AWS Infrastructure Prompt</label>
+      <textarea id="prompt" spellcheck="false"
+        placeholder="Describe your architecture (e.g., Create an S3 bucket for documents and deploy an EC2 instance behind an ALB with RDS database)..."></textarea>
       <div class="m-row">
-        <span id="set-status" class="v-muted"></span>
-        <button id="btn-save" class="v-btn primary" type="button">Save</button>
+        <span id="hint" class="v-muted">Deterministic NLP &bull; Private &amp; offline</span>
+        <div class="m-actions">
+          <button id="btn-deep" class="v-btn" type="button">Deep Scan (Simulated Policy Check)</button>
+          <button id="btn-analyze" class="v-btn primary" type="button">Analyze Prompt</button>
+        </div>
       </div>
-    </div>
 
-    <label class="m-label" for="prompt">AWS infrastructure prompt</label>
-    <textarea id="prompt" spellcheck="false"
-      placeholder="e.g. Create an S3 bucket for user documents and an EC2 instance running a web server."></textarea>
-    <div class="m-row">
-      <span id="hint" class="v-muted">Runs offline</span>
-      <div class="m-actions">
-        <button id="btn-deep" class="v-btn" type="button">Deep scan</button>
-        <button id="btn-analyze" class="v-btn primary" type="button">Analyze</button>
+      <section id="results" class="hidden"></section>
+
+      <section id="improved-wrap" class="v-improved hidden">
+        <div class="v-improved-head">
+          <label>Hardened Prompt Preview</label>
+          <button id="btn-copy" class="v-btn" type="button">Copy</button>
+        </div>
+        <pre id="improved" class="v-improved-body"></pre>
+      </section>
+    </section>
+
+    <section id="view-about" class="hidden">
+      <div class="m-hero">
+        <span class="m-badge">SECURITY DIAGNOSIS</span>
+        <h2 class="m-hero-title">Better infrastructure starts before the first line of code.</h2>
+        <p class="m-hero-body">Vector helps identify security gaps in AWS infrastructure prompts before they become part of generated infrastructure.</p>
+        <div class="m-flow">
+          <div class="m-flow-step"><span class="m-flow-icon">&#9998;</span><span>Prompt</span></div>
+          <span class="m-flow-arrow">&rarr;</span>
+          <div class="m-flow-step"><span class="m-flow-icon">&#9641;</span><span>NLP Rules</span></div>
+          <span class="m-flow-arrow">&rarr;</span>
+          <div class="m-flow-step"><span class="m-flow-icon">&#10003;</span><span>Clauses</span></div>
+        </div>
+        <button id="about-analyze" class="m-cta" type="button">Analyze a Prompt</button>
       </div>
-    </div>
 
-    <section id="results" class="hidden"></section>
-
-    <section id="improved-wrap" class="v-improved hidden">
-      <div class="v-improved-head">
-        <label>Improved prompt</label>
-        <button id="btn-copy" class="v-btn" type="button">Copy</button>
+      <div class="m-card">
+        <h3 class="m-card-title">Good prompts don't always mean secure infrastructure.</h3>
+        <p class="m-body">When developers or operators prompt AI or code generators for cloud infrastructure, requests typically focus on functional requirements (e.g. "create a public S3 bucket", "open SSH access", "connect EC2 to RDS").</p>
+        <p class="m-body">Crucial non-functional security controls are routinely omitted: at-rest encryption, restrictive security groups, IMDSv2 tokens, least-privilege IAM roles, access logging, and secure defaults. Once code is generated, fixing misconfigurations requires expensive audits and refactoring.</p>
       </div>
-      <pre id="improved" class="v-improved-body"></pre>
+
+      <div class="m-card">
+        <h3 class="m-card-title">How Vector Works</h3>
+        <ol class="m-steps">
+          <li><strong>Describe</strong><span>Provide a natural-language AWS infrastructure prompt.</span></li>
+          <li><strong>Analyze</strong><span>Examine it using the implemented NLP analysis and security rules.</span></li>
+          <li><strong>Identify</strong><span>Review detected risks and potentially missing controls.</span></li>
+          <li><strong>Improve</strong><span>Review recommendations and use the improved prompt where supported.</span></li>
+        </ol>
+      </div>
+
+      <div class="m-card">
+        <h3 class="m-card-title">What Makes Vector Useful?</h3>
+        <ul class="m-values">
+          <li><strong>Understandable Findings</strong><span>Risk ratings, clear explanations, and plain-language summaries why each omitted control matters.</span></li>
+          <li><strong>Practical Recommendations</strong><span>Actionable security clauses ready to insert into Terraform, CloudFormation, or CDK prompt templates.</span></li>
+          <li><strong>Transparent Analysis</strong><span>On-device deterministic pattern matching. No obscure black-box hallucinations or simulated metrics.</span></li>
+          <li><strong>Improved Security-Oriented Prompts</strong><span>One-click prompt augmentation that embeds concrete security constraints directly into your generative instructions.</span></li>
+        </ul>
+      </div>
+
+      <div class="m-card">
+        <h3 class="m-card-title">Analysis Approach</h3>
+        <p class="m-body">Vector uses deterministic NLP and rule-based analysis to examine infrastructure prompts and identify supported AWS resources and security-related patterns.</p>
+        <p class="m-body">All core pattern extraction, resource detection (EC2, S3, RDS, ALB, VPC, IAM), and severity classifications run 100% on-device. Prompts remain completely confidential and never leave your device.</p>
+      </div>
+
+      <div class="m-card">
+        <h3 class="m-card-title">A useful checkpoint, not a security guarantee.</h3>
+        <p class="m-body">Findings depend on the prompt text, supported AWS resources, implemented security rules, and available context. Prompt analysis cannot fully validate deployed infrastructure, runtime behaviour, network boundaries, or an entire AWS environment.</p>
+        <p class="m-body">Always review recommendations, perform automated infrastructure-as-code linting (e.g., checkov, tfsec), and validate generated infrastructure prior to production deployment.</p>
+      </div>
     </section>
   </main>
 
-  <script src="src/taxonomy.js?v=0.5.7"></script>
-  <script src="src/semantic.js?v=0.5.7"></script>
-  <script src="src/analyzer.js?v=0.5.7"></script>
-  <script src="src/ui.js?v=0.5.7"></script>
-  <script src="src/llm.js?v=0.5.7"></script>
-  <script src="app.js?v=0.5.7"></script>
+  <script src="src/taxonomy.js?v=0.8.0"></script>
+  <script src="src/semantic.js?v=0.8.0"></script>
+  <script src="src/analyzer.js?v=0.8.0"></script>
+  <script src="src/ui.js?v=0.8.0"></script>
+  <script src="src/llm.js?v=0.8.0"></script>
+  <script src="app.js?v=0.8.0"></script>
 </body>
 </html>

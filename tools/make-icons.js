@@ -1,10 +1,17 @@
 "use strict";
 
 /**
- * Vector icon generator.
+ * Vector brand icon generator.
  *
- * Draws a rounded-square gradient tile with a white "V" and writes PNG files
- * at 16/32/48/128 px. Pure Node (zlib only), so no image libraries needed.
+ * Draws the Vector logo - a dark-green rounded tile (#2D5D4F) with a bold
+ * gold "V" (#FACB43) - and writes every icon asset the project ships:
+ *
+ *   ui/media/                      Chrome/Edge extension icons + store logo
+ *   ui/mobile-native/android/...   Capacitor launcher icons + splash screens
+ *   ui/android/...                 native Kotlin app launcher icons
+ *   ui/web-app/public/             web app favicon/logo
+ *
+ * Pure Node (zlib only), no image libraries. Anti-aliased via 2x2 subsampling.
  *
  * Run:  node tools/make-icons.js
  */
@@ -13,11 +20,14 @@ const fs = require("fs");
 const path = require("path");
 const zlib = require("zlib");
 
-const OUT_DIR = path.join(__dirname, "..", "media");
-const SIZES = [16, 32, 48, 128];
+const GREEN = [0x2d, 0x5d, 0x4f]; // #2D5D4F
+const GOLD = [0xfa, 0xcb, 0x43]; // #FACB43
 
-const C1 = [99, 102, 241]; // #6366f1
-const C2 = [14, 165, 233]; // #0ea5e9
+const ROOT = path.join(__dirname, "..");
+
+// ---------------------------------------------------------------------------
+// PNG encoder
+// ---------------------------------------------------------------------------
 
 function crcTable() {
   const table = new Int32Array(256);
@@ -39,111 +49,233 @@ function crc32(buf) {
 function chunk(type, data) {
   const len = Buffer.alloc(4);
   len.writeUInt32BE(data.length, 0);
-  const typeBuf = Buffer.from(type, "ascii");
-  const body = Buffer.concat([typeBuf, data]);
+  const body = Buffer.concat([Buffer.from(type, "ascii"), data]);
   const crc = Buffer.alloc(4);
   crc.writeUInt32BE(crc32(body), 0);
   return Buffer.concat([len, body, crc]);
 }
 
-function distToSegment(px, py, ax, ay, bx, by) {
+function encodePng(width, height, pixels) {
+  const sig = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
+  ihdr[8] = 8; // bit depth
+  ihdr[9] = 6; // RGBA
+  const stride = width * 4;
+  const raw = Buffer.alloc((stride + 1) * height);
+  for (let y = 0; y < height; y++) {
+    raw[y * (stride + 1)] = 0; // filter: none
+    pixels.copy(raw, y * (stride + 1) + 1, y * stride, (y + 1) * stride);
+  }
+  const idat = zlib.deflateSync(raw, { level: 9 });
+  return Buffer.concat([sig, chunk("IHDR", ihdr), chunk("IDAT", idat), chunk("IEND", Buffer.alloc(0))]);
+}
+
+function pngSize(file) {
+  const buf = fs.readFileSync(file);
+  return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
+}
+
+// ---------------------------------------------------------------------------
+// Logo geometry (all coordinates normalised to 0..1)
+// ---------------------------------------------------------------------------
+
+const V_HALF = 0.086; // half stroke width of the V
+const CORNER = 0.235; // rounded-square corner radius
+
+function segDist(px, py, ax, ay, bx, by) {
   const dx = bx - ax;
   const dy = by - ay;
   const len2 = dx * dx + dy * dy || 1;
   let t = ((px - ax) * dx + (py - ay) * dy) / len2;
   t = Math.max(0, Math.min(1, t));
-  const cx = ax + t * dx;
-  const cy = ay + t * dy;
-  return Math.hypot(px - cx, py - cy);
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
 }
 
-function lerp(a, b, t) {
-  return Math.round(a + (b - a) * t);
+function roundedRectSdf(nx, ny, r) {
+  const qx = Math.abs(nx - 0.5) - (0.5 - r);
+  const qy = Math.abs(ny - 0.5) - (0.5 - r);
+  return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - r;
 }
 
-function renderPixels(size) {
-  const px = Buffer.alloc(size * size * 4);
-  const radius = size * 0.22;
-  const stroke = size * 0.085;
-  const ax = size * 0.30, ay = size * 0.30;
-  const bx = size * 0.50, by = size * 0.72;
-  const cx = size * 0.70, cy = size * 0.30;
+// Gold "V" membership test. `pad` shrinks the mark into the safe zone.
+function onV(nx, ny, pad) {
+  const s = 1 - 2 * pad;
+  const p = (nx - pad) / s;
+  const q = (ny - pad) / s;
+  const d1 = segDist(p, q, 0.30, 0.30, 0.50, 0.725);
+  const d2 = segDist(p, q, 0.70, 0.30, 0.50, 0.725);
+  return Math.min(d1, d2) <= V_HALF;
+}
 
-  function insideRounded(x, y) {
-    const left = radius, right = size - 1 - radius;
-    const cxr = Math.min(Math.max(x, left), right);
-    const cyr = Math.min(Math.max(y, left), right);
-    if (x >= left && x <= right) return y >= 0 && y <= size - 1;
-    if (y >= left && y <= right) return x >= 0 && x <= size - 1;
-    return Math.hypot(x - cxr, y - cyr) <= radius;
+// shape: "square" | "round" | "foreground" | "splash"
+function pointColor(nx, ny, shape) {
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  let a = 0;
+
+  const bgVisible = shape === "square" || shape === "round" || shape === "splash";
+  if (bgVisible) {
+    const inside =
+      shape === "round"
+        ? Math.hypot(nx - 0.5, ny - 0.5) <= 0.5
+        : roundedRectSdf(nx, ny, shape === "splash" ? 0 : CORNER) <= 0;
+    if (inside) {
+      r = GREEN[0];
+      g = GREEN[1];
+      b = GREEN[2];
+      a = 255;
+    }
   }
 
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const i = (y * size + x) * 4;
-      const inside = insideRounded(x + 0.5, y + 0.5);
-      if (!inside) {
-        px[i] = px[i + 1] = px[i + 2] = px[i + 3] = 0;
-        continue;
-      }
-      const t = (x + y) / (2 * size);
-      let r = lerp(C1[0], C2[0], t);
-      let g = lerp(C1[1], C2[1], t);
-      let b = lerp(C1[2], C2[2], t);
+  const pad = shape === "foreground" ? 0.14 : 0;
+  if (onV(nx, ny, pad)) {
+    r = GOLD[0];
+    g = GOLD[1];
+    b = GOLD[2];
+    a = 255;
+  }
+  return [r, g, b, a];
+}
 
-      const d1 = distToSegment(x + 0.5, y + 0.5, ax, ay, bx, by);
-      const d2 = distToSegment(x + 0.5, y + 0.5, cx, cy, bx, by);
-      const onV = Math.min(d1, d2) <= stroke;
-      if (onV) {
-        r = g = b = 255;
+const SUB = [
+  [0.25, 0.25],
+  [0.75, 0.25],
+  [0.25, 0.75],
+  [0.75, 0.75]
+];
+
+function render(width, height, shape) {
+  const px = Buffer.alloc(width * height * 4);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      let pr = 0;
+      let pg = 0;
+      let pb = 0;
+      let pa = 0;
+      for (let s = 0; s < 4; s++) {
+        const nx = (x + SUB[s][0]) / width;
+        const ny = (y + SUB[s][1]) / height;
+        const c = pointColor(nx, ny, shape);
+        const w = c[3];
+        pr += c[0] * w;
+        pg += c[1] * w;
+        pb += c[2] * w;
+        pa += w;
       }
-      px[i] = r;
-      px[i + 1] = g;
-      px[i + 2] = b;
-      px[i + 3] = 255;
+      const i = (y * width + x) * 4;
+      if (pa > 0) {
+        px[i] = Math.round(pr / pa);
+        px[i + 1] = Math.round(pg / pa);
+        px[i + 2] = Math.round(pb / pa);
+        px[i + 3] = Math.round(pa / 4);
+      }
     }
   }
   return px;
 }
 
-function encodePng(size, pixels) {
-  const sig = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
-  const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(size, 0);
-  ihdr.writeUInt32BE(size, 4);
-  ihdr[8] = 8; // bit depth
-  ihdr[9] = 6; // RGBA
-  ihdr[10] = 0;
-  ihdr[11] = 0;
-  ihdr[12] = 0;
-
-  const stride = size * 4;
-  const raw = Buffer.alloc((stride + 1) * size);
-  for (let y = 0; y < size; y++) {
-    raw[y * (stride + 1)] = 0; // filter: none
-    pixels.copy(raw, y * (stride + 1) + 1, y * stride, (y + 1) * stride);
-  }
-  const idat = zlib.deflateSync(raw, { level: 9 });
-
-  return Buffer.concat([
-    sig,
-    chunk("IHDR", ihdr),
-    chunk("IDAT", idat),
-    chunk("IEND", Buffer.alloc(0))
-  ]);
-}
-
-if (!fs.existsSync(OUT_DIR)) fs.mkdirSync(OUT_DIR, { recursive: true });
-
-for (const size of SIZES) {
-  const png = encodePng(size, renderPixels(size));
-  const file = path.join(OUT_DIR, "icon" + size + ".png");
+function writePng(file, width, height, shape) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const png = encodePng(width, height, render(width, height, shape));
   fs.writeFileSync(file, png);
-  console.log("wrote " + path.relative(path.join(__dirname, ".."), file) + " (" + png.length + " bytes)");
+  return png.length;
 }
 
-// 300x300 store-listing logo (Edge recommends 300, minimum 128).
-const storeLogo = encodePng(300, renderPixels(300));
-const storeFile = path.join(OUT_DIR, "store-logo-300.png");
-fs.writeFileSync(storeFile, storeLogo);
-console.log("wrote " + path.relative(path.join(__dirname, ".."), storeFile) + " (" + storeLogo.length + " bytes)");
+function rel(file) {
+  return path.relative(ROOT, file).replace(/\\/g, "/");
+}
+
+const written = [];
+function emit(file, w, h, shape) {
+  const bytes = writePng(file, w, h, shape);
+  written.push(rel(file) + " (" + bytes + " bytes)");
+}
+
+// ---------------------------------------------------------------------------
+// 1. Extension / store icons -> ui/media
+// ---------------------------------------------------------------------------
+
+const mediaDir = path.join(ROOT, "ui", "media");
+for (const size of [16, 32, 48, 128]) {
+  emit(path.join(mediaDir, "icon" + size + ".png"), size, size, "square");
+}
+emit(path.join(mediaDir, "store-logo-300.png"), 300, 300, "square");
+emit(path.join(mediaDir, "logo512.png"), 512, 512, "square");
+
+// ---------------------------------------------------------------------------
+// 2. Android launcher icons (both projects)
+// ---------------------------------------------------------------------------
+
+const ANDROID_DENSITIES = [
+  ["mdpi", 48],
+  ["hdpi", 72],
+  ["xhdpi", 96],
+  ["xxhdpi", 144],
+  ["xxxhdpi", 192]
+];
+
+function androidLaunchers(resRoot) {
+  for (const [density, size] of ANDROID_DENSITIES) {
+    const dir = path.join(resRoot, "mipmap-" + density);
+    emit(path.join(dir, "ic_launcher.png"), size, size, "square");
+    emit(path.join(dir, "ic_launcher_round.png"), size, size, "round");
+  }
+}
+
+// Capacitor client also uses an adaptive foreground PNG (108dp base).
+function capacitorForeground(resRoot) {
+  for (const [density, size] of ANDROID_DENSITIES) {
+    const fg = Math.round((size / 48) * 108);
+    emit(path.join(resRoot, "mipmap-" + density, "ic_launcher_foreground.png"), fg, fg, "foreground");
+  }
+}
+
+const capRes = path.join(ROOT, "ui", "mobile-native", "android", "app", "src", "main", "res");
+const satyaRes = path.join(ROOT, "ui", "android", "app", "src", "main", "res");
+
+if (fs.existsSync(capRes)) {
+  androidLaunchers(capRes);
+  capacitorForeground(capRes);
+}
+if (fs.existsSync(satyaRes)) {
+  androidLaunchers(satyaRes);
+}
+
+// ---------------------------------------------------------------------------
+// 3. Splash screens - regenerate each existing splash at its own dimensions
+// ---------------------------------------------------------------------------
+
+function regenSplashes(resRoot) {
+  const stack = [resRoot];
+  while (stack.length) {
+    const dir = stack.pop();
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        stack.push(full);
+      } else if (entry.isFile() && entry.name === "splash.png") {
+        const { width, height } = pngSize(full);
+        emit(full, width, height, "splash");
+      }
+    }
+  }
+}
+if (fs.existsSync(capRes)) regenSplashes(capRes);
+
+// ---------------------------------------------------------------------------
+// 4. Web app favicon / logo -> ui/web-app/public
+// ---------------------------------------------------------------------------
+
+const webAppPublic = path.join(ROOT, "ui", "web-app", "public");
+if (fs.existsSync(path.join(ROOT, "ui", "web-app"))) {
+  emit(path.join(webAppPublic, "vector-logo.png"), 512, 512, "square");
+  emit(path.join(webAppPublic, "favicon-32.png"), 32, 32, "square");
+}
+
+// ---------------------------------------------------------------------------
+
+console.log("Vector brand icon generator (green #2D5D4F + gold #FACB43)");
+for (const line of written) console.log("  wrote " + line);

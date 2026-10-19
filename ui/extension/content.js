@@ -11,6 +11,8 @@
   let improvedEl = null;
   let report = null;
   let state = { accepted: {} };
+  let prevReport = null;
+  let hadHistory = false;
   let settings = Object.assign({}, VectorSettings.DEFAULTS);
 
   function visible(el) {
@@ -75,6 +77,7 @@
   }
 
   function render() {
+    const liveDelta = prevReport ? VectorAnalyzer.projectDelta(prevReport, report, state.accepted) : null;
     VectorUI.render(resultsEl, report, state, {
       onToggle: function (id) { state.accepted[id] = !state.accepted[id]; render(); },
       onAcceptAll: function () {
@@ -90,7 +93,7 @@
         state.accepted = {};
         render();
       }
-    });
+    }, { delta: liveDelta, prevReport: prevReport, hadHistory: hadHistory });
     updateImproved();
   }
 
@@ -104,6 +107,13 @@
     panel.querySelector("#vector-empty").classList.add("hidden");
     report = VectorSettings.analyze(text, settings);
     state.accepted = {};
+    // Security Delta against the last comparable snapshot.
+    VectorSettings.getComparable(report).then(function (prev) {
+      prevReport = prev;
+      hadHistory = !!prev;
+      VectorSettings.addHistory(report);
+      render();
+    });
     render();
   }
 

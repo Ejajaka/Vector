@@ -215,14 +215,142 @@
   }
 
   /**
+   * Security Delta panel: what changed since the previous version of this
+   * prompt. Renders as a collapsible section above the risk card.
+   * @param {object} delta  result of VectorAnalyzer.computeDelta
+   * @param {object} prev   the previous stored snapshot (for wording)
+   */
+  function deltaHtml(delta, prev) {
+    if (!delta) return "";
+    const chip = (cls, txt) => '<span class="v-chip ' + cls + '">' + escapeHtml(txt) + "</span>";
+    const line = (items, cls, emptyText) => {
+      if (!items.length) return '<p class="v-delta-line v-muted">' + escapeHtml(emptyText) + "</p>";
+      return (
+        '<div class="v-delta-chips">' +
+        items.map((m) => chip(cls, "\u2022 " + (m.label || m.id))).join("") +
+        "</div>"
+      );
+    };
+
+    const verdictCls = delta.verdict === "improved" ? "ok"
+      : delta.verdict === "regressed" ? "bad"
+      : delta.verdict === "unchanged" ? "same" : "mixed";
+    const verdictText = delta.verdict.charAt(0).toUpperCase() + delta.verdict.slice(1);
+
+    const arrow = (d) =>
+      d === "down" ? "\u25BC" : d === "up" ? "\u25B2" : "\u2013";
+
+    let when = "";
+    if (prev && prev.ts) {
+      const mins = Math.max(0, Math.round((Date.now() - prev.ts) / 60000));
+      when = mins < 1 ? "moments ago" : mins === 1 ? "1 minute ago" : mins + " minutes ago";
+    }
+
+    // A one-line plain-language headline that names what actually changed.
+    let headline;
+    if (delta.verdict === "unchanged") {
+      headline = "No change since the previous version.";
+    } else {
+      const bits = [];
+      if (delta.added.length) bits.push("+" + delta.added.length + " control" + (delta.added.length === 1 ? "" : "s") + " added");
+      if (delta.newRisks.length) bits.push("+" + delta.newRisks.length + " new risk" + (delta.newRisks.length === 1 ? "" : "s"));
+      if (delta.newlyMissing.length) bits.push(delta.newlyMissing.length + " control" + (delta.newlyMissing.length === 1 ? "" : "s") + " regressed");
+      if (delta.risk.delta) bits.push("risk " + (delta.risk.delta < 0 ? "down" : "up") + " " + Math.abs(delta.risk.delta));
+      headline = bits.join(" \u00b7 ") || "Scores changed.";
+    }
+
+    let html =
+      '<details class="v-section v-delta" open>' +
+      '<summary class="v-group"><span class="v-group-label">What changed' +
+      (when ? ' <span class="v-muted">(vs ' + escapeHtml(when) + ")</span>" : "") +
+      '</span><span class="v-delta-verdict ' + verdictCls + '">' + escapeHtml(verdictText) + "</span></summary>" +
+      '<div class="v-delta-body">' +
+      '<p class="v-delta-headline">' + escapeHtml(headline) + "</p>";
+
+    // Improvements first - what the user achieved.
+    html +=
+      '<div class="v-delta-block good">' +
+      '<div class="v-delta-block-title"><span class="v-delta-ico">\u2713</span> Added / now stated</div>' +
+      line(delta.added, "ok", "Nothing new was added.") +
+      "</div>";
+
+    if (delta.fixedRisks.length) {
+      html +=
+        '<div class="v-delta-block good">' +
+        '<div class="v-delta-block-title"><span class="v-delta-ico">\u2713</span> Risks fixed</div>' +
+        line(delta.fixedRisks, "ok", "") +
+        "</div>";
+    }
+
+    // Regressions next - the most important negative signal.
+    html +=
+      '<div class="v-delta-block bad">' +
+      '<div class="v-delta-block-title"><span class="v-delta-ico">!</span> New risks introduced</div>' +
+      line(delta.newRisks, "bad", "None - no new risks appeared.") +
+      "</div>";
+
+    html +=
+      '<div class="v-delta-block bad">' +
+      '<div class="v-delta-block-title"><span class="v-delta-ico">!</span> Controls regressed (were stated, now missing)</div>' +
+      line(delta.newlyMissing, "bad", "None - nothing was lost.") +
+      "</div>";
+
+    // What still needs attention.
+    html +=
+      '<div class="v-delta-block warn">' +
+      '<div class="v-delta-block-title"><span class="v-delta-ico">\u26A0</span> Still missing (' + delta.stillMissing.length + ")</div>" +
+      line(delta.stillMissing, "warn", "Nothing - all required controls are stated.") +
+      "</div>";
+
+    // Scores last, compact.
+    html +=
+      '<div class="v-delta-scores">' +
+      '<div class="v-delta-score"><span class="v-muted">Risk</span> ' +
+      delta.risk.from + " \u2192 " + delta.risk.to + " " +
+      '<span class="' + (delta.risk.direction === "down" ? "ok" : delta.risk.direction === "up" ? "bad" : "") + '">' +
+      arrow(delta.risk.direction) + " " + Math.abs(delta.risk.delta) + "</span></div>" +
+      '<div class="v-delta-score"><span class="v-muted">Coverage</span> ' +
+      delta.coverage.from + "% \u2192 " + delta.coverage.to + "% " +
+      '<span class="' + (delta.coverage.direction === "up" ? "ok" : delta.coverage.direction === "down" ? "bad" : "") + '">' +
+      arrow(delta.coverage.direction) + " " + Math.abs(delta.coverage.delta) + "%</span></div>" +
+      "</div>";
+
+    if (delta.resources.changed) {
+      html +=
+        '<p class="v-delta-warn">The resource set changed between versions (' +
+        delta.resources.from + " \u2192 " + delta.resources.to +
+        "), so the scores are not directly comparable.</p>";
+    }
+
+    html += "</div></details>";
+    return html;
+  }
+
+  /** Shown when there is no comparable previous version. */
+  function deltaEmptyHtml(hadHistory) {
+    return (
+      '<details class="v-section v-delta">' +
+      '<summary class="v-group"><span class="v-group-label">Security Delta</span>' +
+      '<span class="v-count">new</span></summary>' +
+      '<div class="v-delta-body"><p class="v-muted">' +
+      (hadHistory
+        ? "No earlier version of this resource set to compare against."
+        : "First analysis of this prompt - run it again after editing to see what changed.") +
+      "</p></div></details>"
+    );
+  }
+
+  /**
    * Render a full report into a container.
    * @param {HTMLElement} container
    * @param {object} report
    * @param {object} state  { accepted: {id:boolean} }
-   * @param {object} handlers { onToggle, onAcceptAll, onClearAll }
+   * @param {object} handlers { onToggle, onAcceptAll, onClearAll, onHarden }
+   * @param {object} [opts]  { delta, prevReport, hadHistory }
    */
-  function render(container, report, state, handlers) {
+  function render(container, report, state, handlers, opts) {
     handlers = handlers || {};
+    opts = opts || {};
     const accepted = (state && state.accepted) || {};
 
     // Out of scope: not an infrastructure prompt, so nothing to diagnose.
@@ -238,12 +366,18 @@
     if (report && report.aiClean && !report.missing.length && !report.riskyFindings.length) {
       container.innerHTML =
         '<div class="v-banner ok">No issues found. This prompt already covers the required AWS security controls for the recognised resources.</div>' +
+        deltaHtml(opts.delta, opts.prevReport) +
         disclaimerHtml(report);
       return;
     }
 
+    const deltaSection = opts.delta
+      ? deltaHtml(opts.delta, opts.prevReport)
+      : (opts.hadHistory ? deltaEmptyHtml(true) : "");
+
     container.innerHTML =
       bannerHtml(report) +
+      deltaSection +
       riskHtml(report, coverage(report, state)) +
       feedbackHtml(report) +
       relatedHtml(report) +
@@ -267,6 +401,7 @@
 
   const VectorUI = {
     render: render,
+    deltaHtml: deltaHtml,
     buildImprovedPrompt: buildImprovedPrompt,
     acceptedClauses: acceptedClauses,
     escapeHtml: escapeHtml,

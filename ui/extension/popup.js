@@ -22,6 +22,8 @@
   let settings = Object.assign({}, VectorSettings.DEFAULTS);
   let report = null;
   let state = { accepted: {} };
+  let prevReport = null;     // the snapshot it was computed against
+  let hadHistory = false;    // whether any comparable history existed
 
   function toast(msg) {
     let t = document.querySelector(".vp-toast");
@@ -48,6 +50,11 @@
   }
 
   function render() {
+    // Recompute the delta live so accepting a clause updates "What changed"
+    // immediately (projected state), not only after a fresh analysis.
+    const liveDelta = prevReport
+      ? VectorAnalyzer.projectDelta(prevReport, report, state.accepted)
+      : null;
     VectorUI.render(el.results, report, state, {
       onToggle: function (id) { state.accepted[id] = !state.accepted[id]; render(); },
       onAcceptAll: function () {
@@ -57,7 +64,7 @@
       },
       onClearAll: function () { state.accepted = {}; render(); },
       onHarden: hardenNow
-    });
+    }, { delta: liveDelta, prevReport: prevReport, hadHistory: hadHistory });
     updateImproved();
   }
 
@@ -68,7 +75,7 @@
     state.accepted = {};
     render();
     setHint();
-    toast("Hardened · risk " + report.riskScore + " · coverage " + report.coverageScore + "%");
+    toast("Hardened Â· risk " + report.riskScore + " Â· coverage " + report.coverageScore + "%");
   }
 
   function setHint() {
@@ -95,13 +102,19 @@
     if (!prompt) { el.hint.textContent = "Enter a prompt first"; return; }
     report = VectorSettings.analyze(prompt, settings);
     state.accepted = {};
+
+    // Security Delta: compare against the last comparable stored snapshot,
+    // then store this one for the next comparison.
+    VectorSettings.getComparable(report).then(function (prev) {
+      prevReport = prev;
+      hadHistory = !!prev;
+      VectorSettings.addHistory(report);
+      render();
+    });
+
     el.results.classList.remove("hidden");
     render();
     setHint();
-    VectorSettings.addHistory({
-      ts: Date.now(), prompt: prompt, riskLevel: report.riskLevel,
-      riskScore: report.riskScore, missing: report.stats.missing
-    });
     if (report.needsDeepScan && settings.autoDeepScan) deepScanNow();
   }
 

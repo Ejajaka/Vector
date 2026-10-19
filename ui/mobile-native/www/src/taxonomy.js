@@ -1,4 +1,4 @@
-"use strict";
+﻿"use strict";
 
 (function (root) {
 /**
@@ -47,7 +47,7 @@ const REQUIREMENTS = [
     clause:
       "Encrypt data at rest; specify whether a customer-managed KMS key is required.",
     standards: ["CIS AWS 2.1.1", "AWS FSBP S3.4 / RDS.3", "NIST SP 800-53 SC-28"],
-    patterns: ["encrypt(ed|ion)?", "\\bkms\\b", "server[- ]side encryption", "sse[- ]?(s3|kms)", "aes[- ]?256", "at rest", "customer[- ]managed key", "\\bcmk\\b", "disk encryption"],
+    patterns: ["encrypt(ed|ion)?", "\\bkms\\b", "server[- ]side encryption", "sse[- ]?(s3|kms)", "aes[- ]?256", "at rest", "customer[- ]managed key", "customer managed key", "kms key", "\\bcmk\\b", "disk encryption", "scrambl(e|ed|ing)?", "on[- ]disk", "encrypt(ed|s)? (the )?(data|everything|objects|files|records|volumes?)", "encode[d]? (the )?data", "on (the )?volume", "before it (lands|is stored|hits)", "(disk|volume|media)[^.]{0,30}(stolen|compromised|leaked)", "steal(a|s|ing)? (the )?(disks?|volumes?|media)"],
     notAfter: ["in transit", "over the (network|wire)"]
   },
   {
@@ -60,7 +60,7 @@ const REQUIREMENTS = [
     clause:
       "Use TLS 1.2 or higher for every connection and redirect HTTP to HTTPS.",
     standards: ["AWS FSBP ELB.4 / CloudFront.4", "NIST SP 800-53 SC-8"],
-    patterns: ["in transit", "\\btls\\b", "\\bssl\\b", "https", "encrypted (connection|traffic)", "certificate", "secure transport", "end[- ]to[- ]end encrypt"]
+    patterns: ["in transit", "\\btls\\b", "\\bssl\\b", "https", "encrypted (connection|traffic)", "certificate", "secure transport", "end[- ]to[- ]end encrypt", "sniff(ed|ing|s)?", "eavesdrop", "man[- ]in[- ]the[- ]middle", "tampered?"]
   },
   {
     id: "public_access_block",
@@ -78,7 +78,11 @@ const REQUIREMENTS = [
       "disable acl", "don'?t (want|make|allow) (it )?(to be )?public", "should and? ?not be public",
       "avoid public", "public access block", "anonymous access",
       "do\\s+not\\s+make[^.,;]{0,25}public", "not (enable|allow|expose)[^.,;]{0,25}public",
-      "without public access", "disable public access", "keep (it |the data )?private"
+      "without public access", "disable public access", "keep (it |the data )?private",
+      "nobody (on the internet )?(should|can|may|will) (be able to )?(reach|access|get to)",
+      "not (be )?reachable", "no (external|public) (reach|access)",
+      "should(n'?t| not) be (public|reachable)", "not exposed to the (internet|public)",
+      "not (on|have|using) a public (address|ip|endpoint)", "no public (ip|address|endpoint)",
     ]
   },
   {
@@ -95,7 +99,11 @@ const REQUIREMENTS = [
       "least privilege", "least[- ]privilege", "scoped (permission|policy|role|access)",
       "specific (actions|permissions|roles?)", "minimum (permission|privilege|access)",
       "no wildcard", "narrow (permission|policy)", "read[- ]only", "fine[- ]grained",
-      "least[- ]privileged", "only the (permissions|actions)"
+      "least[- ]privileged", "only the (permissions|actions)",
+      "more permissions than (it |they )?(needs?|requires?)",
+      "only what (it|they) needs?", "minimal permissions?",
+      "don'?t (give|grant|allow)[^.]{0,50}(more (permissions|privileges)|excess)",
+      "smallest (set of )?(permissions|privileges|access)",
     ]
   },
   {
@@ -124,7 +132,10 @@ const REQUIREMENTS = [
       "restrict(ed)? (access|inbound|traffic|ports?|security group|ingress)",
       "allowlist", "whitelist", "\\bcidr\\b", "private subnet", "firewall rule",
       "limited (ports|source)", "specific ip", "only (port|from|allow|accept)",
-      "ingress (rules?|restrict)", "no inbound", "closed ports", "ip range"
+      "ingress (rules?|restrict)", "no inbound", "closed ports", "ip range",
+      "only (our|the|my) (office|corporate|internal|company) (ip|ips|network|networks)",
+      "trusted (ip|ips|source|network)", "specific (ip|ips|cidr)",
+      "from (our|the) (office|corporate) network",
     ]
   },
   {
@@ -140,7 +151,10 @@ const REQUIREMENTS = [
     patterns: [
       "cloudtrail", "audit log", "logging", "access log", "log all", "\\btrail\\b",
       "cloudwatch logs", "activity log", "record (api|activity)", "monitor.?(logs?|traffic)",
-      "audit trail", "cloud audit", "log everything", "observability", "flow logs?"
+      "audit trail", "cloud audit", "log everything", "observability", "flow logs?",
+      "record (every|all|each) (api )?calls?", "\\bapi calls?\\b",
+      "for (later )?(investigation|forensics?)", "forensic", "audit records?",
+      "immutable (audit )?(record|log)",
     ]
   },
   {
@@ -156,7 +170,11 @@ const REQUIREMENTS = [
     patterns: [
       "data residency", "reside", "sovereignty", "\\bgdpr\\b", "in[- ]country",
       "local(ly)? (region|storage)", "compliance region", "keep data in",
-      "within (the )?(eu|india|uk|country|region)", "data locality", "\\bdpdp\\b"
+      "within (the )?(eu|india|uk|country|region)", "data locality", "\\bdpdp\\b",
+      "must (stay|remain|be kept) (in|inside|within)",
+      "stay (in|inside|within) (india|eu|uk|the eu|the uk)",
+      "inside (the )?(eu|india|uk|country|region)",
+      "in (the )?(eu|india|uk|europe)",
     ]
   },
   {
@@ -200,7 +218,7 @@ const REQUIREMENTS = [
     clause:
       "Enable versioning and integrity controls such as object lock.",
     standards: ["CIS AWS 2.1.3", "AWS FSBP S3.5"],
-    patterns: ["versioning", "versioned", "mfa delete", "checksum", "integrity", "object lock", "immutable"]
+    patterns: ["versioning", "versioned", "mfa delete", "checksum", "integrity", "object lock", "immutable", "every version", "older versions?", "previous versions?"]
   },
   {
     id: "monitoring_alerting",
@@ -233,7 +251,10 @@ const REQUIREMENTS = [
       "key vault", "secret manager", "no hard[- ]?cod", "credentials (stored|rotated|managed)",
       "rotate", "environment variable", "injected secret",
       "credential[^.]{0,25}secur", "secur[a-z]*[^.]{0,25}credential",
-      "store[^.]{0,20}(credential|password|secret)"
+      "store[^.]{0,20}(credential|password|secret)",
+      "short[- ]lived (credentials?|keys?|tokens?)", "ephemeral credential",
+      "long[- ]lived (keys?|credentials?)", "api (token|key)",
+      "never (store|commit|hard[- ]?code|put)[^.]{0,40}(token|secret|key|password)",
     ]
   },
   {
@@ -248,7 +269,8 @@ const REQUIREMENTS = [
     standards: ["AWS Well-Architected REL-10", "NIST SP 800-53 CP-6"],
     patterns: [
       "multi[- ]az", "availability zone", "highly available", "high availability",
-      "\\bha\\b", "failover", "redundant", "load balanc", "replicated", "multiple zones"
+      "\\bha\\b", "failover", "redundant", "load balanc", "replicated", "multiple zones",
+      "data cent(er|re)s?", "two (regions|zones|data cent)", "\\bazs?\\b",
     ]
   },
   {
@@ -263,7 +285,8 @@ const REQUIREMENTS = [
     standards: ["CIS AWS 5.1", "AWS FSBP EC2.15", "NIST SP 800-53 SC-7"],
     patterns: [
       "\\bvpc\\b", "\\bvnet\\b", "subnet", "private subnet", "network isolation",
-      "isolated network", "nat gateway", "no internet gateway", "bastion", "network segmentation"
+      "isolated network", "nat gateway", "no internet gateway", "bastion", "network segmentation",
+      "not (be )?reachable from[^.]{0,25}public", "isolat(e|ed|ion) from[^.]{0,15}public", "private network"
     ]
   },
   {
@@ -288,7 +311,7 @@ const REQUIREMENTS = [
     clause:
       "Enable automatic rotation for KMS keys and secrets.",
     standards: ["CIS AWS 3.7", "AWS FSBP KMS.4"],
-    patterns: ["key rotation", "rotate (the )?(key|keys)", "rotation (enabled|period)", "automatic rotation", "renew (key|secret)", "\\brotation\\b"]
+    patterns: ["key rotation", "rotate (the )?(key|keys)", "rotation (enabled|period)", "automatic rotation", "renew (key|secret)", "\\brotation\\b", "keys? (that )?(auto[- ]?)?rotat(e|es|ed|ing)", "rotate (the )?(encryption )?material", "rotat(e|ion) (on|every) (a )?schedule", "change (the )?(kms )?key", "kms key[^.]{0,30}(every|per|rotate|change|rotation)"]
   },
   {
     id: "private_endpoint",
@@ -324,7 +347,7 @@ const REQUIREMENTS = [
     clause:
       "Require MFA for all privileged and root access.",
     standards: ["CIS AWS 1.2 / 1.10", "AWS FSBP IAM.6", "NIST SP 800-53 IA-2"],
-    patterns: ["\\bmfa\\b", "multi[- ]?factor", "two[- ]?factor", "\\b2fa\\b", "one[- ]time password", "authenticator"]
+    patterns: ["\\bmfa\\b", "multi[- ]?factor", "two[- ]?factor", "\\b2fa\\b", "one[- ]time (password|code|pin)", "authenticator", "additional (factor|verification|code)", "second (verification|factor|step)", "verification step", "step[- ]up auth", "\\botp\\b"]
   },
   {
     id: "password_policy",
@@ -360,7 +383,7 @@ const REQUIREMENTS = [
     clause:
       "Define retention and secure deletion / lifecycle policies so data is not kept longer than necessary.",
     standards: ["GDPR Art. 5(1)(e)", "NIST SP 800-53 SI-12"],
-    patterns: ["retention", "lifecycle", "delete (after|when)", "deletion policy", "\\bttl\\b", "purge", "expire"]
+    patterns: ["retention", "lifecycle", "delete (after|when)", "deletion policy", "\\bttl\\b", "purge", "expire", "delete .{0,30}after", "after \\d+ (days?|weeks?|months?|years?)", "auto[- ]?delete"]
   },
   {
     id: "vulnerability_scanning",
@@ -408,7 +431,7 @@ const REQUIREMENTS = [
     clause:
       "Replicate critical data to a second approved region with documented failover.",
     standards: ["AWS Well-Architected REL-13", "NIST SP 800-53 CP-6"],
-    patterns: ["cross[- ]region", "replicate", "multi[- ]region", "geo[- ]redundant", "failover region", "secondary region"]
+    patterns: ["cross[- ]region", "replicate", "multi[- ]region", "geo[- ]redundant", "failover region", "secondary region", "(different|another|second) region"]
   },
   {
     id: "scp_permission_boundary",

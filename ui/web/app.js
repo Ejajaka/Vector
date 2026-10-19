@@ -17,7 +17,21 @@
     results: document.getElementById("results"),
     improvedWrap: document.getElementById("improved-wrap"),
     improved: document.getElementById("improved"),
-    copy: document.getElementById("btn-copy")
+    copy: document.getElementById("btn-copy"),
+    aboutBtn: document.getElementById("btn-about"),
+    aboutAnalyze: document.getElementById("about-analyze"),
+    viewAnalyze: document.getElementById("view-analyze"),
+    viewAbout: document.getElementById("view-about"),
+    riskDist: document.getElementById("risk-dist"),
+    riskDistBody: document.getElementById("risk-dist-body"),
+    riskDistCount: document.getElementById("risk-dist-count")
+  };
+
+  const RISK_COLORS = {
+    CRITICAL: "#B94D42",
+    HIGH: "#C05621",
+    MEDIUM: "#D1B653",
+    LOW: "#2E6F40"
   };
 
   const DEFAULTS = {
@@ -29,6 +43,8 @@
   let settings = DEFAULTS;
   let report = null;
   let state = { accepted: {} };
+  let prevReport = null;
+  let hadHistory = false;
 
   function loadSettings() {
     try {
@@ -41,8 +57,76 @@
     try { localStorage.setItem("vectorSettings", JSON.stringify(settings)); } catch (e) {}
   }
 
-  function toast(msg) {
-    let t = document.querySelector(".m-toast");
+  // --- local history + Security Delta (web/mobile have no chrome.storage) ---
+  function readHistory() {
+    try { return JSON.parse(localStorage.getItem("vectorHistory") || "[]"); } catch (e) { return []; }
+  }
+  function addHistory(rep) {
+    try {
+      const list = readHistory();
+      list.unshift(VectorAnalyzer.snapshot(rep));
+      localStorage.setItem("vectorHistory", JSON.stringify(list.slice(0, 20)));
+    } catch (e) { /* ignore quota errors */ }
+  }
+  function findComparable(rep) {
+    if (!rep || rep.outOfScope) return null;
+    const cur = new Set((rep.resources || []).map((r) => r.id));
+    return readHistory().find((h) => {
+      if (!h || !Array.isArray(h.missing) || !Array.isArray(h.mentioned) || h.skipped) return false;
+      const prev = new Set(h.resources || []);
+      if (cur.size === 0 && prev.size === 0) return true;
+      return prev.size === cur.size && Array.from(prev).every((id) => cur.has(id));
+    }) || null;
+  }
+
+  function switchView(view) {
+    document.querySelectorAll(".m-tab").forEach(function (t) {
+      t.classList.toggle("active", t.getAttribute("data-view") === view);
+    });
+    el.viewAnalyze.classList.toggle("hidden", view !== "analyze");
+    el.viewAbout.classList.toggle("hidden", view !== "about");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // Aggregated risk distribution over the saved history snapshots.
+  function renderRiskDistribution() {
+    const list = readHistory();
+    const dist = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 };
+    list.forEach(function (h) {
+      const lvl = h && h.riskLevel;
+      if (lvl && dist[lvl] !== undefined) dist[lvl]++;
+    });
+    const total = dist.CRITICAL + dist.HIGH + dist.MEDIUM + dist.LOW;
+    el.riskDistCount.textContent = total + " analyses";
+    if (!list.length || !total) {
+      el.riskDist.classList.add("hidden");
+      return;
+    }
+    el.riskDist.classList.remove("hidden");
+    const rows = [
+      ["CRITICAL", "Critical"],
+      ["HIGH", "High"],
+      ["MEDIUM", "Medium"],
+      ["LOW", "Low"]
+    ];
+    let bar = "";
+    rows.forEach(function (r) {
+      if (dist[r[0]] > 0) {
+        bar += '<div style="flex:' + dist[r[0]] + ';background:' + RISK_COLORS[r[0]] + '"></div>';
+      }
+    });
+    let legend = "";
+    rows.forEach(function (r) {
+      const pct = Math.round((dist[r[0]] / total) * 100);
+      legend +=
+        '<div class="m-dist-item"><div class="m-dist-label"><span class="m-dist-dot" style="background:' +
+        RISK_COLORS[r[0]] + '"></span>' + r[1] + '</div><div class="m-dist-count">' + dist[r[0]] +
+        '</div><div class="m-dist-pct">' + pct + '%</div></div>';
+    });
+    el.riskDistBody.innerHTML = '<div class="m-dist-bar">' + bar + '</div><div class="m-dist-legend">' + legend + '</div>';
+  }
+
+  function toast(msg) {    let t = document.querySelector(".m-toast");
     if (!t) {
       t = document.createElement("div");
       t.className = "vp-toast m-toast";
@@ -65,6 +149,11 @@
   }
 
   function render() {
+    // Recompute the delta live so accepting a clause updates "What changed"
+    // immediately (projected state), not only after a fresh analysis.
+    const liveDelta = prevReport
+      ? VectorAnalyzer.projectDelta(prevReport, report, state.accepted)
+      : null;
     VectorUI.render(el.results, report, state, {
       onToggle: function (id) { state.accepted[id] = !state.accepted[id]; render(); },
       onAcceptAll: function () {
@@ -73,15 +162,15 @@
         render();
       },
       onClearAll: function () { state.accepted = {}; render(); }
-    });
+    }, { delta: liveDelta, prevReport: prevReport, hadHistory: hadHistory });
     updateImproved();
   }
 
   function setHint() {
     const t = report.tierCounts || { core: 0, clarify: 0, harden: 0 };
     el.hint.textContent =
-      report.riskLevel + " " + report.riskScore + "/100 · coverage " + report.coverageScore +
-      "% · " + t.core + " confirmed";
+      report.riskLevel + " " + report.riskScore + "/100 Â· coverage " + report.coverageScore +
+      "% Â· " + t.core + " confirmed";
   }
 
   function analyzeNow() {
@@ -89,6 +178,12 @@
     if (!prompt) { el.hint.textContent = "Enter a prompt first"; return; }
     report = VectorAnalyzer.analyze(prompt, { strictMode: false });
     state.accepted = {};
+    // Security Delta against the last comparable local snapshot. The delta is
+    // recomputed in render() so it also reflects accepted clauses.
+    prevReport = findComparable(report);
+    hadHistory = !!prevReport;
+    addHistory(report);
+    renderRiskDistribution();
     el.results.classList.remove("hidden");
     render();
     setHint();
@@ -149,6 +244,11 @@
   el.deep.addEventListener("click", deepScanNow);
   el.copy.addEventListener("click", copyImproved);
   el.settingsBtn.addEventListener("click", function () { el.settings.classList.toggle("hidden"); });
+  document.querySelectorAll(".m-tab").forEach(function (t) {
+    t.addEventListener("click", function () { switchView(t.getAttribute("data-view")); });
+  });
+  if (el.aboutBtn) el.aboutBtn.addEventListener("click", function () { switchView("about"); });
+  if (el.aboutAnalyze) el.aboutAnalyze.addEventListener("click", function () { switchView("analyze"); });
   el.save.addEventListener("click", function () {
     settings = {
       apiKey: el.key.value.trim(),
@@ -164,4 +264,5 @@
   el.key.value = settings.apiKey || "";
   el.url.value = settings.baseUrl || "";
   el.model.value = settings.model || "";
+  renderRiskDistribution();
 })();

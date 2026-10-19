@@ -53,11 +53,11 @@ const STOPWORDS = new Set([
 ]);
 
 const RISK_LEVELS = [
-  { min: 75, level: "CRITICAL", color: "#b91c1c" },
-  { min: 50, level: "HIGH", color: "#dc2626" },
-  { min: 25, level: "MEDIUM", color: "#d97706" },
-  { min: 1, level: "LOW", color: "#16a34a" },
-  { min: 0, level: "MINIMAL", color: "#16a34a" }
+  { min: 75, level: "CRITICAL", color: "#B94D42" },
+  { min: 50, level: "HIGH", color: "#C05621" },
+  { min: 25, level: "MEDIUM", color: "#9E7D1B" },
+  { min: 1, level: "LOW", color: "#2E6F40" },
+  { min: 0, level: "MINIMAL", color: "#2E6F40" }
 ];
 
 // How much each relevance tier contributes to the risk score. Clarifications
@@ -192,7 +192,143 @@ function detectResources(haystack) {
     const hit = res.aliases.find((a) => aliasMatches(haystack, a));
     if (hit) found.push({ id: res.id, label: res.label, matched: hit });
   }
-  return found;
+  return pruneModifierResources(haystack, found);
+}
+
+/**
+ * Some "resources" are usually mentioned as a SETTING rather than as something
+ * to provision. "a private bucket encrypted with KMS" describes encryption;
+ * it is not a request for a standalone KMS key. Counting it as a resource both
+ * inflates the required-control set (hurting coverage) and makes prompt
+ * evolution non-comparable.
+ *
+ * A resource is dropped only when its alias appears purely as a modifier
+ * ("with/using/via KMS", "KMS encryption") AND there is no provisioning verb
+ * or explicit key/customer-managed-key wording nearby.
+ */
+const MODIFIER_ONLY = ["kms", "secrets"];
+
+function pruneModifierResources(haystack, found) {
+  return found.filter(function (r) {
+    if (MODIFIER_ONLY.indexOf(r.id) === -1) return true;
+    const alias = r.matched;
+    // explicit provisioning: "create a kms key", "using customer managed key"
+    const provisioning = new RegExp(
+      "\\b(create|provision|generate|make|set up|new|dedicated|standalone|separate)\\b[^.\\n,;]{0,30}\\b" +
+        "(" + alias + "|kms key|cmk|customer[- ]managed key|secret store|secret manager)\\b",
+      "i"
+    ).test(haystack);
+    if (provisioning) return true;
+    // a plain "KMS key" / "customer managed key" phrase is itself a resource ask
+    const keyPhrase = /\b(kms key|customer[- ]managed key|\bcmk\b)/i.test(haystack);
+    if (keyPhrase) return true;
+    // otherwise it is a modifier ("encrypted with KMS") -> not a resource
+    return false;
+  });
+}
+
+/**
+ * Light morphological stemmer: strips common inflectional suffixes so
+ * "rotate / rotating / rotated / rotation" collapse to the same stem.
+ * Deliberately conservative (3 passes, length guards) to avoid over-stemming.
+ */
+function stem(word) {
+  let s = String(word || "").toLowerCase();
+  for (let i = 0; i < 3; i++) {
+    const before = s;
+    if (s.length > 5 && s.endsWith("ation")) s = s.slice(0, -5) + "ate";
+    else if (s.length > 4 && s.endsWith("ies")) s = s.slice(0, -3) + "y";
+    else if (s.length > 5 && s.endsWith("ing")) s = s.slice(0, -3);
+    else if (s.length > 4 && s.endsWith("ed")) s = s.slice(0, -2);
+    else if (s.length > 4 && s.endsWith("es")) s = s.slice(0, -2);
+    else if (s.length > 4 && s.endsWith("ion")) s = s.slice(0, -3);
+    else if (s.length > 3 && s.endsWith("s") && !s.endsWith("ss")) s = s.slice(0, -1);
+    else if (s.length > 4 && s.endsWith("e")) s = s.slice(0, -1);
+    if (s === before) break;
+  }
+  return s;
+}
+
+/** True if a and b differ by at most one edit (Levenshtein distance <= 1). */
+function withinOneEdit(a, b) {
+  if (a === b) return true;
+  const la = a.length;
+  const lb = b.length;
+  if (Math.abs(la - lb) > 1) return false;
+  let i = 0;
+  while (i < la && i < lb && a[i] === b[i]) i++;
+  if (la === lb) {
+    // one substitution, and the rest must match
+    return a.slice(i + 1) === b.slice(i + 1);
+  }
+  // one insertion/deletion
+  return la > lb ? a.slice(i + 1) === b.slice(i) : a.slice(i) === b.slice(i + 1);
+}
+
+// Only patterns that are plain words/phrases (no regex metacharacters) are used
+// for the stemmed fallback; regex patterns are already handled directly.
+const PLAIN_PATTERN = /^[a-z0-9][a-z0-9 \-]*$/i;
+
+function phraseStems(req) {
+  if (req._stemPhrases) return req._stemPhrases;
+  const out = [];
+  for (const p of req.patterns || []) {
+    if (typeof p !== "string" || !PLAIN_PATTERN.test(p)) continue;
+    const words = p.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 2);
+    if (words.length) out.push(words.map(stem));
+  }
+  req._stemPhrases = out;
+  return out;
+}
+
+function stemTokenMatches(tokenStem, targetStem) {
+  if (tokenStem === targetStem) return true;
+  // Conservative fuzzy: one typo allowed only for reasonably long stems.
+  return targetStem.length >= 7 && withinOneEdit(tokenStem, targetStem);
+}
+
+/**
+ * Fallback matcher used only when the regex patterns found nothing: matches the
+ * stemmed words of plain patterns against the stemmed prompt tokens, allowing
+ * small gaps (e.g. "disks are encrypted" -> "disk encryption").
+ * Returns {index, value} like findMatches, or null.
+ */
+function stemMatch(requirement, text) {
+  const phrases = phraseStems(requirement);
+  if (!phrases.length) return null;
+  const low = text.toLowerCase();
+  const toks = [];
+  const re = /[a-z0-9]+/g;
+  let m;
+  while ((m = re.exec(low)) !== null) {
+    toks.push({ s: stem(m[0]), index: m.index, end: m.index + m[0].length });
+  }
+  if (!toks.length) return null;
+
+  for (const phrase of phrases) {
+    for (let i = 0; i < toks.length; i++) {
+      if (!stemTokenMatches(toks[i].s, phrase[0])) continue;
+      if (phrase.length === 1) {
+        return { index: toks[i].index, value: low.slice(toks[i].index, toks[i].end) };
+      }
+      // Word-order tolerant: every other stem must appear in a small window
+      // around the first match (e.g. "keys rotating" == "key rotation").
+      const lo = Math.max(0, i - 3);
+      const hi = Math.min(toks.length - 1, i + 3);
+      let all = true;
+      for (let k = 1; k < phrase.length; k++) {
+        let found = false;
+        for (let j = lo; j <= hi && !found; j++) {
+          if (j !== i && stemTokenMatches(toks[j].s, phrase[k])) found = true;
+        }
+        if (!found) { all = false; break; }
+      }
+      if (all) {
+        return { index: toks[lo].index, value: low.slice(toks[lo].index, toks[hi].end) };
+      }
+    }
+  }
+  return null;
 }
 
 /**
@@ -200,7 +336,12 @@ function detectResources(haystack) {
  * mentions were explicitly negated (e.g. "do not encrypt").
  */
 function detectRequirement(requirement, text) {
-  const matches = findMatches(text, requirement.patterns);
+  let matches = findMatches(text, requirement.patterns);
+  // Morphological fallback: only when no literal/regex mention was found.
+  if (matches.length === 0) {
+    const sm = stemMatch(requirement, text);
+    if (sm) matches = [sm];
+  }
   if (matches.length === 0) return { present: false, negated: false };
   const positive = matches.some((m) => {
     const end = m.index + m.value.length;
@@ -413,8 +554,15 @@ function analyze(prompt, options) {
     }
   });
 
+  // An explicit security-control statement ("use a vault", "rotate the keys",
+  // "private link") is in scope even when no AWS resource or intent verb is
+  // present. Off-topic text ("tell me a joke", "a bucket of water") matches no
+  // control patterns, so this does not weaken the scope guard.
+  const hasControlSignal = requirements.some((req) => detectRequirement(req, normalized).present);
+
   const inScope =
-    hasStrongTerm || intents.length > 0 || infraHits >= 2 || strongResource || hasRiskySignal;
+    hasStrongTerm || intents.length > 0 || infraHits >= 2 || strongResource ||
+    hasRiskySignal || hasControlSignal;
 
   if (!inScope) {
     return {
@@ -427,7 +575,7 @@ function analyze(prompt, options) {
       riskyFindings: [],
       riskScore: 0,
       riskLevel: "MINIMAL",
-      riskColor: "#16a34a",
+      riskColor: "#2E6F40",
       coverage: "out-of-scope",
       coverageScore: 0,
       totalWeight: 0,
@@ -493,6 +641,18 @@ function analyze(prompt, options) {
     if (req.alwaysRequired) {
       relevantIds.add(req.id);
       if (!appliesTo.has(req.id)) appliesTo.set(req.id, ["Organisation policy"]);
+    }
+  }
+
+  // Explicitly stated controls count as relevant even when the resource-derived
+  // set did not include them (e.g. "private link", "rotate the keys",
+  // "spread across availability zones"). This improves recall without inventing
+  // missing findings: a control is only added when it is actually stated.
+  for (const req of requirements) {
+    if (relevantIds.has(req.id)) continue;
+    if (detectRequirement(req, normalized).present) {
+      relevantIds.add(req.id);
+      if (!appliesTo.has(req.id)) appliesTo.set(req.id, ["Explicitly stated"]);
     }
   }
 
@@ -803,11 +963,179 @@ function harden(prompt, maxIterations) {
   return { prompt: current, clauses: clauses, report: analyze(current) };
 }
 
+/**
+ * Security Delta Analysis (prompt evolution tracking).
+ *
+ * Compares two reports of the SAME prompt over time and reports what changed:
+ * added controls, controls still missing, controls newly missing (a regression),
+ * new risks, fixed risks, and the movement of the risk and coverage scores.
+ *
+ * Pure function: it never mutates the reports it is given and holds no state.
+ *
+ * @param {object|null} previous  earlier report (or a stored history entry)
+ * @param {object} current        latest report
+ * @returns {object|null} delta, or null when a delta cannot be computed
+ */
+function computeDelta(previous, current) {
+  if (!previous || !current) return null;
+  // A comparable previous entry must carry the control id lists. Older history
+  // entries stored only a count, so they are skipped rather than mis-compared.
+  if (!Array.isArray(previous.missing) || !Array.isArray(previous.mentioned)) return null;
+
+  const idSet = (arr) => new Set((arr || []).map((x) => (typeof x === "string" ? x : x && x.id)).filter(Boolean));
+  const idsOf = (arr) => (arr || []).map((x) => (typeof x === "string" ? x : x && x.id)).filter(Boolean);
+
+  const prevMentioned = idSet(previous.mentioned);
+  const curMentioned = idSet(current.mentioned || []);
+  const prevMissing = idSet(previous.missing);
+  const curMissing = idSet(current.missing || []);
+  const prevRisky = idSet(previous.riskyFindings);
+  const curRisky = idSet(current.riskyFindings || []);
+  const prevResources = idSet(previous.resources);
+  const curResources = idSet(current.resources);
+
+  const labelOf = (list, id) => {
+    const hit = (list || []).find((x) => (typeof x === "string" ? x : x.id) === id);
+    return hit && typeof hit === "object" ? hit : { id: id, label: id, severity: "", tier: "" };
+  };
+
+  // controls the user added: now stated, was missing
+  const added = idsOf(current.mentioned)
+    .filter((id) => !prevMentioned.has(id))
+    .map((id) => labelOf(current.mentioned, id));
+
+  // controls the user removed: was stated, now missing (a regression)
+  const newlyMissing = idsOf(current.missing)
+    .filter((id) => prevMentioned.has(id))
+    .map((id) => labelOf(current.missing, id));
+
+  // still absent across both versions
+  const stillMissing = idsOf(current.missing)
+    .filter((id) => prevMissing.has(id))
+    .map((id) => labelOf(current.missing, id));
+
+  // risky statements introduced / removed
+  const newRisks = idsOf(current.riskyFindings)
+    .filter((id) => !prevRisky.has(id))
+    .map((id) => labelOf(current.riskyFindings, id));
+  const fixedRisks = idsOf(previous.riskyFindings)
+    .filter((id) => !curRisky.has(id))
+    .map((id) => labelOf(previous.riskyFindings, id));
+
+  const riskFrom = typeof previous.riskScore === "number" ? previous.riskScore : 0;
+  const riskTo = typeof current.riskScore === "number" ? current.riskScore : 0;
+  const covFrom = typeof previous.coverageScore === "number" ? previous.coverageScore : 0;
+  const covTo = typeof current.coverageScore === "number" ? current.coverageScore : 0;
+
+  const dir = (from, to, lowerIsBetter) => {
+    if (to === from) return "same";
+    if (lowerIsBetter) return to < from ? "down" : "up";
+    return to > from ? "up" : "down";
+  };
+
+  const resources = {
+    from: prevResources.size,
+    to: curResources.size,
+    changed: prevResources.size !== curResources.size ||
+      idsOf(current.resources).some((id) => !prevResources.has(id))
+  };
+
+  // Classify the overall movement. Coverage dropping or a new risk/were-removed
+  // control makes it "mixed" or "regressed" even if the risk score improved.
+  let verdict;
+  const riskDown = riskTo < riskFrom;
+  const riskUp = riskTo > riskFrom;
+  const covUp = covTo > covFrom;
+  const covDown = covTo < covFrom;
+  const regressed = newlyMissing.length > 0 || newRisks.length > 0 || riskUp;
+
+  if (regressed && (riskDown || covUp)) verdict = "mixed";
+  else if (regressed) verdict = "regressed";
+  else if (riskFrom === riskTo && covFrom === covTo && !added.length && !fixedRisks.length) verdict = "unchanged";
+  else if (riskDown || covUp || added.length || fixedRisks.length) verdict = "improved";
+  else verdict = "mixed";
+
+  return {
+    hasPrevious: true,
+    added: added,
+    newlyMissing: newlyMissing,
+    stillMissing: stillMissing,
+    newRisks: newRisks,
+    fixedRisks: fixedRisks,
+    risk: { from: riskFrom, to: riskTo, delta: riskTo - riskFrom, direction: dir(riskFrom, riskTo, true) },
+    coverage: { from: covFrom, to: covTo, delta: covTo - covFrom, direction: dir(covFrom, covTo, false) },
+    resources: resources,
+    improved: added.length + fixedRisks.length,
+    regressedCount: newlyMissing.length + newRisks.length,
+    verdict: verdict
+  };
+}
+
+/**
+ * Build a compact, storable snapshot of a report for later delta comparison.
+ * Keeps only the ids of each list so it fits comfortably in local storage.
+ */
+function snapshot(report) {
+  if (!report) return null;
+  const ids = (arr) => (arr || []).map((x) => (typeof x === "string" ? x : x && x.id)).filter(Boolean);
+  return {
+    ts: Date.now(),
+    prompt: report.prompt,
+    riskScore: report.riskScore,
+    riskLevel: report.riskLevel,
+    coverageScore: report.coverageScore,
+    mentioned: ids(report.mentioned),
+    missing: ids(report.missing),
+    riskyFindings: ids(report.riskyFindings),
+    resources: ids(report.resources),
+    skipped: !!report.outOfScope
+  };
+}
+
+/**
+ * Delta against the PROJECTED state: the current prompt plus the clauses the
+ * user has accepted so far. This is what makes "What changed" react the moment
+ * a clause is added, instead of only after a re-analysis.
+ *
+ * @param {object|null} previous  the earlier stored snapshot
+ * @param {object} report         the current analysis
+ * @param {object} accepted       map of id -> true for accepted clauses
+ */
+function projectDelta(previous, report, accepted) {
+  if (!previous || !report || report.outOfScope) return null;
+  accepted = accepted || {};
+
+  // Promote accepted controls from "missing" to "mentioned" in a projected copy.
+  const mentioned = report.mentioned.slice();
+  const missing = [];
+  for (const m of report.missing) {
+    if (accepted[m.id]) mentioned.push(m);
+    else missing.push(m);
+  }
+  const riskyFindings = report.riskyFindings.filter((f) => !accepted[f.id]);
+
+  const projected = Object.assign({}, report, {
+    mentioned: mentioned,
+    missing: missing,
+    riskyFindings: riskyFindings
+  });
+  // projected scores reflect the accepted clauses
+  const p = project(projected, {});
+  projected.riskScore = p.riskScore;
+  projected.coverageScore = p.coverageScore;
+
+  return computeDelta(previous, projected);
+}
+
+
 const VectorAnalyzer = {
   analyze,
   mergeFindings,
   project,
   harden,
+  computeDelta,
+  projectDelta,
+  snapshot,
   buildImprovedPrompt,
   normalize,
   tokenize,

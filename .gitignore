@@ -3,3 +3,19 @@ dist/
 *.log
 .DS_Store
 Thumbs.db
+
+# Android / Gradle
+.gradle/
+build/
+local.properties
+*.apk
+*.aab
+*.iml
+.idea/
+captures/
+.cxx/
+
+# Expo / Metro
+.expo/
+.metro-health-check*
+

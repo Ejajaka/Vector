@@ -30,8 +30,8 @@ body {
   display: grid;
   place-items: center;
   font-weight: 700;
-  color: #fff;
-  background: linear-gradient(135deg, #6366f1, #0ea5e9);
+  color: #facb43;
+  background: #2d5d4f;
 }
 
 .vp-brand h1 {
