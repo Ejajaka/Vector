@@ -99,10 +99,12 @@ confidence is low or coverage is under 50%.
 ## Evaluation
 
 ```powershell
-npm run eval        # precision / recall / F1 over labelled prompts
-npm test            # unit tests
-npm run probe       # paraphrase/morphology recall probe
-npm run downstream  # insecure vs hardened Terraform demo
+npm run eval           # precision / recall / F1 over labelled prompts
+npm run eval:controls  # the same, broken down per security control
+npm test               # unit tests
+npm run probe          # paraphrase/morphology recall probe
+npm run downstream     # insecure vs hardened Terraform demo
+npm run verify:all     # tests + eval + per-control + probe + package
 ```
 
 The labelled sets are small and were tuned after seeing failures, so treat the

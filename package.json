@@ -6,7 +6,9 @@
   "scripts": {
     "test": "node engine/test/run-tests.js",
     "eval": "node engine/eval/run-eval.js",
+    "eval:controls": "node engine/eval/per-control.js",
     "probe": "node engine/eval/paraphrase-probe.js",
+    "verify:all": "npm test && npm run eval && npm run eval:controls && npm run probe && npm run package",
     "downstream": "node engine/eval/downstream/run-downstream.js",
     "study": "node engine/eval/downstream/run-llm-study.js",
     "kappa": "node engine/eval/kappa.js",

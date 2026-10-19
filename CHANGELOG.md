@@ -29,6 +29,9 @@
   morphology set (10/10) and a never-tuned held-out set (11/19). Honest read:
   pure-rule recall on arbitrary paraphrase is ~55-65%; hybrid/ML is needed to
   go substantially higher.
+- **Evaluation tooling:** added `npm run eval:controls` (per-control
+  precision/recall/F1 across the labelled sets) and `npm run verify:all`
+  (tests + eval + per-control + probe + extension package in one command).
 - **Design system refresh (from the Android client):** geometric V logo,
   accessible risk palette (`#C05621` high, `#9E7D1B` medium, `#2E6F40` low),
   Risk Findings Distribution card, report download, About screen, and revised
