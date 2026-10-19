@@ -63,7 +63,6 @@ import com.example.ui.theme.VectorPrimaryTeal
 fun HomeScreen(
     metrics: AnalysisMetrics,
     recentAnalyses: List<AnalysisResult>,
-    demoModeActive: Boolean,
     onStartAnalysis: () -> Unit,
     onReopenAnalysis: (AnalysisResult) -> Unit,
     onNavigateToHistory: () -> Unit = {},
@@ -304,22 +303,6 @@ fun HomeScreen(
                         color = MaterialTheme.colorScheme.onBackground
                     )
                 )
-                if (demoModeActive && recentAnalyses.any { it.isDemo }) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-                    ) {
-                        Text(
-                            text = "Sample Data Active",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 11.sp
-                            ),
-                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
-                        )
-                    }
-                }
             }
         }
 
@@ -425,22 +408,6 @@ fun RecentAnalysisCard(
                     riskLevel = analysis.riskLevel
                 )
 
-                if (analysis.isDemo) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = MaterialTheme.colorScheme.secondaryContainer
-                    ) {
-                        Text(
-                            text = "SAMPLE",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
-                            ),
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
-                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))

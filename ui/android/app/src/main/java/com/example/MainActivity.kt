@@ -66,7 +66,6 @@ fun VectorApp(viewModel: VectorViewModel) {
     val isOnboardingCompleted by viewModel.isOnboardingCompleted.collectAsState()
     val metrics by viewModel.metrics.collectAsState()
     val historyList by viewModel.historyList.collectAsState()
-    val demoMode by viewModel.demoMode.collectAsState()
     val promptInput by viewModel.promptInput.collectAsState()
     val inputError by viewModel.inputError.collectAsState()
     val isAnalyzing by viewModel.isAnalyzing.collectAsState()
@@ -174,7 +173,6 @@ fun VectorApp(viewModel: VectorViewModel) {
                     HomeScreen(
                         metrics = metrics,
                         recentAnalyses = historyList,
-                        demoModeActive = demoMode,
                         onStartAnalysis = { viewModel.navigateTo(Screen.ANALYZE) },
                         onReopenAnalysis = { analysis -> viewModel.reopenAnalysis(analysis) },
                         onNavigateToHistory = { viewModel.navigateTo(Screen.HISTORY) },
@@ -249,11 +247,9 @@ fun VectorApp(viewModel: VectorViewModel) {
                 Screen.SETTINGS -> {
                     SettingsScreen(
                         themeMode = themeMode,
-                        demoMode = demoMode,
                         isOnline = isOnline,
                         isSimulated = isNetworkSimulated,
                         onThemeModeChange = { viewModel.setThemeMode(it) },
-                        onDemoModeChange = { viewModel.setDemoMode(it) },
                         onToggleSimulatedOffline = { viewModel.setSimulatedOffline(it) },
                         onOpenOnboarding = { viewModel.startOnboarding() },
                         onOpenAbout = { viewModel.navigateTo(Screen.ABOUT) },

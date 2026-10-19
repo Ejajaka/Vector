@@ -70,9 +70,6 @@ class VectorViewModel(application: Application) : AndroidViewModel(application) 
     private val _themeMode = MutableStateFlow(ThemeMode.SYSTEM)
     val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
 
-    private val _demoMode = MutableStateFlow(true)
-    val demoMode: StateFlow<Boolean> = _demoMode.asStateFlow()
-
     // Prompt Input
     private val _promptInput = MutableStateFlow("")
     val promptInput: StateFlow<String> = _promptInput.asStateFlow()
@@ -109,15 +106,14 @@ class VectorViewModel(application: Application) : AndroidViewModel(application) 
     private val _snackbarMessage = MutableStateFlow<String?>(null)
     val snackbarMessage: StateFlow<String?> = _snackbarMessage.asStateFlow()
 
-    // Filtered History
+    // Filtered History (real analyses only)
     val historyList: StateFlow<List<AnalysisResult>> = combine(
-        historyRepository.getAnalyses(includeDemo = true),
-        _demoMode,
+        historyRepository.getAnalyses(includeDemo = false),
         _historySearch,
         _historyFilterRisk,
         _historySort
-    ) { all, isDemo, query, riskFilter, sort ->
-        var filtered = all.filter { if (isDemo) true else !it.isDemo }
+    ) { all, query, riskFilter, sort ->
+        var filtered = all
         if (query.isNotBlank()) {
             filtered = filtered.filter { it.prompt.contains(query, ignoreCase = true) }
         }
@@ -130,14 +126,9 @@ class VectorViewModel(application: Application) : AndroidViewModel(application) 
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Metrics
-    val metrics: StateFlow<AnalysisMetrics> = combine(
-        _demoMode,
-        historyRepository.getMetrics(includeDemo = true),
-        historyRepository.getMetrics(includeDemo = false)
-    ) { isDemo, demoMetrics, liveMetrics ->
-        if (isDemo) demoMetrics else liveMetrics
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AnalysisMetrics())
+    // Metrics (real analyses only)
+    val metrics: StateFlow<AnalysisMetrics> = historyRepository.getMetrics(includeDemo = false)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AnalysisMetrics())
 
     val examplePrompts = analyzerRepository.getExamplePrompts()
 
@@ -331,10 +322,6 @@ class VectorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun setThemeMode(mode: ThemeMode) {
         _themeMode.value = mode
-    }
-
-    fun setDemoMode(enabled: Boolean) {
-        _demoMode.value = enabled
     }
 
     fun showSnackbar(message: String) {

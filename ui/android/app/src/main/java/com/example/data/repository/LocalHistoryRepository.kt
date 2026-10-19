@@ -1,4 +1,4 @@
-package com.example.data.repository
+﻿package com.example.data.repository
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -24,15 +24,8 @@ class LocalHistoryRepository(context: Context) : HistoryRepository {
     }
 
     override fun getAnalyses(includeDemo: Boolean): Flow<List<AnalysisResult>> {
-        return analysesState.map { userAnalyses ->
-            if (userAnalyses.isEmpty() && includeDemo) {
-                getSampleDemoAnalyses()
-            } else if (includeDemo) {
-                userAnalyses + getSampleDemoAnalyses()
-            } else {
-                userAnalyses
-            }
-        }
+        // Demo/sample records are intentionally not shipped: only real analyses.
+        return analysesState
     }
 
     override fun getMetrics(includeDemo: Boolean): Flow<AnalysisMetrics> {
@@ -76,9 +69,7 @@ class LocalHistoryRepository(context: Context) : HistoryRepository {
     }
 
     override suspend fun getAnalysisById(id: String): AnalysisResult? {
-        val userItem = analysesState.value.find { it.id == id }
-        if (userItem != null) return userItem
-        return getSampleDemoAnalyses().find { it.id == id }
+        return analysesState.value.find { it.id == id }
     }
 
     private fun loadFromPrefs() {
@@ -211,115 +202,5 @@ class LocalHistoryRepository(context: Context) : HistoryRepository {
             isDemo = false,
             engineVersion = engineVersion
         )
-    }
-
-    companion object {
-        fun getSampleDemoAnalyses(): List<AnalysisResult> {
-            val now = System.currentTimeMillis()
-            return listOf(
-                AnalysisResult(
-                    id = "sample_1",
-                    prompt = "Create a public S3 bucket for customer documents and launch an EC2 instance with SSH open to 0.0.0.0/0.",
-                    timestamp = now - 3600000 * 2,
-                    riskScore = 92,
-                    riskLevel = RiskLevel.CRITICAL,
-                    securityCoverage = 10,
-                    confidence = 98,
-                    detectedResources = listOf(
-                        AwsResource("s3", "Amazon S3", "S3"),
-                        AwsResource("ec2", "Amazon EC2", "EC2")
-                    ),
-                    findings = listOf(
-                        SecurityFinding(
-                            id = "demo_f1",
-                            title = "Publicly Exposed S3 Bucket",
-                            explanation = "Prompt explicitly requests creating a publicly accessible bucket.",
-                            severity = RiskLevel.CRITICAL,
-                            type = FindingType.RISKY_STATEMENT,
-                            affectedResource = "Amazon S3",
-                            whyItMatters = "Leads to unauthorized object downloads and data exfiltration.",
-                            recommendedFix = "Enable Block Public Access on the bucket.",
-                            securityClause = "Configure S3 bucket with Block Public Access enabled."
-                        ),
-                        SecurityFinding(
-                            id = "demo_f2",
-                            title = "Unrestricted SSH Access (0.0.0.0/0)",
-                            explanation = "Security group exposes port 22 directly to the public internet.",
-                            severity = RiskLevel.CRITICAL,
-                            type = FindingType.RISKY_STATEMENT,
-                            affectedResource = "Amazon EC2",
-                            whyItMatters = "Allows automated password and SSH key brute force attacks.",
-                            recommendedFix = "Use AWS Systems Manager Session Manager.",
-                            securityClause = "EC2 instance must use AWS SSM Session Manager instead of public SSH port 22."
-                        ),
-                        SecurityFinding(
-                            id = "demo_f3",
-                            title = "Missing S3 Server-Side Encryption",
-                            explanation = "No default encryption specified for stored objects.",
-                            severity = RiskLevel.HIGH,
-                            type = FindingType.MISSING_CONTROL,
-                            affectedResource = "Amazon S3",
-                            whyItMatters = "Violates compliance standards for data at rest.",
-                            recommendedFix = "Enable SSE-KMS encryption with customer managed keys.",
-                            securityClause = "S3 bucket must enforce server-side encryption with AWS KMS (SSE-KMS)."
-                        )
-                    ),
-                    isDemo = true,
-                    engineVersion = "Vector-Core 1.2.0 (Sample)"
-                ),
-                AnalysisResult(
-                    id = "sample_2",
-                    prompt = "Deploy an EC2 instance running a web application behind a load balancer, connect it to an RDS database, and store uploaded documents in S3.",
-                    timestamp = now - 3600000 * 18,
-                    riskScore = 68,
-                    riskLevel = RiskLevel.HIGH,
-                    securityCoverage = 18,
-                    confidence = 94,
-                    detectedResources = listOf(
-                        AwsResource("ec2", "Amazon EC2", "EC2"),
-                        AwsResource("alb", "Application Load Balancer", "ALB"),
-                        AwsResource("rds", "Amazon RDS", "RDS"),
-                        AwsResource("s3", "Amazon S3", "S3")
-                    ),
-                    findings = listOf(
-                        SecurityFinding(
-                            id = "demo_f4",
-                            title = "Missing HTTPS Listener for ALB",
-                            explanation = "Web application load balancer does not enforce TLS encryption.",
-                            severity = RiskLevel.HIGH,
-                            type = FindingType.MISSING_CONTROL,
-                            affectedResource = "Application Load Balancer",
-                            whyItMatters = "User credentials and traffic are transmitted in cleartext.",
-                            recommendedFix = "Enforce HTTPS with TLS 1.3 and ACM certificate.",
-                            securityClause = "ALB must enforce HTTPS on port 443 with TLS 1.3 and redirect HTTP port 80."
-                        ),
-                        SecurityFinding(
-                            id = "demo_f5",
-                            title = "Missing RDS Storage Encryption",
-                            explanation = "Database storage volumes are not encrypted.",
-                            severity = RiskLevel.HIGH,
-                            type = FindingType.MISSING_CONTROL,
-                            affectedResource = "Amazon RDS",
-                            whyItMatters = "Database snapshots and tables could be read if volumes are leaked.",
-                            recommendedFix = "Enable KMS encryption at rest.",
-                            securityClause = "Enable storage encryption at rest on the RDS instance using AWS KMS."
-                        ),
-                        SecurityFinding(
-                            id = "demo_f6",
-                            title = "Missing RDS Private Subnet Isolation",
-                            explanation = "Database is not explicitly placed in private subnets.",
-                            severity = RiskLevel.HIGH,
-                            type = FindingType.MISSING_CONTROL,
-                            affectedResource = "Amazon RDS",
-                            whyItMatters = "Databases should never be exposed to public routes.",
-                            recommendedFix = "Place DB in private subnet group with PubliclyAccessible = false.",
-                            securityClause = "Place RDS instance in private subnets with PubliclyAccessible set to false."
-                        )
-                    ),
-                    isDemo = true,
-                    engineVersion = "Vector-Core 1.2.0 (Sample)"
-                )
-            )
-        }
     }
 }

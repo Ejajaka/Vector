@@ -395,24 +395,6 @@ fun HistoryItemCard(
                 )
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (analysis.isDemo) {
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = MaterialTheme.colorScheme.secondaryContainer,
-                            modifier = Modifier.padding(end = 8.dp)
-                        ) {
-                            Text(
-                                text = "SAMPLE",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                                ),
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
-                    }
-
                     IconButton(
                         onClick = onDelete,
                         modifier = Modifier.size(28.dp)

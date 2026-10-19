@@ -61,11 +61,9 @@ import com.example.ui.viewmodel.ThemeMode
 @Composable
 fun SettingsScreen(
     themeMode: ThemeMode,
-    demoMode: Boolean,
     isOnline: Boolean,
     isSimulated: Boolean,
     onThemeModeChange: (ThemeMode) -> Unit,
-    onDemoModeChange: (Boolean) -> Unit,
     onToggleSimulatedOffline: (Boolean?) -> Unit,
     onOpenOnboarding: () -> Unit,
     onOpenAbout: () -> Unit = {},
@@ -377,42 +375,6 @@ fun SettingsScreen(
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Demo Mode Switch
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Demo Sample Records",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        )
-                        Text(
-                            text = "Display sample AWS architecture analyses in dashboard & history for demonstration.",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        )
-                    }
-                    Switch(
-                        checked = demoMode,
-                        onCheckedChange = onDemoModeChange,
-                        modifier = Modifier.testTag("demo_mode_switch"),
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color.White,
-                            checkedTrackColor = MaterialTheme.colorScheme.primary
-                        )
-                    )
                 }
 
                 Spacer(modifier = Modifier.height(14.dp))
