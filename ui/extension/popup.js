@@ -108,7 +108,6 @@
     VectorSettings.getComparable(report).then(function (prev) {
       prevReport = prev;
       hadHistory = !!prev;
-      delta = prev ? VectorAnalyzer.computeDelta(prev, report) : null;
       VectorSettings.addHistory(report);
       render();
     });
