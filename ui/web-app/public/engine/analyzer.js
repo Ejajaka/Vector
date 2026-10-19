@@ -564,6 +564,9 @@ function analyze(prompt, options) {
 
   const infraHits = termMatches(INFRA_TERMS, normalized);
   const hasStrongTerm = termMatches(STRONG_TERMS, normalized) > 0;
+  const nonAwsTerm = NON_AWS_TERMS.find((t) => new RegExp(t, "i").test(normalized)) || null;
+  const physicalAmbiguousPhrase =
+    /\b(?:bucket|container)\s+(?:of|full\s+of)\s+(?:water|sand|soil|ice|paint|grain|food)\b/i.test(normalized);
   // Resource evidence must come from the ORIGINAL text, not the synonym-expanded
   // text (otherwise "bucket" -> "s3" would look strong).
   const strongResource = detectResources(normalized).some((r) => {
@@ -586,9 +589,11 @@ function analyze(prompt, options) {
   // control patterns, so this does not weaken the scope guard.
   const hasControlSignal = requirements.some((req) => detectRequirement(req, normalized).present);
 
+  const nonAwsOnly = !!nonAwsTerm && !hasStrongTerm;
   const inScope =
-    hasStrongTerm || intents.length > 0 || infraHits >= 2 || strongResource ||
-    hasRiskySignal || hasControlSignal;
+    !physicalAmbiguousPhrase && !nonAwsOnly &&
+    (hasStrongTerm || intents.length > 0 || infraHits >= 2 || strongResource ||
+      hasRiskySignal || hasControlSignal);
 
   if (!inScope) {
     return {
@@ -607,7 +612,7 @@ function analyze(prompt, options) {
       totalWeight: 0,
       tierCounts: { core: 0, clarify: 0, harden: 0 },
       semanticRelated: [],
-      nonAwsLikely: false,
+      nonAwsLikely: !!nonAwsTerm,
       outOfScope: true,
       environment: "unknown",
       envFactor: 1,
@@ -626,7 +631,6 @@ function analyze(prompt, options) {
 
   // Non-AWS guard: warn instead of silently applying AWS baseline to an
   // Azure/GCP prompt (which would be misleading).
-  const nonAwsTerm = NON_AWS_TERMS.find((t) => new RegExp(t, "i").test(normalized)) || null;
   const nonAwsLikely = !!nonAwsTerm;
 
   // Environment context (rule-based cues) adjusts the risk weight: a dev

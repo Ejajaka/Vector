@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit
 data class DeepScanSettings(
     val apiKey: String = "",
     val baseUrl: String = "https://generativelanguage.googleapis.com/v1beta/openai",
-    val model: String = "gemini-2.5-flash",
+    val model: String = "gemini-3.8-flash",
     val autoDeepScan: Boolean = true
 ) {
     val isConfigured: Boolean get() = apiKey.isNotBlank()
@@ -93,7 +93,7 @@ object LlmDeepScanner {
                 put("generationConfig", JSONObject().put("temperature", 0))
             }
             val nativeRequest = Request.Builder()
-                .url("$nativeBase/models/${settings.model.ifBlank { "gemini-2.5-flash" }.removePrefix("models/")}:generateContent?key=${java.net.URLEncoder.encode(settings.apiKey, "UTF-8")}")
+                .url("$nativeBase/models/${settings.model.ifBlank { "gemini-3.8-flash" }.removePrefix("models/")}:generateContent?key=${java.net.URLEncoder.encode(settings.apiKey, "UTF-8")}")
                 .header("Content-Type", "application/json")
                 .post(nativeBody.toString().toRequestBody("application/json".toMediaType()))
                 .build()
@@ -112,7 +112,7 @@ object LlmDeepScanner {
         }
 
         val body = JSONObject().apply {
-            put("model", settings.model.ifBlank { "gemini-2.5-flash" }.removePrefix("models/"))
+            put("model", settings.model.ifBlank { "gemini-3.8-flash" }.removePrefix("models/"))
             put("temperature", 0)
             put(
                 "messages",

@@ -182,7 +182,7 @@
       let msg = "Deep scan failed (" + res.status + ")";
       if (detail) msg += ": " + detail;
       if (res.status === 404) {
-        msg += "  Check the model name in Settings (current Gemini models include gemini-2.5-flash and gemini-3.7-flash).";
+        msg += "  Check the model name in Settings (current Gemini models include gemini-3.8-flash and gemini-3.6-flash).";
       }
       throw new Error(msg);
     }

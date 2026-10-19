@@ -419,6 +419,9 @@ test("risky: 'world-readable' flags public storage", () => {
 test("non-AWS: an Azure prompt is flagged as non-AWS", () => {
   const r = analyze("Create an Azure Blob Storage account for documents");
   assert.strictEqual(r.nonAwsLikely, true);
+  assert.strictEqual(r.outOfScope, true);
+  assert.strictEqual(r.riskScore, 0);
+  assert.strictEqual(r.missing.length, 0);
   assert.ok(!r.resources.some((x) => x.id === "s3"), "must not be mistaken for S3");
 });
 
@@ -569,10 +572,19 @@ test("scope: harden leaves an off-topic prompt unchanged", () => {
 });
 
 test("scope: an ambiguous word alone is not infrastructure", () => {
-  for (const t of ["i want a bucket full of water", "a bucket of water", "i need a queue for the tickets"]) {
+  for (const t of ["i want a bucket full of water", "a bucket of water", "Create a bucket of water", "i need a queue for the tickets"]) {
     const r = analyze(t);
     assert.strictEqual(r.outOfScope, true, "should be out of scope: " + t);
     assert.strictEqual(r.stats.missing, 0);
+  }
+});
+
+test("scope: explicit non-AWS cloud prompts get no AWS score", () => {
+  for (const t of ["Create an Azure Blob Storage account", "Deploy a GCP Cloud Storage bucket"]) {
+    const r = analyze(t);
+    assert.strictEqual(r.outOfScope, true, "should be out of scope: " + t);
+    assert.strictEqual(r.riskScore, 0);
+    assert.strictEqual(r.missing.length, 0);
   }
 });
 

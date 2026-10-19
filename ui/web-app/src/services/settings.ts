@@ -11,7 +11,7 @@ const STORAGE_KEY = 'vector_webapp_settings_v1';
 export const DEFAULT_SETTINGS: VectorSettings = {
   apiKey: '',
   baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.8-flash',
   autoDeepScan: true
 };
 

@@ -42,7 +42,7 @@
       autoDeepScan: el.auto.checked,
       apiKey: el.key.value.trim(),
       baseUrl: el.url.value.trim() || "https://generativelanguage.googleapis.com/v1beta/openai",
-      model: el.model.value.trim() || "gemini-2.5-flash",
+      model: el.model.value.trim() || "gemini-3.8-flash",
       policyText: el.policy.value
     };
   }

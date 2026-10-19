@@ -172,7 +172,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onRefreshData }) => 
               className="w-full p-2.5 rounded-lg border border-[#E5E2D8] bg-[#FAFAF8] text-xs font-mono text-[#283638] focus:bg-white focus:outline-none focus:border-[#49686C]"
             />
             <div className="flex flex-wrap gap-2 mt-2">
-              <button type="button" onClick={() => update({ baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', model: 'gemini-2.5-flash' })} className="px-2.5 py-1 rounded border border-[#E5E2D8] bg-white text-[11px] font-semibold text-[#49686C] hover:bg-[#F6F4EC]">Gemini</button>
+              <button type="button" onClick={() => update({ baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', model: 'gemini-3.8-flash' })} className="px-2.5 py-1 rounded border border-[#E5E2D8] bg-white text-[11px] font-semibold text-[#49686C] hover:bg-[#F6F4EC]">Gemini</button>
               <button type="button" onClick={() => update({ baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' })} className="px-2.5 py-1 rounded border border-[#E5E2D8] bg-white text-[11px] font-semibold text-[#49686C] hover:bg-[#F6F4EC]">OpenAI</button>
               <button type="button" onClick={() => update({ baseUrl: 'https://openrouter.ai/api/v1', model: 'openai/gpt-4o-mini' })} className="px-2.5 py-1 rounded border border-[#E5E2D8] bg-white text-[11px] font-semibold text-[#49686C] hover:bg-[#F6F4EC]">OpenRouter</button>
             </div>
