@@ -635,6 +635,17 @@ test("contradiction: private S3 then publicly readable and writable", () => {
   assert.ok(r.riskyFindings.some((f) => f.id === "contradiction_public_access"));
 });
 
+test("prohibition list is not treated as risky or contradictory", () => {
+  const r = analyze(
+    "Encrypt data at rest. Enable CloudTrail. Restrict SSH to trusted IPs. " +
+      "Do not introduce public storage access, unrestricted administrative access, " +
+      "wildcard administrative permissions, hard-coded credentials, disabled encryption, " +
+      "publicly exposed databases, or disabled audit logging."
+  );
+  assert.strictEqual(r.riskyFindings.length, 0);
+  assert.ok(!r.riskyFindings.some((f) => String(f.id).startsWith("contradiction_")));
+});
+
 test("scope: real infrastructure prompts stay in scope", () => {
   for (const t of [
     "Create an S3 bucket for user documents.",

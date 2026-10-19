@@ -171,6 +171,28 @@ function isNegatedBefore(text, index) {
   return true;
 }
 
+/**
+ * True when the match sits inside a prohibition sentence/list, for example:
+ * "Do not introduce public storage, unrestricted access, or disabled logging."
+ * A negation word earlier in that list applies to every item, not just the
+ * first one, so a 60-character window is not enough.
+ */
+function isProhibitedPhrase(text, index) {
+  const start = Math.max(0, index - 400);
+  const window = text.slice(start, index);
+  const boundary = Math.max(
+    window.lastIndexOf("."),
+    window.lastIndexOf(";"),
+    window.lastIndexOf("\n")
+  );
+  const prefix = (boundary >= 0 ? window.slice(boundary + 1) : window).trim();
+  if (/^(?:please\s+)?(?:do not|don't|dont|must not|should not|never|avoid|prohibit|forbid|without)\b/i.test(prefix)) {
+    return true;
+  }
+  // "Restrict SSH ... and do not expose SSH to 0.0.0.0/0."
+  return /\b(?:do not|don't|dont|must not|should not|never)\b[^.;\n]{0,80}$/i.test(prefix);
+}
+
 /** True if the match is immediately followed by a disabling word ("logging disabled"). */
 function isNegatedAfter(text, index) {
   const window = text.slice(index, index + 18);
@@ -361,6 +383,9 @@ function detectRequirement(requirement, text) {
   let negatedAny = false;
   for (const m of matches) {
     const end = m.index + m.value.length;
+    // A prohibition is not a request that disables the control, so it must not
+    // create a contradiction (e.g. "Encrypt at rest ... do not disable encryption").
+    if (!requirement.negationSafe && isProhibitedPhrase(text, m.index)) continue;
     if (!requirement.negationSafe && (isNegatedBefore(text, m.index) || isNegatedAfter(text, end))) {
       negatedAny = true;
       continue;
@@ -452,6 +477,7 @@ function dedupeRiskyFindings(text, risky) {
     let matched = false;
     while ((m = re.exec(text)) !== null) {
       if (m.index === re.lastIndex) re.lastIndex++;
+      if (isProhibitedPhrase(text, m.index)) continue;
       if (isNegatedBefore(text, m.index)) continue;
       // "database with no public endpoint" is a safe restriction, not exposure.
       if (/\b(no|not|non[- ]?|without)\b[^.]{0,25}\b(public|internet)\b/i.test(m[0])) continue;
