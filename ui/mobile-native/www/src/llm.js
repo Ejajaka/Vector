@@ -158,17 +158,22 @@
       return parseFindings(nativeText);
     }
 
+    const requestBody = {
+      model: model,
+      temperature: 0,
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: userMessage(prompt, ruleReport) }
+      ]
+    };
+    if (/api\.groq\.com/.test(baseUrl)) {
+      requestBody.response_format = { type: "json_object" };
+    }
+
     const res = await fetch(baseUrl + "/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: "Bearer " + apiKey },
-      body: JSON.stringify({
-        model: model,
-        temperature: 0,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userMessage(prompt, ruleReport) }
-        ]
-      })
+      body: JSON.stringify(requestBody)
     });
     if (!res.ok) {
       let detail = "";
