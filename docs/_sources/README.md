@@ -200,10 +200,6 @@ Every client calls the same engine, so they all return identical results:
 **Brand:** the logo is a dark-green tile (`#2D5D4F`) with a gold V (`#FACB43`),
 generated for every surface by `tools/make-icons.js` (`npm run icons`).
 
-**Credits:** the React web client (`ui/web-app`) and the native Android client
-(`ui/android`) are UI contributions from teammate Satya Sree Pada; see
-`CREDITS.md`.
-
 ## To keep the code small for a rewrite
 
 Everything extra is isolated. If you need fewer files, you can delete

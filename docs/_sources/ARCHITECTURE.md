@@ -41,7 +41,7 @@ return identical results for the same prompt.
 > teammate-contributed clients live in `ui/web-app/` (React + Vite) and
 > `ui/android/` (Kotlin + Jetpack Compose). Both call the same `engine/src`, so
 > their results match every other surface. The client code carries the UI only;
-> all analysis data comes from the engine. See `CREDITS.md`.
+> all analysis data comes from the engine.
 
 ---
 

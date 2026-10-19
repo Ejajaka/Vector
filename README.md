@@ -165,11 +165,6 @@ tools/                 icon generation, packaging, engine sync, doc build
 docs/                  Word deliverables + `_sources/` markdown
 ```
 
-## Credits
-
-See `CREDITS.md` (the React web app and native Android client are contributed UI,
-adapted to run on the shared engine).
-
 ## Version
 
 0.8.0
