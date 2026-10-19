@@ -46,6 +46,25 @@ export function projectMetrics(
     };
   }
 
+  // Use the same shared analyzer as Re-analyze whenever it is available. The
+  // former heuristic could show an optimistic 100/100 projection that did not
+  // match the fresh analysis of the generated prompt.
+  const engine = (globalThis as any).VectorAnalyzer;
+  if (engine?.analyze) {
+    try {
+      const selectedFindings = [...result.missing, ...result.riskyFindings]
+        .filter(f => selectedFindingIds.has(f.id));
+      const improvedPrompt = buildImprovedPrompt(result.prompt, selectedFindings);
+      const projected = engine.analyze(improvedPrompt, { strictMode: false });
+      return {
+        projectedRisk: Math.round(projected.riskScore || result.riskScore),
+        projectedCoverage: Math.round(projected.coverageScore || result.coverageScore)
+      };
+    } catch {
+      // Keep the local estimate as a fallback for non-browser/test adapters.
+    }
+  }
+
   // Count how many missing controls were selected
   const selectedMissing = result.missing.filter(f => selectedFindingIds.has(f.id)).length;
   // Count how many risky findings had remediations accepted

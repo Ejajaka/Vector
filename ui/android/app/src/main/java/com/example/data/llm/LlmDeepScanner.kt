@@ -75,12 +75,15 @@ object LlmDeepScanner {
         ruleMissingLabels: List<String>,
         settings: DeepScanSettings
     ): DeepScanResult = withContext(Dispatchers.IO) {
-        val baseUrl = settings.baseUrl.trim().trimEnd('/')
+        var baseUrl = settings.baseUrl.trim().trimEnd('/')
+        if (baseUrl.contains("generativelanguage.googleapis.com") && !baseUrl.endsWith("/openai")) {
+            baseUrl += "/openai"
+        }
         if (baseUrl.isBlank()) throw IllegalStateException("Base URL is empty.")
         if (!settings.isConfigured) throw IllegalStateException("No API key set.")
 
         val body = JSONObject().apply {
-            put("model", settings.model.ifBlank { "gemini-2.5-flash" })
+            put("model", settings.model.ifBlank { "gemini-2.5-flash" }.removePrefix("models/"))
             put("temperature", 0)
             put(
                 "messages",

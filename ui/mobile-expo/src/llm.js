@@ -123,8 +123,13 @@
   async function hostedDeepScan(prompt, settings, ruleReport) {
     const apiKey = settings && settings.apiKey;
     if (!apiKey) throw new Error("No API key set.");
-    const baseUrl = ((settings && settings.baseUrl) || "https://api.openai.com/v1").replace(/\/+$/, "");
-    const model = (settings && settings.model) || "gpt-4o-mini";
+    let baseUrl = ((settings && settings.baseUrl) || "https://api.openai.com/v1").trim().replace(/\/+$/, "");
+    if (/generativelanguage\.googleapis\.com/.test(baseUrl) && !/\/openai$/.test(baseUrl)) {
+      baseUrl += "/openai";
+    }
+    const model = String((settings && settings.model) || "gpt-4o-mini")
+      .trim()
+      .replace(/^models\//, "");
 
     const res = await fetch(baseUrl + "/chat/completions", {
       method: "POST",
