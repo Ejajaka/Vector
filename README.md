@@ -58,6 +58,9 @@ npm run webapp            # -> http://localhost:3000
 
 ## Build the native Android app
 
+For Windows PowerShell setup, device authorization, debug signing, installation
+and launch instructions, see [Install the Android app](docs/ANDROID-INSTALL.md).
+
 ```powershell
 cd ui/android
 ./gradlew assembleDebug   # needs the Android SDK + JDK 17
