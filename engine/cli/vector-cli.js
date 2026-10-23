@@ -136,6 +136,31 @@ function printReport(report) {
     console.log(C.green + "No missing security constraints detected. \u2713" + C.reset);
   }
 
+  if (r.sanity && r.sanity.verdict !== "ok") {
+    console.log("");
+    console.log(
+      C.bold + "Prompt quality: " + C.red + r.sanity.verdict.toUpperCase() + C.reset +
+      C.dim + " (sanity " + r.sanity.score + "/100)" + C.reset
+    );
+    for (const issue of r.promptIssues || []) {
+      console.log("  " + C.red + "[" + String(issue.kind || "issue").toUpperCase() + "]" + C.reset + " " + issue.label);
+      console.log("    " + C.dim + (issue.description || "") + C.reset);
+      if (issue.fix) console.log("    Fix: " + issue.fix);
+    }
+    if (r.requiresDeepScan) {
+      console.log(C.yellow + "  Deep scan required before relying on these results." + C.reset);
+    }
+  }
+
+  if (r.awsClassification && r.awsClassification.verdict !== "ambiguous") {
+    const cls = r.awsClassification;
+    console.log(
+      C.dim + "AWS audit: " + cls.verdict +
+      " (aws " + (cls.aws || 0) + ", non-AWS " + (cls.non_aws || 0) +
+      ", mixed " + (cls.mixed || 0) + ", ambiguous " + (cls.ambiguous || 0) + ")" + C.reset
+    );
+  }
+
   console.log("");
   console.log(C.dim + "Grounded in: " + r.standards.join("; ") + C.reset);
   console.log("");

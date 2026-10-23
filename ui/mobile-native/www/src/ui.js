@@ -119,6 +119,50 @@
     );
   }
 
+  // Prompt-quality warnings (contradictions, anti-goals) and the AWS/non-AWS
+  // statement audit. Shown before the security findings.
+  function promptIssuesHtml(r) {
+    const issues = r.promptIssues || [];
+    const audit = r.statementAudit || [];
+    const cls = r.awsClassification || {};
+    if (!issues.length && !audit.length) return "";
+
+    let html = "";
+    if (issues.length) {
+      html +=
+        '<h2>Prompt quality warnings <span class="v-count">' + issues.length + "</span></h2>" +
+        '<div class="v-feedback">' +
+        issues.map((i) =>
+          '<p class="v-feedback-line">' +
+          '<span class="v-badge">' + escapeHtml(i.severity || "high") + "</span> " +
+          "<strong>" + escapeHtml(i.label) + "</strong> " +
+          escapeHtml(i.description || "") +
+          (i.fix ? ' <em>Fix:</em> ' + escapeHtml(i.fix) : "") +
+          "</p>"
+        ).join("") +
+        "</div>";
+    }
+    if (audit.length) {
+      const counts = "AWS " + (cls.aws || 0) + " &middot; non-AWS " + (cls.non_aws || 0) +
+        " &middot; mixed " + (cls.mixed || 0) + " &middot; ambiguous " + (cls.ambiguous || 0) +
+        " &middot; verdict <strong>" + escapeHtml(cls.verdict || "ambiguous") + "</strong>";
+      html +=
+        '<details class="v-section"><summary class="v-group">' +
+        '<span class="v-group-label">AWS / non-AWS statement audit</span>' +
+        '<span class="v-count">' + audit.length + "</span></summary>" +
+        '<p class="v-related">' + counts + "</p>" +
+        '<div class="v-feedback">' +
+        audit.map((s) =>
+          '<p class="v-feedback-line"><span class="v-badge">' + escapeHtml(s.verdict) + "</span> " +
+          escapeHtml(s.text) +
+          (s.reason ? ' <span class="v-muted">- ' + escapeHtml(s.reason) + "</span>" : "") +
+          "</p>"
+        ).join("") +
+        "</div></details>";
+    }
+    return html;
+  }
+
   // Non-AWS warning (the engine targets AWS only).
   function bannerHtml(r) {
     if (!r.nonAwsLikely) return "";
@@ -377,6 +421,7 @@
 
     container.innerHTML =
       bannerHtml(report) +
+      promptIssuesHtml(report) +
       deltaSection +
       riskHtml(report, coverage(report, state)) +
       feedbackHtml(report) +
@@ -411,7 +456,8 @@
     // html builders exposed for testing
     riskHtml: riskHtml,
     findingsHtml: findingsHtml,
-    missingHtml: missingHtml
+    missingHtml: missingHtml,
+    promptIssuesHtml: promptIssuesHtml
   };
 
   if (typeof module !== "undefined" && module.exports) module.exports = VectorUI;

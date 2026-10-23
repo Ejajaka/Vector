@@ -92,9 +92,38 @@
       report.riskLevel + " risk &middot; " + report.stats.missing + " missing &middot; confidence " +
       report.confidenceScore + "% (" + report.confidence + ")" +
       (report.baselineOnly ? " &middot; baseline" : "") +
-      (report.needsDeepScan
-        ? " &middot; <em>" + (settings.autoDeepScan ? "deep scan recommended" : "low confidence - enable Auto deep scan in Settings") + "</em>"
+      (report.requiresDeepScan || report.needsDeepScan
+        ? " &middot; <em>" + (settings.autoDeepScan ? "deep scan recommended" : "deep scan required - enable Auto deep scan in Settings") + "</em>"
         : "");
+  }
+
+  // When the rule engine cannot trust the prompt (low confidence or quality
+  // issues), hide the report until a deep scan has actually run.
+  function showGate() {
+    if (!report) return;
+    const provider = VectorLLM.localAvailable() || !!settings.apiKey;
+    const issues = (report.promptIssues || []).length;
+    el.results.classList.remove("hidden");
+    el.improvedWrap.classList.add("hidden");
+    el.results.innerHTML =
+      '<div class="v-banner warn"><strong>Deep scan required.</strong> ' +
+      "Confidence " + report.confidenceScore + "%" +
+      (issues ? " and " + issues + " prompt-quality issue(s)" : "") +
+      ". Results are hidden until the deep scan finishes." +
+      '<div class="v-header-actions v-bulk">' +
+      '<button class="v-btn primary" type="button" id="gate-scan">Run deep scan</button>' +
+      (provider ? "" : '<button class="v-btn ghost" type="button" id="gate-settings">Open settings</button>') +
+      '<button class="v-btn ghost" type="button" id="gate-show">Show rule-only results</button>' +
+      "</div></div>";
+    const scan = document.getElementById("gate-scan");
+    const openSettings = document.getElementById("gate-settings");
+    const show = document.getElementById("gate-show");
+    if (scan) scan.addEventListener("click", deepScanNow);
+    if (openSettings) openSettings.addEventListener("click", function () {
+      if (chrome.runtime.openOptionsPage) chrome.runtime.openOptionsPage();
+    });
+    if (show) show.addEventListener("click", function () { render(); setHint(); });
+    el.hint.textContent = "Deep scan required before showing the full result";
   }
 
   function analyzeNow() {
@@ -104,7 +133,7 @@
     state.accepted = {};
 
     const willScan =
-      report.needsDeepScan && settings.autoDeepScan &&
+      (report.requiresDeepScan || report.needsDeepScan) && settings.autoDeepScan &&
       (VectorLLM.localAvailable() || !!settings.apiKey);
 
     // Security Delta: compare against the last comparable stored snapshot,
@@ -113,7 +142,10 @@
       prevReport = prev;
       hadHistory = !!prev;
       VectorSettings.addHistory(report);
-      if (!willScan) render();
+      if (!willScan) {
+        if (report.requiresDeepScan) showGate();
+        else render();
+      }
     });
 
     el.results.classList.remove("hidden");
@@ -123,7 +155,7 @@
       el.improvedWrap.classList.add("hidden");
       el.hint.textContent = "Deep scan in progress...";
       deepScanNow();
-    } else {
+    } else if (!report.requiresDeepScan) {
       render();
       setHint();
     }
@@ -155,8 +187,8 @@
       toast(result.findings.clean ? "Deep scan: no additional issues" : "Deep scan merged (" + result.via + ")");
     } catch (err) {
       report = base; // restore the rule-based answer on failure
-      render();
-      setHint();
+      if (base.requiresDeepScan) showGate();
+      else { render(); setHint(); }
       toast(err.message || "Deep scan failed");
     } finally {
       el.deep.disabled = false;

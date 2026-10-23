@@ -17,16 +17,27 @@
 (function (root) {
   // Shared instruction for both providers.
   const SYSTEM_PROMPT =
-    "You are an AWS cloud security reviewer. Given an infrastructure prompt, " +
-    "list security controls that are MISSING from it (do not repeat ones already stated). " +
+    "You are an AWS cloud security reviewer and prompt auditor. " +
+    "First audit every statement in the prompt: decide whether it is AWS, non-AWS, " +
+    "mixed, ambiguous, contradictory, or an anti-goal/infeasible instruction. " +
+    "Then list security controls that are MISSING from the prompt (do not repeat ones already stated). " +
     "You may also be given a list of controls the rule engine flagged as missing; if the " +
     "prompt actually satisfies any of them, list their EXACT labels in \"satisfied\". " +
+    "Flag contradictions (the prompt asks for X and not-X, e.g. block public access but allow anonymous uploads, " +
+    "force HTTPS but permit HTTP, versioning plus immediate deletion) and anti-goals " +
+    "(maximum cost, minimum availability, zero consistency, unpredictable access, disabling monitoring). " +
     "Reply with STRICT JSON only: " +
-    '{"missing":[{"label":"","severity":"high|medium|low","description":"","clause":""}],' +
+    '{"awsVerdict":"aws|non_aws|mixed|ambiguous",' +
+    '"statementAudit":[{"text":"","verdict":"aws|non_aws|mixed|ambiguous|contradictory|antigoal","reason":""}],' +
+    '"contradictions":[{"label":"","description":"","fix":""}],' +
+    '"nonsense":[{"label":"","description":"","fix":""}],' +
+    '"missing":[{"label":"","severity":"high|medium|low","description":"","clause":""}],' +
     '"risky":[{"label":"","severity":"high|medium|low","description":"","fix":""}],' +
     '"satisfied":["exact label from the supplied rule list"]}. ' +
-    "If nothing is missing and nothing is risky, return empty arrays. " +
-    "At most 10 missing, 5 risky and 10 satisfied. Each clause is one imperative sentence. " +
+    "If nothing is missing, risky, contradictory or nonsensical, return empty arrays. " +
+    "At most 20 statementAudit entries, 8 contradictions, 8 nonsense, 10 missing, 5 risky and 10 satisfied. " +
+    "Each missing clause and fix is one imperative sentence. " +
+    "If the prompt is not about AWS at all, set awsVerdict to non_aws and explain in nonsense. " +
     "Do not recommend TLS for SSH: SSH is its own encrypted protocol; recommend trusted source IPs or AWS Systems Manager Session Manager instead.";
 
   function userMessage(prompt, ruleReport) {
@@ -40,6 +51,18 @@
         labels.map((l) => "- " + l).join("\n") +
         "\n\nIf the prompt already satisfies any of these exact labels, list those labels in \"satisfied\". " +
         "Only include a label when you are confident.";
+    }
+    const issues = (ruleReport && ruleReport.promptIssues) || [];
+    if (issues.length) {
+      msg +=
+        "\n\nThe rule engine found these prompt-quality warnings (validate or correct them):\n" +
+        issues.slice(0, 12).map((i) => "- [" + (i.kind || "issue") + "] " + i.label).join("\n");
+    }
+    const audit = (ruleReport && ruleReport.statementAudit) || [];
+    if (audit.length) {
+      msg +=
+        "\n\nRule-based statement audit (re-check each):\n" +
+        audit.slice(0, 20).map((s) => "- [" + s.verdict + "] " + s.text).join("\n");
     }
     return msg;
   }
@@ -101,11 +124,53 @@
       .map((s) => String(s))
       .slice(0, 10);
 
+    const allowedVerdicts = ["aws", "non_aws", "mixed", "ambiguous", "contradictory", "antigoal"];
+    const statementAudit = (Array.isArray(data.statementAudit) ? data.statementAudit : [])
+      .filter((s) => s && (s.text || s.statement))
+      .slice(0, 20)
+      .map((s) => {
+        const verdict = String(s.verdict || "ambiguous").toLowerCase().replace(/[-\s]+/g, "_");
+        return {
+          text: String(s.text || s.statement || ""),
+          verdict: allowedVerdicts.indexOf(verdict) === -1 ? "ambiguous" : verdict,
+          reason: String(s.reason || "")
+        };
+      });
+
+    const asIssues = (arr, kind) =>
+      (Array.isArray(arr) ? arr : [])
+        .filter((x) => x && (x.label || x.description))
+        .slice(0, 8)
+        .map((x) => ({
+          id: "ai_" + kind + "_" + String(x.label || x.description).toLowerCase().replace(/[^a-z0-9]+/g, "_").slice(0, 40),
+          kind: kind,
+          label: String(x.label || "Deep-scan " + kind),
+          severity: normSeverity(x.severity || "high"),
+          description: String(x.description || "Identified by deep scan."),
+          fix: String(x.fix || x.clause || x.description || "Remove the conflicting instruction and state one clear requirement."),
+          source: "ai"
+        }));
+
+    const contradictions = asIssues(data.contradictions, "contradiction");
+    const nonsense = asIssues(data.nonsense, "antigoal");
+    const promptIssues = contradictions.concat(nonsense);
+
+    const rawVerdict = String(data.awsVerdict || "").toLowerCase().replace(/[-\s]+/g, "_");
+    const awsVerdict = ["aws", "non_aws", "mixed", "ambiguous"].indexOf(rawVerdict) === -1
+      ? null
+      : rawVerdict;
+
     return {
       missing: missing,
       risky: risky,
       satisfied: satisfied,
-      clean: missing.length === 0 && risky.length === 0
+      statementAudit: statementAudit,
+      promptIssues: promptIssues,
+      contradictions: contradictions,
+      nonsense: nonsense,
+      awsVerdict: awsVerdict,
+      clean: missing.length === 0 && risky.length === 0 &&
+        contradictions.length === 0 && nonsense.length === 0
     };
   }
 

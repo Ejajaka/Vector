@@ -42,6 +42,10 @@ const {
   STRONG_TERMS,
   AMBIGUOUS_ALIASES,
   RISKY_PATTERNS,
+  CONFLICT_RULES,
+  ANTI_GOAL_PATTERNS,
+  NON_AWS_COMMANDS,
+  AWS_SIGNAL_TERMS,
   STANDARDS
 } = _VectorTaxonomy;
 
@@ -400,6 +404,169 @@ function detectRequirement(requirement, text) {
   return { present: positive, negated: !positive, contradiction: positive && negatedAny };
 }
 
+function safeRegExp(pattern) {
+  try {
+    return new RegExp(pattern, "i");
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Match a phrase only when it is actually requested. A negated/prohibited
+ * mention ("do not allow anonymous uploads") does not count.
+ */
+function positiveMatch(text, pattern) {
+  const re = safeRegExp(pattern);
+  if (!re) return null;
+  const m = re.exec(String(text || ""));
+  if (!m) return null;
+  const index = m.index || 0;
+  if (isNegatedBefore(text, index) || isProhibitedPhrase(text, index)) return null;
+  return m;
+}
+
+/** Split a prompt into sentence-ish statements for the AWS/non-AWS audit. */
+function splitStatements(text) {
+  return String(text || "")
+    .split(/[.!?]+\s+|\n+|;\s*/)
+    .map(function (s) { return s.trim(); })
+    .filter(function (s) { return s.length >= 8; });
+}
+
+/**
+ * Contradictory instructions, anti-goals and architecturally invalid requests.
+ * These are prompt-quality issues, separate from the security-control findings.
+ */
+function detectPromptIssues(text) {
+  const issues = [];
+
+  for (const rule of CONFLICT_RULES) {
+    const a = positiveMatch(text, rule.a);
+    const b = positiveMatch(text, rule.b);
+    if (a && b) {
+      issues.push({
+        id: rule.id,
+        kind: "contradiction",
+        label: rule.label,
+        severity: "high",
+        description: rule.description,
+        fix: rule.fix,
+        evidence: [a[0], b[0]],
+        source: "rule"
+      });
+    }
+  }
+
+  for (const rule of ANTI_GOAL_PATTERNS) {
+    const m = positiveMatch(text, rule.pattern);
+    if (m) {
+      issues.push({
+        id: rule.id,
+        kind: "antigoal",
+        label: rule.label,
+        severity: "high",
+        description: rule.description,
+        fix: rule.fix,
+        evidence: [m[0]],
+        source: "rule"
+      });
+    }
+  }
+
+  return issues;
+}
+
+/** Classify each statement as AWS, non-AWS, mixed, contradictory or ambiguous. */
+function classifyStatements(raw, requirements) {
+  return splitStatements(raw).map(function (statement) {
+    const nonAwsHits = NON_AWS_TERMS.concat(NON_AWS_COMMANDS).filter(function (t) {
+      const re = safeRegExp(t);
+      return re && re.test(statement);
+    });
+    const awsHits = AWS_SIGNAL_TERMS.filter(function (t) {
+      const re = safeRegExp("(^|[^a-z0-9])" + t + "([^a-z0-9]|$)");
+      return re && re.test(statement);
+    });
+    const resourceHits = detectResources(statement);
+    const controlHits = requirements.filter(function (req) {
+      return detectRequirement(req, statement).present;
+    });
+    const statementIssues = detectPromptIssues(statement);
+    const contradiction = statementIssues.find(function (i) { return i.kind === "contradiction"; });
+    const antiGoal = statementIssues.find(function (i) { return i.kind === "antigoal"; });
+
+    let verdict = "ambiguous";
+    let reason = "No AWS or non-AWS signal was recognised.";
+    if (contradiction) {
+      verdict = "contradictory";
+      reason = contradiction.label;
+    } else if (antiGoal) {
+      verdict = "antigoal";
+      reason = antiGoal.label;
+    } else if (nonAwsHits.length && (awsHits.length || resourceHits.length || controlHits.length)) {
+      verdict = "mixed";
+      reason = "Mentions both AWS and non-AWS services.";
+    } else if (nonAwsHits.length) {
+      verdict = "non_aws";
+      reason = "Mentions a non-AWS provider or command (" + nonAwsHits[0] + ").";
+    } else if (awsHits.length || resourceHits.length || controlHits.length) {
+      verdict = "aws";
+      reason = "Mentions AWS resources or controls.";
+    }
+
+    return {
+      text: statement,
+      verdict: verdict,
+      reason: reason,
+      awsSignals: awsHits,
+      nonAwsSignals: nonAwsHits
+    };
+  });
+}
+
+function summarizeStatements(statements) {
+  const counts = { aws: 0, non_aws: 0, mixed: 0, ambiguous: 0, contradictory: 0, antigoal: 0 };
+  for (const s of statements) {
+    counts[s.verdict] = (counts[s.verdict] || 0) + 1;
+    const aws = !!(s.awsSignals && s.awsSignals.length);
+    const nonAws = !!(s.nonAwsSignals && s.nonAwsSignals.length);
+    if (aws && !nonAws) counts.aws++;
+    else if (nonAws && !aws) counts.non_aws++;
+    else if (aws && nonAws) counts.mixed++;
+  }
+  let verdict = "ambiguous";
+  if (counts.non_aws && (counts.aws || counts.mixed)) verdict = "mixed";
+  else if (counts.non_aws) verdict = "non_aws";
+  else if (counts.aws || counts.mixed) verdict = "aws";
+  return Object.assign({ verdict: verdict }, counts);
+}
+
+function computeSanity(issues, classification) {
+  const contradictions = issues.filter(function (i) { return i.kind === "contradiction"; }).length;
+  const antigoals = issues.filter(function (i) { return i.kind === "antigoal"; }).length;
+  const nonAwsStatements = (classification.non_aws || 0) + (classification.mixed || 0);
+  let score = 100 - contradictions * 15 - antigoals * 10;
+  if (classification.mixed) score -= 10;
+  if (classification.non_aws) score -= 15;
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  let verdict = "ok";
+  if (contradictions) verdict = "contradictory";
+  else if (antigoals) verdict = "nonsensical";
+  else if (classification.mixed) verdict = "mixed";
+  else if (classification.non_aws) verdict = "non_aws";
+
+  return {
+    score: score,
+    verdict: verdict,
+    contradictions: contradictions,
+    antigoals: antigoals,
+    nonAwsStatements: nonAwsStatements,
+    issues: issues.length
+  };
+}
+
 function severityRank(s) {
   return SEVERITY_WEIGHT[s] || 1;
 }
@@ -418,6 +585,15 @@ function computeConfidence(info) {
   else if (info.tokenCount < 8) score -= 8;
   if (info.mentioned + info.missing === 0) score -= 20;
   if (info.resources >= 2) score += 6;
+  // Contradictions and anti-goals mean the rule engine cannot trust the prompt,
+  // so the result must be gated behind a deep scan.
+  if (info.contradictions) score -= Math.min(38, info.contradictions * 13);
+  if (info.antigoals) score -= Math.min(24, info.antigoals * 10);
+  if (info.nonAwsStatements) score -= Math.min(15, info.nonAwsStatements * 6);
+  // A contradiction or anti-goal is a hard stop: never label the analysis
+  // high-confidence, even when the prompt is long and mentions many resources.
+  if (info.contradictions) score = Math.min(score, 44);
+  if (info.antigoals) score = Math.min(score, 49);
   score = Math.max(5, Math.min(98, Math.round(score)));
   const label = score >= 75 ? "high" : score >= 45 ? "medium" : "low";
   return { score: score, label: label, needsDeepScan: score < 50 };
@@ -605,6 +781,29 @@ function analyze(prompt, options) {
 
   const resources = detectResources(expanded);
 
+  // Statement-level AWS / non-AWS audit + prompt-quality issues (contradictions,
+  // anti-goals, invalid designs). This is independent of the security scoring.
+  const statementAudit = classifyStatements(raw, requirements);
+  const awsClassification = summarizeStatements(statementAudit);
+  const promptIssues = detectPromptIssues(normalized);
+  const nonAwsStatements = statementAudit.filter(function (s) {
+    return s.verdict === "non_aws" || s.verdict === "mixed";
+  });
+  if (nonAwsStatements.length) {
+    promptIssues.push({
+      id: "non_aws_statement",
+      kind: "non_aws",
+      label: "Non-AWS statement(s) found",
+      severity: "medium",
+      description: "Some statements mention non-AWS providers or commands: " +
+        nonAwsStatements.map(function (s) { return s.nonAwsSignals[0] || s.text; }).join(", "),
+      fix: "Remove non-AWS instructions or move them to the matching provider; Vector only diagnoses AWS.",
+      evidence: nonAwsStatements.map(function (s) { return s.text; }).slice(0, 5),
+      source: "rule"
+    });
+  }
+  const sanity = computeSanity(promptIssues, awsClassification);
+
   // Scope guard: decide whether this is a cloud infrastructure prompt at all.
   // An ambiguous word alone ("a bucket of water") must NOT count, and off-topic
   // text must not be scored. In scope if any of:
@@ -683,6 +882,11 @@ function analyze(prompt, options) {
       confidence: "low",
       confidenceScore: 0,
       needsDeepScan: false,
+      requiresDeepScan: false,
+      promptIssues: promptIssues,
+      statementAudit: statementAudit,
+      awsClassification: awsClassification,
+      sanity: sanity,
       standards: STANDARDS.sources,
       dimensions: DIMENSIONS,
       stats: { resources: 0, mentioned: 0, missing: 0, risky: 0 }
@@ -848,6 +1052,27 @@ function analyze(prompt, options) {
     });
   }
 
+  // Prompt-quality issues: contradictions, anti-goals and invalid designs.
+  // They are merged into the risky findings so the UI/CLI always surfaces them.
+  const existingRiskyIds = new Set(riskyFindings.map((f) => f.id));
+  for (const issue of promptIssues) {
+    if (issue.kind === "non_aws") continue;
+    if (existingRiskyIds.has(issue.id)) continue;
+    existingRiskyIds.add(issue.id);
+    riskyFindings.push({
+      id: issue.id,
+      label: issue.label,
+      severity: issue.severity || "high",
+      weight: severityRank(issue.severity || "high") * (issue.kind === "contradiction" ? 1.5 : 1.2),
+      description: issue.description,
+      fix: issue.fix,
+      source: "rule",
+      contradiction: issue.kind === "contradiction",
+      kind: issue.kind,
+      evidence: issue.evidence || []
+    });
+  }
+
   // Intentional public READ (no public writes/deletes) is less severe than a
   // fully public bucket.
   for (const f of riskyFindings) {
@@ -895,7 +1120,10 @@ function analyze(prompt, options) {
     tokenCount: tokens.length,
     mentioned: mentioned.length,
     missing: missing.length,
-    resources: resources.length
+    resources: resources.length,
+    contradictions: sanity.contradictions,
+    antigoals: sanity.antigoals,
+    nonAwsStatements: sanity.nonAwsStatements
   });
   const totalControls = mentioned.length + missing.length;
   const coverageScore = totalControls ? Math.round((100 * mentioned.length) / totalControls) : 100;
@@ -932,6 +1160,21 @@ function analyze(prompt, options) {
   }
   if (conflictLabels.length) {
     feedback.push("Conflicting requirements detected: " + conflictLabels.join(", ") + ". Resolve these before generating code.");
+  }
+  if (sanity.contradictions || sanity.antigoals) {
+    feedback.push(
+      "Prompt quality: " + sanity.verdict + " (" + sanity.issues + " issue(s)). " +
+      "Resolve the contradictory or anti-goal instructions before generating infrastructure."
+    );
+  }
+  if (sanity.nonAwsStatements) {
+    feedback.push(
+      "AWS/non-AWS audit: " + sanity.nonAwsStatements + " statement(s) mention non-AWS providers or commands. " +
+      "Vector diagnoses AWS only - remove or separate those statements."
+    );
+  }
+  if (sanity.verdict !== "ok") {
+    feedback.push("Deep scan is required before the full result is shown.");
   }
   if (!missing.length && !riskyFindings.length) {
     feedback.push("No missing security constraints detected for the recognised resources. Review organisation-specific rules.");
@@ -975,6 +1218,13 @@ function analyze(prompt, options) {
     // (coverage < 50%). The second condition also covers the case where a
     // resource IS recognised but a control is paraphrased and missed.
     needsDeepScan: confidence.needsDeepScan || coverageScore < 50,
+    // Hard gate: low confidence or a contradictory/nonsensical/non-AWS prompt
+    // must be deep-scanned before the client shows the full report.
+    requiresDeepScan: confidence.needsDeepScan || sanity.verdict !== "ok",
+    promptIssues: promptIssues,
+    statementAudit: statementAudit,
+    awsClassification: awsClassification,
+    sanity: sanity,
     standards: STANDARDS.sources,
     dimensions: DIMENSIONS,
     stats: {
@@ -1059,6 +1309,26 @@ function mergeFindings(report, external) {
     });
   }
 
+  // Deep-scan prompt-quality issues (contradictions / nonsense) are surfaced as
+  // risky findings so every client displays them.
+  for (const issue of external.promptIssues || []) {
+    if (!issue || !issue.label) continue;
+    const key = canonicalFindingLabel(issue.label);
+    if (seenRisky.has(key)) continue;
+    seenRisky.add(key);
+    riskyFindings.push({
+      id: issue.id || "ai_issue_" + riskyFindings.length,
+      label: issue.label,
+      severity: issue.severity || "high",
+      weight: severityRank(issue.severity || "high") * 1.5,
+      description: issue.description || "Identified by deep scan.",
+      fix: issue.fix || issue.description || issue.label,
+      source: "ai",
+      contradiction: issue.kind === "contradiction",
+      kind: issue.kind || "issue"
+    });
+  }
+
   // The LLM may override a LOW-PRIORITY rule finding it judges already stated.
   // Core controls are never dropped on the model's word (safety first).
   const satisfiedLabels = new Set(
@@ -1085,11 +1355,36 @@ function mergeFindings(report, external) {
   missing.sort((a, b) => severityRank(b.severity) - severityRank(a.severity));
   riskyFindings.sort((a, b) => severityRank(b.severity) - severityRank(a.severity));
 
+  const mergedIssues = (report.promptIssues || []).slice();
+  for (const issue of external.promptIssues || []) {
+    if (!issue || !issue.label) continue;
+    if (mergedIssues.some((x) => canonicalFindingLabel(x.label) === canonicalFindingLabel(issue.label))) continue;
+    mergedIssues.push(issue);
+  }
+  const mergedContradictions = mergedIssues.filter((i) => i.kind === "contradiction").length;
+  const mergedAntigoals = mergedIssues.filter((i) => i.kind === "antigoal").length;
+  const mergedSanity = Object.assign({}, report.sanity || {}, {
+    contradictions: mergedContradictions,
+    antigoals: mergedAntigoals,
+    issues: mergedIssues.length,
+    verdict: mergedContradictions ? "contradictory" : mergedAntigoals ? "nonsensical" : (report.sanity && report.sanity.verdict) || "ok"
+  });
+  const mergedClassification = Object.assign({}, report.awsClassification || {});
+  if (external.awsVerdict) mergedClassification.verdict = external.awsVerdict;
+
   const merged = Object.assign({}, report, {
     missing,
     mentioned,
     riskyFindings,
-    overridden
+    overridden,
+    promptIssues: mergedIssues,
+    statementAudit: (external.statementAudit && external.statementAudit.length)
+      ? external.statementAudit
+      : report.statementAudit,
+    awsClassification: mergedClassification,
+    sanity: mergedSanity,
+    // The deep scan has now run, so the gate can open.
+    requiresDeepScan: false
   });
   merged.stats = {
     resources: report.stats.resources,

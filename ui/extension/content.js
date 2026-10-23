@@ -97,6 +97,29 @@
     updateImproved();
   }
 
+  // Hide the rule-only report until the deep scan has run when the engine
+  // cannot trust the prompt (low confidence or quality issues).
+  function showGate() {
+    if (!report) return;
+    const provider = VectorLLM.localAvailable() || !!settings.apiKey;
+    const issues = (report.promptIssues || []).length;
+    panel.querySelector("#vector-improved-wrap").classList.add("hidden");
+    resultsEl.innerHTML =
+      '<div class="v-banner warn"><strong>Deep scan required.</strong> ' +
+      "Confidence " + report.confidenceScore + "%" +
+      (issues ? " and " + issues + " prompt-quality issue(s)" : "") +
+      ". Results are hidden until the deep scan finishes." +
+      (provider ? "" : "<br><span class=\"v-muted\">Enable the on-device model or add an API key in the extension Options.</span>") +
+      '<div class="v-header-actions v-bulk">' +
+      '<button class="v-btn primary" type="button" id="gate-scan">Run deep scan</button>' +
+      '<button class="v-btn ghost" type="button" id="gate-show">Show rule-only results</button>' +
+      "</div></div>";
+    const scan = resultsEl.querySelector("#gate-scan");
+    const show = resultsEl.querySelector("#gate-show");
+    if (scan) scan.addEventListener("click", deepScan);
+    if (show) show.addEventListener("click", function () { render(); });
+  }
+
   function analyze() {
     const text = readPrompt().trim();
     if (!text) {
@@ -108,20 +131,23 @@
     report = VectorSettings.analyze(text, settings);
     state.accepted = {};
     const willScan =
-      report.needsDeepScan && settings.autoDeepScan &&
+      (report.requiresDeepScan || report.needsDeepScan) && settings.autoDeepScan &&
       (VectorLLM.localAvailable() || !!settings.apiKey);
     // Security Delta against the last comparable snapshot.
     VectorSettings.getComparable(report).then(function (prev) {
       prevReport = prev;
       hadHistory = !!prev;
       VectorSettings.addHistory(report);
-      if (!willScan) render();
+      if (!willScan) {
+        if (report.requiresDeepScan) showGate();
+        else render();
+      }
     });
     if (willScan) {
       resultsEl.innerHTML = '<div class="v-busy">Analysing and deep scanning this prompt&hellip;</div>';
       panel.querySelector("#vector-improved-wrap").classList.add("hidden");
       deepScan();
-    } else {
+    } else if (!report.requiresDeepScan) {
       render();
     }
   }
@@ -141,7 +167,8 @@
       render();
     } catch (e) {
       report = base;
-      render();
+      if (base.requiresDeepScan) showGate();
+      else render();
     } finally {
       btn.disabled = false;
       btn.textContent = "Deep scan";

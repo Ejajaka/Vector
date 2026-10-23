@@ -830,6 +830,67 @@ test("resources: 'website images' is storage, not EC2/ALB", () => {
   assert.ok(!ids.includes("load_balancer"));
 });
 
+// ---- Prompt sanity / AWS-vs-non-AWS audit ----
+test("sanity: contradictory prompt is flagged and gated", () => {
+  const r = analyze(
+    "Create an S3 bucket. Block all public access but allow anonymous uploads through a public endpoint. " +
+    "Force HTTPS while permitting HTTP requests."
+  );
+  assert.ok(r.promptIssues.some((i) => i.kind === "contradiction"), "expected a contradiction");
+  assert.strictEqual(r.sanity.verdict, "contradictory");
+  assert.strictEqual(r.requiresDeepScan, true);
+  assert.ok(r.confidenceScore < 50, "contradictions should lower confidence");
+});
+
+test("sanity: anti-goals are flagged as nonsensical", () => {
+  const r = analyze(
+    "Create an S3 bucket. Optimize for maximum cost, minimum availability, " +
+    "zero consistency, and unpredictable access control."
+  );
+  assert.ok(r.promptIssues.some((i) => i.kind === "antigoal"), "expected anti-goals");
+  assert.strictEqual(r.sanity.verdict, "nonsensical");
+  assert.strictEqual(r.requiresDeepScan, true);
+});
+
+test("audit: AWS and non-AWS statements are classified", () => {
+  const r = analyze(
+    "Create an S3 bucket in AWS. Deploy an Azure Blob Storage account. Use gcloud to list buckets."
+  );
+  assert.strictEqual(r.awsClassification.verdict, "mixed");
+  assert.ok(r.statementAudit.some((s) => s.verdict === "aws"), "expected an AWS statement");
+  assert.ok(r.statementAudit.some((s) => s.verdict === "non_aws"), "expected a non-AWS statement");
+  assert.ok(r.promptIssues.some((i) => i.kind === "non_aws"), "expected a non-AWS issue");
+});
+
+test("deep scan: parser returns statement audit and prompt issues", () => {
+  const parsed = VectorLLMTests.parseFindings(JSON.stringify({
+    awsVerdict: "mixed",
+    statementAudit: [
+      { text: "Create an S3 bucket", verdict: "aws", reason: "AWS resource" },
+      { text: "Deploy an Azure VM", verdict: "non_aws", reason: "Azure" }
+    ],
+    contradictions: [{ label: "public vs private", description: "conflict", fix: "pick one" }],
+    nonsense: [{ label: "maximum cost", description: "anti-goal", fix: "optimise cost" }],
+    missing: [], risky: [], satisfied: []
+  }));
+  assert.strictEqual(parsed.awsVerdict, "mixed");
+  assert.strictEqual(parsed.statementAudit.length, 2);
+  assert.strictEqual(parsed.promptIssues.length, 2);
+  assert.strictEqual(parsed.clean, false);
+});
+
+test("deep scan: merge clears the gate and surfaces AI prompt issues", () => {
+  const base = analyze("Create an S3 bucket. Optimize for maximum cost.");
+  assert.strictEqual(base.requiresDeepScan, true);
+  const merged = require("../src/analyzer").mergeFindings(base, {
+    missing: [], risky: [], satisfied: [], awsVerdict: "aws",
+    promptIssues: [{ id: "ai_issue", kind: "antigoal", label: "AI anti-goal", description: "bad", fix: "fix it" }]
+  });
+  assert.strictEqual(merged.requiresDeepScan, false);
+  assert.ok(merged.promptIssues.some((i) => i.label === "AI anti-goal"));
+  assert.ok(merged.riskyFindings.some((f) => f.label === "AI anti-goal"));
+});
+
 (async function run() {
   for (const t of queue) {
     try {

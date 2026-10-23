@@ -87,7 +87,7 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({
       // combined answer once (never show rule-only results first).
       if (
         settings.autoDeepScan &&
-        report.needsDeepScan &&
+        (report.requiresDeepScan || report.needsDeepScan) &&
         defaultAnalyzer.isDeepScanAvailable()
       ) {
         setOriginalResult(null);

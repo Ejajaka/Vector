@@ -924,6 +924,154 @@ const RISKY_PATTERNS = [
   }
 ];
 
+/**
+ * Contradictory instruction pairs. Both sides must be stated positively (a
+ * negated mention does not count) for the prompt to be flagged.
+ */
+const CONFLICT_RULES = [
+  {
+    id: "contradiction_public_access",
+    label: "Conflicting requirements: public access",
+    a: "block (all )?public access|keep (the )?(bucket|storage|data) private|private (s3 )?bucket",
+    b: "publicly accessible|public endpoint|anonymous (uploads?|access)|allow public (read|write|access)|public (website|web) (images?|content)",
+    description: "The prompt asks for private/blocked public access and also asks for a public or anonymous path.",
+    fix: "Choose one access model: fully private, or explicitly public with a reviewed allow-list."
+  },
+  {
+    id: "contradiction_https_http",
+    label: "Conflicting requirements: HTTPS vs HTTP",
+    a: "force (https|tls)|require (https|tls)|https only|tls only",
+    b: "(allow|permit|accept) (http|plaintext)|http requests?|plain ?text",
+    description: "The prompt requires HTTPS/TLS but also permits plain HTTP.",
+    fix: "Require HTTPS/TLS and redirect or reject all plaintext HTTP traffic."
+  },
+  {
+    id: "contradiction_cloudtrail_self_log",
+    label: "Conflicting requirements: audit log destination",
+    a: "cloudtrail|audit logging|enable logging",
+    b: "log(s)? (to|into) the (same )?(audited )?bucket|send logs? to the (audited|same) bucket|logs? bucket being audited",
+    description: "CloudTrail is enabled but its logs are sent to the bucket being audited, so an attacker can erase the evidence.",
+    fix: "Send audit logs to a separate, write-only log-archive account and bucket."
+  },
+  {
+    id: "contradiction_backup_delete",
+    label: "Conflicting requirements: backups deleted before completion",
+    a: "backup|backups|snapshot",
+    b: "delete (the )?backups? before|backups? (are )?deleted before|remove backups? before (they )?(complete|finish)",
+    description: "The prompt configures backups but deletes them before they can complete.",
+    fix: "Keep backups until completion and retain them for the required recovery window."
+  },
+  {
+    id: "contradiction_versioning_delete",
+    label: "Conflicting requirements: retention vs immediate deletion",
+    a: "versioning|object lock|retain (objects|versions)|indefinitely",
+    b: "delete (all )?(objects|versions) immediately|lifecycle[^.]{0,40}delete|expire (all )?(objects|versions) immediately",
+    description: "The prompt enables retention/versioning while also deleting all objects immediately.",
+    fix: "Choose a retention period; do not combine indefinite retention with immediate deletion."
+  },
+  {
+    id: "contradiction_recovery_prevent",
+    label: "Conflicting requirements: recovery vs preventing restoration",
+    a: "automatic recovery|restore deleted|disaster recovery|recovery",
+    b: "prevent (restoration|recovery)|disable (restoration|recovery)|block (restoration|recovery)",
+    description: "The prompt asks for automatic recovery while also preventing restoration.",
+    fix: "Keep recovery enabled and remove the instruction that blocks restoration."
+  },
+  {
+    id: "contradiction_key_revoke",
+    label: "Conflicting requirements: encryption keys revoked",
+    a: "encrypt|kms|encryption key",
+    b: "revoke (the )?keys?|delete (the )?keys? every|rotate and revoke|randomly revoke",
+    description: "The prompt encrypts data with KMS keys but also revokes those keys, which makes the data unreadable.",
+    fix: "Rotate keys on a controlled schedule and do not revoke keys that active data depends on."
+  },
+  {
+    id: "contradiction_residency",
+    label: "Conflicting requirements: data residency",
+    a: "multiple jurisdictions|across .{0,30}jurisdictions|global data|all jurisdictions",
+    b: "without (defining )?data residency|no data residency|ignore data residency",
+    description: "The prompt stores data across jurisdictions while explicitly leaving residency undefined.",
+    fix: "Define approved jurisdictions and data-residency requirements before storing regulated data."
+  }
+];
+
+/** Instructions that are anti-goals or architecturally nonsensical. */
+const ANTI_GOAL_PATTERNS = [
+  {
+    id: "antigoal_max_cost",
+    label: "Anti-goal: maximum cost",
+    pattern: "maximi[sz]e (the )?cost|maximum cost|most expensive|cost is no object",
+    description: "The prompt optimises for maximum cost, which conflicts with normal cloud design.",
+    fix: "Optimise for the lowest cost that still meets availability and security requirements."
+  },
+  {
+    id: "antigoal_min_availability",
+    label: "Anti-goal: minimum availability",
+    pattern: "minimum availability|zero availability|lowest availability|least available",
+    description: "The prompt asks for minimum availability, which is the opposite of a resilient design.",
+    fix: "Target high availability across at least two Availability Zones."
+  },
+  {
+    id: "antigoal_zero_consistency",
+    label: "Anti-goal: zero consistency",
+    pattern: "zero consistency|no consistency|least consistent|inconsistent data",
+    description: "The prompt asks for zero data consistency, which is not a usable data model.",
+    fix: "Choose the consistency model the application actually needs (strong or eventual)."
+  },
+  {
+    id: "antigoal_unpredictable_access",
+    label: "Anti-goal: unpredictable access control",
+    pattern: "unpredictable (access|permissions)|random (access|permissions)|nondeterministic access",
+    description: "The prompt asks for unpredictable access control, which makes security impossible to reason about.",
+    fix: "Define deterministic, least-privilege access rules."
+  },
+  {
+    id: "antigoal_disable_monitoring",
+    label: "Anti-goal: monitoring disabled",
+    pattern: "disable (monitoring|alerts)|turn off (monitoring|alerts)|no monitoring|without monitoring",
+    description: "The prompt explicitly disables monitoring or alerts.",
+    fix: "Keep monitoring and alerting enabled, with actionable alarms."
+  },
+  {
+    id: "antigoal_unapproved_regions",
+    label: "Anti-goal: unapproved regions",
+    pattern: "unapproved regions|unsanctioned regions|prohibited regions|forbidden regions",
+    description: "The prompt explicitly deploys to regions that are not approved.",
+    fix: "Deploy only to approved regions that satisfy policy and residency requirements."
+  },
+  {
+    id: "antigoal_overlapping_vpc",
+    label: "Invalid design: overlapping VPCs",
+    pattern: "overlapping vpcs?|conflicting cidr|overlapping cidr",
+    description: "Overlapping VPC CIDR ranges cannot be peered or routed cleanly.",
+    fix: "Allocate non-overlapping CIDR ranges for every VPC."
+  },
+  {
+    id: "antigoal_replication_loop",
+    label: "Invalid design: replication loop",
+    pattern: "replicat\\w+ .{0,40}(each other|in a loop)|replication loop|continuous loop",
+    description: "A bidirectional replication loop causes unbounded writes and conflicts.",
+    fix: "Use one-way replication with an explicit source and destination."
+  }
+];
+
+/** Non-AWS commands and provider terms used to classify prompt statements. */
+const NON_AWS_COMMANDS = [
+  "\\bgcloud\\b", "\\bgsutil\\b", "\\baz\\s+(vm|storage|group|aks|network|account|ad|keyvault)",
+  "\\bkubectl\\b", "\\bhelm\\b", "\\bdocker\\b", "\\bpodman\\b",
+  "\\bazure\\b", "\\bgcp\\b", "\\bgoogle cloud\\b", "\\balibaba cloud\\b",
+  "\\boracle cloud\\b", "\\bdigitalocean\\b"
+];
+
+/** Terms that indicate a statement is about AWS. */
+const AWS_SIGNAL_TERMS = [
+  "aws", "amazon", "s3", "ec2", "rds", "iam", "kms", "vpc", "cloudtrail",
+  "cloudwatch", "lambda", "dynamodb", "sns", "sqs", "eks", "ecs", "fargate",
+  "route ?53", "cloudfront", "waf", "guardduty", "security hub", "aws config",
+  "secrets manager", "acm", "elb", "alb", "nlb", "nat gateway", "subnet",
+  "security group", "object lock", "terraform", "cloudformation"
+];
+
 const STANDARDS = {
   sources: [
     "CIS AWS Foundations Benchmark v3.0",
@@ -952,6 +1100,10 @@ const VectorTaxonomy = {
   SYNONYMS,
   NEGATION_WORDS,
   RISKY_PATTERNS,
+  CONFLICT_RULES,
+  ANTI_GOAL_PATTERNS,
+  NON_AWS_COMMANDS,
+  AWS_SIGNAL_TERMS,
   STANDARDS
 };
 
