@@ -1,0 +1,335 @@
+"use strict";
+
+/**
+ * Vector optional "deep scan".
+ *
+ * Two ways to run it:
+ *   1. Hosted API - OpenAI-compatible endpoint. Needs an API key.
+ *   2. On-device  - Chrome's built-in model (Gemini Nano). No API key, no network.
+ *
+ * A configured hosted key always wins: the browser may expose a LanguageModel
+ * object whose service is not actually running, and waiting on it would hang.
+ *
+ * Either way we only ASK an existing model for controls we may have missed and
+ * merge the answer back in. We never train or ship our own model.
+ */
+
+(function (root) {
+  // Shared instruction for both providers.
+  const SYSTEM_PROMPT =
+    "You are an AWS cloud security reviewer and prompt auditor. " +
+    "First audit every statement in the prompt: decide whether it is AWS, non-AWS, " +
+    "mixed, ambiguous, contradictory, or an anti-goal/infeasible instruction. " +
+    "Then list security controls that are MISSING from the prompt (do not repeat ones already stated). " +
+    "You may also be given a list of controls the rule engine flagged as missing; if the " +
+    "prompt actually satisfies any of them, list their EXACT labels in \"satisfied\". " +
+    "Flag contradictions (the prompt asks for X and not-X, e.g. block public access but allow anonymous uploads, " +
+    "force HTTPS but permit HTTP, versioning plus immediate deletion) and anti-goals " +
+    "(maximum cost, minimum availability, zero consistency, unpredictable access, disabling monitoring). " +
+    "Reply with STRICT JSON only: " +
+    '{"awsVerdict":"aws|non_aws|mixed|ambiguous",' +
+    '"statementAudit":[{"text":"","verdict":"aws|non_aws|mixed|ambiguous|contradictory|antigoal","reason":""}],' +
+    '"contradictions":[{"label":"","description":"","fix":""}],' +
+    '"nonsense":[{"label":"","description":"","fix":""}],' +
+    '"missing":[{"label":"","severity":"high|medium|low","description":"","clause":""}],' +
+    '"risky":[{"label":"","severity":"high|medium|low","description":"","fix":""}],' +
+    '"satisfied":["exact label from the supplied rule list"]}. ' +
+    "If nothing is missing, risky, contradictory or nonsensical, return empty arrays. " +
+    "At most 20 statementAudit entries, 8 contradictions, 8 nonsense, 10 missing, 5 risky and 10 satisfied. " +
+    "Each missing clause and fix is one imperative sentence. " +
+    "If the prompt is not about AWS at all, set awsVerdict to non_aws and explain in nonsense. " +
+    "Do not recommend TLS for SSH: SSH is its own encrypted protocol; recommend trusted source IPs or AWS Systems Manager Session Manager instead.";
+
+  function userMessage(prompt, ruleReport) {
+    let msg = "Infrastructure prompt:\n\n" + String(prompt || "");
+    const labels = ((ruleReport && ruleReport.missing) || [])
+      .map((m) => m && m.label)
+      .filter(Boolean);
+    if (labels.length) {
+      msg +=
+        "\n\nThe rule engine flagged these exact controls as missing:\n" +
+        labels.map((l) => "- " + l).join("\n") +
+        "\n\nIf the prompt already satisfies any of these exact labels, list those labels in \"satisfied\". " +
+        "Only include a label when you are confident.";
+    }
+    const issues = (ruleReport && ruleReport.promptIssues) || [];
+    if (issues.length) {
+      msg +=
+        "\n\nThe rule engine found these prompt-quality warnings (validate or correct them):\n" +
+        issues.slice(0, 12).map((i) => "- [" + (i.kind || "issue") + "] " + i.label).join("\n");
+    }
+    const audit = (ruleReport && ruleReport.statementAudit) || [];
+    if (audit.length) {
+      msg +=
+        "\n\nRule-based statement audit (re-check each):\n" +
+        audit.slice(0, 20).map((s) => "- [" + s.verdict + "] " + s.text).join("\n");
+    }
+    return msg;
+  }
+
+  function normSeverity(s) {
+    const v = String(s || "").toLowerCase();
+    return v === "high" || v === "medium" || v === "low" ? v : "medium";
+  }
+
+  // Turn the model's text output into { missing, risky } (tolerant of extra prose).
+  function parseFindings(text) {
+    const match = String(text || "").match(/\{[\s\S]*\}/);
+    if (!match) throw new Error("Model returned no JSON.");
+    let data;
+    try {
+      data = JSON.parse(match[0]);
+    } catch (firstError) {
+      // Some compatible gateways still add trailing commas or raw control
+      // characters despite JSON mode. Repair only those unambiguous cases;
+      // never guess at broken quoted content.
+      const repaired = match[0]
+        .replace(/,\s*([}\]])/g, "$1")
+        .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, " ");
+      try {
+        data = JSON.parse(repaired);
+      } catch (secondError) {
+        throw new Error("Model returned invalid JSON. Run Deep Scan again or choose another model.");
+      }
+    }
+
+    const missing = (Array.isArray(data.missing) ? data.missing : [])
+      .filter((m) => m && m.label)
+      .slice(0, 10)
+      .map((m) => ({
+        label: String(m.label),
+        severity: normSeverity(m.severity),
+        description: String(m.description || "Identified by deep scan."),
+        clause: String(m.clause || m.description || m.label),
+        source: "ai"
+      }));
+
+    const risky = (Array.isArray(data.risky) ? data.risky : [])
+      .filter((r) => r && r.label)
+      .slice(0, 5)
+      .map((r) => ({
+        label: String(r.label),
+        severity: normSeverity(r.severity),
+        description: String(r.description || "Identified by deep scan."),
+        fix: String(r.fix || r.description || r.label),
+        source: "ai"
+      }));
+
+    // The model is told to return empty arrays when nothing is missing.
+    // Mark that as "clean" so the UI can say "no issues" rather than showing
+    // an empty, confusing report.
+    const satisfied = (Array.isArray(data.satisfied) ? data.satisfied : [])
+      .map((s) => (typeof s === "string" ? s : s && s.label))
+      .filter(Boolean)
+      .map((s) => String(s))
+      .slice(0, 10);
+
+    const allowedVerdicts = ["aws", "non_aws", "mixed", "ambiguous", "contradictory", "antigoal"];
+    const statementAudit = (Array.isArray(data.statementAudit) ? data.statementAudit : [])
+      .filter((s) => s && (s.text || s.statement))
+      .slice(0, 20)
+      .map((s) => {
+        const verdict = String(s.verdict || "ambiguous").toLowerCase().replace(/[-\s]+/g, "_");
+        return {
+          text: String(s.text || s.statement || ""),
+          verdict: allowedVerdicts.indexOf(verdict) === -1 ? "ambiguous" : verdict,
+          reason: String(s.reason || "")
+        };
+      });
+
+    const asIssues = (arr, kind) =>
+      (Array.isArray(arr) ? arr : [])
+        .filter((x) => x && (x.label || x.description))
+        .slice(0, 8)
+        .map((x) => ({
+          id: "ai_" + kind + "_" + String(x.label || x.description).toLowerCase().replace(/[^a-z0-9]+/g, "_").slice(0, 40),
+          kind: kind,
+          label: String(x.label || "Deep-scan " + kind),
+          severity: normSeverity(x.severity || "high"),
+          description: String(x.description || "Identified by deep scan."),
+          fix: String(x.fix || x.clause || x.description || "Remove the conflicting instruction and state one clear requirement."),
+          source: "ai"
+        }));
+
+    const contradictions = asIssues(data.contradictions, "contradiction");
+    const nonsense = asIssues(data.nonsense, "antigoal");
+    const promptIssues = contradictions.concat(nonsense);
+
+    const rawVerdict = String(data.awsVerdict || "").toLowerCase().replace(/[-\s]+/g, "_");
+    const awsVerdict = ["aws", "non_aws", "mixed", "ambiguous"].indexOf(rawVerdict) === -1
+      ? null
+      : rawVerdict;
+
+    return {
+      missing: missing,
+      risky: risky,
+      satisfied: satisfied,
+      statementAudit: statementAudit,
+      promptIssues: promptIssues,
+      contradictions: contradictions,
+      nonsense: nonsense,
+      awsVerdict: awsVerdict,
+      clean: missing.length === 0 && risky.length === 0 &&
+        contradictions.length === 0 && nonsense.length === 0
+    };
+  }
+
+  // --- Tier 1: on-device (Chrome built-in AI), no key and no network ---
+  function localModel() {
+    if (typeof self === "undefined") return null;
+    return self.LanguageModel || (self.ai && self.ai.languageModel) || null;
+  }
+
+  function localAvailable() {
+    return !!localModel();
+  }
+
+  async function localDeepScan(prompt, ruleReport) {
+    const LM = localModel();
+    if (!LM) throw new Error("On-device model not available.");
+    if (LM.availability) {
+      const state = await LM.availability();
+      if (state === "unavailable") throw new Error("On-device model unavailable.");
+      if (state === "downloadable" && LM.create) {
+        // create() will trigger the one-time download.
+      }
+    }
+    const session = await LM.create({ systemPrompt: SYSTEM_PROMPT });
+    const text = await session.prompt(userMessage(prompt, ruleReport));
+    if (session.destroy) session.destroy();
+    return parseFindings(text);
+  }
+
+  // --- Tier 2: hosted API (OpenAI-compatible), needs a key ---
+  async function hostedDeepScan(prompt, settings, ruleReport) {
+    const apiKey = settings && settings.apiKey;
+    if (!apiKey) throw new Error("No API key set.");
+    let baseUrl = ((settings && settings.baseUrl) || "https://api.openai.com/v1").trim().replace(/\/+$/, "");
+    if (/generativelanguage\.googleapis\.com/.test(baseUrl) && !/\/openai$/.test(baseUrl)) {
+      baseUrl += "/openai";
+    }
+    const model = String((settings && settings.model) || "gpt-4o-mini")
+      .trim()
+      .replace(/^models\//, "");
+
+    // Google’s native endpoint avoids model-name translation errors from the
+    // OpenAI compatibility layer ("GenerateContentRequest.model").
+    if (/generativelanguage\.googleapis\.com/.test(baseUrl)) {
+      const nativeBase = baseUrl.replace(/\/openai$/, "");
+      const nativeRes = await fetch(
+        nativeBase + "/models/" + encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(apiKey),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+            contents: [{ role: "user", parts: [{ text: userMessage(prompt, ruleReport) }] }],
+            generationConfig: { temperature: 0, responseMimeType: "application/json" }
+          })
+        }
+      );
+      const nativeData = await nativeRes.json();
+      if (!nativeRes.ok) {
+        const detail = nativeData && nativeData.error && nativeData.error.message;
+        throw new Error("Deep scan failed (" + nativeRes.status + ")" + (detail ? ": " + detail : ""));
+      }
+      const nativeText = nativeData.candidates && nativeData.candidates[0] &&
+        nativeData.candidates[0].content && nativeData.candidates[0].content.parts &&
+        nativeData.candidates[0].content.parts.map((part) => part.text || "").join("");
+      return parseFindings(nativeText);
+    }
+
+    const requestBody = {
+      model: model,
+      temperature: 0,
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: userMessage(prompt, ruleReport) }
+      ]
+    };
+    if (/api\.groq\.com/.test(baseUrl)) {
+      requestBody.response_format = { type: "json_object" };
+    }
+
+    const postChat = () =>
+      fetch(baseUrl + "/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + apiKey },
+        body: JSON.stringify(requestBody)
+      });
+
+    let res = await postChat();
+    if (!res.ok) {
+      let rawError = "";
+      try {
+        rawError = await res.text();
+      } catch (e) {
+        /* ignore */
+      }
+      // Groq's constrained JSON decoder can reject a prompt outright with
+      // "Failed to generate JSON". Retry once without JSON mode and let the
+      // tolerant parser handle the prose-wrapped JSON.
+      if (
+        requestBody.response_format &&
+        res.status === 400 &&
+        /failed to generate json|failed_generation/i.test(rawError)
+      ) {
+        delete requestBody.response_format;
+        res = await postChat();
+        if (res.ok) {
+          const retryData = await res.json();
+          const retryText = retryData.choices && retryData.choices[0] &&
+            retryData.choices[0].message && retryData.choices[0].message.content;
+          return parseFindings(retryText);
+        }
+        try {
+          rawError = await res.text();
+        } catch (e) {
+          /* ignore */
+        }
+      }
+      let detail = "";
+      try {
+        const body = JSON.parse(rawError);
+        const err = Array.isArray(body) ? body[0] && body[0].error : body && body.error;
+        detail = (err && (err.message || err.status)) || "";
+      } catch (e) {
+        /* ignore */
+      }
+      let msg = "Deep scan failed (" + res.status + ")";
+      if (detail) msg += ": " + detail;
+      if (res.status === 404) {
+        msg += "  Check that the selected model is available for this provider and API key.";
+      }
+      throw new Error(msg);
+    }
+    const data = await res.json();
+    const text = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+    return parseFindings(text);
+  }
+
+  /**
+   * Run a deep scan. A configured hosted key takes priority; otherwise the free
+   * on-device model is used. Resolves to { findings, via }.
+   */
+  async function deepScan(prompt, settings, ruleReport) {
+    if (settings && settings.apiKey) {
+      return { findings: await hostedDeepScan(prompt, settings, ruleReport), via: "api" };
+    }
+    if (localAvailable()) {
+      return { findings: await localDeepScan(prompt, ruleReport), via: "on-device" };
+    }
+    throw new Error("Deep scan needs the on-device model or an API key.");
+  }
+
+  root.VectorLLM = {
+    deepScan: deepScan,
+    localDeepScan: localDeepScan,
+    localAvailable: localAvailable,
+    hostedDeepScan: hostedDeepScan,
+    parseFindings: parseFindings,
+    normSeverity: normSeverity,
+    SYSTEM_PROMPT: SYSTEM_PROMPT
+  };
+  if (typeof module !== "undefined" && module.exports) module.exports = root.VectorLLM;
+})(typeof globalThis !== "undefined" ? globalThis : this);

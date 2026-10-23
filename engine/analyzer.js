@@ -1,0 +1,1702 @@
+"use strict";
+
+(function (root) {
+/**
+ * Vector core analysis engine.
+ *
+ * Pipeline (rule-based NLP):
+ *   1. Normalise + tokenise the prompt
+ *   2. Expand everyday synonyms to canonical cloud nouns
+ *   3. Detect resources / intents            (lexicon + phrase NER)
+ *   4. Detect mentioned requirements         (pattern matching + negation guard)
+ *   5. Compute omissions against the taxonomy (set difference)
+ *   6. Detect explicitly risky statements     (negation aware)
+ *   7. Score risk, generate fillable recommendations
+ *
+ * Optionally merges findings from an external "deep scan" (LLM). Pure
+ * Node/browser JavaScript, no dependencies.
+ */
+
+const _VectorTaxonomy =
+  typeof module !== "undefined" && module.exports
+    ? require("./taxonomy")
+    : globalThis.VectorTaxonomy;
+
+const _VectorSemantic =
+  typeof module !== "undefined" && module.exports
+    ? require("./semantic")
+    : globalThis.VectorSemantic;
+
+const {
+  DIMENSIONS,
+  SEVERITY_WEIGHT,
+  REQUIREMENTS,
+  DEFAULT_REQUIRED,
+  RESOURCES,
+  SYNONYMS,
+  NEGATION_WORDS,
+  NON_AWS_TERMS,
+  CONTEXT_CUES,
+  ENV_FACTOR,
+  INFRA_TERMS,
+  STRONG_TERMS,
+  AMBIGUOUS_ALIASES,
+  RISKY_PATTERNS,
+  CONFLICT_RULES,
+  ANTI_GOAL_PATTERNS,
+  NON_AWS_COMMANDS,
+  AWS_SIGNAL_TERMS,
+  STANDARDS
+} = _VectorTaxonomy;
+
+const STOPWORDS = new Set([
+  "a", "an", "the", "and", "or", "for", "with", "to", "of", "in", "on", "at",
+  "is", "are", "be", "must", "should", "will", "that", "this", "it", "as",
+  "by", "we", "i", "need", "want", "please", "create", "set", "up", "using",
+  "use", "my", "our", "your", "from", "into", "so", "then", "also", "can"
+]);
+
+const RISK_LEVELS = [
+  { min: 75, level: "CRITICAL", color: "#B94D42" },
+  { min: 50, level: "HIGH", color: "#C05621" },
+  { min: 25, level: "MEDIUM", color: "#9E7D1B" },
+  { min: 1, level: "LOW", color: "#2E6F40" },
+  { min: 0, level: "MINIMAL", color: "#2E6F40" }
+];
+
+// How much each relevance tier contributes to the risk score. Clarifications
+// and optional hardening should not dominate the score the way confirmed
+// core gaps do.
+const TIER_MULT = { core: 1, clarify: 0.6, harden: 0.3 };
+
+const NEGATION_RE = new RegExp(
+  "\\b(" + NEGATION_WORDS.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") + ")\\b",
+  "i"
+);
+const NEGATION_RE_G = new RegExp(NEGATION_RE.source, "gi");
+const CLAUSE_SPLIT = /[.,;!?\n]|\b(?:and|but|or|then|so|while|however|except|unless|apart from|provided|assuming)\b/;
+
+function escapeRegExp(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function normalize(text) {
+  return String(text || "")
+    .replace(/\r\n/g, "\n")
+    .toLowerCase()
+    .replace(/\bunencrypted\b/g, " not encrypted")
+    .replace(/\bunsecured\b/g, " not secured")
+    .replace(/\bunauthorized\b/g, " unauthorized")
+    .replace(/[`"'’]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function tokenize(text) {
+  const normalized = normalize(text);
+  if (!normalized) return [];
+  return normalized
+    .split(/[^a-z0-9.\/]/g)
+    .filter((t) => t.length > 1 && !STOPWORDS.has(t));
+}
+
+/** Append canonical nouns for everyday synonyms so detection fires. */
+function expandSynonyms(text) {
+  let out = text;
+  // "website images/files/content" is storage content, not a hosted web tier.
+  // Only expand "website" to compute/load-balancer when it is being hosted.
+  const websiteIsContent =
+    /\bwebsite\b\s+(images?|files?|content|assets|media|photos|logos?|documents?)\b/i.test(text);
+  for (const s of SYNONYMS) {
+    if (s.id === "web_hosting") {
+      if (!websiteIsContent && s.test.test(text)) out += s.add;
+      continue;
+    }
+    if (s.test.test(text)) out += s.add;
+  }
+  return out;
+}
+
+function phrasePresent(haystack, phrase) {
+  const re = new RegExp("(^|[^a-z0-9])" + escapeRegExp(phrase) + "([^a-z0-9]|$)", "i");
+  return re.test(haystack);
+}
+
+// Some aliases are regex (e.g. "\\becr\\b", "route.?53"); plain ones are phrases.
+function isRegexAlias(alias) {
+  return /[\\^$.*+?()[\]{}|]/.test(alias);
+}
+
+function aliasMatches(haystack, alias) {
+  if (isRegexAlias(alias)) {
+    try {
+      return new RegExp(alias, "i").test(haystack);
+    } catch (e) {
+      return false;
+    }
+  }
+  return phrasePresent(haystack, alias);
+}
+
+function findMatches(text, patterns) {
+  const matches = [];
+  for (const p of patterns) {
+    let re;
+    try {
+      re = new RegExp(p, "gi");
+    } catch (e) {
+      continue;
+    }
+    let m;
+    while ((m = re.exec(text)) !== null) {
+      matches.push({ index: m.index, value: m[0] });
+      if (m.index === re.lastIndex) re.lastIndex++;
+    }
+  }
+  return matches;
+}
+
+/**
+ * True if the clause before the match contains an ODD number of negations
+ * (so "not not encrypted" is treated as positive, and "no public access and
+ * encryption" does not leak the "no" onto "encryption").
+ */
+function isNegatedBefore(text, index) {
+  const start = Math.max(0, index - 60);
+  const window = text.slice(start, index);
+  const parts = window.split(CLAUSE_SPLIT);
+  const clause = parts[parts.length - 1] || "";
+  const hits = clause.match(NEGATION_RE_G);
+  if (!hits || hits.length === 0) return false;
+  // "not without encryption" is a double negative and means the control IS
+  // required. Two adjacent negative words ("without unnecessary wildcards")
+  // are not a double negative; they strengthen the same restriction.
+  if (/\b(?:not|never)\s+without\b/i.test(clause)) return false;
+  return true;
+}
+
+/**
+ * True when the match sits inside a prohibition sentence/list, for example:
+ * "Do not introduce public storage, unrestricted access, or disabled logging."
+ * A negation word earlier in that list applies to every item, not just the
+ * first one, so a 60-character window is not enough.
+ */
+function isProhibitedPhrase(text, index) {
+  const start = Math.max(0, index - 400);
+  const window = text.slice(start, index);
+  const boundary = Math.max(
+    window.lastIndexOf("."),
+    window.lastIndexOf(";"),
+    window.lastIndexOf("\n")
+  );
+  const prefix = (boundary >= 0 ? window.slice(boundary + 1) : window).trim();
+  if (/^(?:please\s+)?(?:do not|don't|dont|must not|should not|never|avoid|prohibit|forbid|without)\b/i.test(prefix)) {
+    return true;
+  }
+  // "Restrict SSH ... and do not expose SSH to 0.0.0.0/0."
+  return /\b(?:do not|don't|dont|must not|should not|never)\b[^.;\n]{0,80}$/i.test(prefix);
+}
+
+/** True if the match is immediately followed by a disabling word ("logging disabled"). */
+function isNegatedAfter(text, index) {
+  const window = text.slice(index, index + 18);
+  const cut = window.search(CLAUSE_SPLIT);
+  const seg = cut >= 0 ? window.slice(0, cut) : window;
+  return /\b(disabled|off|turned off|not enabled|inactive)\b/.test(seg);
+}
+
+const INTENT_VERBS = [
+  ["deploy", /\b(deploy|provision|spin up|launch|host)\b/i],
+  ["create", /\b(create|build|set up|provision|make|add)\b/i],
+  ["store", /\b(store|save|persist|upload|host)\b/i],
+  ["allow", /\b(allow|permit|enable|open|expose|grant)\b/i],
+  ["restrict", /\b(restrict|deny|block|limit|disable|prevent)\b/i],
+  ["secure", /\b(secure|protect|encrypt|harden|comply|compliant)\b/i],
+  ["connect", /\b(connect|integrate|link|route|peer)\b/i],
+  ["backup", /\b(backup|snapshot|replicate|recover)\b/i],
+  ["monitor", /\b(monitor|alert|log|observe|audit|track)\b/i]
+];
+
+function detectIntents(text) {
+  const found = [];
+  for (const [name, re] of INTENT_VERBS) {
+    if (re.test(text)) found.push(name);
+  }
+  return found;
+}
+
+function detectResources(haystack) {
+  const found = [];
+  for (const res of RESOURCES) {
+    const hit = res.aliases.find((a) => aliasMatches(haystack, a));
+    if (hit) found.push({ id: res.id, label: res.label, matched: hit });
+  }
+  return pruneModifierResources(haystack, found);
+}
+
+/**
+ * Some "resources" are usually mentioned as a SETTING rather than as something
+ * to provision. "a private bucket encrypted with KMS" describes encryption;
+ * it is not a request for a standalone KMS key. Counting it as a resource both
+ * inflates the required-control set (hurting coverage) and makes prompt
+ * evolution non-comparable.
+ *
+ * A resource is dropped only when its alias appears purely as a modifier
+ * ("with/using/via KMS", "KMS encryption") AND there is no provisioning verb
+ * or explicit key/customer-managed-key wording nearby.
+ */
+const MODIFIER_ONLY = ["kms", "secrets"];
+
+function pruneModifierResources(haystack, found) {
+  return found.filter(function (r) {
+    if (MODIFIER_ONLY.indexOf(r.id) === -1) return true;
+    const alias = r.matched;
+    // explicit provisioning: "create a kms key", "using customer managed key"
+    const provisioning = new RegExp(
+      "\\b(create|provision|generate|make|set up|new|dedicated|standalone|separate)\\b[^.\\n,;]{0,30}\\b" +
+        "(" + alias + "|kms key|cmk|customer[- ]managed key|secret store|secret manager)\\b",
+      "i"
+    ).test(haystack);
+    if (provisioning) return true;
+    // a plain "KMS key" / "customer managed key" phrase is itself a resource ask
+    const keyPhrase = /\b(kms key|customer[- ]managed key|\bcmk\b)/i.test(haystack);
+    if (keyPhrase) return true;
+    // otherwise it is a modifier ("encrypted with KMS") -> not a resource
+    return false;
+  });
+}
+
+/**
+ * Light morphological stemmer: strips common inflectional suffixes so
+ * "rotate / rotating / rotated / rotation" collapse to the same stem.
+ * Deliberately conservative (3 passes, length guards) to avoid over-stemming.
+ */
+function stem(word) {
+  let s = String(word || "").toLowerCase();
+  for (let i = 0; i < 3; i++) {
+    const before = s;
+    if (s.length > 5 && s.endsWith("ation")) s = s.slice(0, -5) + "ate";
+    else if (s.length > 4 && s.endsWith("ies")) s = s.slice(0, -3) + "y";
+    else if (s.length > 5 && s.endsWith("ing")) s = s.slice(0, -3);
+    else if (s.length > 4 && s.endsWith("ed")) s = s.slice(0, -2);
+    else if (s.length > 4 && s.endsWith("es")) s = s.slice(0, -2);
+    else if (s.length > 4 && s.endsWith("ion")) s = s.slice(0, -3);
+    else if (s.length > 3 && s.endsWith("s") && !s.endsWith("ss")) s = s.slice(0, -1);
+    else if (s.length > 4 && s.endsWith("e")) s = s.slice(0, -1);
+    if (s === before) break;
+  }
+  return s;
+}
+
+/** True if a and b differ by at most one edit (Levenshtein distance <= 1). */
+function withinOneEdit(a, b) {
+  if (a === b) return true;
+  const la = a.length;
+  const lb = b.length;
+  if (Math.abs(la - lb) > 1) return false;
+  let i = 0;
+  while (i < la && i < lb && a[i] === b[i]) i++;
+  if (la === lb) {
+    // one substitution, and the rest must match
+    return a.slice(i + 1) === b.slice(i + 1);
+  }
+  // one insertion/deletion
+  return la > lb ? a.slice(i + 1) === b.slice(i) : a.slice(i) === b.slice(i + 1);
+}
+
+// Only patterns that are plain words/phrases (no regex metacharacters) are used
+// for the stemmed fallback; regex patterns are already handled directly.
+const PLAIN_PATTERN = /^[a-z0-9][a-z0-9 \-]*$/i;
+
+function phraseStems(req) {
+  if (req._stemPhrases) return req._stemPhrases;
+  const out = [];
+  for (const p of req.patterns || []) {
+    if (typeof p !== "string" || !PLAIN_PATTERN.test(p)) continue;
+    const words = p.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 2);
+    if (words.length) out.push(words.map(stem));
+  }
+  req._stemPhrases = out;
+  return out;
+}
+
+function stemTokenMatches(tokenStem, targetStem) {
+  if (tokenStem === targetStem) return true;
+  // Conservative fuzzy: one typo allowed only for reasonably long stems.
+  return targetStem.length >= 7 && withinOneEdit(tokenStem, targetStem);
+}
+
+/**
+ * Fallback matcher used only when the regex patterns found nothing: matches the
+ * stemmed words of plain patterns against the stemmed prompt tokens, allowing
+ * small gaps (e.g. "disks are encrypted" -> "disk encryption").
+ * Returns {index, value} like findMatches, or null.
+ */
+function stemMatch(requirement, text) {
+  const phrases = phraseStems(requirement);
+  if (!phrases.length) return null;
+  const low = text.toLowerCase();
+  const toks = [];
+  const re = /[a-z0-9]+/g;
+  let m;
+  while ((m = re.exec(low)) !== null) {
+    toks.push({ s: stem(m[0]), index: m.index, end: m.index + m[0].length });
+  }
+  if (!toks.length) return null;
+
+  for (const phrase of phrases) {
+    for (let i = 0; i < toks.length; i++) {
+      if (!stemTokenMatches(toks[i].s, phrase[0])) continue;
+      if (phrase.length === 1) {
+        return { index: toks[i].index, value: low.slice(toks[i].index, toks[i].end) };
+      }
+      // Word-order tolerant: every other stem must appear in a small window
+      // around the first match (e.g. "keys rotating" == "key rotation").
+      const lo = Math.max(0, i - 3);
+      const hi = Math.min(toks.length - 1, i + 3);
+      let all = true;
+      for (let k = 1; k < phrase.length; k++) {
+        let found = false;
+        for (let j = lo; j <= hi && !found; j++) {
+          if (j !== i && stemTokenMatches(toks[j].s, phrase[k])) found = true;
+        }
+        if (!found) { all = false; break; }
+      }
+      if (all) {
+        return { index: toks[lo].index, value: low.slice(toks[lo].index, toks[hi].end) };
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * @returns {{present:boolean, negated:boolean}} negated=true means the only
+ * mentions were explicitly negated (e.g. "do not encrypt").
+ */
+function detectRequirement(requirement, text) {
+  let matches = findMatches(text, requirement.patterns);
+  // Morphological fallback: only when no literal/regex mention was found.
+  if (matches.length === 0) {
+    const sm = stemMatch(requirement, text);
+    if (sm) matches = [sm];
+  }
+  if (matches.length === 0) return { present: false, negated: false, contradiction: false };
+
+  let positive = false;
+  let negatedAny = false;
+  for (const m of matches) {
+    const end = m.index + m.value.length;
+    // A prohibition is not a request that disables the control, so it must not
+    // create a contradiction (e.g. "Encrypt at rest ... do not disable encryption").
+    if (!requirement.negationSafe && isProhibitedPhrase(text, m.index)) continue;
+    if (!requirement.negationSafe && (isNegatedBefore(text, m.index) || isNegatedAfter(text, end))) {
+      negatedAny = true;
+      continue;
+    }
+    // e.g. encryption_at_rest must not be satisfied by "encryption in transit"
+    if (requirement.notAfter) {
+      const seg = text.slice(end, end + 20);
+      if (requirement.notAfter.some((p) => new RegExp(p, "i").test(seg))) continue;
+    }
+    positive = true;
+  }
+  return { present: positive, negated: !positive, contradiction: positive && negatedAny };
+}
+
+function safeRegExp(pattern) {
+  try {
+    return new RegExp(pattern, "i");
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Match a phrase only when it is actually requested. A negated/prohibited
+ * mention ("do not allow anonymous uploads") does not count.
+ */
+function positiveMatch(text, pattern) {
+  const re = safeRegExp(pattern);
+  if (!re) return null;
+  const m = re.exec(String(text || ""));
+  if (!m) return null;
+  const index = m.index || 0;
+  if (isNegatedBefore(text, index) || isProhibitedPhrase(text, index)) return null;
+  return m;
+}
+
+/** Split a prompt into sentence-ish statements for the AWS/non-AWS audit. */
+function splitStatements(text) {
+  return String(text || "")
+    .split(/[.!?]+\s+|\n+|;\s*/)
+    .map(function (s) { return s.trim(); })
+    .filter(function (s) { return s.length >= 8; });
+}
+
+/**
+ * Contradictory instructions, anti-goals and architecturally invalid requests.
+ * These are prompt-quality issues, separate from the security-control findings.
+ */
+function detectPromptIssues(text) {
+  const issues = [];
+
+  for (const rule of CONFLICT_RULES) {
+    const a = positiveMatch(text, rule.a);
+    const b = positiveMatch(text, rule.b);
+    if (a && b) {
+      issues.push({
+        id: rule.id,
+        kind: "contradiction",
+        label: rule.label,
+        severity: "high",
+        description: rule.description,
+        fix: rule.fix,
+        evidence: [a[0], b[0]],
+        source: "rule"
+      });
+    }
+  }
+
+  for (const rule of ANTI_GOAL_PATTERNS) {
+    const m = positiveMatch(text, rule.pattern);
+    if (m) {
+      issues.push({
+        id: rule.id,
+        kind: "antigoal",
+        label: rule.label,
+        severity: "high",
+        description: rule.description,
+        fix: rule.fix,
+        evidence: [m[0]],
+        source: "rule"
+      });
+    }
+  }
+
+  return issues;
+}
+
+/** Classify each statement as AWS, non-AWS, mixed, contradictory or ambiguous. */
+function classifyStatements(raw, requirements) {
+  return splitStatements(raw).map(function (statement) {
+    const nonAwsHits = NON_AWS_TERMS.concat(NON_AWS_COMMANDS).filter(function (t) {
+      const re = safeRegExp(t);
+      return re && re.test(statement);
+    });
+    const awsHits = AWS_SIGNAL_TERMS.filter(function (t) {
+      const re = safeRegExp("(^|[^a-z0-9])" + t + "([^a-z0-9]|$)");
+      return re && re.test(statement);
+    });
+    const resourceHits = detectResources(statement);
+    const controlHits = requirements.filter(function (req) {
+      return detectRequirement(req, statement).present;
+    });
+    const statementIssues = detectPromptIssues(statement);
+    const contradiction = statementIssues.find(function (i) { return i.kind === "contradiction"; });
+    const antiGoal = statementIssues.find(function (i) { return i.kind === "antigoal"; });
+
+    let verdict = "ambiguous";
+    let reason = "No AWS or non-AWS signal was recognised.";
+    if (contradiction) {
+      verdict = "contradictory";
+      reason = contradiction.label;
+    } else if (antiGoal) {
+      verdict = "antigoal";
+      reason = antiGoal.label;
+    } else if (nonAwsHits.length && (awsHits.length || resourceHits.length || controlHits.length)) {
+      verdict = "mixed";
+      reason = "Mentions both AWS and non-AWS services.";
+    } else if (nonAwsHits.length) {
+      verdict = "non_aws";
+      reason = "Mentions a non-AWS provider or command (" + nonAwsHits[0] + ").";
+    } else if (awsHits.length || resourceHits.length || controlHits.length) {
+      verdict = "aws";
+      reason = "Mentions AWS resources or controls.";
+    }
+
+    return {
+      text: statement,
+      verdict: verdict,
+      reason: reason,
+      awsSignals: awsHits,
+      nonAwsSignals: nonAwsHits
+    };
+  });
+}
+
+function summarizeStatements(statements) {
+  const counts = { aws: 0, non_aws: 0, mixed: 0, ambiguous: 0, contradictory: 0, antigoal: 0 };
+  for (const s of statements) {
+    counts[s.verdict] = (counts[s.verdict] || 0) + 1;
+    const aws = !!(s.awsSignals && s.awsSignals.length);
+    const nonAws = !!(s.nonAwsSignals && s.nonAwsSignals.length);
+    if (aws && !nonAws) counts.aws++;
+    else if (nonAws && !aws) counts.non_aws++;
+    else if (aws && nonAws) counts.mixed++;
+  }
+  let verdict = "ambiguous";
+  if (counts.non_aws && (counts.aws || counts.mixed)) verdict = "mixed";
+  else if (counts.non_aws) verdict = "non_aws";
+  else if (counts.aws || counts.mixed) verdict = "aws";
+  return Object.assign({ verdict: verdict }, counts);
+}
+
+function computeSanity(issues, classification) {
+  const contradictions = issues.filter(function (i) { return i.kind === "contradiction"; }).length;
+  const antigoals = issues.filter(function (i) { return i.kind === "antigoal"; }).length;
+  const nonAwsStatements = (classification.non_aws || 0) + (classification.mixed || 0);
+  let score = 100 - contradictions * 15 - antigoals * 10;
+  if (classification.mixed) score -= 10;
+  if (classification.non_aws) score -= 15;
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  let verdict = "ok";
+  if (contradictions) verdict = "contradictory";
+  else if (antigoals) verdict = "nonsensical";
+  else if (classification.mixed) verdict = "mixed";
+  else if (classification.non_aws) verdict = "non_aws";
+
+  return {
+    score: score,
+    verdict: verdict,
+    contradictions: contradictions,
+    antigoals: antigoals,
+    nonAwsStatements: nonAwsStatements,
+    issues: issues.length
+  };
+}
+
+function severityRank(s) {
+  return SEVERITY_WEIGHT[s] || 1;
+}
+
+function riskLevelFromScore(score) {
+  return RISK_LEVELS.find((r) => score >= r.min) || RISK_LEVELS[RISK_LEVELS.length - 1];
+}
+
+/**
+ * How confident the RULE engine is that its analysis is complete for this
+ * prompt. Low confidence is the trigger for the optional AI deep scan.
+ */
+function computeConfidence(info) {
+  let score = info.baselineOnly ? 34 : 78;
+  if (info.tokenCount < 4) score -= 22;
+  else if (info.tokenCount < 8) score -= 8;
+  if (info.mentioned + info.missing === 0) score -= 20;
+  if (info.resources >= 2) score += 6;
+  // Contradictions and anti-goals mean the rule engine cannot trust the prompt,
+  // so the result must be gated behind a deep scan.
+  if (info.contradictions) score -= Math.min(38, info.contradictions * 13);
+  if (info.antigoals) score -= Math.min(24, info.antigoals * 10);
+  if (info.nonAwsStatements) score -= Math.min(15, info.nonAwsStatements * 6);
+  // A contradiction or anti-goal is a hard stop: never label the analysis
+  // high-confidence, even when the prompt is long and mentions many resources.
+  if (info.contradictions) score = Math.min(score, 44);
+  if (info.antigoals) score = Math.min(score, 49);
+  score = Math.max(5, Math.min(98, Math.round(score)));
+  const label = score >= 75 ? "high" : score >= 45 ? "medium" : "low";
+  return { score: score, label: label, needsDeepScan: score < 50 };
+}
+
+function applyPolicy(requirements, risky, policy) {
+  const reqs = requirements.map((r) => Object.assign({}, r, { patterns: r.patterns.slice() }));
+  const outRisky = risky.slice();
+
+  if (!policy) return { requirements: reqs, risky: outRisky };
+
+  if (Array.isArray(policy.requirements)) {
+    for (const custom of policy.requirements) {
+      if (!custom || !custom.id) continue;
+      reqs.push({
+        id: custom.id,
+        label: custom.label || custom.id,
+        dimension: custom.dimension || "governance",
+        severity: custom.severity || "high",
+        description: custom.description || "Custom organisation policy requirement.",
+        clause: custom.clause || custom.description || custom.label,
+        standards: custom.standards || ["Organisation policy"],
+        patterns: custom.patterns || [],
+        alwaysRequired: custom.alwaysRequired !== false,
+        custom: true
+      });
+    }
+  }
+
+  if (Array.isArray(policy.riskyPatterns)) {
+    for (const rp of policy.riskyPatterns) {
+      if (!rp || !rp.pattern) continue;
+      outRisky.push({
+        id: rp.id || "policy_" + outRisky.length,
+        pattern: rp.pattern,
+        label: rp.label || "Policy violation",
+        severity: rp.severity || "high",
+        description: rp.description || "Violates an organisation policy rule.",
+        fix: rp.fix || rp.description || "Revise the prompt to comply with policy."
+      });
+    }
+  }
+
+  return { requirements: reqs, risky: outRisky };
+}
+
+function dedupeRiskyFindings(text, risky) {
+  const seen = new Map();
+  for (const rp of risky) {
+    let re;
+    try {
+      re = new RegExp(rp.pattern, "gi");
+    } catch (e) {
+      continue;
+    }
+    let m;
+    let matched = false;
+    while ((m = re.exec(text)) !== null) {
+      if (m.index === re.lastIndex) re.lastIndex++;
+      if (isProhibitedPhrase(text, m.index)) continue;
+      if (isNegatedBefore(text, m.index)) continue;
+      // "database with no public endpoint" is a safe restriction, not exposure.
+      if (/\b(no|not|non[- ]?|without)\b[^.]{0,25}\b(public|internet)\b/i.test(m[0])) continue;
+      matched = true;
+      break;
+    }
+    if (matched && !seen.has(rp.id)) {
+      seen.set(rp.id, {
+        id: rp.id,
+        label: rp.label,
+        severity: rp.severity,
+        weight: severityRank(rp.severity) * 1.5,
+        description: rp.description,
+        fix: rp.fix,
+        source: "rule"
+      });
+    }
+  }
+  return Array.from(seen.values());
+}
+
+function computeRisk(relevantCounts, findings) {
+  // Risk reflects missing CORE controls plus risky statements. Clarify/harden
+  // gaps still reduce coverage, but must not make a largely secure prompt look
+  // dangerous (the old formula counted every optional gap as risk).
+  const core = relevantCounts.filter((x) => (x.tier || "clarify") === "core");
+  const list = core.length ? core : relevantCounts;
+  let missingWeight = 0;
+  let maxWeight = 0;
+  for (const item of list) {
+    maxWeight += item.weight;
+    if (item.missing) missingWeight += item.weight;
+  }
+  const ratio = missingWeight / Math.max(1, maxWeight);
+  let score = 100 * Math.pow(ratio, 1.4);
+  let riskyWeight = 0;
+  const countedRiskGroups = new Set();
+  for (const f of findings) {
+    const group = riskGroup(f);
+    if (group && countedRiskGroups.has(group)) continue;
+    if (group) countedRiskGroups.add(group);
+    riskyWeight += severityRank(f.severity) * 1.5;
+  }
+  const riskyBump = Math.min(55, riskyWeight * 9);
+  return Math.min(100, Math.round(score + riskyBump));
+}
+
+function canonicalFindingLabel(label) {
+  const compact = String(label || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (/hardcoded(credential|secret)s?/.test(compact)) return "hardcodedcredentials";
+  if (/unencrypteddata|disableencryption/.test(compact)) return "encryptiondisabled";
+  if (/disablecloudtrail|loggingdisabled/.test(compact)) return "loggingdisabled";
+  if (/wildcard.*iam|iam.*wildcard/.test(compact)) return "wildcardiam";
+  return compact;
+}
+
+function riskGroup(finding) {
+  const id = String(finding && finding.id || "").toLowerCase();
+  const text = String(finding && (finding.label || finding.description) || "").toLowerCase();
+  if (id === "hardcoded_secret" || /hard[- ]?coded credentials?/.test(text)) return "hardcoded_credentials";
+  if (id === "no_encryption" || /unencrypted data|disable encryption/.test(text)) return "encryption_disabled";
+  if (id === "disabled_logging" || /disable cloudtrail|logging disabled/.test(text)) return "logging_disabled";
+  if (id === "open_ssh" || /open ssh|unrestricted inbound|0\.0\.0\.0\/0/.test(text)) return "unrestricted_inbound";
+  return "";
+}
+
+/**
+ * Recompute risk + coverage for a hypothetical set of accepted clauses.
+ * Used by the UI to show "risk 99 -> 40" and "coverage 0% -> 60%" as the user
+ * accepts recommendations, i.e. that the suggestions actually improve the score.
+ * @param {object} report
+ * @param {object} accepted  map of id -> boolean
+ */
+function project(report, accepted) {
+  accepted = accepted || {};
+  const on = (id) => !!accepted[id];
+
+  // Match analyze(): risk is driven by CORE missing controls + risky statements.
+  const coreMissing = (report.missing || []).filter((m) => (m.tier || "clarify") === "core");
+  const useCore = coreMissing.length > 0 || (report.coreTotalWeight || 0) > 0;
+  const list = useCore ? coreMissing : (report.missing || []);
+
+  let missingWeight = 0;
+  for (const m of list) {
+    if (on(m.id)) continue;
+    missingWeight += typeof m.weight === "number" ? m.weight : severityRank(m.severity);
+  }
+  let riskyWeight = 0;
+  const countedRiskGroups = new Set();
+  for (const f of report.riskyFindings) {
+    if (on(f.id)) continue;
+    const group = riskGroup(f);
+    if (group && countedRiskGroups.has(group)) continue;
+    if (group) countedRiskGroups.add(group);
+    riskyWeight += typeof f.weight === "number" ? f.weight : severityRank(f.severity) * 1.5;
+  }
+
+  const denom = useCore ? (report.coreTotalWeight || 1) : (report.totalWeight || 1);
+  const ratio = missingWeight / Math.max(1, denom);
+  const base = Math.min(100, Math.round(100 * Math.pow(ratio, 1.4) + Math.min(55, riskyWeight * 9)));
+  const riskScore = Math.min(100, Math.round(base * (report.envFactor || 1)));
+
+  const total = report.stats.mentioned + report.stats.missing;
+  let covered = report.stats.mentioned;
+  for (const m of report.missing) if (on(m.id)) covered++;
+
+  return {
+    riskScore: riskScore,
+    riskLevel: riskLevelFromScore(riskScore).level,
+    coverageScore: total ? Math.round((100 * covered) / total) : 100
+  };
+}
+
+function analyze(prompt, options) {
+  options = options || {};
+  const raw = String(prompt || "");
+  const normalized = normalize(raw);
+  const expanded = expandSynonyms(normalized);
+  const tokens = tokenize(raw);
+  const intents = detectIntents(expanded);
+
+  const merged = applyPolicy(REQUIREMENTS, RISKY_PATTERNS, options.policy);
+  const requirements = merged.requirements;
+  const risky = merged.risky;
+
+  const resources = detectResources(expanded);
+
+  // Statement-level AWS / non-AWS audit + prompt-quality issues (contradictions,
+  // anti-goals, invalid designs). This is independent of the security scoring.
+  const statementAudit = classifyStatements(raw, requirements);
+  const awsClassification = summarizeStatements(statementAudit);
+  const promptIssues = detectPromptIssues(normalized);
+  const nonAwsStatements = statementAudit.filter(function (s) {
+    return s.verdict === "non_aws" || s.verdict === "mixed";
+  });
+  if (nonAwsStatements.length) {
+    promptIssues.push({
+      id: "non_aws_statement",
+      kind: "non_aws",
+      label: "Non-AWS statement(s) found",
+      severity: "medium",
+      description: "Some statements mention non-AWS providers or commands: " +
+        nonAwsStatements.map(function (s) { return s.nonAwsSignals[0] || s.text; }).join(", "),
+      fix: "Remove non-AWS instructions or move them to the matching provider; Vector only diagnoses AWS.",
+      evidence: nonAwsStatements.map(function (s) { return s.text; }).slice(0, 5),
+      source: "rule"
+    });
+  }
+  const sanity = computeSanity(promptIssues, awsClassification);
+
+  // Scope guard: decide whether this is a cloud infrastructure prompt at all.
+  // An ambiguous word alone ("a bucket of water") must NOT count, and off-topic
+  // text must not be scored. In scope if any of:
+  //   - a strong cloud/provisioning term (aws, s3, terraform, vpc ...)
+  //   - an infrastructure intent verb (create/deploy/...)
+  //   - two or more infrastructure terms
+  //   - a resource matched by an unambiguous alias (not "bucket", "queue" ...)
+  function termMatches(terms, text) {
+    return terms.filter((t) => {
+      try {
+        return new RegExp("(^|[^a-z0-9])" + t + "([^a-z0-9]|$)", "i").test(text);
+      } catch (e) {
+        return false;
+      }
+    }).length;
+  }
+
+  const infraHits = termMatches(INFRA_TERMS, normalized);
+  const hasStrongTerm = termMatches(STRONG_TERMS, normalized) > 0;
+  const nonAwsTerm = NON_AWS_TERMS.find((t) => new RegExp(t, "i").test(normalized)) || null;
+  const physicalAmbiguousPhrase =
+    /\b(?:bucket|container)\s+(?:of|full\s+of)\s+(?:water|sand|soil|ice|paint|grain|food)\b/i.test(normalized);
+  // Resource evidence must come from the ORIGINAL text, not the synonym-expanded
+  // text (otherwise "bucket" -> "s3" would look strong).
+  const strongResource = detectResources(normalized).some((r) => {
+    if (/[\\^$.*+?()[\]{}|]/.test(r.matched)) return true; // regex alias is specific
+    return AMBIGUOUS_ALIASES.indexOf(String(r.matched).toLowerCase()) === -1;
+  });
+  // A clearly security-relevant statement is in scope even without an intent verb
+  // ("hard-code the password", "send data in plaintext").
+  const hasRiskySignal = RISKY_PATTERNS.some((rp) => {
+    try {
+      return new RegExp(rp.pattern, "i").test(normalized);
+    } catch (e) {
+      return false;
+    }
+  });
+
+  // An explicit security-control statement ("use a vault", "rotate the keys",
+  // "private link") is in scope even when no AWS resource or intent verb is
+  // present. Off-topic text ("tell me a joke", "a bucket of water") matches no
+  // control patterns, so this does not weaken the scope guard.
+  const hasControlSignal = requirements.some((req) => detectRequirement(req, normalized).present);
+
+  const nonAwsOnly = !!nonAwsTerm && !hasStrongTerm;
+  const inScope =
+    !physicalAmbiguousPhrase && !nonAwsOnly &&
+    (hasStrongTerm || intents.length > 0 || infraHits >= 2 || strongResource ||
+      hasRiskySignal || hasControlSignal);
+
+  if (!inScope) {
+    return {
+      prompt: raw,
+      tokens: tokens,
+      intents: intents,
+      resources: [],
+      mentioned: [],
+      missing: [],
+      riskyFindings: [],
+      riskScore: 0,
+      riskLevel: "MINIMAL",
+      riskColor: "#2E6F40",
+      coverage: "out-of-scope",
+      coverageScore: 0,
+      totalWeight: 0,
+      tierCounts: { core: 0, clarify: 0, harden: 0 },
+      semanticRelated: [],
+      nonAwsLikely: !!nonAwsTerm,
+      outOfScope: true,
+      environment: "unknown",
+      envFactor: 1,
+      feedback: [
+        "This does not look like an AWS infrastructure prompt, so there is nothing to diagnose. Describe the AWS resources you want, for example \"an S3 bucket for user documents\" or \"an RDS database for the app\"."
+      ],
+      disclaimer: "Diagnostic aid for AWS prompts. Findings are advisory, not a guarantee - verify before deploying.",
+      confidence: "low",
+      confidenceScore: 0,
+      needsDeepScan: false,
+      requiresDeepScan: false,
+      promptIssues: promptIssues,
+      statementAudit: statementAudit,
+      awsClassification: awsClassification,
+      sanity: sanity,
+      standards: STANDARDS.sources,
+      dimensions: DIMENSIONS,
+      stats: { resources: 0, mentioned: 0, missing: 0, risky: 0 }
+    };
+  }
+
+  // Non-AWS guard: warn instead of silently applying AWS baseline to an
+  // Azure/GCP prompt (which would be misleading).
+  const nonAwsLikely = !!nonAwsTerm;
+
+  // Environment context (rule-based cues) adjusts the risk weight: a dev
+  // sandbox is lower risk than production.
+  const isDev = CONTEXT_CUES.dev.some((c) => new RegExp(c, "i").test(normalized));
+  const isProd = CONTEXT_CUES.prod.some((c) => new RegExp(c, "i").test(normalized));
+  const environment = isProd ? "prod" : isDev ? "dev" : "unknown";
+  const envFactor = ENV_FACTOR[environment] || 1;
+
+  const relevantIds = new Set();
+  const appliesTo = new Map();
+
+  if (resources.length > 0) {
+    for (const r of resources) {
+      const def = RESOURCES.find((x) => x.id === r.id);
+      if (!def) continue;
+      for (const reqId of def.required) {
+        relevantIds.add(reqId);
+        if (!appliesTo.has(reqId)) appliesTo.set(reqId, []);
+        appliesTo.get(reqId).push(def.label);
+      }
+    }
+  } else {
+    const baseline = DEFAULT_REQUIRED.concat([
+      "network_restricted",
+      "network_isolation",
+      "secrets_management",
+      "backup_recovery",
+      "monitoring_alerting"
+    ]);
+    for (const id of baseline) {
+      relevantIds.add(id);
+      if (!appliesTo.has(id)) appliesTo.set(id, ["Baseline (no resource recognised)"]);
+    }
+  }
+
+  for (const req of requirements) {
+    if (req.alwaysRequired) {
+      relevantIds.add(req.id);
+      if (!appliesTo.has(req.id)) appliesTo.set(req.id, ["Organisation policy"]);
+    }
+  }
+
+  // Explicitly stated controls count as relevant even when the resource-derived
+  // set did not include them (e.g. "private link", "rotate the keys",
+  // "spread across availability zones"). This improves recall without inventing
+  // missing findings: a control is only added when it is actually stated.
+  for (const req of requirements) {
+    if (relevantIds.has(req.id)) continue;
+    if (detectRequirement(req, normalized).present) {
+      relevantIds.add(req.id);
+      if (!appliesTo.has(req.id)) appliesTo.set(req.id, ["Explicitly stated"]);
+    }
+  }
+
+  const mentioned = [];
+  let missing = [];
+  const relevantCounts = [];
+  const contradictions = [];
+
+  for (const req of requirements) {
+    if (!relevantIds.has(req.id)) continue;
+    const tier = req.tier || "clarify";
+    const baseSeverity = options.strictMode && req.severity === "medium" ? "high" : req.severity;
+    const weight = severityRank(baseSeverity) * (TIER_MULT[tier] || 1);
+    const res = detectRequirement(req, normalized);
+    relevantCounts.push({ id: req.id, weight: weight, missing: !res.present, tier: tier });
+    if (res.contradiction) contradictions.push({ id: req.id, label: req.label });
+
+    if (res.present) {
+      mentioned.push({
+        id: req.id,
+        label: req.label,
+        dimension: DIMENSIONS[req.dimension] || req.dimension,
+        severity: req.severity,
+        tier: tier,
+        tf: req.tf,
+        description: req.description,
+        standards: req.standards
+      });
+    } else {
+      missing.push({
+        id: req.id,
+        label: req.label,
+        dimension: DIMENSIONS[req.dimension] || req.dimension,
+        severity: req.severity,
+        tier: tier,
+        weight: weight,
+        tf: req.tf,
+        description: req.description,
+        clause: req.clause,
+        standards: req.standards,
+        appliesTo: appliesTo.get(req.id) || [],
+        explicitlyNegated: res.negated,
+        custom: !!req.custom,
+        source: "rule"
+      });
+    }
+  }
+
+  // ---- Second pass: TF-IDF semantic similarity (classic NLP / IR) ----
+  // Each control is a "document". We rank controls by cosine similarity to the
+  // prompt and report the top matches as TOPICALLY RELATED.
+  //
+  // Measurement (tools/calibrate.js) shows cosine is polarity-blind: "open all
+  // ports" scores 0.49 against the "restrict ports" control, while a genuine
+  // paraphrase ("scrambled on disk") scores only 0.20. So it must NOT decide
+  // whether a control is already stated, and it must NOT override the rules.
+  // It is reported as related-topic information only, and the control stays
+  // flagged by the rule engine.
+  const semIndex = _VectorSemantic.buildIndex(requirements);
+  const queryTokens = _VectorSemantic.tokenize(normalized);
+  const queryVec = _VectorSemantic.vectorize(queryTokens, semIndex.idf);
+  const semanticRelated = requirements
+    .map((req) => ({
+      id: req.id,
+      label: req.label,
+      similarity: Number(_VectorSemantic.cosine(queryVec, semIndex.vectors.get(req.id)).toFixed(2))
+    }))
+    .filter((x) => x.similarity >= 0.2)
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, 3);
+
+  missing.sort((a, b) => severityRank(b.severity) - severityRank(a.severity));
+  const riskyFindings = dedupeRiskyFindings(normalized, risky);
+
+  // Explicit contradictions: a control that the prompt both requires and disables.
+  for (const c of contradictions) {
+    riskyFindings.push({
+      id: "contradiction_" + c.id,
+      label: "Conflicting requirements: " + c.label,
+      severity: "high",
+      weight: severityRank("high") * 1.5,
+      description: "The prompt both requires and disables " + c.label.toLowerCase() + ".",
+      fix: "Remove the conflicting instruction and state one clear requirement.",
+      source: "rule",
+      contradiction: true
+    });
+  }
+
+  // Cross-control conflict: public access requested while also being blocked.
+  if (
+    mentioned.some((m) => m.id === "public_access_block") &&
+    riskyFindings.some((f) => f.id === "public_bucket")
+  ) {
+    riskyFindings.push({
+      id: "contradiction_public_access",
+      label: "Conflicting requirements: public access",
+      severity: "high",
+      weight: severityRank("high") * 1.5,
+      description: "The prompt asks for public access while also blocking it.",
+      fix: "Decide whether the resource is public or private and state one requirement.",
+      source: "rule",
+      contradiction: true
+    });
+  }
+
+  // Prompt-quality issues: contradictions, anti-goals and invalid designs.
+  // They are merged into the risky findings so the UI/CLI always surfaces them.
+  const existingRiskyIds = new Set(riskyFindings.map((f) => f.id));
+  for (const issue of promptIssues) {
+    if (issue.kind === "non_aws") continue;
+    if (existingRiskyIds.has(issue.id)) continue;
+    existingRiskyIds.add(issue.id);
+    riskyFindings.push({
+      id: issue.id,
+      label: issue.label,
+      severity: issue.severity || "high",
+      weight: severityRank(issue.severity || "high") * (issue.kind === "contradiction" ? 1.5 : 1.2),
+      description: issue.description,
+      fix: issue.fix,
+      source: "rule",
+      contradiction: issue.kind === "contradiction",
+      kind: issue.kind,
+      evidence: issue.evidence || []
+    });
+  }
+
+  // Intentional public READ (no public writes/deletes) is less severe than a
+  // fully public bucket.
+  for (const f of riskyFindings) {
+    if (
+      f.id === "public_bucket" &&
+      /read[- ]only|public read|prohibit (public )?(writes?|deletes?)|no public (writes?|deletes?)/i.test(normalized)
+    ) {
+      f.severity = "medium";
+      f.weight = severityRank("medium") * 1.5;
+      f.description = "Public read-only access is intentional, but exposure still needs review.";
+    }
+  }
+
+  riskyFindings.sort((a, b) => severityRank(b.severity) - severityRank(a.severity));
+
+  // Keep explicit unsafe requests visible for remediation, but do not count
+  // the same control as both an omission and an independent risk contribution.
+  const explicitlyRiskyControls = new Set();
+  const riskControlMap = {
+    open_ssh: ["network_restricted"],
+    public_bucket: ["public_access_block"],
+    wildcard_iam: ["least_privilege_iam", "no_wildcard_policy"],
+    no_encryption: ["encryption_at_rest"],
+    hardcoded_secret: ["secrets_management"],
+    disabled_logging: ["audit_logging"]
+  };
+  for (const riskyFinding of riskyFindings) {
+    for (const controlId of riskControlMap[riskyFinding.id] || []) explicitlyRiskyControls.add(controlId);
+  }
+  for (const missingFinding of missing) {
+    if (explicitlyRiskyControls.has(missingFinding.id)) {
+      missingFinding.explicitlyRisky = true;
+      const requirement = relevantCounts.find((item) => item.id === missingFinding.id);
+      if (requirement) requirement.missing = false;
+    }
+  }
+
+  let riskScore = computeRisk(relevantCounts, riskyFindings);
+  riskScore = Math.min(100, Math.round(riskScore * envFactor));
+  const riskMeta = riskLevelFromScore(riskScore);
+
+  const baselineOnly = resources.length === 0;
+  const confidence = computeConfidence({
+    baselineOnly: baselineOnly,
+    tokenCount: tokens.length,
+    mentioned: mentioned.length,
+    missing: missing.length,
+    resources: resources.length,
+    contradictions: sanity.contradictions,
+    antigoals: sanity.antigoals,
+    nonAwsStatements: sanity.nonAwsStatements
+  });
+  const totalControls = mentioned.length + missing.length;
+  const coverageScore = totalControls ? Math.round((100 * mentioned.length) / totalControls) : 100;
+  const totalWeight = relevantCounts.reduce(function (a, r) { return a + r.weight; }, 0);
+  const coreTotalWeight = relevantCounts
+    .filter(function (r) { return r.tier === "core"; })
+    .reduce(function (a, r) { return a + r.weight; }, 0);
+
+  const tierCounts = { core: 0, clarify: 0, harden: 0 };
+  for (const m of missing) tierCounts[m.tier || "clarify"]++;
+
+  const feedback = [];
+  if (nonAwsLikely) {
+    feedback.push(
+      'This prompt appears to target a non-AWS cloud ("' + nonAwsTerm + '"). Vector is AWS-specific, so the findings below are generic security advice, not AWS guidance.'
+    );
+  }
+  if (baselineOnly) {
+    feedback.push(
+      "No specific cloud resource was recognised, so Vector applied baseline AWS controls. Name the resources (for example S3, EC2, RDS, Lambda) for targeted analysis."
+    );
+  } else {
+    feedback.push("Detected resources: " + resources.map((r) => r.label).join(", ") + ".");
+  }
+  if (riskyFindings.length) {
+    feedback.push(riskyFindings.length + " risky statement(s) found — correct these before generation.");
+  }
+  if (missing.length) {
+    feedback.push(missing.length + " security constraint(s) missing — add them so the generator does not have to guess.");
+  }
+  const conflictLabels = contradictions.map((c) => c.label);
+  if (riskyFindings.some((f) => f.id === "contradiction_public_access")) {
+    conflictLabels.push("public access vs. blocking public access");
+  }
+  if (conflictLabels.length) {
+    feedback.push("Conflicting requirements detected: " + conflictLabels.join(", ") + ". Resolve these before generating code.");
+  }
+  if (sanity.contradictions || sanity.antigoals) {
+    feedback.push(
+      "Prompt quality: " + sanity.verdict + " (" + sanity.issues + " issue(s)). " +
+      "Resolve the contradictory or anti-goal instructions before generating infrastructure."
+    );
+  }
+  if (sanity.nonAwsStatements) {
+    feedback.push(
+      "AWS/non-AWS audit: " + sanity.nonAwsStatements + " statement(s) mention non-AWS providers or commands. " +
+      "Vector diagnoses AWS only - remove or separate those statements."
+    );
+  }
+  if (sanity.verdict !== "ok") {
+    feedback.push("Deep scan is required before the full result is shown.");
+  }
+  if (!missing.length && !riskyFindings.length) {
+    feedback.push("No missing security constraints detected for the recognised resources. Review organisation-specific rules.");
+  }
+  if (environment === "dev") {
+    feedback.push("This looks like a development/sandbox prompt, so the risk score is reduced. Harden before production.");
+  } else if (environment === "prod") {
+    feedback.push("This looks like a production prompt, so the risk score is weighted higher.");
+  }
+  if (confidence.needsDeepScan) {
+    feedback.push("Low confidence on this prompt, so some constraints may be unstated - the optional Deep scan can fill the gaps.");
+  }
+
+  return {
+    prompt: raw,
+    tokens,
+    intents,
+    resources,
+    mentioned,
+    missing,
+    riskyFindings,
+    riskScore,
+    riskLevel: riskMeta.level,
+    riskColor: riskMeta.color,
+    feedback,
+    baselineOnly,
+    coverage: baselineOnly ? "baseline" : "targeted",
+    coverageScore: coverageScore,
+    totalWeight: totalWeight,
+    coreTotalWeight: coreTotalWeight,
+    tierCounts: tierCounts,
+    semanticRelated: semanticRelated,
+    nonAwsLikely: nonAwsLikely,
+    environment: environment,
+    envFactor: envFactor,
+    disclaimer: "Diagnostic aid for AWS prompts. Findings are advisory, not a guarantee - verify before deploying.",
+    confidence: confidence.label,
+    confidenceScore: confidence.score,
+    // Deep scan is suggested when the rule engine is unsure (low confidence)
+    // OR when the prompt leaves a large part of the security surface unstated
+    // (coverage < 50%). The second condition also covers the case where a
+    // resource IS recognised but a control is paraphrased and missed.
+    needsDeepScan: confidence.needsDeepScan || coverageScore < 50,
+    // Hard gate: low confidence or a contradictory/nonsensical/non-AWS prompt
+    // must be deep-scanned before the client shows the full report.
+    requiresDeepScan: confidence.needsDeepScan || sanity.verdict !== "ok",
+    promptIssues: promptIssues,
+    statementAudit: statementAudit,
+    awsClassification: awsClassification,
+    sanity: sanity,
+    standards: STANDARDS.sources,
+    dimensions: DIMENSIONS,
+    stats: {
+      resources: resources.length,
+      mentioned: mentioned.length,
+      missing: missing.length,
+      risky: riskyFindings.length
+    }
+  };
+}
+
+/**
+ * Merge external (e.g. LLM deep-scan) findings into a report.
+ * @param {object} report
+ * @param {{missing?:Array, risky?:Array}} external
+ * @param {boolean} [external.clean]  the model reported no remaining issues
+ */
+function mergeFindings(report, external) {
+  if (!external) return report;
+  let missing = report.missing.slice();
+  const mentioned = report.mentioned.slice();
+  const riskyFindings = report.riskyFindings.slice();
+  const seenMissing = new Set(missing.map((m) => canonicalFindingLabel(m.label)));
+  const seenRisky = new Set(riskyFindings.map((r) => canonicalFindingLabel(r.label)));
+
+  for (const m of external.missing || []) {
+    if (!m || !m.label) continue;
+    const key = canonicalFindingLabel(m.label);
+    if (seenMissing.has(key)) {
+      const existing = missing.find((item) => canonicalFindingLabel(item.label) === key);
+      if (existing && existing.source !== "ai") {
+        Object.assign(existing, {
+          source: "ai",
+          aiDuplicate: true,
+          description: m.description || existing.description,
+          clause: m.clause || existing.clause
+        });
+      }
+      continue;
+    }
+    seenMissing.add(key);
+    missing.push({
+      id: m.id || "ai_" + missing.length,
+      label: m.label,
+      dimension: m.dimension || "governance",
+      severity: m.severity || "medium",
+      tier: m.tier || "clarify",
+      weight: severityRank(m.severity || "medium") * (TIER_MULT[m.tier || "clarify"] || 1),
+      tf: "",
+      description: m.description || "Identified by deep scan.",
+      clause: m.clause || m.description || m.label,
+      standards: m.standards || ["Deep scan"],
+      appliesTo: ["Deep scan"],
+      source: "ai"
+    });
+  }
+
+  for (const r of external.risky || []) {
+    if (!r || !r.label) continue;
+    const key = canonicalFindingLabel(r.label);
+    if (seenRisky.has(key)) {
+      const existing = riskyFindings.find((item) => canonicalFindingLabel(item.label) === key);
+      if (existing && existing.source !== "ai") {
+        Object.assign(existing, {
+          source: "ai",
+          aiDuplicate: true,
+          description: r.description || existing.description,
+          fix: r.fix || existing.fix
+        });
+      }
+      continue;
+    }
+    seenRisky.add(key);
+    riskyFindings.push({
+      id: r.id || "ai_risky_" + riskyFindings.length,
+      label: r.label,
+      severity: r.severity || "high",
+      weight: severityRank(r.severity || "high") * 1.5,
+      description: r.description || "Identified by deep scan.",
+      fix: r.fix || r.description || r.label,
+      source: "ai"
+    });
+  }
+
+  // Deep-scan prompt-quality issues (contradictions / nonsense) are surfaced as
+  // risky findings so every client displays them.
+  for (const issue of external.promptIssues || []) {
+    if (!issue || !issue.label) continue;
+    const key = canonicalFindingLabel(issue.label);
+    if (seenRisky.has(key)) continue;
+    seenRisky.add(key);
+    riskyFindings.push({
+      id: issue.id || "ai_issue_" + riskyFindings.length,
+      label: issue.label,
+      severity: issue.severity || "high",
+      weight: severityRank(issue.severity || "high") * 1.5,
+      description: issue.description || "Identified by deep scan.",
+      fix: issue.fix || issue.description || issue.label,
+      source: "ai",
+      contradiction: issue.kind === "contradiction",
+      kind: issue.kind || "issue"
+    });
+  }
+
+  // The LLM may override a LOW-PRIORITY rule finding it judges already stated.
+  // Core controls are never dropped on the model's word (safety first).
+  const satisfiedLabels = new Set(
+    (external.satisfied || [])
+      .map((s) => String(typeof s === "string" ? s : (s && s.label) || "").toLowerCase().trim())
+      .filter(Boolean)
+  );
+  const overridden = [];
+  if (satisfiedLabels.size) {
+    const keep = [];
+    for (const m of missing) {
+      const lowPriority = (m.tier || "clarify") !== "core";
+      const hit = satisfiedLabels.has(String(m.label || "").toLowerCase().trim());
+      if (m.source !== "ai" && lowPriority && hit) {
+        overridden.push(m.id);
+        mentioned.push(Object.assign({}, m, { source: "ai", note: "AI confirmed already stated" }));
+      } else {
+        keep.push(m);
+      }
+    }
+    missing = keep;
+  }
+
+  missing.sort((a, b) => severityRank(b.severity) - severityRank(a.severity));
+  riskyFindings.sort((a, b) => severityRank(b.severity) - severityRank(a.severity));
+
+  const mergedIssues = (report.promptIssues || []).slice();
+  for (const issue of external.promptIssues || []) {
+    if (!issue || !issue.label) continue;
+    if (mergedIssues.some((x) => canonicalFindingLabel(x.label) === canonicalFindingLabel(issue.label))) continue;
+    mergedIssues.push(issue);
+  }
+  const mergedContradictions = mergedIssues.filter((i) => i.kind === "contradiction").length;
+  const mergedAntigoals = mergedIssues.filter((i) => i.kind === "antigoal").length;
+  const mergedSanity = Object.assign({}, report.sanity || {}, {
+    contradictions: mergedContradictions,
+    antigoals: mergedAntigoals,
+    issues: mergedIssues.length,
+    verdict: mergedContradictions ? "contradictory" : mergedAntigoals ? "nonsensical" : (report.sanity && report.sanity.verdict) || "ok"
+  });
+  const mergedClassification = Object.assign({}, report.awsClassification || {});
+  if (external.awsVerdict) mergedClassification.verdict = external.awsVerdict;
+
+  const merged = Object.assign({}, report, {
+    missing,
+    mentioned,
+    riskyFindings,
+    overridden,
+    promptIssues: mergedIssues,
+    statementAudit: (external.statementAudit && external.statementAudit.length)
+      ? external.statementAudit
+      : report.statementAudit,
+    awsClassification: mergedClassification,
+    sanity: mergedSanity,
+    // The deep scan has now run, so the gate can open.
+    requiresDeepScan: false
+  });
+  merged.stats = {
+    resources: report.stats.resources,
+    mentioned: mentioned.length,
+    missing: missing.length,
+    risky: riskyFindings.length
+  };
+  const tierCounts = { core: 0, clarify: 0, harden: 0 };
+  for (const m of missing) tierCounts[m.tier || "clarify"]++;
+  merged.tierCounts = tierCounts;
+
+  // Recompute risk with the same core-only formula as analyze().
+  const aiCoreAdded = missing
+    .filter((m) => m.source === "ai" && (m.tier || "clarify") === "core")
+    .reduce((a, m) => a + (m.weight || 0), 0);
+  const coreTotal = (report.coreTotalWeight || 0) + aiCoreAdded;
+  const coreMissingWeight = missing
+    .filter((m) => (m.tier || "clarify") === "core")
+    .reduce((a, m) => a + (m.weight || 0), 0);
+  const ratio = coreMissingWeight / Math.max(1, coreTotal || report.totalWeight || 1);
+  let riskyWeight = 0;
+  const countedRiskGroups = new Set();
+  for (const f of riskyFindings) {
+    const group = riskGroup(f);
+    if (group && countedRiskGroups.has(group)) continue;
+    if (group) countedRiskGroups.add(group);
+    riskyWeight += typeof f.weight === "number" ? f.weight : severityRank(f.severity) * 1.5;
+  }
+  const base = Math.min(100, Math.round(100 * Math.pow(ratio, 1.4) + Math.min(55, riskyWeight * 9)));
+  merged.riskScore = Math.min(100, Math.round(base * (report.envFactor || 1)));
+  const meta = riskLevelFromScore(merged.riskScore);
+  merged.riskLevel = meta.level;
+  merged.riskColor = meta.color;
+  const totalControls = mentioned.length + missing.length;
+  merged.coverageScore = totalControls ? Math.round((100 * mentioned.length) / totalControls) : 100;
+  merged.totalWeight =
+    (report.totalWeight || 0) +
+    missing.filter((m) => m.source === "ai").reduce((a, m) => a + (m.weight || 0), 0);
+  merged.coreTotalWeight = coreTotal;
+
+  const aiCount =
+    missing.filter((m) => m.source === "ai").length +
+    riskyFindings.filter((r) => r.source === "ai").length;
+  const feedback = (report.feedback || []).slice();
+  if (aiCount) feedback.push("Deep scan added " + aiCount + " additional finding(s).");
+  if (overridden.length) {
+    feedback.push(
+      "Deep scan overrode " + overridden.length +
+      " low-priority rule finding(s) it judged already stated."
+    );
+  }
+  merged.feedback = feedback;
+
+  // If the model says there is nothing further to flag AND the rules found
+  // nothing risky, present a clean state.
+  merged.aiClean = !!external.clean && riskyFindings.length === 0;
+  if (merged.aiClean) {
+    merged.feedback = merged.feedback.concat(["Deep scan found no additional issues."]);
+  }
+  return merged;
+}
+
+function buildImprovedPrompt(prompt, clauses) {
+  const base = String(prompt || "").trim();
+  const list = (clauses || []).map((c) => String(c).trim()).filter(Boolean);
+  if (list.length === 0) return base;
+  return base + "\n\nSecurity requirements:\n" + list.map((c) => "- " + c).join("\n");
+}
+
+/**
+ * Rewrite the risky phrases in a prompt into safe wording (e.g. "0.0.0.0/0"
+ * -> "a restricted trusted CIDR range"). Deterministic, template based.
+ */
+function neutralizeRisky(text) {
+  let out = String(text || "");
+  for (const rp of RISKY_PATTERNS) {
+    if (!rp.neutralize) continue;
+    for (const pair of rp.neutralize) {
+      out = out.replace(pair[0], pair[1]);
+    }
+  }
+  return out;
+}
+
+/**
+ * Iteratively harden a prompt until re-analysis is clean (risk 0 / coverage 100%).
+ *
+ * Two things happen:
+ *   1. risky phrases in the base prompt are neutralised into safe wording
+ *   2. missing-control clauses are appended, re-analysed and topped up until
+ *      nothing new appears (a clause can mention another service, which the
+ *      analyzer then also wants covered)
+ */
+function harden(prompt, maxIterations) {
+  const limit = maxIterations || 8;
+  const base = neutralizeRisky(String(prompt || "").trim());
+
+  // Nothing to harden if it is not an infrastructure prompt.
+  const first = analyze(base);
+  if (first.outOfScope) {
+    return { prompt: base, clauses: [], report: first };
+  }
+
+  const clauses = [];
+  let current = base;
+
+  for (let i = 0; i < limit; i++) {
+    const r = analyze(current);
+    const found = r.missing
+      .map((m) => m.clause)
+      .concat(r.riskyFindings.map((f) => f.fix));
+    let added = 0;
+    for (const c of found) {
+      if (c && clauses.indexOf(c) === -1) {
+        clauses.push(c);
+        added++;
+      }
+    }
+    if (added === 0) break;
+    current = buildImprovedPrompt(base, clauses);
+  }
+
+  return { prompt: current, clauses: clauses, report: analyze(current) };
+}
+
+/**
+ * Security Delta Analysis (prompt evolution tracking).
+ *
+ * Compares two reports of the SAME prompt over time and reports what changed:
+ * added controls, controls still missing, controls newly missing (a regression),
+ * new risks, fixed risks, and the movement of the risk and coverage scores.
+ *
+ * Pure function: it never mutates the reports it is given and holds no state.
+ *
+ * @param {object|null} previous  earlier report (or a stored history entry)
+ * @param {object} current        latest report
+ * @returns {object|null} delta, or null when a delta cannot be computed
+ */
+function computeDelta(previous, current) {
+  if (!previous || !current) return null;
+  // A comparable previous entry must carry the control id lists. Older history
+  // entries stored only a count, so they are skipped rather than mis-compared.
+  if (!Array.isArray(previous.missing) || !Array.isArray(previous.mentioned)) return null;
+
+  const idSet = (arr) => new Set((arr || []).map((x) => (typeof x === "string" ? x : x && x.id)).filter(Boolean));
+  const idsOf = (arr) => (arr || []).map((x) => (typeof x === "string" ? x : x && x.id)).filter(Boolean);
+
+  const prevMentioned = idSet(previous.mentioned);
+  const curMentioned = idSet(current.mentioned || []);
+  const prevMissing = idSet(previous.missing);
+  const curMissing = idSet(current.missing || []);
+  const prevRisky = idSet(previous.riskyFindings);
+  const curRisky = idSet(current.riskyFindings || []);
+  const prevResources = idSet(previous.resources);
+  const curResources = idSet(current.resources);
+
+  const labelOf = (list, id) => {
+    const hit = (list || []).find((x) => (typeof x === "string" ? x : x.id) === id);
+    return hit && typeof hit === "object" ? hit : { id: id, label: id, severity: "", tier: "" };
+  };
+
+  // controls the user added: now stated, was missing
+  const added = idsOf(current.mentioned)
+    .filter((id) => !prevMentioned.has(id))
+    .map((id) => labelOf(current.mentioned, id));
+
+  // controls the user removed: was stated, now missing (a regression)
+  const newlyMissing = idsOf(current.missing)
+    .filter((id) => prevMentioned.has(id))
+    .map((id) => labelOf(current.missing, id));
+
+  // still absent across both versions
+  const stillMissing = idsOf(current.missing)
+    .filter((id) => prevMissing.has(id))
+    .map((id) => labelOf(current.missing, id));
+
+  // risky statements introduced / removed
+  const newRisks = idsOf(current.riskyFindings)
+    .filter((id) => !prevRisky.has(id))
+    .map((id) => labelOf(current.riskyFindings, id));
+  const fixedRisks = idsOf(previous.riskyFindings)
+    .filter((id) => !curRisky.has(id))
+    .map((id) => labelOf(previous.riskyFindings, id));
+
+  const riskFrom = typeof previous.riskScore === "number" ? previous.riskScore : 0;
+  const riskTo = typeof current.riskScore === "number" ? current.riskScore : 0;
+  const covFrom = typeof previous.coverageScore === "number" ? previous.coverageScore : 0;
+  const covTo = typeof current.coverageScore === "number" ? current.coverageScore : 0;
+
+  const dir = (from, to, lowerIsBetter) => {
+    if (to === from) return "same";
+    if (lowerIsBetter) return to < from ? "down" : "up";
+    return to > from ? "up" : "down";
+  };
+
+  const resources = {
+    from: prevResources.size,
+    to: curResources.size,
+    changed: prevResources.size !== curResources.size ||
+      idsOf(current.resources).some((id) => !prevResources.has(id))
+  };
+
+  // Classify the overall movement. Coverage dropping or a new risk/were-removed
+  // control makes it "mixed" or "regressed" even if the risk score improved.
+  let verdict;
+  const riskDown = riskTo < riskFrom;
+  const riskUp = riskTo > riskFrom;
+  const covUp = covTo > covFrom;
+  const covDown = covTo < covFrom;
+  const regressed = newlyMissing.length > 0 || newRisks.length > 0 || riskUp;
+
+  if (regressed && (riskDown || covUp)) verdict = "mixed";
+  else if (regressed) verdict = "regressed";
+  else if (riskFrom === riskTo && covFrom === covTo && !added.length && !fixedRisks.length) verdict = "unchanged";
+  else if (riskDown || covUp || added.length || fixedRisks.length) verdict = "improved";
+  else verdict = "mixed";
+
+  return {
+    hasPrevious: true,
+    added: added,
+    newlyMissing: newlyMissing,
+    stillMissing: stillMissing,
+    newRisks: newRisks,
+    fixedRisks: fixedRisks,
+    risk: { from: riskFrom, to: riskTo, delta: riskTo - riskFrom, direction: dir(riskFrom, riskTo, true) },
+    coverage: { from: covFrom, to: covTo, delta: covTo - covFrom, direction: dir(covFrom, covTo, false) },
+    resources: resources,
+    improved: added.length + fixedRisks.length,
+    regressedCount: newlyMissing.length + newRisks.length,
+    verdict: verdict
+  };
+}
+
+/**
+ * Build a compact, storable snapshot of a report for later delta comparison.
+ * Keeps only the ids of each list so it fits comfortably in local storage.
+ */
+function snapshot(report) {
+  if (!report) return null;
+  const ids = (arr) => (arr || []).map((x) => (typeof x === "string" ? x : x && x.id)).filter(Boolean);
+  return {
+    ts: Date.now(),
+    prompt: report.prompt,
+    riskScore: report.riskScore,
+    riskLevel: report.riskLevel,
+    coverageScore: report.coverageScore,
+    mentioned: ids(report.mentioned),
+    missing: ids(report.missing),
+    riskyFindings: ids(report.riskyFindings),
+    resources: ids(report.resources),
+    skipped: !!report.outOfScope
+  };
+}
+
+/**
+ * Delta against the PROJECTED state: the current prompt plus the clauses the
+ * user has accepted so far. This is what makes "What changed" react the moment
+ * a clause is added, instead of only after a re-analysis.
+ *
+ * @param {object|null} previous  the earlier stored snapshot
+ * @param {object} report         the current analysis
+ * @param {object} accepted       map of id -> true for accepted clauses
+ */
+function projectDelta(previous, report, accepted) {
+  if (!previous || !report || report.outOfScope) return null;
+  accepted = accepted || {};
+
+  // Promote accepted controls from "missing" to "mentioned" in a projected copy.
+  const mentioned = report.mentioned.slice();
+  const missing = [];
+  for (const m of report.missing) {
+    if (accepted[m.id]) mentioned.push(m);
+    else missing.push(m);
+  }
+  const riskyFindings = report.riskyFindings.filter((f) => !accepted[f.id]);
+
+  const projected = Object.assign({}, report, {
+    mentioned: mentioned,
+    missing: missing,
+    riskyFindings: riskyFindings
+  });
+  // projected scores reflect the accepted clauses
+  const p = project(projected, {});
+  projected.riskScore = p.riskScore;
+  projected.coverageScore = p.coverageScore;
+
+  return computeDelta(previous, projected);
+}
+
+
+const VectorAnalyzer = {
+  analyze,
+  mergeFindings,
+  project,
+  harden,
+  computeDelta,
+  projectDelta,
+  snapshot,
+  buildImprovedPrompt,
+  normalize,
+  tokenize,
+  expandSynonyms,
+  detectResources,
+  detectIntents,
+  isNegatedBefore,
+  applyPolicy,
+  DIMENSIONS,
+  STANDARDS
+};
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = VectorAnalyzer;
+}
+root.VectorAnalyzer = VectorAnalyzer;
+})(typeof globalThis !== "undefined" ? globalThis : this);
