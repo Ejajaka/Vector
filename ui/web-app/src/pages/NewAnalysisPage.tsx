@@ -494,7 +494,7 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <h1 className="text-xl sm:text-2xl font-bold text-[#283638] tracking-tight">New UI Prompt Analysis</h1>
             <span className="px-2 py-0.5 rounded text-xs font-semibold bg-[#E4EBDD] text-[#30494B] border border-[#CFE2C8]">
-              UI/UX Prompt Analyzer
+              Vector — Requirement engineering for UI teams
             </span>
           </div>
           <p className="text-xs sm:text-sm text-[#737A72]">

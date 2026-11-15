@@ -128,7 +128,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     Vector
                   </span>
                   <span className="text-[10px] text-[#737A72] tracking-wider uppercase font-semibold truncate">
-                    UI/UX Prompt Review
+                    Vector — Requirement engineering for UI teams
                   </span>
                 </div>
               </div>

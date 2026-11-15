@@ -236,7 +236,7 @@ export const WorkspacePage: React.FC = () => {
         {!leftCollapsed && (
           <section className="min-w-0 flex flex-col" style={{ width: rightCollapsed ? '100%' : `${split}%` }}>
             <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-[#E5E2D8] bg-[#FAFAF8]">
-              <div className="text-xs font-bold text-[#283638]">Vector Prompt Analyser</div>
+              <div className="text-xs font-bold text-[#283638]">Vector — Requirement engineering for UI teams</div>
               {isEdited && (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-md border border-[#FED7AA] bg-[#FFF7ED] text-[#9C4A28]">
                   Edited draft

@@ -133,7 +133,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           <div className="max-w-3xl space-y-4 relative z-10">
             <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#E4EBDD] dark:bg-[#23301F] text-[#30494B] dark:text-[#B7D9B0] border border-[#CFE2C8] dark:border-[#3D5236]">
               <Sparkles className="w-3 h-3" />
-              Requirement engineering for UI teams
+              Vector — Requirement engineering for UI teams
             </div>
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#283638] dark:text-[#F2F5F3] leading-[1.15]">
               Everything between a document and a design.
@@ -232,7 +232,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-semibold bg-[#E4EBDD] dark:bg-[#23301F] text-[#30494B] dark:text-[#B7D9B0]">
             <span>Vector</span>
             <span>·</span>
-            <span>Pre-generation UI Review</span>
+              <span>Vector — Requirement engineering for UI teams</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#283638] dark:text-[#F2F5F3]">
             {currentProject ? currentProject.name : 'Select a project to begin'}

@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { LogIn, Moon, Sun } from 'lucide-react';
 import type { ActiveTab, AnalysisResult } from './types/analysis.ts';
 import { ToastProvider } from './components/ui/Toast.tsx';
-import { ThemeProvider, useTheme } from './context/ThemeContext.tsx';
+import { ThemeProvider } from './context/ThemeContext.tsx';
 import { AuthProvider, useAuth } from './context/AuthContext.tsx';
 import { ProjectProvider, useProject } from './context/ProjectContext.tsx';
 import { Sidebar } from './components/layout/Sidebar.tsx';
 import { Header } from './components/layout/Header.tsx';
+import { PublicHeader } from './components/layout/PublicHeader.tsx';
+import { PublicFooter } from './components/layout/PublicFooter.tsx';
 import { AuthPage } from './components/auth/AuthPage.tsx';
 import { ResetPasswordPage } from './components/auth/ResetPasswordPage.tsx';
 import { OverviewPage } from './pages/OverviewPage.tsx';
@@ -24,7 +25,7 @@ import { DesignSystemsPage } from './pages/DesignSystemsPage.tsx';
 import { WorkspacePage } from './pages/WorkspacePage.tsx';
 import { ManualPage } from './pages/ManualPage.tsx';
 
-const PUBLIC_TABS: ActiveTab[] = ['about'];
+const PUBLIC_TABS: ActiveTab[] = ['about', 'privacy'];
 
 const KNOWN_TABS: ActiveTab[] = [
   'about',
@@ -53,7 +54,6 @@ function tabStorageKey(userId: string | undefined): string {
 
 function AppShell() {
   const { configured, loading, user, passwordRecovery } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const { projects, currentProject, selectProject } = useProject();
   const [activeTab, setActiveTab] = useState<ActiveTab>('about');
   const [showAuth, setShowAuth] = useState(false);
@@ -64,6 +64,7 @@ function AppShell() {
   const [analysisToInspect, setAnalysisToInspect] = useState<AnalysisResult | null>(null);
 
   const publicMode = configured && !user;
+  const showMarketingChrome = !user && (activeTab === 'about' || activeTab === 'privacy');
 
   // Restore the last visited tab for this account (or for guests).
   useEffect(() => {
@@ -160,9 +161,17 @@ function AppShell() {
     setShowAuth(true);
   };
 
+  const handleRequestSignIn = () => {
+    if (!configured) {
+      setActiveTab('overview');
+      return;
+    }
+    requestAuth();
+  };
+
   return (
     <div className="min-h-screen bg-[#F6F4EC] dark:bg-[#131A1B] text-[#283638] dark:text-[#E7E4D9] flex flex-col antialiased">
-      {!publicMode && (
+      {!showMarketingChrome && (
         <Sidebar
           activeTab={activeTab}
           setActiveTab={setActiveTab}
@@ -177,10 +186,10 @@ function AppShell() {
 
       <div
         className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${
-          publicMode ? '' : isSidebarCollapsed ? 'lg:pl-[68px]' : 'lg:pl-64'
+          showMarketingChrome ? '' : isSidebarCollapsed ? 'lg:pl-[68px]' : 'lg:pl-64'
         }`}
       >
-        {!publicMode && (
+        {!showMarketingChrome && (
           <Header
             activeTab={activeTab}
             setActiveTab={setActiveTab}
@@ -190,28 +199,15 @@ function AppShell() {
           />
         )}
 
-        {publicMode && (
-          <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-5 flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={toggleTheme}
-              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              className="w-9 h-9 rounded-lg bg-[#FFFFFF] dark:bg-[#1B2426] border border-[#E5E2D8] dark:border-[#33403F] text-[#49686C] dark:text-[#B9D1D4] flex items-center justify-center shadow-sm hover:bg-[#F6F4EC] dark:hover:bg-[#222E30]"
-            >
-              {theme === 'dark' ? <Sun className="w-4 h-4 text-[#D1B653]" /> : <Moon className="w-4 h-4" />}
-            </button>
-            <button
-              type="button"
-              onClick={() => requestAuth()}
-              className="inline-flex items-center gap-1.5 px-3.5 h-9 rounded-lg bg-[#49686C] hover:bg-[#30494B] text-white text-xs font-bold shadow-sm"
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              Sign in
-            </button>
-          </div>
+        {showMarketingChrome && (
+          <PublicHeader
+            activeTab={activeTab}
+            onNavigate={setActiveTab}
+            onRequestSignIn={handleRequestSignIn}
+          />
         )}
 
-        <main className={`flex-1 p-4 sm:p-6 lg:p-8 max-w-[1600px] w-full mx-auto ${publicMode ? '' : ''}`} role="main">
+        <main id="main-content" className={`flex-1 p-4 sm:p-6 lg:p-8 max-w-[1600px] w-full mx-auto ${publicMode ? '' : ''}`} role="main">
           {activeTab === 'about' && <AboutPage onStartAnalysis={handleStartRequirementWorkflow} />}
 
           {activeTab === 'overview' && (
@@ -263,6 +259,13 @@ function AppShell() {
           )}
           {activeTab === 'privacy' && <PrivacyPage />}
         </main>
+
+        {showMarketingChrome && (
+          <PublicFooter
+            activeTab={activeTab}
+            onNavigate={setActiveTab}
+          />
+        )}
       </div>
     </div>
   );

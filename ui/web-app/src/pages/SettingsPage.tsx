@@ -183,7 +183,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onRefreshData, onOpe
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
           <div>
             <span className="text-[#737A72] dark:text-[#8E9A93] block">Application</span>
-            <span className="font-bold text-[#283638] dark:text-[#E7E4D9]">Vector — UI/UX Requirement Engineering</span>
+                <span className="font-bold text-[#283638] dark:text-[#E7E4D9]">Vector — Requirement engineering for UI teams</span>
           </div>
           <div>
             <span className="text-[#737A72] dark:text-[#8E9A93] block">Version</span>

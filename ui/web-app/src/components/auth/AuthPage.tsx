@@ -113,7 +113,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
                 <div>
                   <div className="text-lg font-bold tracking-tight leading-none">Vector</div>
                   <div className="text-[10px] uppercase tracking-[0.18em] text-white/60 mt-1">
-                    UI/UX Requirement Engineering
+                    Vector — Requirement engineering for UI teams
                   </div>
                 </div>
               </div>
@@ -180,7 +180,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
               <div>
                 <div className="text-base font-bold text-[#283638] dark:text-[#E7E4D9] leading-none">Vector</div>
                 <div className="text-[10px] uppercase tracking-[0.16em] text-[#737A72] dark:text-[#8E9A93] mt-1">
-                  UI/UX Requirement Engineering
+                  Vector — Requirement engineering for UI teams
                 </div>
               </div>
             </div>
@@ -328,7 +328,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
         </div>
 
         <p className="text-center text-[10px] text-[#737A72] dark:text-[#8E9A93] mt-5">
-          Vector · Pre-generation UI review and requirement engineering
+              Vector — Requirement engineering for UI teams
         </p>
       </div>
     </div>

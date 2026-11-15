@@ -50,7 +50,7 @@ export const Header: React.FC<HeaderProps> = ({
   }, [projectMenuOpen]);
 
   const titles: Record<ActiveTab, { title: string; subtitle: string }> = {
-    about: { title: 'About Vector', subtitle: 'UI/UX Requirement Engineering' },
+    about: { title: 'About Vector', subtitle: 'Vector — Requirement engineering for UI teams' },
     overview: { title: 'Overview', subtitle: 'Projects & Analysis' },
     projects: { title: 'Projects', subtitle: 'Requirement Workspaces' },
     requirements: { title: 'Requirement Compiler', subtitle: 'Documents & Traceability' },
@@ -59,7 +59,7 @@ export const Header: React.FC<HeaderProps> = ({
     prompt: { title: 'Specification & Prompt', subtitle: 'Design Brief Generator' },
     design: { title: 'Design Systems', subtitle: 'Tokens & Brand Context' },
     workspace: { title: 'Base44 Workspace', subtitle: 'Prompt → Build → Preview' },
-    'new-analysis': { title: 'New UI Prompt Analysis', subtitle: 'UI/UX Prompt Analyzer' },
+    'new-analysis': { title: 'New UI Prompt Analysis', subtitle: 'Vector — Requirement engineering for UI teams' },
     history: { title: 'Analysis History', subtitle: 'Past Evaluations' },
     manual: { title: 'Manual', subtitle: 'How to use Vector' },
     settings: { title: 'Settings', subtitle: 'Preferences & Help' },

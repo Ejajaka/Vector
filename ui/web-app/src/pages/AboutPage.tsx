@@ -1,28 +1,125 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  ArrowDown,
   ArrowRight,
-  Check,
-  ChevronRight,
-  Sparkles,
-  Cpu,
-  Layers,
-  ShieldCheck,
   AlertTriangle,
+  Check,
   CheckCircle2,
-  Wand2,
-  Link2,
+  ChevronRight,
   ClipboardCheck,
-  Gauge,
-  Info,
-  Lock,
+  Cpu,
   Eye,
-  Terminal,
+  Gauge,
+  Layers,
+  Link2,
   RefreshCw,
+  ShieldCheck,
+  Wand2,
 } from 'lucide-react';
+import { Reveal } from '../components/ui/Reveal.tsx';
+import { CountUp } from '../components/ui/CountUp.tsx';
 
 interface AboutPageProps {
   onStartAnalysis: () => void;
 }
+
+const PROBLEM_CARDS = [
+  {
+    Icon: AlertTriangle,
+    iconClass: 'bg-[#FDF2F0] text-[#B94D42]',
+    title: 'Missing details',
+    text: '“Add a button” says nothing about its text, colour, placement or what clicking it does. The generator has to guess.',
+  },
+  {
+    Icon: Eye,
+    iconClass: 'bg-[#FEFCE8] text-[#D1B653]',
+    title: 'Vague values',
+    text: '“Some nice colour”, “somewhere on the side” and “does something useful” are not actionable. Vector asks instead of pretending.',
+  },
+  {
+    Icon: Link2,
+    iconClass: 'bg-[#F0F5F5] text-[#49686C]',
+    title: 'Attribute ambiguity',
+    text: 'With several elements on screen, it is easy to attach a colour or action to the wrong component. Vector links every attribute to an element.',
+  },
+];
+
+const WORKFLOW_STEPS = [
+  {
+    n: '01',
+    tag: 'Compile',
+    title: 'Upload',
+    text: 'Drop in a PDF, DOCX, TXT or Markdown document. Vector extracts every requirement with its source page and character offsets.',
+    foot: '→ Traceable requirements',
+  },
+  {
+    n: '02',
+    tag: 'Analyze',
+    title: 'Detect',
+    text: 'Vector reads the prompt or requirement text, detects elements, and asks targeted questions when a detail is missing or unclear.',
+    foot: '→ Clear, grounded input',
+  },
+  {
+    n: '03',
+    tag: 'Review',
+    title: 'Approve',
+    text: 'Ambiguities, conflicts and dependencies surface in a live graph. Edge cases are suggested, then accepted or rejected by a human.',
+    foot: '→ Audited acceptance',
+  },
+  {
+    n: '04',
+    tag: 'Generate',
+    title: 'Ship',
+    text: 'Produce a six-section design brief with your design tokens, version it, and build it in Base44 from the workspace.',
+    foot: '→ Build-ready brief',
+  },
+];
+
+const ADVANTAGES = [
+  {
+    Icon: Layers,
+    iconClass: 'text-[#49686C]',
+    title: 'Element-aware findings',
+    text: 'Every missing detail is attached to a specific element — not just “the prompt is incomplete”.',
+  },
+  {
+    Icon: ShieldCheck,
+    iconClass: 'text-[#3E6B33]',
+    title: 'Grounded suggestions',
+    text: 'Recommendations use the confirmed prompt and answers. Placeholders remain where the user has not decided.',
+  },
+  {
+    Icon: Gauge,
+    iconClass: 'text-[#D1B653]',
+    title: 'Shared risk score',
+    text: 'Completeness, vagueness, review confidence and unresolved questions combine into a consistent 0–100 score.',
+  },
+  {
+    Icon: Wand2,
+    iconClass: 'text-[#49686C]',
+    title: 'Project-scoped by design',
+    text: 'Documents, requirements, approvals, prompts and analyses stay inside their project and are visible only to your account.',
+  },
+  {
+    Icon: Link2,
+    iconClass: 'text-[#49686C]',
+    title: 'Traceable by default',
+    text: 'Every compiled requirement keeps its source document, page, paragraph and character range, so a reviewer can check the original wording in seconds.',
+  },
+  {
+    Icon: ClipboardCheck,
+    iconClass: 'text-[#3E6B33]',
+    title: 'Approval audit trail',
+    text: 'Requirement and acceptance-criteria decisions are recorded with the actor and reason, so the brief can prove what was approved and when.',
+  },
+];
+
+const GLANCE_STATS = [
+  { value: 4, suffix: '', label: 'review stages', detail: 'Compile → Detect → Review → Ship' },
+  { value: 6, suffix: '', label: 'brief sections', detail: 'Generated from approved decisions' },
+  { value: 100, suffix: ' / 100', label: 'risk score', detail: 'A heuristic, not a guarantee' },
+  { value: 0, suffix: ' bytes', label: 'prompt data uploaded', detail: 'Analysis runs in your browser' },
+];
 
 export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis }) => {
   const scrollToWorkflow = () => {
@@ -32,6 +129,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis }) => {
   // Interactive live-preview simulation state
   const [animStep, setAnimStep] = useState<number>(0);
   const [isPaused, setIsPaused] = useState(false);
+  const previewRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (isPaused) return;
@@ -41,21 +139,47 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis }) => {
     return () => clearInterval(interval);
   }, [isPaused]);
 
+  const handlePreviewMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    const node = previewRef.current;
+    if (!node) return;
+    const rect = node.getBoundingClientRect();
+    const px = (event.clientX - rect.left) / rect.width;
+    const py = (event.clientY - rect.top) / rect.height;
+    node.classList.add('is-tilting');
+    node.style.setProperty('--tilt-x', `${(0.5 - py) * 7}deg`);
+    node.style.setProperty('--tilt-y', `${(px - 0.5) * 9}deg`);
+    node.style.setProperty('--glow-x', `${px * 100}%`);
+    node.style.setProperty('--glow-y', `${py * 100}%`);
+  };
+
+  const resetPreviewTilt = () => {
+    const node = previewRef.current;
+    if (!node) return;
+    node.classList.remove('is-tilting');
+    node.style.setProperty('--tilt-x', '0deg');
+    node.style.setProperty('--tilt-y', '0deg');
+  };
+
   return (
     <div className="space-y-16 lg:space-y-24 max-w-6xl mx-auto pb-12 antialiased">
       {/* HERO */}
-      <section className="relative pt-2 sm:pt-6 lg:pt-8" aria-label="Hero">
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#49686C]/5 rounded-full blur-3xl pointer-events-none -z-10" />
-        <div className="absolute top-1/3 left-10 w-72 h-72 bg-[#D1B653]/10 rounded-full blur-2xl pointer-events-none -z-10" />
+      <section id="hero" className="relative pt-2 sm:pt-6 lg:pt-8 scroll-mt-24" aria-label="Hero">
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#49686C]/5 rounded-full blur-3xl pointer-events-none -z-10 animate-orb-drift" />
+        <div className="absolute top-1/3 left-10 w-72 h-72 bg-[#D1B653]/10 rounded-full blur-2xl pointer-events-none -z-10 animate-orb-drift-slow" />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           <div className="lg:col-span-7 space-y-6 text-left">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-[#E4EBDD] text-[#30494B] border border-[#CFE2C8] shadow-xs">
-              <span className="w-2 h-2 rounded-full bg-[#49686C] animate-pulse" />
-              <span>Vector — Requirement engineering for UI teams</span>
+            <div className="rise-in" style={{ animationDelay: '0ms' }}>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-[#E4EBDD] text-[#30494B] border border-[#CFE2C8] shadow-xs">
+                <span className="w-2 h-2 rounded-full bg-[#49686C] animate-pulse" />
+                <span>Vector — Requirement engineering for UI teams</span>
+              </div>
             </div>
 
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#283638] tracking-tight leading-[1.15]">
+            <h1
+              className="rise-in text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#283638] tracking-tight leading-[1.15]"
+              style={{ animationDelay: '90ms' }}
+            >
               Better interfaces start <br className="hidden sm:inline" />
               <span className="text-[#49686C] underline decoration-[#D1B653] decoration-wavy decoration-2 underline-offset-6">
                 before the first line
@@ -63,17 +187,23 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis }) => {
               of UI code.
             </h1>
 
-            <p className="text-base sm:text-lg text-[#737A72] max-w-xl leading-relaxed">
+            <p
+              className="rise-in text-base sm:text-lg text-[#737A72] max-w-xl leading-relaxed"
+              style={{ animationDelay: '170ms' }}
+            >
               Turn company requirement documents into traceable requirements, reviewed edge cases,
               audited acceptance criteria and a six-section design brief — all before a generator
               is allowed to guess.
             </p>
 
-            <div className="flex flex-wrap items-center gap-4 pt-2">
+            <div
+              className="rise-in flex flex-wrap items-center gap-4 pt-2"
+              style={{ animationDelay: '250ms' }}
+            >
               <button
                 type="button"
                 onClick={onStartAnalysis}
-                className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-[#49686C] hover:bg-[#30494B] text-white text-sm font-bold shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer active:scale-[0.98] group"
+                className="group inline-flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-[#49686C] hover:bg-[#30494B] text-white text-sm font-bold shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer active:scale-[0.98]"
               >
                 <span>Start a requirement review</span>
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
@@ -89,7 +219,10 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis }) => {
               </button>
             </div>
 
-            <div className="pt-4 flex flex-wrap items-center gap-y-2 gap-x-6 text-xs text-[#737A72]">
+            <div
+              className="rise-in pt-4 flex flex-wrap items-center gap-y-2 gap-x-6 text-xs text-[#737A72]"
+              style={{ animationDelay: '330ms' }}
+            >
               <div className="flex items-center gap-1.5">
                 <Check className="w-4 h-4 text-[#49686C]" />
                 <span>Smart element detection</span>
@@ -107,139 +240,192 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis }) => {
 
           {/* LIVE PREVIEW CARD */}
           <div
-            className="lg:col-span-5 relative"
+            className="rise-in lg:col-span-5 relative"
+            style={{ animationDelay: '320ms' }}
             onMouseEnter={() => setIsPaused(true)}
-            onMouseLeave={() => setIsPaused(false)}
+            onMouseLeave={() => {
+              setIsPaused(false);
+              resetPreviewTilt();
+            }}
           >
-            <div className="bg-[#FFFFFF] rounded-2xl border border-[#E5E2D8] shadow-lg p-5 sm:p-6 space-y-4 relative overflow-hidden">
-              <div className="flex items-center justify-between pb-3 border-b border-[#E5E2D8]">
-                <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#B94D42]/70" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#D1B653]/70" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#688E5E]/70" />
-                  <span className="text-[11px] font-mono text-[#737A72] ml-2">vector.live</span>
-                </div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#F6F4EC] text-[#49686C] font-semibold">
-                  Step {animStep + 1}/4
-                </span>
-              </div>
+            <div className="animate-float-soft">
+              <div
+                ref={previewRef}
+                onMouseMove={handlePreviewMove}
+                className="tilt-card group relative bg-[#FFFFFF] rounded-2xl border border-[#E5E2D8] shadow-lg p-5 sm:p-6 space-y-4 overflow-hidden"
+              >
+                <div
+                  className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                  style={{
+                    background:
+                      'radial-gradient(420px circle at var(--glow-x, 50%) var(--glow-y, 50%), rgba(73,104,108,0.12), transparent 62%)',
+                  }}
+                  aria-hidden="true"
+                />
 
-              <div className="space-y-1.5">
-                <span className="text-[10px] uppercase tracking-wider font-bold text-[#737A72]">
-                  Input UI prompt
-                </span>
-                <div className="p-3 rounded-lg bg-[#FAFAF8] border border-[#E5E2D8] text-xs font-mono text-[#283638] leading-relaxed relative">
-                  Add a{' '}
-                  <span className="bg-[#FDF2F0] text-[#B94D42] px-1 py-0.5 rounded font-bold">
-                    red
-                  </span>{' '}
-                  <span className="bg-[#E4EBDD] text-[#30494B] px-1 py-0.5 rounded font-bold">
-                    button
-                  </span>{' '}
-                  labelled{' '}
-                  <span className="bg-[#F0F5F5] text-[#49686C] px-1 py-0.5 rounded font-bold">
-                    “Sign Up”
-                  </span>
-                  .
-                </div>
-              </div>
-
-              {/* Step 1: Element Detection */}
-              <div className={`transition-all duration-300 ${animStep >= 1 ? 'opacity-100 translate-y-0' : 'opacity-40 translate-y-1'}`}>
-                <div className="flex items-center justify-between text-xs mb-1.5">
-                  <span className="font-semibold text-[#283638] flex items-center gap-1.5">
-                    <Cpu className="w-3.5 h-3.5 text-[#49686C]" /> Detected elements
-                  </span>
-                  <span className="text-[11px] text-[#49686C] font-mono">1 element</span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  <span className="px-2 py-1 rounded bg-[#F0F5F5] border border-[#CFDFE1] text-[11px] font-mono font-medium text-[#49686C] flex items-center gap-1">
-                    <Layers className="w-3 h-3" /> Button #1
-                  </span>
-                  <span className="px-2 py-1 rounded bg-[#F4F9F1] border border-[#CFE2C8] text-[11px] font-mono font-medium text-[#3E6B33]">
-                    LABEL · Sign Up
-                  </span>
-                  <span className="px-2 py-1 rounded bg-[#FEFCE8] border border-[#FEF08A] text-[11px] font-mono font-medium text-[#856C16]">
-                    COLOR · red
-                  </span>
-                </div>
-              </div>
-
-              {/* Step 2: Evaluation Findings */}
-              <div className={`transition-all duration-300 ${animStep >= 2 ? 'opacity-100 translate-y-0' : 'opacity-40 translate-y-1'}`}>
-                <div className="flex items-center justify-between text-xs mb-1.5">
-                  <span className="font-semibold text-[#283638] flex items-center gap-1.5">
-                    <AlertTriangle className="w-3.5 h-3.5 text-[#D1B653]" /> Evaluation findings
-                  </span>
-                  <span className="text-[11px] text-[#856C16] font-semibold font-mono">Medium · 44/100</span>
-                </div>
-                <div className="space-y-1.5">
-                  <div className="p-2 rounded bg-[#FEFCE8] border border-[#FEF08A] flex items-center justify-between text-[11px]">
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="w-3.5 h-3.5 text-[#856C16] shrink-0" />
-                      <span className="font-semibold text-[#856C16]">Missing action (ACTION)</span>
-                    </div>
-                    <span className="text-[10px] font-mono font-bold uppercase text-[#856C16]">Missing</span>
+                <div className="relative flex items-center justify-between pb-3 border-b border-[#E5E2D8]">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#B94D42]/70" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#D1B653]/70" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#688E5E]/70" />
+                    <span className="text-[11px] font-mono text-[#737A72] ml-2">vector.live</span>
                   </div>
-                  <div className="p-2 rounded bg-[#FEFCE8] border border-[#FEF08A] flex items-center justify-between text-[11px]">
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="w-3.5 h-3.5 text-[#856C16] shrink-0" />
-                      <span className="font-semibold text-[#856C16]">Missing placement (LOCATION)</span>
-                    </div>
-                    <span className="text-[10px] font-mono font-bold uppercase text-[#856C16]">Missing</span>
-                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#F6F4EC] text-[#49686C] font-semibold">
+                    Step {animStep + 1}/4
+                  </span>
                 </div>
-              </div>
 
-              {/* Step 3: Validated Rewrite */}
-              <div className={`transition-all duration-300 ${animStep >= 3 ? 'opacity-100 translate-y-0' : 'opacity-40 translate-y-1'}`}>
-                <div className="p-2.5 rounded-lg bg-[#F4F9F1] border border-[#CFE2C8] space-y-1 text-xs text-[#2D5A27]">
-                  <div className="flex items-center justify-between gap-2 font-bold">
-                    <span className="flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-[#3E6B33]" />
-                      Validated best prompt
+                <div className="relative space-y-1.5">
+                  <span className="text-[10px] uppercase tracking-wider font-bold text-[#737A72]">
+                    Input UI prompt
+                  </span>
+                  <div className="p-3 rounded-lg bg-[#FAFAF8] border border-[#E5E2D8] text-xs font-mono text-[#283638] leading-relaxed relative">
+                    Add a{' '}
+                    <span className="bg-[#FDF2F0] text-[#B94D42] px-1 py-0.5 rounded font-bold">
+                      red
+                    </span>{' '}
+                    <span className="bg-[#E4EBDD] text-[#30494B] px-1 py-0.5 rounded font-bold">
+                      button
+                    </span>{' '}
+                    labelled{' '}
+                    <span className="bg-[#F0F5F5] text-[#49686C] px-1 py-0.5 rounded font-bold">
+                      “Sign Up”
                     </span>
-                    <span className="text-[10px] font-mono bg-white/70 rounded px-1.5 py-0.5 text-[#3E6B33]">
-                      risk 44/100
+                    .
+                  </div>
+                </div>
+
+                {/* Step 1: Element Detection */}
+                <div className={`relative transition-all duration-300 ${animStep >= 1 ? 'opacity-100 translate-y-0' : 'opacity-40 translate-y-1'}`}>
+                  <div className="flex items-center justify-between text-xs mb-1.5">
+                    <span className="font-semibold text-[#283638] flex items-center gap-1.5">
+                      <Cpu className="w-3.5 h-3.5 text-[#49686C]" /> Detected elements
+                    </span>
+                    <span className="text-[11px] text-[#49686C] font-mono">1 element</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className="px-2 py-1 rounded bg-[#F0F5F5] border border-[#CFDFE1] text-[11px] font-mono font-medium text-[#49686C] flex items-center gap-1">
+                      <Layers className="w-3 h-3" /> Button #1
+                    </span>
+                    <span className="px-2 py-1 rounded bg-[#F4F9F1] border border-[#CFE2C8] text-[11px] font-mono font-medium text-[#3E6B33]">
+                      LABEL · Sign Up
+                    </span>
+                    <span className="px-2 py-1 rounded bg-[#FEFCE8] border border-[#FEF08A] text-[11px] font-mono font-medium text-[#856C16]">
+                      COLOR · red
                     </span>
                   </div>
-                  <p className="text-[11px] font-mono leading-relaxed">
-                    Add a red button in the &lt;location&gt; labelled “Sign Up” that &lt;what it does&gt;.
-                  </p>
                 </div>
-              </div>
 
-              {/* Interactive step indicator */}
-              <div className="flex items-center justify-between pt-2 border-t border-[#E5E2D8] text-[11px] text-[#737A72]">
-                <div className="flex items-center gap-1.5">
-                  {[0, 1, 2, 3].map((step) => (
-                    <button
-                      key={step}
-                      type="button"
-                      onClick={() => setAnimStep(step)}
-                      className={`h-1.5 rounded-full transition-all cursor-pointer ${
-                        animStep === step ? 'w-6 bg-[#49686C]' : 'w-2 bg-[#E5E2D8] hover:bg-[#CDC9BC]'
-                      }`}
-                      aria-label={`Show step ${step + 1}`}
-                    />
-                  ))}
+                {/* Step 2: Evaluation Findings */}
+                <div className={`relative transition-all duration-300 ${animStep >= 2 ? 'opacity-100 translate-y-0' : 'opacity-40 translate-y-1'}`}>
+                  <div className="flex items-center justify-between text-xs mb-1.5">
+                    <span className="font-semibold text-[#283638] flex items-center gap-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5 text-[#D1B653]" /> Evaluation findings
+                    </span>
+                    <span className="text-[11px] text-[#856C16] font-semibold font-mono">Medium · 44/100</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="p-2 rounded bg-[#FEFCE8] border border-[#FEF08A] flex items-center justify-between text-[11px]">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="w-3.5 h-3.5 text-[#856C16] shrink-0" />
+                        <span className="font-semibold text-[#856C16]">Missing action (ACTION)</span>
+                      </div>
+                      <span className="text-[10px] font-mono font-bold uppercase text-[#856C16]">Missing</span>
+                    </div>
+                    <div className="p-2 rounded bg-[#FEFCE8] border border-[#FEF08A] flex items-center justify-between text-[11px]">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="w-3.5 h-3.5 text-[#856C16] shrink-0" />
+                        <span className="font-semibold text-[#856C16]">Missing placement (LOCATION)</span>
+                      </div>
+                      <span className="text-[10px] font-mono font-bold uppercase text-[#856C16]">Missing</span>
+                    </div>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setAnimStep((s) => (s + 1) % 4)}
-                  className="inline-flex items-center gap-1 text-[#49686C] hover:text-[#30494B] font-medium"
-                >
-                  <RefreshCw className="w-3 h-3" />
-                  <span>Next simulation step</span>
-                </button>
+
+                {/* Step 3: Validated Rewrite */}
+                <div className={`relative transition-all duration-300 ${animStep >= 3 ? 'opacity-100 translate-y-0' : 'opacity-40 translate-y-1'}`}>
+                  <div className="p-2.5 rounded-lg bg-[#F4F9F1] border border-[#CFE2C8] space-y-1 text-xs text-[#2D5A27]">
+                    <div className="flex items-center justify-between gap-2 font-bold">
+                      <span className="flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[#3E6B33]" />
+                        Validated best prompt
+                      </span>
+                      <span className="text-[10px] font-mono bg-white/70 rounded px-1.5 py-0.5 text-[#3E6B33]">
+                        risk 44/100
+                      </span>
+                    </div>
+                    <p className="text-[11px] font-mono leading-relaxed">
+                      Add a red button in the &lt;location&gt; labelled “Sign Up” that &lt;what it does&gt;.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Interactive step indicator */}
+                <div className="relative flex items-center justify-between pt-2 border-t border-[#E5E2D8] text-[11px] text-[#737A72]">
+                  <div className="flex items-center gap-1.5">
+                    {[0, 1, 2, 3].map((step) => (
+                      <button
+                        key={step}
+                        type="button"
+                        onClick={() => setAnimStep(step)}
+                        className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                          animStep === step ? 'w-6 bg-[#49686C]' : 'w-2 bg-[#E5E2D8] hover:bg-[#CDC9BC]'
+                        }`}
+                        aria-label={`Show step ${step + 1}`}
+                      />
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAnimStep((s) => (s + 1) % 4)}
+                    className="inline-flex items-center gap-1 text-[#49686C] hover:text-[#30494B] font-medium"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    <span>Next simulation step</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
+
+        <div className="rise-in flex justify-center pt-10 sm:pt-12" style={{ animationDelay: '520ms' }}>
+          <button
+            type="button"
+            onClick={scrollToWorkflow}
+            className="group inline-flex items-center gap-2 rounded-full border border-[#E5E2D8] bg-white/70 px-4 py-2 text-[11px] font-semibold text-[#737A72] shadow-xs transition-colors hover:border-[#49686C]/40 hover:text-[#283638] dark:border-[#33403F] dark:bg-white/5 dark:text-[#9AA6A2] dark:hover:text-[#F2F5F3]"
+          >
+            <ArrowDown className="h-3.5 w-3.5 animate-cue text-[#49686C] dark:text-[#B9D1D4]" />
+            Scroll to see how the workflow fits together
+          </button>
+        </div>
+      </section>
+
+      {/* AT A GLANCE */}
+      <section aria-label="Vector at a glance" className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        {GLANCE_STATS.map((stat, index) => (
+          <Reveal key={stat.label} delay={index * 80} y={26} className="h-full">
+            <div className="lift-card h-full rounded-2xl border border-[#E5E2D8] bg-white/80 p-5 shadow-xs dark:border-[#29383A] dark:bg-white/[0.03]">
+              <div className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#283638] dark:text-[#F2F5F3]">
+                <CountUp to={stat.value} suffix={stat.suffix} />
+              </div>
+              <div className="mt-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[#49686C] dark:text-[#B9D1D4]">
+                {stat.label}
+              </div>
+              <p className="mt-1.5 text-[11px] leading-relaxed text-[#737A72] dark:text-[#9AA6A2]">
+                {stat.detail}
+              </p>
+            </div>
+          </Reveal>
+        ))}
       </section>
 
       {/* PROBLEM */}
-      <section className="bg-white rounded-2xl border border-[#E5E2D8] p-6 sm:p-10 shadow-xs space-y-6">
+      <Reveal
+        as="section"
+        id="problem-section"
+        className="scroll-mt-24 bg-white rounded-2xl border border-[#E5E2D8] p-6 sm:p-10 shadow-xs space-y-6"
+      >
         <div className="max-w-2xl space-y-2">
           <div className="text-xs font-bold text-[#D1B653] uppercase tracking-wider">
             The completeness gap
@@ -254,44 +440,23 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis }) => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-          <div className="p-5 rounded-xl bg-[#FAFAF8] border border-[#E5E2D8] space-y-3">
-            <div className="w-8 h-8 rounded-lg bg-[#FDF2F0] text-[#B94D42] flex items-center justify-center">
-              <AlertTriangle className="w-4 h-4" />
-            </div>
-            <h3 className="text-sm font-bold text-[#283638]">Missing details</h3>
-            <p className="text-xs text-[#737A72] leading-relaxed">
-              “Add a button” says nothing about its text, colour, placement or what clicking it does.
-              The generator has to guess.
-            </p>
-          </div>
-
-          <div className="p-5 rounded-xl bg-[#FAFAF8] border border-[#E5E2D8] space-y-3">
-            <div className="w-8 h-8 rounded-lg bg-[#FEFCE8] text-[#D1B653] flex items-center justify-center">
-              <Eye className="w-4 h-4" />
-            </div>
-            <h3 className="text-sm font-bold text-[#283638]">Vague values</h3>
-            <p className="text-xs text-[#737A72] leading-relaxed">
-              “Some nice colour”, “somewhere on the side” and “does something useful” are not
-              actionable. Vector asks instead of pretending.
-            </p>
-          </div>
-
-          <div className="p-5 rounded-xl bg-[#FAFAF8] border border-[#E5E2D8] space-y-3">
-            <div className="w-8 h-8 rounded-lg bg-[#F0F5F5] text-[#49686C] flex items-center justify-center">
-              <Link2 className="w-4 h-4" />
-            </div>
-            <h3 className="text-sm font-bold text-[#283638]">Attribute ambiguity</h3>
-            <p className="text-xs text-[#737A72] leading-relaxed">
-              With several elements on screen, it is easy to attach a colour or action to the wrong
-              component. Vector links every attribute to an element.
-            </p>
-          </div>
+          {PROBLEM_CARDS.map((card, index) => (
+            <Reveal key={card.title} delay={index * 100} y={28} className="h-full">
+              <div className="lift-card h-full p-5 rounded-xl bg-[#FAFAF8] border border-[#E5E2D8] space-y-3">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${card.iconClass}`}>
+                  <card.Icon className="w-4 h-4" />
+                </div>
+                <h3 className="text-sm font-bold text-[#283638]">{card.title}</h3>
+                <p className="text-xs text-[#737A72] leading-relaxed">{card.text}</p>
+              </div>
+            </Reveal>
+          ))}
         </div>
-      </section>
+      </Reveal>
 
       {/* WORKFLOW */}
-      <section id="workflow-section" className="space-y-8 scroll-mt-20">
-        <div className="text-center max-w-2xl mx-auto space-y-2">
+      <section id="workflow-section" className="space-y-8 scroll-mt-24">
+        <Reveal className="text-center max-w-2xl mx-auto space-y-2">
           <div className="text-xs font-bold text-[#49686C] uppercase tracking-wider">
             Diagnostic workflow
           </div>
@@ -301,72 +466,50 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis }) => {
           <p className="text-sm text-[#737A72]">
             Four stages that turn an ambiguous UI request into a safe, specific prompt.
           </p>
-        </div>
+        </Reveal>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative">
-          {[
-            {
-              n: '01',
-              tag: 'Compile',
-              title: 'Upload',
-              text: 'Drop in a PDF, DOCX, TXT or Markdown document. Vector extracts every requirement with its source page and character offsets.',
-              foot: '→ Traceable requirements',
-            },
-            {
-              n: '02',
-              tag: 'Analyze',
-              title: 'Detect',
-              text: 'Vector reads the prompt or requirement text, detects elements, and asks targeted questions when a detail is missing or unclear.',
-              foot: '→ Clear, grounded input',
-            },
-            {
-              n: '03',
-              tag: 'Review',
-              title: 'Approve',
-              text: 'Ambiguities, conflicts and dependencies surface in a live graph. Edge cases are suggested, then accepted or rejected by a human.',
-              foot: '→ Audited acceptance',
-            },
-            {
-              n: '04',
-              tag: 'Generate',
-              title: 'Ship',
-              text: 'Produce a six-section design brief with your design tokens, version it, and build it in Base44 from the workspace.',
-              foot: '→ Build-ready brief',
-            },
-          ].map((step, index) => (
-            <div
-              key={step.n}
-              className="bg-white p-5 rounded-xl border border-[#E5E2D8] shadow-xs flex flex-col justify-between relative group hover:border-[#49686C] transition-colors"
-            >
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span
-                    className={`w-8 h-8 rounded-lg font-mono font-bold text-xs flex items-center justify-center ${
-                      index === 3 ? 'bg-[#F4F9F1] text-[#3E6B33]' : 'bg-[#F0F5F5] text-[#49686C]'
-                    }`}
-                  >
-                    {step.n}
-                  </span>
-                  <span className="text-[11px] font-mono font-medium text-[#737A72]">{step.tag}</span>
+          <div
+            className="pointer-events-none absolute left-[6%] right-[6%] top-[52px] hidden h-px bg-gradient-to-r from-transparent via-[#E5E2D8] to-transparent dark:via-[#29383A] lg:block"
+            aria-hidden="true"
+          />
+          {WORKFLOW_STEPS.map((step, index) => (
+            <Reveal key={step.n} delay={index * 100} y={36} className="h-full">
+              <div className="lift-card relative h-full bg-white p-5 rounded-xl border border-[#E5E2D8] shadow-xs flex flex-col justify-between overflow-hidden group hover:border-[#49686C] transition-colors">
+                <span
+                  className="absolute inset-x-0 top-0 h-0.5 origin-left scale-x-0 bg-gradient-to-r from-[#49686C] to-[#D1B653] transition-transform duration-500 group-hover:scale-x-100"
+                  aria-hidden="true"
+                />
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`w-8 h-8 rounded-lg font-mono font-bold text-xs flex items-center justify-center transition-transform duration-500 group-hover:-rotate-6 group-hover:scale-110 ${
+                        index === 3 ? 'bg-[#F4F9F1] text-[#3E6B33]' : 'bg-[#F0F5F5] text-[#49686C]'
+                      }`}
+                    >
+                      {step.n}
+                    </span>
+                    <span className="text-[11px] font-mono font-medium text-[#737A72]">{step.tag}</span>
+                  </div>
+                  <h3 className="text-base font-bold text-[#283638]">{step.title}</h3>
+                  <p className="text-xs text-[#737A72] leading-relaxed">{step.text}</p>
                 </div>
-                <h3 className="text-base font-bold text-[#283638]">{step.title}</h3>
-                <p className="text-xs text-[#737A72] leading-relaxed">{step.text}</p>
+                <div
+                  className={`pt-4 text-[11px] font-mono ${
+                    index === 3 ? 'text-[#3E6B33]' : 'text-[#49686C]'
+                  }`}
+                >
+                  {step.foot}
+                </div>
               </div>
-              <div
-                className={`pt-4 text-[11px] font-mono ${
-                  index === 3 ? 'text-[#3E6B33]' : 'text-[#49686C]'
-                }`}
-              >
-                {step.foot}
-              </div>
-            </div>
+            </Reveal>
           ))}
         </div>
       </section>
 
       {/* ADVANTAGES */}
-      <section className="space-y-6">
-        <div className="max-w-2xl space-y-2">
+      <section id="advantages-section" className="space-y-6 scroll-mt-24">
+        <Reveal className="max-w-2xl space-y-2">
           <div className="text-xs font-bold text-[#49686C] uppercase tracking-wider">
             Why teams choose Vector
           </div>
@@ -376,78 +519,30 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis }) => {
           <p className="text-sm text-[#737A72]">
             Built for designers, product teams and engineers who use AI-assisted UI generation.
           </p>
-        </div>
+        </Reveal>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-white p-5 rounded-xl border border-[#E5E2D8] shadow-xs space-y-2">
-            <div className="flex items-center gap-2">
-              <Layers className="w-4 h-4 text-[#49686C]" />
-              <h3 className="text-sm font-bold text-[#283638]">Element-aware findings</h3>
-            </div>
-            <p className="text-xs text-[#737A72] leading-relaxed">
-              Every missing detail is attached to a specific element — not just “the prompt is
-              incomplete”.
-            </p>
-          </div>
-
-          <div className="bg-white p-5 rounded-xl border border-[#E5E2D8] shadow-xs space-y-2">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-[#3E6B33]" />
-              <h3 className="text-sm font-bold text-[#283638]">Grounded suggestions</h3>
-            </div>
-            <p className="text-xs text-[#737A72] leading-relaxed">
-              Recommendations use the confirmed prompt and answers. Placeholders remain where the
-              user has not decided.
-            </p>
-          </div>
-
-          <div className="bg-white p-5 rounded-xl border border-[#E5E2D8] shadow-xs space-y-2">
-            <div className="flex items-center gap-2">
-              <Gauge className="w-4 h-4 text-[#D1B653]" />
-              <h3 className="text-sm font-bold text-[#283638]">Shared risk score</h3>
-            </div>
-            <p className="text-xs text-[#737A72] leading-relaxed">
-              Completeness, vagueness, review confidence and unresolved questions combine into a
-              consistent 0–100 score.
-            </p>
-          </div>
-
-          <div className="bg-white p-5 rounded-xl border border-[#E5E2D8] shadow-xs space-y-2">
-            <div className="flex items-center gap-2">
-              <Wand2 className="w-4 h-4 text-[#49686C]" />
-              <h3 className="text-sm font-bold text-[#283638]">Project-scoped by design</h3>
-            </div>
-            <p className="text-xs text-[#737A72] leading-relaxed">
-              Documents, requirements, approvals, prompts and analyses stay inside their project
-              and are visible only to your account.
-            </p>
-          </div>
-          <div className="bg-white p-5 rounded-xl border border-[#E5E2D8] shadow-xs space-y-2">
-            <div className="flex items-center gap-2">
-              <Link2 className="w-4 h-4 text-[#49686C]" />
-              <h3 className="text-sm font-bold text-[#283638]">Traceable by default</h3>
-            </div>
-            <p className="text-xs text-[#737A72] leading-relaxed">
-              Every compiled requirement keeps its source document, page, paragraph and character
-              range, so a reviewer can check the original wording in seconds.
-            </p>
-          </div>
-
-          <div className="bg-white p-5 rounded-xl border border-[#E5E2D8] shadow-xs space-y-2">
-            <div className="flex items-center gap-2">
-              <ClipboardCheck className="w-4 h-4 text-[#3E6B33]" />
-              <h3 className="text-sm font-bold text-[#283638]">Approval audit trail</h3>
-            </div>
-            <p className="text-xs text-[#737A72] leading-relaxed">
-              Requirement and acceptance-criteria decisions are recorded with the actor and reason,
-              so the brief can prove what was approved and when.
-            </p>
-          </div>
+          {ADVANTAGES.map((advantage, index) => (
+            <Reveal key={advantage.title} delay={index * 80} y={30} className="h-full">
+              <div className="lift-card h-full bg-white p-5 rounded-xl border border-[#E5E2D8] shadow-xs space-y-2 group">
+                <div className="flex items-center gap-2">
+                  <advantage.Icon
+                    className={`w-4 h-4 transition-transform duration-500 group-hover:-translate-y-0.5 group-hover:scale-110 ${advantage.iconClass}`}
+                  />
+                  <h3 className="text-sm font-bold text-[#283638]">{advantage.title}</h3>
+                </div>
+                <p className="text-xs text-[#737A72] leading-relaxed">{advantage.text}</p>
+              </div>
+            </Reveal>
+          ))}
         </div>
       </section>
 
       {/* HONESTY */}
-      <section className="bg-white rounded-2xl border border-[#E5E2D8] p-6 sm:p-8 shadow-xs space-y-4">
+      <Reveal
+        as="section"
+        className="bg-white rounded-2xl border border-[#E5E2D8] p-6 sm:p-8 shadow-xs space-y-4"
+      >
         <div className="flex items-center gap-2 pb-2 border-b border-[#E5E2D8]">
           <Cpu className="w-4 h-4 text-[#49686C]" />
           <h2 className="text-base font-bold text-[#283638]">Honest by design</h2>
@@ -468,10 +563,17 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis }) => {
             uncertainty; it does not replace design review or a human check of the generated UI.
           </p>
         </div>
-      </section>
+      </Reveal>
 
       {/* CTA */}
-      <section className="bg-[#30494B] rounded-2xl p-8 sm:p-12 text-center text-white space-y-5 relative overflow-hidden shadow-lg">
+      <Reveal
+        as="section"
+        className="relative overflow-hidden rounded-2xl bg-[#30494B] p-8 sm:p-12 text-center text-white space-y-5 shadow-lg"
+      >
+        <div className="pointer-events-none absolute inset-0 opacity-40" aria-hidden="true">
+          <div className="absolute -left-24 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-[#D1B653] blur-3xl animate-orb-drift" />
+          <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-[#49686C] blur-3xl animate-orb-drift-slow" />
+        </div>
         <div className="max-w-xl mx-auto space-y-3 relative z-10">
           <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
             Make the missing details visible.
@@ -484,17 +586,17 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis }) => {
             <button
               type="button"
               onClick={onStartAnalysis}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#D1B653] hover:bg-[#bda241] text-[#283638] text-sm font-bold shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-[0.98]"
+              className="group inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#D1B653] hover:bg-[#bda241] text-[#283638] text-sm font-bold shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-[0.98]"
             >
               <span>Start a requirement review</span>
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
             </button>
           </div>
         </div>
         <div className="absolute -right-12 -bottom-12 opacity-10 pointer-events-none">
           <ClipboardCheck className="w-64 h-64" />
         </div>
-      </section>
+      </Reveal>
     </div>
   );
 };
