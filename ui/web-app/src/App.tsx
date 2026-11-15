@@ -48,8 +48,8 @@ function isKnownTab(value: string | null): value is ActiveTab {
   return !!value && (KNOWN_TABS as string[]).includes(value);
 }
 
-function tabStorageKey(userId: string | undefined): string {
-  return `vector_active_tab_${userId || 'guest'}`;
+function tabSessionKey(userId: string | undefined): string {
+  return `vector_active_tab_session_${userId || 'guest'}`;
 }
 
 function AppShell() {
@@ -66,11 +66,13 @@ function AppShell() {
   const publicMode = configured && !user;
   const showMarketingChrome = !user && (activeTab === 'about' || activeTab === 'privacy');
 
-  // Restore the last visited tab for this account (or for guests).
+  // Restore the current tab for this browser session. Session storage survives
+  // refreshes but clears when the page session is closed, so signed-in users
+  // start a new visit at Projects.
   useEffect(() => {
     let next: ActiveTab = user ? 'projects' : 'about';
     try {
-      const saved = localStorage.getItem(tabStorageKey(user?.id));
+      const saved = sessionStorage.getItem(tabSessionKey(user?.id));
       if (isKnownTab(saved)) next = saved;
     } catch {
       // ignore storage failures
@@ -81,12 +83,12 @@ function AppShell() {
     setTabHydrated(true);
   }, [user?.id]);
 
-  // Persist the active tab so refresh, revisit and re-login return here.
+  // Persist the active tab for refreshes during this page session.
   useEffect(() => {
     if (!tabHydrated) return;
     if (publicMode && !PUBLIC_TABS.includes(activeTab)) return;
     try {
-      localStorage.setItem(tabStorageKey(user?.id), activeTab);
+      sessionStorage.setItem(tabSessionKey(user?.id), activeTab);
     } catch {
       // ignore storage failures
     }
