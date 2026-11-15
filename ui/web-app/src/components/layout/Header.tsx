@@ -67,6 +67,12 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   const current = titles[activeTab] || titles.overview;
+  const displayName =
+    (user?.user_metadata?.display_name as string | undefined)?.trim() ||
+    (user?.user_metadata?.full_name as string | undefined)?.trim() ||
+    (user?.user_metadata?.name as string | undefined)?.trim() ||
+    user?.email ||
+    'Account';
 
   const handleSignOut = async () => {
     setSigningOut(true);
@@ -192,10 +198,10 @@ export const Header: React.FC<HeaderProps> = ({
               ) : (
                 <span
                   className="hidden xl:inline-flex items-center gap-1 text-[11px] text-[#737A72] dark:text-[#8E9A93] max-w-[150px] truncate"
-                  title={user?.email || ''}
+                  title={displayName}
                 >
                   <UserRound className="w-3 h-3 shrink-0" />
-                  {user?.email}
+                  {displayName}
                 </span>
               )}
             </>

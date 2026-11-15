@@ -25,10 +25,10 @@
 }
 
 .dark, [data-theme="dark"] {
-  --bg-page: #131A1B;
-  --bg-card: #1B2426;
-  --bg-subtle: #172022;
-  --bg-hover: #222E30;
+  --bg-page: #1B2526;
+  --bg-card: #243032;
+  --bg-subtle: #202A2B;
+  --bg-hover: #2B393A;
   --primary-teal: #5A8084;
   --dark-teal: #3B575A;
   --accent-mustard: #E2C768;
@@ -68,6 +68,19 @@ code, kbd, samp, pre {
 
 .dark .bg-\[\#FFFFFF\] {
   background-color: var(--bg-card) !important;
+}
+
+.dark .bg-\[\#131A1B\],
+.dark .bg-\[\#141C1D\] {
+  background-color: var(--bg-page) !important;
+}
+
+.dark .bg-\[\#1B2426\] {
+  background-color: var(--bg-card) !important;
+}
+
+.dark .bg-\[\#222E30\] {
+  background-color: var(--bg-hover) !important;
 }
 
 .dark .bg-white {
