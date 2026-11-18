@@ -18,8 +18,7 @@ export function isDarkColor(hex: string): boolean {
  * A tiny, abstract website mock rendered with the theme tokens. It is a visual
  * preview of the palette and shape language rather than a real brand page.
  */
-export const ThemePreview: React.FC<{ tokens: DesignTokens; className?: string }> = ({ tokens, className = '' }) => {
-  const surface = tokens.secondaryColor || '#FFFFFF';
+export const ThemePreview: React.FC<{ tokens: DesignTokens; className?: string }> = ({ tokens, className = '' }) => {  const surface = tokens.secondaryColor || '#FFFFFF';
   const dark = isDarkColor(surface);
   const ink = dark ? '#FFFFFF' : '#1D1D1F';
   const muted = dark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.4)';
@@ -84,3 +83,15 @@ export const ThemePreview: React.FC<{ tokens: DesignTokens; className?: string }
     </div>
   );
 };
+
+/** A scaled-down version of the theme preview for compact lists. */
+export const ThemeThumb: React.FC<{ tokens: DesignTokens; className?: string }> = ({ tokens, className = '' }) => (
+  <div
+    className={`relative shrink-0 overflow-hidden rounded-md border border-[#E5E2D8] bg-white ${className}`}
+    aria-hidden="true"
+  >
+    <div className="absolute left-0 top-0 w-[248px] origin-top-left scale-[0.24]">
+      <ThemePreview tokens={tokens} />
+    </div>
+  </div>
+);

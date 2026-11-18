@@ -27,7 +27,7 @@ import type { DesignSystemVersion } from '../services/generation/designSystems.t
 import type { DesignSystem, DesignTokens } from '../types/designSystem.ts';
 import { DEFAULT_DESIGN_SYSTEM } from '../types/designSystem.ts';
 import { DESIGN_PRESETS, presetTokens } from '../services/generation/designPresets.ts';
-import { ThemePreview } from '../components/ui/ThemePreview.tsx';
+import { ThemePreview, ThemeThumb } from '../components/ui/ThemePreview.tsx';
 
 const FIELDS: Array<{ key: keyof DesignTokens; label: string; multiline?: boolean }> = [
   { key: 'primaryColor', label: 'Primary color' },
@@ -278,12 +278,8 @@ export const DesignSystemsPage: React.FC = () => {
           <div className="divide-y divide-[#E5E2D8] mt-1">
             {systems.length === 0 && <p className="text-xs text-[#737A72] py-6 text-center">Using the built-in default.</p>}
             {systems.map((system) => (
-              <div key={system.id} className="py-3 flex items-center gap-2">
-                <div className="flex -space-x-1">
-                  {[system.tokens.primaryColor, system.tokens.secondaryColor, system.tokens.accentColor].map((color, index) => (
-                    <span key={index} className="w-4 h-4 rounded-full border border-white shadow-xs" style={{ backgroundColor: color }} />
-                  ))}
-                </div>
+              <div key={system.id} className="py-3 flex items-center gap-2.5">
+                <ThemeThumb tokens={system.tokens} className="h-9 w-[58px]" />
                 <button type="button" onClick={() => choose(system)} className="min-w-0 flex-1 text-left">
                   <p className="text-xs font-bold text-[#283638] truncate">{system.name}</p>
                   <p className="text-[10px] text-[#737A72]">{system.isShared ? 'shared' : 'private'} · {system.projectId ? 'project' : 'library'}</p>
