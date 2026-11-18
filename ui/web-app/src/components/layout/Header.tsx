@@ -86,7 +86,8 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <>
-      <header className="h-16 bg-[#FFFFFF] dark:bg-[#1B2426] border-b border-[#E5E2D8] dark:border-[#29383A] px-4 lg:px-8 flex items-center justify-between sticky top-0 z-30">
+      <header className="sticky top-0 z-30 h-16 border-b border-[#E5E2D8] bg-[#FFFFFF] dark:border-[#29383A] dark:bg-[#1B2426]">
+        <div className="mx-auto flex h-full w-full max-w-[1600px] items-center justify-between gap-2 px-4 lg:px-8">
         <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={onOpenMobileMenu}
@@ -245,6 +246,7 @@ export const Header: React.FC<HeaderProps> = ({
               <LogOut className="w-4 h-4" />
             </button>
           )}
+        </div>
         </div>
       </header>
 
