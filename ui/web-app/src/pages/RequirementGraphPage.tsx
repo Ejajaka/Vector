@@ -4,7 +4,6 @@ import {
   Controls,
   Handle,
   MarkerType,
-  MiniMap,
   Position,
   ReactFlow,
   type Edge,
@@ -356,7 +355,6 @@ export const RequirementGraphPage: React.FC = () => {
                 proOptions={{ hideAttribution: true }}
               >
                 <Background gap={20} size={1} color="#E5E2D8" />
-                <MiniMap pannable zoomable nodeStrokeWidth={2} style={{ background: '#FFFFFF' }} />
                 <Controls showInteractive={false} />
               </ReactFlow>
             </div>
