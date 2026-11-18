@@ -73,11 +73,11 @@ export const PrivacyPage: React.FC = () => {
           For questions or issues, open an issue on the project repository:{' '}
           <a
             className="text-[#49686C] underline"
-            href="https://github.com/Ejajaka/ui-prompt-linter"
+            href="https://github.com/Ejajaka/Vector"
             target="_blank"
             rel="noreferrer"
           >
-            github.com/Ejajaka/ui-prompt-linter
+            github.com/Ejajaka/Vector
           </a>
           .
         </p>

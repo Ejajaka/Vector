@@ -8,7 +8,7 @@ audited acceptance criteria and a six-section design brief — before a
 generative UI tool is allowed to guess.
 
 This manual covers every page and control in the web app at
-`https://ejajaka.github.io/ui-prompt-linter/`.
+`https://ejajaka.github.io/Vector/`.
 
 ---
 

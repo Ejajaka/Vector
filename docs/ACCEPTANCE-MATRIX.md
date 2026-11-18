@@ -1,7 +1,7 @@
 # Acceptance matrix and remaining gaps
 
 Last verified: 2026-11-14, against the live site
-`https://ejajaka.github.io/ui-prompt-linter/` and Supabase project
+`https://ejajaka.github.io/Vector/` and Supabase project
 `trtbkunnanymvjasxhls`.
 
 ## Verification executed in the browser
@@ -120,7 +120,7 @@ Actions `tests` and `pages-build-deployment` all pass.
    project, documents, design system, versions, criteria and approvals are
    owner-scoped and will disappear with it.
 2. Re-enable **Confirm email** and configure Auth redirect URLs for
-   `https://ejajaka.github.io/ui-prompt-linter/`.
+   `https://ejajaka.github.io/Vector/`.
 3. Rotate the secret key that was shared in chat. It was never stored and
    returned HTTP 401.
 4. Deploy the `analyze-requirements` Edge Function and set `LLM_BASE_URL`,

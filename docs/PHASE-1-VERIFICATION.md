@@ -24,7 +24,7 @@ Verification sequence used a temporary user with email confirmation disabled.
 - Re-enable **Confirm email** after testing.
 - Add Auth redirect URLs:
   - `http://localhost:3000`
-  - `https://ejajaka.github.io/ui-prompt-linter/`
+  - `https://ejajaka.github.io/Vector/`
 - Rotate the `sb_secret_*` key that was shared in chat. It returned HTTP 401
   against the admin/management APIs and was never stored in the repository or
   frontend.
