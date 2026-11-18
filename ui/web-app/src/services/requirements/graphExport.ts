@@ -8,6 +8,15 @@ const STYLES: Record<string, { bg: string; border: string; text: string }> = {
   interaction: { bg: '#FFF7ED', border: '#FED7AA', text: '#9C4A28' },
 };
 
+
+const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
+  requirement: { label: 'Requirements', color: '#49686C' },
+  screen: { label: 'Screens', color: '#3E6B33' },
+  component: { label: 'Components', color: '#856C16' },
+  role: { label: 'Roles', color: '#30494B' },
+  interaction: { label: 'Interactions', color: '#9C4A28' },
+};
+
 const COLUMNS: Record<string, number> = {
   requirement: 0,
   screen: 460,
@@ -115,6 +124,29 @@ export async function exportRequirementGraph(
     `${options.counts.requirements} requirements · ${options.counts.ambiguities} ambiguities · ` +
     `${options.counts.conflicts} conflicts · ${options.counts.dependencies} dependencies`;
   ctx.fillText(summary, MARGIN_X, 108);
+
+  // Small grouped boxes, one per functionality.
+  const perKind: Record<string, number> = {};
+  for (const node of analysis.graph.nodes) {
+    perKind[node.kind] = (perKind[node.kind] || 0) + 1;
+  }
+  for (const [kind, count] of Object.entries(perKind)) {
+    if (!count) continue;
+    const meta = CATEGORY_LABELS[kind] || CATEGORY_LABELS.requirement;
+    const x = MARGIN_X + (COLUMNS[kind] ?? 0) - 16;
+    const y = HEADER - 34;
+    const w = NODE_WIDTH + 32;
+    const h = 46 + count * GAP;
+    ctx.fillStyle = '#FCFBF7';
+    ctx.strokeStyle = '#E5E2D8';
+    ctx.lineWidth = 1;
+    rounded(ctx, x, y, w, h, 16);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = meta.color;
+    ctx.font = '700 10px "Segoe UI", sans-serif';
+    ctx.fillText(meta.label.toUpperCase(), x + 14, y + 20);
+  }
 
   // Edges.
   for (const edge of analysis.graph.edges) {

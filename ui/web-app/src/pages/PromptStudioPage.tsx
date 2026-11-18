@@ -33,6 +33,7 @@ import {
 import { loadProjectMemory, saveProjectMemory } from '../services/projectMemory.ts';
 import { usePromptDraft } from '../hooks/usePromptDraft.ts';
 import { analyzePromptCoverage, coverageLabel } from '../services/generation/promptCoverage.ts';
+import { SpellingNotice } from '../components/ui/SpellingNotice.tsx';
 import type { AcceptanceCriterion, RequirementRecord, RequirementSuggestion } from '../types/requirements.ts';
 import type { PromptVersionRecord } from '../types/prompt.ts';
 
@@ -248,9 +249,12 @@ export const PromptStudioPage: React.FC = () => {
           <textarea
             value={displayedPrompt}
             onChange={(event) => setDraft(event.target.value)}
+            spellCheck
             className="w-full min-h-[720px] resize-y p-5 bg-[#FAFAF8] text-[12px] leading-relaxed font-mono text-[#283638] focus:bg-white focus:outline-none"
-            spellCheck={false}
           />
+          <div className="px-5 pb-4">
+            <SpellingNotice text={displayedPrompt} onFix={setDraft} />
+          </div>
         </div>
 
         <div className="space-y-4">

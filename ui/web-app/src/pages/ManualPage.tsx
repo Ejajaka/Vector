@@ -117,9 +117,9 @@ const SECTIONS: ManualSection[] = [
     id: 'design',
     icon: Palette,
     title: 'Design Systems',
-    intro: 'Keep colour, typography, spacing and brand guidance consistent across every brief.',
+    intro: 'Keep color, typography, spacing and brand guidance consistent across every brief.',
     steps: [
-      'Create a design system and fill in colour, type, spacing, radius, shadows, navigation and accessibility tokens.',
+      'Create a design system and fill in color, type, spacing, radius, shadows, navigation and accessibility tokens.',
       'Save it; every save records a version snapshot.',
       'Select it in Specification & Prompt to inject the tokens.',
       'Restore any earlier version from the history; the restore is recorded as a new version.',
@@ -142,7 +142,7 @@ const SECTIONS: ManualSection[] = [
     id: 'analysis',
     icon: Cpu,
     title: 'Prompt Analysis',
-    intro: 'Check a single UI prompt for missing labels, colours, placement and actions.',
+    intro: 'Check a single UI prompt for missing labels, colors, placement and actions.',
     steps: [
       'Choose the project the analysis belongs to.',
       'Describe the screen and its elements, then run the analysis.',
@@ -183,7 +183,7 @@ const SECTIONS: ManualSection[] = [
     intro: 'The fastest fixes for the usual blockers.',
     steps: [
       '“Choose a project first” — pick one from the header dropdown or create a project.',
-      'Analyze is disabled — select a project, or wait for the analyser to finish preparing.',
+      'Analyze is disabled — select a project, or wait for the analyzer to finish preparing.',
       'History looks empty — it is scoped to the project chosen in the History dropdown.',
       'Base44 preview is blank — open Base44 in a new tab; framing can be blocked by the host.',
       'A document produced no requirements — write requirements as full sentences, not headings.',

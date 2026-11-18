@@ -15,6 +15,7 @@ import { useAuth } from '../context/AuthContext.tsx';
 import { useProject } from '../context/ProjectContext.tsx';
 import { useToast } from '../components/ui/Toast.tsx';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog.tsx';
+import { SpellingHint } from '../components/ui/SpellingNotice.tsx';
 import {
   deleteRequirementDocument,
   listRequirementDocuments,
@@ -452,6 +453,7 @@ export const RequirementsPage: React.FC = () => {
                       <button type="button" onClick={() => void handleDecision(requirement, 'rejected')} className="text-[10px] font-bold px-2.5 py-1 rounded-md bg-[#FDF2F0] border border-[#F0C4BF] text-[#B94D42]">Reject</button>
                     </div>
                   )}
+                  <SpellingHint text={requirement.originalText} />
                   <div className="flex flex-wrap gap-1.5 mt-2.5">
                     {(requirement.metadata.roles || []).map((role) => (
                       <span key={`role-${role}`} className="text-[10px] px-2 py-0.5 rounded-full bg-[#FAFAF8] border border-[#E5E2D8] text-[#49686C]">{role}</span>

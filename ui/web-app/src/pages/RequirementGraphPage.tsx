@@ -7,6 +7,7 @@ import {
   ReactFlow,
   type Edge,
   type Node,
+  type NodeProps,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import {
@@ -41,6 +42,29 @@ const NODE_STYLES: Record<string, { background: string; border: string; color: s
   interaction: { background: '#FFF7ED', border: '#FED7AA', color: '#9C4A28' },
 };
 
+const CATEGORY_META: Record<string, { label: string; color: string }> = {
+  requirement: { label: 'Requirements', color: '#49686C' },
+  screen: { label: 'Screens', color: '#3E6B33' },
+  component: { label: 'Components', color: '#856C16' },
+  role: { label: 'Roles', color: '#30494B' },
+  interaction: { label: 'Interactions', color: '#9C4A28' },
+};
+
+function CategoryNode({ data }: NodeProps) {
+  return (
+    <div className="w-full h-full rounded-2xl border border-dashed border-[#D9D5C7] bg-[#FAFAF8]/70">
+      <div
+        className="px-3 pt-2 text-[10px] font-bold uppercase tracking-wider"
+        style={{ color: (data as any).color || '#737A72' }}
+      >
+        {(data as any).label}
+      </div>
+    </div>
+  );
+}
+
+const nodeTypes = { category: CategoryNode };
+
 function buildFlow(result: RequirementAnalysisResult): { nodes: Node[]; edges: Edge[] } {
   const counters: Record<string, number> = {};
   const columns: Record<string, number> = {
@@ -50,13 +74,22 @@ function buildFlow(result: RequirementAnalysisResult): { nodes: Node[]; edges: E
     role: 1060,
     interaction: 1400,
   };
-  const nodes: Node[] = result.graph.nodes.map((node) => {
+  const groupWidth = 270;
+  const groupHeader = 46;
+  const rowGap = 100;
+
+  const groups: Node[] = [];
+  const children: Node[] = [];
+
+  for (const node of result.graph.nodes) {
     const index = counters[node.kind] || 0;
     counters[node.kind] = index + 1;
     const style = NODE_STYLES[node.kind] || NODE_STYLES.requirement;
-    return {
+    children.push({
       id: node.id,
-      position: { x: columns[node.kind] ?? 0, y: index * 100 },
+      parentId: `group-${node.kind}`,
+      extent: 'parent',
+      position: { x: 20, y: groupHeader + index * rowGap },
       data: { label: node.label, kind: node.kind },
       style: {
         width: 230,
@@ -68,8 +101,31 @@ function buildFlow(result: RequirementAnalysisResult): { nodes: Node[]; edges: E
         fontSize: 11,
         fontWeight: node.kind === 'requirement' ? 700 : 600,
       },
-    };
-  });
+    });
+  }
+
+  for (const [kind, count] of Object.entries(counters)) {
+    if (!count) continue;
+    const meta = CATEGORY_META[kind] || CATEGORY_META.requirement;
+    groups.push({
+      id: `group-${kind}`,
+      type: 'category',
+      position: { x: columns[kind] ?? 0, y: 0 },
+      data: { label: meta.label, color: meta.color },
+      draggable: false,
+      selectable: false,
+      style: {
+        width: groupWidth,
+        height: groupHeader + count * rowGap + 20,
+        background: 'transparent',
+        border: 'none',
+        pointerEvents: 'none',
+        zIndex: -1,
+      },
+    });
+  }
+
+  const nodes: Node[] = [...groups, ...children];
 
   const edges: Edge[] = result.graph.edges.map((edge) => {
     const conflict = edge.kind === 'conflicts_with';
@@ -293,7 +349,9 @@ export const RequirementGraphPage: React.FC = () => {
               <ReactFlow
                 nodes={flow.nodes}
                 edges={flow.edges}
+                nodeTypes={nodeTypes}
                 fitView
+                fitViewOptions={{ padding: 0.15 }}
                 minZoom={0.15}
                 maxZoom={1.5}
                 nodesDraggable

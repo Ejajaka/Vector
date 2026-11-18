@@ -189,7 +189,7 @@ export const RequirementReviewPage: React.FC = () => {
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-[#283638] tracking-tight">Review & Acceptance</h1>
           <p className="text-xs sm:text-sm text-[#737A72] mt-1">
-            AI-inferred behaviours stay suggestions until you accept them. Acceptance criteria remain linked to their source requirement.
+            AI-inferred behaviors stay suggestions until you accept them. Acceptance criteria remain linked to their source requirement.
           </p>
         </div>
         <button
@@ -329,7 +329,7 @@ export const RequirementReviewPage: React.FC = () => {
                     {suggestion.status.replace(/_/g, ' ')}
                   </span>
                   <span className="text-[10px] font-bold uppercase tracking-wide text-[#737A72]">
-                    {suggestion.type === 'edge_case' ? 'Edge case' : 'Implicit behaviour'}
+                    {suggestion.type === 'edge_case' ? 'Edge case' : 'Implicit behavior'}
                   </span>
                   <span className="text-[10px] font-mono text-[#49686C]">{suggestion.requirementCode}</span>
                   <span className="ml-auto text-[10px] text-[#856C16]">AI-inferred</span>

@@ -15,11 +15,12 @@ import {
 import type { DesignSystemVersion } from '../services/generation/designSystems.ts';
 import type { DesignSystem, DesignTokens } from '../types/designSystem.ts';
 import { DEFAULT_DESIGN_SYSTEM } from '../types/designSystem.ts';
+import { DESIGN_PRESETS, presetTokens } from '../services/generation/designPresets.ts';
 
 const FIELDS: Array<{ key: keyof DesignTokens; label: string; multiline?: boolean }> = [
-  { key: 'primaryColor', label: 'Primary colour' },
-  { key: 'secondaryColor', label: 'Secondary colour' },
-  { key: 'accentColor', label: 'Accent colour' },
+  { key: 'primaryColor', label: 'Primary color' },
+  { key: 'secondaryColor', label: 'Secondary color' },
+  { key: 'accentColor', label: 'Accent color' },
   { key: 'typography', label: 'Typography' },
   { key: 'fontSizes', label: 'Font sizes' },
   { key: 'spacing', label: 'Spacing scale' },
@@ -78,6 +79,15 @@ export const DesignSystemsPage: React.FC = () => {
     void listDesignSystemVersions(system.id)
       .then(setVersions)
       .catch(() => setVersions([]));
+  };
+
+  const applyPreset = (preset: (typeof DESIGN_PRESETS)[number]) => {
+    setSelected(null);
+    setName(preset.name);
+    setTokens(presetTokens(preset));
+    setVersions([]);
+    toast(`${preset.name} applied. Save to add it to your library.`, 'success');
+    document.getElementById('design-system-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const startNew = () => {
@@ -153,6 +163,51 @@ export const DesignSystemsPage: React.FC = () => {
 
       {localMode && <div className="rounded-xl border border-[#FED7AA] bg-[#FFF7ED] p-4 text-xs text-[#9C4A28]">Connect Supabase to save design systems across projects.</div>}
 
+      <section className="bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl shadow-xs p-5 sm:p-6">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <div className="flex items-center gap-2">
+              <Palette className="w-4 h-4 text-[#49686C]" />
+              <h2 className="text-base font-bold text-[#283638]">Company-inspired themes</h2>
+            </div>
+            <p className="text-xs text-[#737A72] mt-1">
+              Start from a theme matched to the product domain, then adjust the tokens.
+            </p>
+          </div>
+          <span className="text-[10px] text-[#737A72]">Inspired by public brand patterns · not affiliated</span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 mt-4">
+          {DESIGN_PRESETS.map((preset) => {
+            const tokens = presetTokens(preset);
+            const selectedPreset = name === preset.name && tokens.primaryColor === preset.tokens.primaryColor;
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => applyPreset(preset)}
+                className={`text-left rounded-xl border p-3.5 transition-all hover:-translate-y-0.5 hover:shadow-sm ${
+                  selectedPreset ? 'border-[#49686C] bg-[#F0F5F5]' : 'border-[#E5E2D8] bg-[#FAFAF8] hover:border-[#49686C]'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#49686C]">{preset.domain}</span>
+                  <span className="text-[10px] text-[#737A72]">{preset.inspiration}</span>
+                </div>
+                <div className="text-sm font-bold text-[#283638] mt-1">{preset.name}</div>
+                <p className="text-[11px] text-[#737A72] leading-relaxed mt-1 line-clamp-2">{preset.description}</p>
+                <div className="flex items-center gap-1.5 mt-3">
+                  {[tokens.primaryColor, tokens.secondaryColor, tokens.accentColor].map((color) => (
+                    <span key={color} className="w-5 h-5 rounded-full border border-white shadow-xs" style={{ backgroundColor: color }} />
+                  ))}
+                  <span className="ml-auto text-[10px] font-bold text-[#49686C]">Use theme →</span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         <div className="bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl shadow-xs p-4">
           <div className="flex items-center gap-2 pb-3 border-b border-[#E5E2D8]">
@@ -181,7 +236,7 @@ export const DesignSystemsPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="lg:col-span-2 bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl shadow-xs p-5">
+        <div id="design-system-form" className="lg:col-span-2 bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl shadow-xs p-5 scroll-mt-20">
           <div className="flex items-center justify-between gap-2 pb-3 border-b border-[#E5E2D8]">
             <h2 className="text-sm font-bold text-[#283638]">{selected ? 'Edit design system' : 'Create design system'}</h2>
             <span className="text-[10px] text-[#737A72]">{currentProject?.name || 'Library-wide'}</span>

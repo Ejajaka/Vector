@@ -52,7 +52,7 @@ const FEATURES = [
   {
     icon: ClipboardCheck,
     title: 'Review & Acceptance',
-    text: 'Edge cases and implicit behaviour suggested, accepted by a human, and turned into Given/When/Then criteria.',
+    text: 'Edge cases and implicit behavior suggested, accepted by a human, and turned into Given/When/Then criteria.',
     tone: '#D1B653',
   },
   {
@@ -64,7 +64,7 @@ const FEATURES = [
   {
     icon: Palette,
     title: 'Design Systems',
-    text: 'Colour, type, spacing and accessibility tokens injected into every brief, with full version history.',
+    text: 'Color, type, spacing and accessibility tokens injected into every brief, with full version history.',
     tone: '#C96839',
   },
   {
@@ -76,7 +76,7 @@ const FEATURES = [
   {
     icon: Cpu,
     title: 'Prompt Analysis',
-    text: 'Describe the UI you want. Vector finds missing labels, colours, placement and actions, then asks only the questions that matter.',
+    text: 'Describe the UI you want. Vector finds missing labels, colors, placement and actions, then asks only the questions that matter.',
     tone: '#3E6B33',
   },
   {

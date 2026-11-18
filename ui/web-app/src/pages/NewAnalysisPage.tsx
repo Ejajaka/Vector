@@ -28,6 +28,7 @@ import {
 } from '../services/analysisPipeline.ts';
 import { CircularScoreGauge } from '../components/ui/CircularScoreGauge.tsx';
 import { historyStorage } from '../services/historyStorage.ts';
+import { SpellingNotice } from '../components/ui/SpellingNotice.tsx';
 import { useProject } from '../context/ProjectContext.tsx';
 import { useToast } from '../components/ui/Toast.tsx';
 import type { AnalysisResult, RiskLevel } from '../types/analysis.ts';
@@ -203,7 +204,7 @@ function ClarificationForm({
         </span>
       </div>
       <p className="text-xs text-[#737A72] mb-4">
-        The analyser re-runs after each round. Answer the open questions, or use placeholders to finish with what is known.
+        The analyzer re-runs after each round. Answer the open questions, or use placeholders to finish with what is known.
       </p>
 
       <div className="space-y-4">
@@ -498,7 +499,7 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
             </span>
           </div>
           <p className="text-xs sm:text-sm text-[#737A72]">
-            Review your interface request for missing labels, colours, placement and actions. Evaluations are saved to {currentProject ? <b>{currentProject.name}</b> : 'the selected project'} only.
+            Review your interface request for missing labels, colors, placement and actions. Evaluations are saved to {currentProject ? <b>{currentProject.name}</b> : 'the selected project'} only.
           </p>
         </div>
         <div className="flex items-center gap-2 self-start sm:self-auto">
@@ -561,7 +562,7 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
       {engineState === 'loading' && (
         <div className="bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl p-10 text-center shadow-xs">
           <Loader2 className="w-7 h-7 text-[#49686C] animate-spin mx-auto mb-3" />
-          <div className="text-sm font-bold text-[#283638]">Preparing your analyser…</div>
+          <div className="text-sm font-bold text-[#283638]">Preparing your analyzer…</div>
           <p className="text-xs text-[#737A72] mt-1 max-w-md mx-auto">
             This only takes a few seconds and is cached for next time.
           </p>
@@ -572,7 +573,7 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
         <div className="bg-[#FDF2F0] border border-[#F0C4BF] rounded-xl p-5 shadow-xs">
           <div className="flex items-center gap-2 text-[#B94D42] font-bold text-sm">
             <AlertTriangle className="w-4 h-4" />
-            Could not start the analyser
+            Could not start the analyzer
           </div>
           <p className="text-xs text-[#B94D42] mt-1">{engineError}</p>
           <p className="text-xs text-[#737A72] mt-2">
@@ -590,7 +591,7 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
                 Describe the UI you want
               </label>
               <span className="text-xs text-[#737A72]">
-                Describe the screen, its elements, colours, placement and behaviour.
+                Describe the screen, its elements, colors, placement and behavior.
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -623,8 +624,11 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
             }}
             rows={4}
             placeholder='e.g. Add a red button at the top right corner labelled "Sign Up" that opens the signup form.'
+            spellCheck
             className="w-full rounded-lg border border-[#E5E2D8] bg-[#FAFAF8] p-3.5 text-sm text-[#283638] placeholder-[#737A72]/70 focus:bg-white focus:border-[#49686C] focus:ring-2 focus:ring-[#49686C]/10 focus:outline-none transition-all resize-y min-h-[110px]"
           />
+
+          <SpellingNotice text={text} onFix={(value) => { setText(value); setPayload(null); }} className="mt-3" />
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-5 pt-4 border-t border-[#E5E2D8]">
             <div className="flex items-center gap-2 text-xs text-[#737A72]">
@@ -653,7 +657,7 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
                 {analyzing ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Analysing prompt…</span>
+                    <span>Analyzing prompt…</span>
                   </>
                 ) : (
                   <>
@@ -761,9 +765,9 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
             <div className="bg-[#FFFDF5] rounded-xl border border-[#FEF08A] p-4">
               <div className="text-xs font-bold text-[#856C16]">Score withheld until the prompt is unambiguous</div>
               <p className="text-xs text-[#737A72] mt-1">
-                The analyser found{' '}
+                The analyzer found{' '}
                 {payload.clarification.questions.length} unresolved detail(s). Answer the questions on the right;
-                the analyser re-runs after each round and only then computes the risk score.
+                the analyzer re-runs after each round and only then computes the risk score.
               </p>
             </div>
           )}

@@ -45,7 +45,7 @@ export const DEFAULT_DESIGN_SYSTEM: DesignSystem = {
     inputStyles: 'Rounded inputs with visible labels and inline validation',
     navigationPattern: 'Persistent sidebar on desktop; collapsible drawer on mobile',
     responsiveBreakpoints: 'Mobile < 640 px; tablet 640–1024 px; desktop > 1024 px',
-    brandGuidelines: 'Professional, calm, editorial; prioritise clarity and accessibility',
+    brandGuidelines: 'Professional, calm, editorial; prioritize clarity and accessibility',
   },
   isShared: false,
 };

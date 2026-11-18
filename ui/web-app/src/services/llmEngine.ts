@@ -8,12 +8,12 @@
 import { loadSettings, type AppSettings } from './settings';
 import type { DetectedSpan } from './bertEngine';
 
-const SYSTEM_EXTRACT = `You are a UI prompt analyser. Extract UI elements and their explicitly stated attributes.
+const SYSTEM_EXTRACT = `You are a UI prompt analyzer. Extract UI elements and their explicitly stated attributes.
 Allowed element types: button, navbar, input, card, modal, image, dropdown, sidebar, footer, checkbox.
 Constraints:
 - Only extract elements that are explicitly mentioned.
 - Copy attribute values verbatim from the prompt. Never paraphrase.
-- Omit an attribute if it is not stated or is vague (e.g. "some nice colour").
+- Omit an attribute if it is not stated or is vague (e.g. "some nice color").
 - Do not infer actions from names (a "login button" has no action unless stated).
 - Return ONLY valid JSON with this shape:
 {"elements":[{"type":"button","text":"exact phrase from the prompt","attributes":{"COLOR":"...","LOCATION":"...","ACTION":"...","LABEL":"..."}}]}`;
@@ -23,7 +23,7 @@ You receive the already-computed score, its components, detected elements, missi
 unresolved clarification questions, and deterministic suggestions.
 Constraints:
 - Do not recompute or change the score.
-- Do not invent elements, attributes, colours, locations, actions or labels.
+- Do not invent elements, attributes, colors, locations, actions or labels.
 - Use placeholders for anything unresolved.
 - Do not claim the prompt is complete when the score is above 25.
 - Mention any unresolved questions.

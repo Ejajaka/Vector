@@ -206,7 +206,7 @@ export function generateProfessionalPrompt(input: SpecificationInput): { prompt:
     '4. Design Guidelines',
     '',
     `- Visual style: ${design.tokens.componentStyles}`,
-    `- Colour palette: primary ${design.tokens.primaryColor}; secondary ${design.tokens.secondaryColor}; accent ${design.tokens.accentColor}`,
+    `- Color palette: primary ${design.tokens.primaryColor}; secondary ${design.tokens.secondaryColor}; accent ${design.tokens.accentColor}`,
     `- Typography: ${design.tokens.typography}; sizes ${design.tokens.fontSizes}`,
     `- Layout and spacing: ${design.tokens.spacing}`,
     `- Border radius: ${design.tokens.borderRadius}`,

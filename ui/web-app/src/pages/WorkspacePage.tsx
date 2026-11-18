@@ -23,6 +23,7 @@ import { loadProjectMemory, saveProjectMemory } from '../services/projectMemory.
 import { MEMORY_KEYS } from '../services/generation/memory.ts';
 import { listDesignSystems } from '../services/generation/designSystems.ts';
 import { analyzePromptCoverage } from '../services/generation/promptCoverage.ts';
+import { SpellingNotice } from '../components/ui/SpellingNotice.tsx';
 import { usePromptDraft } from '../hooks/usePromptDraft.ts';
 import { DEFAULT_DESIGN_SYSTEM } from '../types/designSystem.ts';
 import type { AcceptanceCriterion, RequirementRecord, RequirementSuggestion } from '../types/requirements.ts';
@@ -275,11 +276,14 @@ export const WorkspacePage: React.FC = () => {
                 Missing: {coverage.requirementsMissing.map((requirement) => requirement.requirementCode).join(', ')}
               </div>
             )}
+            <div className="px-3 pb-2">
+              <SpellingNotice text={displayedPrompt} onFix={setDraft} />
+            </div>
             <textarea
               value={displayedPrompt}
               onChange={(event) => setDraft(event.target.value)}
+              spellCheck
               className="flex-1 w-full min-h-[560px] resize-none p-4 bg-[#FFFFFF] text-[11px] leading-relaxed font-mono text-[#283638] focus:bg-[#FAFAF8] focus:outline-none"
-              spellCheck={false}
             />
           </section>
         )}

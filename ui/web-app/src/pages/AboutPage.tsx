@@ -28,19 +28,19 @@ const PROBLEM_CARDS = [
     Icon: AlertTriangle,
     iconClass: 'bg-[#FDF2F0] text-[#B94D42]',
     title: 'Missing details',
-    text: '“Add a button” says nothing about its text, colour, placement or what clicking it does. The generator has to guess.',
+    text: '“Add a button” says nothing about its text, color, placement or what clicking it does. The generator has to guess.',
   },
   {
     Icon: Eye,
     iconClass: 'bg-[#FEFCE8] text-[#D1B653]',
     title: 'Vague values',
-    text: '“Some nice colour”, “somewhere on the side” and “does something useful” are not actionable. Vector asks instead of pretending.',
+    text: '“Some nice color”, “somewhere on the side” and “does something useful” are not actionable. Vector asks instead of pretending.',
   },
   {
     Icon: Link2,
     iconClass: 'bg-[#F0F5F5] text-[#49686C]',
     title: 'Attribute ambiguity',
-    text: 'With several elements on screen, it is easy to attach a colour or action to the wrong component. Vector links every attribute to an element.',
+    text: 'With several elements on screen, it is easy to attach a color or action to the wrong component. Vector links every attribute to an element.',
   },
 ];
 
@@ -434,7 +434,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis }) => {
             A prompt can look clear and still generate the wrong UI.
           </h2>
           <p className="text-sm text-[#737A72] leading-relaxed">
-            UI generators fill the gaps themselves. Missing labels, vague colours and ambiguous
+            UI generators fill the gaps themselves. Missing labels, vague colors and ambiguous
             actions become assumptions in the generated screen.
           </p>
         </div>
@@ -555,7 +555,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis }) => {
           </p>
           <p>
             The final prompt is built from the confirmed checklist and placeholders. Nothing is added
-            silently: missing colours, locations or actions stay visible as placeholders for a human
+            silently: missing colors, locations or actions stay visible as placeholders for a human
             to decide.
           </p>
           <p className="text-[#30494B] font-medium bg-[#F6F4EC] p-3 rounded-lg border border-[#E5E2D8]">
