@@ -209,7 +209,13 @@ function AppShell() {
           />
         )}
 
-        <main id="main-content" className={`flex-1 p-4 sm:p-6 lg:p-8 max-w-[1600px] w-full mx-auto ${publicMode ? '' : ''}`} role="main">
+        <main
+          id="main-content"
+          className={`mx-auto w-full flex-1 ${
+            showMarketingChrome ? '' : 'max-w-[1600px] p-4 sm:p-6 lg:p-8'
+          }`}
+          role="main"
+        >
           {activeTab === 'about' && <AboutPage onStartAnalysis={handleStartRequirementWorkflow} />}
 
           {activeTab === 'overview' && (

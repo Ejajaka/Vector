@@ -23,7 +23,7 @@ function Section({
 
 export const PrivacyPage: React.FC = () => {
   return (
-    <div className="space-y-5 max-w-3xl mx-auto">
+    <div className="mx-auto w-full max-w-3xl space-y-5 px-4 py-2 sm:px-6 lg:px-8">
       <div>
         <h1 className="text-xl sm:text-2xl font-bold text-[#283638] tracking-tight">Privacy Policy</h1>
         <p className="text-xs sm:text-sm text-[#737A72] mt-1">

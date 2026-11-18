@@ -161,7 +161,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis }) => {
   };
 
   return (
-    <div className="space-y-16 lg:space-y-24 max-w-6xl mx-auto pb-12 antialiased">
+    <div className="mx-auto w-full max-w-7xl space-y-16 px-4 pb-12 antialiased sm:px-6 lg:space-y-24 lg:px-8">
       {/* HERO */}
       <section id="hero" className="relative pt-2 sm:pt-6 lg:pt-8 scroll-mt-24" aria-label="Hero">
         <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#49686C]/5 rounded-full blur-3xl pointer-events-none -z-10 animate-orb-drift" />

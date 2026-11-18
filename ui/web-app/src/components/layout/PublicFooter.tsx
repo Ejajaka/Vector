@@ -35,7 +35,7 @@ export const PublicFooter: React.FC<PublicFooterProps> = ({
 
   return (
     <footer className="marketing-footer mt-16 border-t border-[#E5E2D8] dark:border-[#29383A]">
-      <div className="mx-auto w-full max-w-6xl px-4 py-9 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-7xl px-4 py-9 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-7 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2.5">
             <Logo size={24} />

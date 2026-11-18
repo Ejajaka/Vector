@@ -117,23 +117,32 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({
           : 'border-transparent'
       }`}
     >
-      <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between gap-3 px-4 sm:h-16 sm:px-6 lg:px-8">
         <button
           type="button"
           onClick={() => goToSection('hero')}
-          className="group flex shrink-0 items-center gap-2.5"
+          className="group flex min-w-0 items-center gap-2.5"
           aria-label="Vector home"
         >
           <Logo
             size={24}
-            className="transition-transform duration-500 ease-out group-hover:-rotate-6 group-hover:scale-105"
+            className="shrink-0 transition-transform duration-500 ease-out group-hover:-rotate-6 group-hover:scale-105"
           />
-          <span className="text-[13px] font-extrabold tracking-tight text-[#22312F] dark:text-[#F2F5F3]">
+          <span className="truncate text-[13px] font-extrabold tracking-tight text-[#22312F] dark:text-[#F2F5F3] sm:hidden">
+            Vector
+          </span>
+          <span className="hidden truncate text-[13px] font-extrabold tracking-tight text-[#22312F] dark:text-[#F2F5F3] sm:inline lg:hidden">
+            Vector — Requirement engineering
+          </span>
+          <span className="hidden truncate text-[13px] font-extrabold tracking-tight text-[#22312F] dark:text-[#F2F5F3] lg:inline xl:hidden">
+            Vector
+          </span>
+          <span className="hidden truncate text-[13px] font-extrabold tracking-tight text-[#22312F] dark:text-[#F2F5F3] xl:inline">
             Vector — Requirement engineering for UI teams
           </span>
         </button>
 
-        <nav className="hidden items-center gap-0.5 md:flex" aria-label="Page sections">
+        <nav className="hidden items-center gap-1 lg:flex" aria-label="Page sections">
           {SECTION_LINKS.map((link) => {
             const active = activeTab === 'about' && activeSection === link.id;
             return (
@@ -187,7 +196,7 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({
           <button
             type="button"
             onClick={() => setMobileOpen((open) => !open)}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-[#283638] transition-colors hover:bg-[#283638]/5 dark:text-[#F2F5F3] dark:hover:bg-white/5 md:hidden"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-[#283638] transition-colors hover:bg-[#283638]/5 dark:text-[#F2F5F3] dark:hover:bg-white/5 lg:hidden"
             aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
             aria-expanded={mobileOpen}
             aria-controls="public-mobile-nav"
@@ -207,7 +216,7 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({
       {mobileOpen && (
         <div
           id="public-mobile-nav"
-          className="mobile-panel-in border-t border-[#E5E2D8] bg-[#FBF9F2]/95 px-4 pb-5 pt-2 shadow-xl backdrop-blur-xl dark:border-[#29383A] dark:bg-[#101718]/95 md:hidden"
+          className="mobile-panel-in border-t border-[#E5E2D8] bg-[#FBF9F2]/95 px-4 pb-5 pt-2 shadow-xl backdrop-blur-xl dark:border-[#29383A] dark:bg-[#101718]/95 lg:hidden"
         >
           <nav className="flex flex-col" aria-label="Mobile page sections">
             {SECTION_LINKS.map((link) => (
