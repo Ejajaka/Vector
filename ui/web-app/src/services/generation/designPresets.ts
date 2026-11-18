@@ -17,7 +17,7 @@ export const DESIGN_PRESETS: DesignPreset[] = [
     id: 'fintech',
     name: 'Fintech Blue',
     domain: 'Fintech',
-    inspiration: 'Stripe-inspired',
+    inspiration: 'Stripe',
     description: 'Precise indigo, deep navy and crisp data surfaces for money products.',
     tokens: {
       ...base,
@@ -38,7 +38,7 @@ export const DESIGN_PRESETS: DesignPreset[] = [
     id: 'saas',
     name: 'Product SaaS',
     domain: 'SaaS',
-    inspiration: 'Linear-inspired',
+    inspiration: 'Linear',
     description: 'Compact violet-on-charcoal UI for fast, keyboard-first products.',
     tokens: {
       ...base,
@@ -59,7 +59,7 @@ export const DESIGN_PRESETS: DesignPreset[] = [
     id: 'commerce',
     name: 'Commerce Green',
     domain: 'E-commerce',
-    inspiration: 'Shopify-inspired',
+    inspiration: 'Shopify',
     description: 'Deep green with warm accents for catalog and checkout flows.',
     tokens: {
       ...base,
@@ -80,7 +80,7 @@ export const DESIGN_PRESETS: DesignPreset[] = [
     id: 'travel',
     name: 'Travel Coral',
     domain: 'Travel',
-    inspiration: 'Airbnb-inspired',
+    inspiration: 'Airbnb',
     description: 'Friendly coral, rounded cards and photography-led layouts.',
     tokens: {
       ...base,
@@ -101,7 +101,7 @@ export const DESIGN_PRESETS: DesignPreset[] = [
     id: 'media',
     name: 'Media Night',
     domain: 'Media',
-    inspiration: 'Spotify-inspired',
+    inspiration: 'Spotify',
     description: 'Near-black canvas with a neon accent for listening and streaming.',
     tokens: {
       ...base,
@@ -122,7 +122,7 @@ export const DESIGN_PRESETS: DesignPreset[] = [
     id: 'productivity',
     name: 'Studio Paper',
     domain: 'Productivity',
-    inspiration: 'Notion-inspired',
+    inspiration: 'Notion',
     description: 'Paper-like neutrals for documents, wikis and collaborative work.',
     tokens: {
       ...base,
@@ -143,7 +143,7 @@ export const DESIGN_PRESETS: DesignPreset[] = [
     id: 'healthcare',
     name: 'Clinical Teal',
     domain: 'Healthcare',
-    inspiration: 'Clinical calm',
+    inspiration: 'One Medical',
     description: 'Accessible teal and amber for high-trust health workflows.',
     tokens: {
       ...base,
@@ -164,7 +164,7 @@ export const DESIGN_PRESETS: DesignPreset[] = [
     id: 'education',
     name: 'Learning Bright',
     domain: 'Education',
-    inspiration: 'Duolingo-inspired',
+    inspiration: 'Duolingo',
     description: 'Playful green and blue with rounded, encouraging components.',
     tokens: {
       ...base,
@@ -185,7 +185,7 @@ export const DESIGN_PRESETS: DesignPreset[] = [
     id: 'enterprise',
     name: 'Enterprise Blue',
     domain: 'Enterprise',
-    inspiration: 'IBM-inspired',
+    inspiration: 'IBM',
     description: 'Structured blue system for complex operational tools.',
     tokens: {
       ...base,
@@ -206,7 +206,7 @@ export const DESIGN_PRESETS: DesignPreset[] = [
     id: 'luxury',
     name: 'Minimal Mono',
     domain: 'Luxury',
-    inspiration: 'Apple-inspired',
+    inspiration: 'Apple',
     description: 'Monochrome surfaces, careful spacing and one quiet accent.',
     tokens: {
       ...base,

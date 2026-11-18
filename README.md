@@ -1,9 +1,9 @@
 # Vector
 
-**Vector-style UI (React, permanent):** <https://ejajaka.github.io/ui-prompt-linter/>  
+**Vector-style UI (React, permanent):** <https://ejajaka.github.io/Vector/>  
 The home page is the advertising/overview UI; **New Analysis** runs all three engines in the browser — Rules via Pyodide, BERT via a quantized ONNX model (transformers.js), and the optional grounded LLM through your own OpenAI-compatible endpoint.
 
-**Rules-only demo (Pyodide):** <https://ejajaka.github.io/ui-prompt-linter/rules/>  
+**Rules-only demo (Pyodide):** <https://ejajaka.github.io/Vector/rules/>  
 Runs the actual Python rules engine in your browser with no server.
 
 **Full Streamlit engine (server-side BERT + LLM):** <https://ui-prompt-linte-ecdeszwu2gpoaebpkgus3y.streamlit.app/>  
@@ -16,11 +16,11 @@ Install it from the Edge Add-ons store: <https://microsoftedge.microsoft.com/add
 **Android app (Jetpack Compose):** [`ui/android/`](ui/android/)  
 Native app mirroring the web UI and content, running the same Rules engine on-device.
 
-**Privacy policy:** <https://ejajaka.github.io/ui-prompt-linter/privacy-policy.html>
+**Privacy policy:** <https://ejajaka.github.io/Vector/privacy-policy.html>
 
-**Source:** <https://github.com/Ejajaka/ui-prompt-linter>
+**Source:** <https://github.com/Ejajaka/Vector>
 
-[![Deploy to Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/deploy?repository=https://github.com/Ejajaka/ui-prompt-linter&branch=main&mainModule=app.py)
+[![Deploy to Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/deploy?repository=https://github.com/Ejajaka/Vector&branch=main&mainModule=app.py)
 
 The badge opens Streamlit Community Cloud with this repository pre-filled, which
 is the easiest permanent deployment (a Dockerfile is also included).
@@ -485,7 +485,7 @@ works with deterministic explanations.
 The GitHub Pages demo is Rules-only. For a permanent **BERT + LLM** app:
 
 1. Open the deploy link:
-   <https://share.streamlit.io/deploy?repository=https://github.com/Ejajaka/ui-prompt-linter&branch=main&mainModule=app.py>
+   <https://share.streamlit.io/deploy?repository=https://github.com/Ejajaka/Vector&branch=main&mainModule=app.py>
 2. Sign in with GitHub, choose the repository, branch `main`, main file `app.py`,
    and click **Deploy**.
 3. BERT works automatically: the app downloads `models/bert_tagger` from the
@@ -613,7 +613,7 @@ the zip root) and `ui/extension/store/store-logo-300.png`. The listing text is i
 `ui/extension/store/publish-steps.md`.
 
 The hosted privacy policy is
-<https://ejajaka.github.io/ui-prompt-linter/privacy-policy.html>.
+<https://ejajaka.github.io/Vector/privacy-policy.html>.
 
 ---
 

@@ -6,11 +6,21 @@ interface SpellingNoticeProps {
   text: string;
   onFix?: (corrected: string) => void;
   className?: string;
+  /** Show a quiet confirmation when the text has no detected issues. */
+  showClear?: boolean;
 }
 
-export const SpellingNotice: React.FC<SpellingNoticeProps> = ({ text, onFix, className = '' }) => {
+export const SpellingNotice: React.FC<SpellingNoticeProps> = ({ text, onFix, className = '', showClear = false }) => {
   const issues = findSpellingIssues(text);
-  if (!issues.length) return null;
+  if (!issues.length) {
+    if (!showClear || text.trim().length < 3) return null;
+    return (
+      <div className={`inline-flex items-center gap-1.5 text-[11px] text-[#3E6B33] ${className}`}>
+        <SpellCheck className="w-3.5 h-3.5" />
+        <span>No spelling issues found.</span>
+      </div>
+    );
+  }
   const pairs = uniqueSpellingPairs(issues);
 
   return (

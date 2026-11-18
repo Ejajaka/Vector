@@ -2,8 +2,10 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Background,
   Controls,
+  Handle,
   MarkerType,
   MiniMap,
+  Position,
   ReactFlow,
   type Edge,
   type Node,
@@ -26,6 +28,7 @@ import { useToast } from '../components/ui/Toast.tsx';
 import { listRequirements } from '../services/documents/requirementDocuments.ts';
 import { analyzeRequirements } from '../services/requirements/intelligence.ts';
 import { exportRequirementGraph } from '../services/requirements/graphExport.ts';
+import { buildGraphModel, type GraphCard } from '../services/requirements/graphLayout.ts';
 import type { RequirementRecord } from '../types/requirements.ts';
 import type {
   RequirementAnalysisResult,
@@ -34,117 +37,107 @@ import type {
 
 type FindingTab = 'all' | 'ambiguity' | 'conflict' | 'dependency';
 
-const NODE_STYLES: Record<string, { background: string; border: string; color: string }> = {
-  requirement: { background: '#FFFFFF', border: '#49686C', color: '#283638' },
-  screen: { background: '#F4F9F1', border: '#CFE2C8', color: '#3E6B33' },
-  component: { background: '#F6F4EC', border: '#E5E2D8', color: '#856C16' },
-  role: { background: '#F0F5F5', border: '#B9D1D4', color: '#30494B' },
-  interaction: { background: '#FFF7ED', border: '#FED7AA', color: '#9C4A28' },
+const CHIP_COLOR: Record<string, string> = {
+  screen: '#688E5E',
+  component: '#D1B653',
+  role: '#5A8090',
+  interaction: '#C96839',
 };
 
-const CATEGORY_META: Record<string, { label: string; color: string }> = {
-  requirement: { label: 'Requirements', color: '#49686C' },
-  screen: { label: 'Screens', color: '#3E6B33' },
-  component: { label: 'Components', color: '#856C16' },
-  role: { label: 'Roles', color: '#30494B' },
-  interaction: { label: 'Interactions', color: '#9C4A28' },
-};
-
-function CategoryNode({ data }: NodeProps) {
+function RequirementCardNode({ data }: NodeProps) {
+  const card = (data as { card: GraphCard }).card;
   return (
-    <div className="w-full h-full rounded-2xl border border-dashed border-[#D9D5C7] bg-[#FAFAF8]/70">
-      <div
-        className="px-3 pt-2 text-[10px] font-bold uppercase tracking-wider"
-        style={{ color: (data as any).color || '#737A72' }}
-      >
-        {(data as any).label}
+    <div
+      className={`flex h-full w-full flex-col overflow-hidden rounded-xl border bg-white shadow-xs ${
+        card.conflicts ? 'border-[#E3B7B0]' : 'border-[#E5E2D8]'
+      }`}
+    >
+      <Handle type="target" position={Position.Top} className="!h-1 !w-1 !border-0 !bg-transparent" />
+      <div className="flex items-center gap-1.5 border-b border-[#EFECE3] bg-[#FAFAF8] px-2.5 py-1.5">
+        <span className="font-mono text-[10px] font-bold text-[#49686C]">{card.code}</span>
+        <div className="ml-auto flex items-center gap-1">
+          {card.conflicts > 0 && (
+            <span className="rounded-md bg-[#FDF2F0] px-1.5 py-0.5 text-[8px] font-bold text-[#B94D42]">
+              {card.conflicts} conflict{card.conflicts === 1 ? '' : 's'}
+            </span>
+          )}
+          {card.dependencies > 0 && (
+            <span className="rounded-md bg-[#F0F5F5] px-1.5 py-0.5 text-[8px] font-bold text-[#49686C]">
+              {card.dependencies} need{card.dependencies === 1 ? '' : 's'}
+            </span>
+          )}
+        </div>
       </div>
+      <p className="line-clamp-2 px-2.5 pt-1.5 text-[10.5px] leading-snug text-[#283638]">{card.text}</p>
+      <div className="mt-auto space-y-1 px-2.5 pb-2">
+        {card.chips.map((group) => (
+          <div key={group.kind} className="flex items-center gap-1.5">
+            <span
+              className="w-[55px] shrink-0 text-[8px] font-bold uppercase tracking-wide"
+              style={{ color: CHIP_COLOR[group.kind] || '#737A72' }}
+            >
+              {group.label}
+            </span>
+            <div className="flex min-w-0 items-center gap-1">
+              {group.items.map((item) => (
+                <span
+                  key={item}
+                  className="max-w-[86px] truncate rounded border border-[#EFECE3] bg-[#FAFAF8] px-1 py-0.5 text-[9px] text-[#5B625B]"
+                >
+                  {item}
+                </span>
+              ))}
+              {group.total > group.items.length && (
+                <span className="text-[9px] text-[#9A9688]">+{group.total - group.items.length}</span>
+              )}
+            </div>
+          </div>
+        ))}
+        {card.dependsOn.length > 0 && (
+          <div className="flex items-center gap-1.5">
+            <span className="w-[55px] shrink-0 text-[8px] font-bold uppercase tracking-wide text-[#49686C]">
+              Needs
+            </span>
+            <span className="truncate rounded border border-[#D6E2E2] bg-[#F0F5F5] px-1 py-0.5 text-[9px] font-mono text-[#49686C]">
+              {card.dependsOn.join(', ')}
+            </span>
+          </div>
+        )}
+      </div>
+      <Handle type="source" position={Position.Bottom} className="!h-1 !w-1 !border-0 !bg-transparent" />
     </div>
   );
 }
 
-const nodeTypes = { category: CategoryNode };
+const nodeTypes = { requirementCard: RequirementCardNode };
 
 function buildFlow(result: RequirementAnalysisResult): { nodes: Node[]; edges: Edge[] } {
-  const counters: Record<string, number> = {};
-  const columns: Record<string, number> = {
-    requirement: 0,
-    screen: 360,
-    component: 720,
-    role: 1060,
-    interaction: 1400,
-  };
-  const groupWidth = 270;
-  const groupHeader = 46;
-  const rowGap = 100;
+  const model = buildGraphModel(result);
 
-  const groups: Node[] = [];
-  const children: Node[] = [];
-
-  for (const node of result.graph.nodes) {
-    const index = counters[node.kind] || 0;
-    counters[node.kind] = index + 1;
-    const style = NODE_STYLES[node.kind] || NODE_STYLES.requirement;
-    children.push({
-      id: node.id,
-      parentId: `group-${node.kind}`,
-      extent: 'parent',
-      position: { x: 20, y: groupHeader + index * rowGap },
-      data: { label: node.label, kind: node.kind },
-      style: {
-        width: 230,
-        padding: '8px 10px',
-        borderRadius: 10,
-        border: `1px solid ${style.border}`,
-        background: style.background,
-        color: style.color,
-        fontSize: 11,
-        fontWeight: node.kind === 'requirement' ? 700 : 600,
-      },
-    });
-  }
-
-  for (const [kind, count] of Object.entries(counters)) {
-    if (!count) continue;
-    const meta = CATEGORY_META[kind] || CATEGORY_META.requirement;
-    groups.push({
-      id: `group-${kind}`,
-      type: 'category',
-      position: { x: columns[kind] ?? 0, y: 0 },
-      data: { label: meta.label, color: meta.color },
-      draggable: false,
-      selectable: false,
-      style: {
-        width: groupWidth,
-        height: groupHeader + count * rowGap + 20,
-        background: 'transparent',
-        border: 'none',
-        pointerEvents: 'none',
-        zIndex: -1,
-      },
-    });
-  }
-
-  const nodes: Node[] = [...groups, ...children];
-
-  const edges: Edge[] = result.graph.edges.map((edge) => {
-    const conflict = edge.kind === 'conflicts_with';
-    const dependency = edge.kind === 'depends_on';
+  const nodes: Node[] = model.cards.map((card) => {
+    const box = model.positions.get(card.id)!;
     return {
-      id: edge.id,
-      source: edge.source,
-      target: edge.target,
-      label: conflict || dependency ? edge.label : undefined,
-      animated: conflict || dependency,
-      style: {
-        stroke: conflict ? '#B94D42' : dependency ? '#49686C' : '#B9B5A9',
-        strokeWidth: conflict || dependency ? 2 : 1.2,
-        strokeDasharray: conflict ? '5 4' : undefined,
-      },
-      labelStyle: { fontSize: 9, fill: conflict ? '#B94D42' : '#49686C' },
-      markerEnd: { type: MarkerType.ArrowClosed, color: conflict ? '#B94D42' : '#9A9688' },
+      id: card.id,
+      type: 'requirementCard',
+      position: { x: box.x, y: box.y },
+      data: { card },
+      style: { width: box.w, height: box.h },
+      draggable: true,
     };
   });
+
+  const edges: Edge[] = model.relations.map((relation) => ({
+    id: relation.id,
+    source: relation.source,
+    target: relation.target,
+    label: 'conflict',
+    labelStyle: { fontSize: 9, fill: '#B94D42', fontWeight: 700 },
+    labelBgStyle: { fill: '#FDF2F0', fillOpacity: 0.95 },
+    labelBgPadding: [4, 2],
+    labelBgBorderRadius: 4,
+    style: { stroke: '#B94D42', strokeWidth: 1.6, strokeDasharray: '6 4' },
+    markerEnd: { type: MarkerType.ArrowClosed, color: '#B94D42', width: 16, height: 16 },
+  }));
 
   return { nodes, edges };
 }
@@ -338,14 +331,17 @@ export const RequirementGraphPage: React.FC = () => {
                 <Network className="w-4 h-4 text-[#49686C]" />
                 <h2 className="text-sm font-bold text-[#283638]">Requirement graph</h2>
               </div>
-              <div className="flex flex-wrap gap-2 text-[10px] text-[#737A72]">
-                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#49686C]" /> requirement</span>
+              <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-[#737A72]">
+                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-[2px] border border-[#49686C] bg-white" /> requirement card</span>
                 <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#688E5E]" /> screen</span>
                 <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#D1B653]" /> component</span>
-                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#B94D42]" /> conflict / dependency</span>
+                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#5A8090]" /> role</span>
+                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#C96839]" /> interaction</span>
+                <span className="inline-flex items-center gap-1"><span className="w-3 border-t border-dashed border-[#B94D42]" /> conflict</span>
+                <span className="hidden sm:inline">Needs = dependency</span>
               </div>
             </div>
-            <div className="h-[620px] bg-[#FAFAF8]">
+            <div className="h-[600px] bg-[#FAFAF8]">
               <ReactFlow
                 nodes={flow.nodes}
                 edges={flow.edges}

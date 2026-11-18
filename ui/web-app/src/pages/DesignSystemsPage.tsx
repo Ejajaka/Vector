@@ -1,5 +1,16 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { History, Loader2, Palette, Plus, RotateCcw, Save, Trash2 } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  History,
+  Loader2,
+  Palette,
+  Plus,
+  RotateCcw,
+  Save,
+  Trash2,
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useProject } from '../context/ProjectContext.tsx';
 import { useToast } from '../components/ui/Toast.tsx';
@@ -16,6 +27,7 @@ import type { DesignSystemVersion } from '../services/generation/designSystems.t
 import type { DesignSystem, DesignTokens } from '../types/designSystem.ts';
 import { DEFAULT_DESIGN_SYSTEM } from '../types/designSystem.ts';
 import { DESIGN_PRESETS, presetTokens } from '../services/generation/designPresets.ts';
+import { ThemePreview } from '../components/ui/ThemePreview.tsx';
 
 const FIELDS: Array<{ key: keyof DesignTokens; label: string; multiline?: boolean }> = [
   { key: 'primaryColor', label: 'Primary color' },
@@ -48,6 +60,11 @@ export const DesignSystemsPage: React.FC = () => {
   const [restoring, setRestoring] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<DesignSystem | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const presetScrollerRef = useRef<HTMLDivElement>(null);
+
+  const scrollPresets = (direction: number) => {
+    presetScrollerRef.current?.scrollBy({ left: direction * 300, behavior: 'smooth' });
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -164,43 +181,86 @@ export const DesignSystemsPage: React.FC = () => {
       {localMode && <div className="rounded-xl border border-[#FED7AA] bg-[#FFF7ED] p-4 text-xs text-[#9C4A28]">Connect Supabase to save design systems across projects.</div>}
 
       <section className="bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl shadow-xs p-5 sm:p-6">
-        <div className="flex flex-wrap items-end justify-between gap-2">
+        <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
               <Palette className="w-4 h-4 text-[#49686C]" />
               <h2 className="text-base font-bold text-[#283638]">Company-inspired themes</h2>
             </div>
             <p className="text-xs text-[#737A72] mt-1">
-              Start from a theme matched to the product domain, then adjust the tokens.
+              Pick a domain, then a company-inspired starting point. Preview the look before applying it.
             </p>
           </div>
-          <span className="text-[10px] text-[#737A72]">Inspired by public brand patterns · not affiliated</span>
+          <div className="flex items-center gap-3">
+            <span className="hidden sm:inline text-[10px] text-[#737A72]">Inspired by public brand patterns · not affiliated</span>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => scrollPresets(-1)}
+                aria-label="Scroll themes left"
+                className="p-1.5 rounded-lg border border-[#E5E2D8] bg-white text-[#49686C] hover:bg-[#F6F4EC]"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollPresets(1)}
+                aria-label="Scroll themes right"
+                className="p-1.5 rounded-lg border border-[#E5E2D8] bg-white text-[#49686C] hover:bg-[#F6F4EC]"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 mt-4">
+        <div
+          ref={presetScrollerRef}
+          className="flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2 mt-4 [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#D9D5C7] [&::-webkit-scrollbar-track]:bg-transparent"
+        >
           {DESIGN_PRESETS.map((preset) => {
             const tokens = presetTokens(preset);
-            const selectedPreset = name === preset.name && tokens.primaryColor === preset.tokens.primaryColor;
+            const active = name === preset.name && tokens.primaryColor === preset.tokens.primaryColor;
             return (
               <button
                 key={preset.id}
                 type="button"
                 onClick={() => applyPreset(preset)}
-                className={`text-left rounded-xl border p-3.5 transition-all hover:-translate-y-0.5 hover:shadow-sm ${
-                  selectedPreset ? 'border-[#49686C] bg-[#F0F5F5]' : 'border-[#E5E2D8] bg-[#FAFAF8] hover:border-[#49686C]'
+                className={`group snap-start shrink-0 w-[248px] text-left rounded-2xl border bg-white overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-md ${
+                  active
+                    ? 'border-[#49686C] ring-2 ring-[#49686C]/10'
+                    : 'border-[#E5E2D8] hover:border-[#C3D0D0]'
                 }`}
               >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#49686C]">{preset.domain}</span>
-                  <span className="text-[10px] text-[#737A72]">{preset.inspiration}</span>
+                <div className="flex items-start justify-between gap-2 px-3 pt-3">
+                  <div className="min-w-0">
+                    <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#737A72]">
+                      {preset.domain}
+                    </span>
+                    <h3 className="text-sm font-bold text-[#283638] leading-tight mt-0.5 truncate">
+                      {preset.inspiration}
+                    </h3>
+                  </div>
+                  <span className="text-[9px] text-[#9A9688] whitespace-nowrap pt-0.5">{preset.name}</span>
                 </div>
-                <div className="text-sm font-bold text-[#283638] mt-1">{preset.name}</div>
-                <p className="text-[11px] text-[#737A72] leading-relaxed mt-1 line-clamp-2">{preset.description}</p>
-                <div className="flex items-center gap-1.5 mt-3">
-                  {[tokens.primaryColor, tokens.secondaryColor, tokens.accentColor].map((color) => (
-                    <span key={color} className="w-5 h-5 rounded-full border border-white shadow-xs" style={{ backgroundColor: color }} />
-                  ))}
-                  <span className="ml-auto text-[10px] font-bold text-[#49686C]">Use theme →</span>
+
+                <ThemePreview tokens={tokens} className="mx-2.5 mt-2 rounded-lg border border-[#EFECE3]" />
+
+                <div className="px-3 py-2.5">
+                  <p className="text-[10px] text-[#737A72] leading-relaxed line-clamp-2">{preset.description}</p>
+                  <div className="flex items-center justify-between gap-2 mt-2">
+                    <span className="text-[9px] font-mono text-[#9A9688] truncate">
+                      {tokens.typography.split(',')[0]}
+                    </span>
+                    <span
+                      className={`inline-flex items-center gap-1 shrink-0 text-[10px] font-bold ${
+                        active ? 'text-[#3E6B33]' : 'text-[#49686C]'
+                      }`}
+                    >
+                      {active ? 'Applied' : 'Use theme'}
+                      <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
+                    </span>
+                  </div>
                 </div>
               </button>
             );

@@ -79,10 +79,11 @@ const SECTIONS: ManualSection[] = [
     title: 'Requirement Intelligence',
     intro: 'See how requirements relate to screens, components and roles before design starts.',
     steps: [
-      'Review the graph of requirements and their connections.',
-      'Read findings grouped as ambiguities, conflicts and dependencies.',
+      'Review one card per requirement; screens, components, roles and interactions appear as chips on the card.',
+      'Follow the Needs row to see which earlier requirement must ship first.',
+      'Read findings grouped as ambiguities, conflicts and dependencies; only conflicts are drawn as lines.',
       'Use the affected requirement codes and quoted source text to judge each finding.',
-      'Download the full graph as a PNG for reviews, tickets or documentation.',
+      'Download the full board as a PNG for reviews, tickets or documentation.',
     ],
   },
   {
@@ -119,11 +120,13 @@ const SECTIONS: ManualSection[] = [
     title: 'Design Systems',
     intro: 'Keep color, typography, spacing and brand guidance consistent across every brief.',
     steps: [
-      'Create a design system and fill in color, type, spacing, radius, shadows, navigation and accessibility tokens.',
+      'Scroll the company-inspired gallery, preview a theme, then select Use theme to load its tokens.',
+      'Adjust color, type, spacing, radius, shadows, navigation and accessibility tokens.',
       'Save it; every save records a version snapshot.',
       'Select it in Specification & Prompt to inject the tokens.',
       'Restore any earlier version from the history; the restore is recorded as a new version.',
     ],
+    tip: 'Presets are inspired by public brand patterns and are not affiliated with those companies. Spelling suggestions are advisory; use Fix all on any editable brief.',
   },
   {
     id: 'workspace',
@@ -145,7 +148,7 @@ const SECTIONS: ManualSection[] = [
     intro: 'Check a single UI prompt for missing labels, colors, placement and actions.',
     steps: [
       'Choose the project the analysis belongs to.',
-      'Describe the screen and its elements, then run the analysis.',
+      'Describe the screen and its elements; spelling suggestions appear below the field with Fix all.',
       'Answer any targeted questions to remove ambiguity.',
       'Read the risk index, completeness and per-element suggestions.',
       'Reopen any saved analysis from History.',

@@ -628,7 +628,7 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
             className="w-full rounded-lg border border-[#E5E2D8] bg-[#FAFAF8] p-3.5 text-sm text-[#283638] placeholder-[#737A72]/70 focus:bg-white focus:border-[#49686C] focus:ring-2 focus:ring-[#49686C]/10 focus:outline-none transition-all resize-y min-h-[110px]"
           />
 
-          <SpellingNotice text={text} onFix={(value) => { setText(value); setPayload(null); }} className="mt-3" />
+          <SpellingNotice text={text} showClear onFix={(value) => { setText(value); setPayload(null); }} className="mt-3" />
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-5 pt-4 border-t border-[#E5E2D8]">
             <div className="flex items-center gap-2 text-xs text-[#737A72]">

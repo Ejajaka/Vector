@@ -1,36 +1,18 @@
 import type { RequirementAnalysisResult } from '../../types/requirementIntelligence.ts';
+import { buildGraphModel, type GraphCard } from './graphLayout.ts';
 
-const STYLES: Record<string, { bg: string; border: string; text: string }> = {
-  requirement: { bg: '#FFFFFF', border: '#49686C', text: '#283638' },
-  screen: { bg: '#F4F9F1', border: '#CFE2C8', text: '#3E6B33' },
-  component: { bg: '#F6F4EC', border: '#E5E2D8', text: '#856C16' },
-  role: { bg: '#F0F5F5', border: '#B9D1D4', text: '#30494B' },
-  interaction: { bg: '#FFF7ED', border: '#FED7AA', text: '#9C4A28' },
-};
-
-
-const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
-  requirement: { label: 'Requirements', color: '#49686C' },
-  screen: { label: 'Screens', color: '#3E6B33' },
-  component: { label: 'Components', color: '#856C16' },
-  role: { label: 'Roles', color: '#30494B' },
-  interaction: { label: 'Interactions', color: '#9C4A28' },
-};
-
-const COLUMNS: Record<string, number> = {
-  requirement: 0,
-  screen: 460,
-  component: 880,
-  role: 1290,
-  interaction: 1690,
-};
-
-const NODE_WIDTH = 330;
-const GAP = 118;
-const MARGIN_X = 80;
-const HEADER = 150;
-const FOOTER = 90;
+const MARGIN_X = 70;
+const HEADER = 138;
+const FOOTER = 84;
 const SCALE = 2;
+const CARD_RADIUS = 12;
+
+const CHIP_COLOR: Record<string, string> = {
+  screen: '#3E6B33',
+  component: '#856C16',
+  role: '#30494B',
+  interaction: '#9C4A28',
+};
 
 function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, maxLines: number): string[] {
   const words = text.split(/\s+/);
@@ -57,6 +39,15 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, max
   return lines;
 }
 
+function fit(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string {
+  if (ctx.measureText(text).width <= maxWidth) return text;
+  let value = text;
+  while (value.length > 3 && ctx.measureText(`${value}…`).width > maxWidth) {
+    value = value.slice(0, -1);
+  }
+  return `${value}…`;
+}
+
 function rounded(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   const radius = Math.min(r, w / 2, h / 2);
   ctx.beginPath();
@@ -68,6 +59,125 @@ function rounded(ctx: CanvasRenderingContext2D, x: number, y: number, w: number,
   ctx.closePath();
 }
 
+function pill(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  background: string,
+  color: string,
+) {
+  ctx.font = '700 8px "Segoe UI", sans-serif';
+  const width = ctx.measureText(text).width + 10;
+  ctx.fillStyle = background;
+  rounded(ctx, x, y, width, 14, 4);
+  ctx.fill();
+  ctx.fillStyle = color;
+  ctx.fillText(text, x + 5, y + 10);
+  return width;
+}
+
+function drawCard(ctx: CanvasRenderingContext2D, card: GraphCard, x: number, y: number) {
+  const w = 300;
+  const h = card.height;
+  const conflict = card.conflicts > 0;
+
+  ctx.save();
+  ctx.shadowColor = 'rgba(40, 54, 56, 0.08)';
+  ctx.shadowBlur = 10;
+  ctx.shadowOffsetY = 2;
+  ctx.fillStyle = '#FFFFFF';
+  rounded(ctx, x, y, w, h, CARD_RADIUS);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  rounded(ctx, x, y, w, h, CARD_RADIUS);
+  ctx.clip();
+  ctx.fillStyle = '#FAFAF8';
+  ctx.fillRect(x, y, w, 27);
+  ctx.restore();
+
+  ctx.strokeStyle = conflict ? '#E3B7B0' : '#E5E2D8';
+  ctx.lineWidth = 1;
+  rounded(ctx, x, y, w, h, CARD_RADIUS);
+  ctx.stroke();
+
+  ctx.fillStyle = '#49686C';
+  ctx.font = '700 10px "Consolas", monospace';
+  ctx.fillText(card.code, x + 10, y + 17);
+
+  let badgeX = x + w - 10;
+  if (card.dependencies > 0) {
+    const label = `${card.dependencies} need${card.dependencies === 1 ? '' : 's'}`;
+    ctx.font = '700 8px "Segoe UI", sans-serif';
+    const width = ctx.measureText(label).width + 10;
+    badgeX -= width;
+    pill(ctx, label, badgeX, y + 6.5, '#F0F5F5', '#49686C');
+    badgeX -= 4;
+  }
+  if (conflict) {
+    const label = `${card.conflicts} conflict${card.conflicts === 1 ? '' : 's'}`;
+    ctx.font = '700 8px "Segoe UI", sans-serif';
+    const width = ctx.measureText(label).width + 10;
+    badgeX -= width;
+    pill(ctx, label, badgeX, y + 6.5, '#FDF2F0', '#B94D42');
+  }
+
+  ctx.fillStyle = '#283638';
+  ctx.font = '400 10.5px "Segoe UI", sans-serif';
+  const lines = wrap(ctx, card.text, w - 20, 2);
+  lines.forEach((line, index) => {
+    ctx.fillText(line, x + 10, y + 42 + index * 15);
+  });
+
+  let rowY = y + 42 + lines.length * 15 + 6;
+  for (const group of card.chips) {
+    ctx.fillStyle = CHIP_COLOR[group.kind] || '#737A72';
+    ctx.font = '700 7.5px "Segoe UI", sans-serif';
+    ctx.fillText(group.label.toUpperCase(), x + 10, rowY + 8);
+
+    let cx = x + 66;
+    ctx.font = '400 8.5px "Segoe UI", sans-serif';
+    for (const item of group.items) {
+      const label = fit(ctx, item, 86);
+      const width = ctx.measureText(label).width + 10;
+      ctx.fillStyle = '#FAFAF8';
+      ctx.strokeStyle = '#EFECE3';
+      ctx.lineWidth = 1;
+      rounded(ctx, cx, rowY, width, 14, 4);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#5B625B';
+      ctx.fillText(label, cx + 5, rowY + 10);
+      cx += width + 4;
+    }
+    if (group.total > group.items.length) {
+      ctx.fillStyle = '#9A9688';
+      ctx.font = '400 8.5px "Segoe UI", sans-serif';
+      ctx.fillText(`+${group.total - group.items.length}`, cx + 1, rowY + 10);
+    }
+    rowY += 22;
+  }
+
+  if (card.dependsOn.length > 0) {
+    ctx.fillStyle = '#49686C';
+    ctx.font = '700 7.5px "Segoe UI", sans-serif';
+    ctx.fillText('NEEDS', x + 10, rowY + 8);
+
+    ctx.font = '400 8.5px "Segoe UI", sans-serif';
+    const label = fit(ctx, card.dependsOn.join(', '), 208);
+    const width = ctx.measureText(label).width + 10;
+    ctx.fillStyle = '#F0F5F5';
+    ctx.strokeStyle = '#D6E2E2';
+    rounded(ctx, x + 66, rowY, width, 14, 4);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#49686C';
+    ctx.fillText(label, x + 71, rowY + 10);
+  }
+}
+
 export interface GraphExportOptions {
   projectName: string;
   counts: { requirements: number; ambiguities: number; conflicts: number; dependencies: number };
@@ -77,31 +187,9 @@ export async function exportRequirementGraph(
   analysis: RequirementAnalysisResult,
   options: GraphExportOptions,
 ): Promise<Blob> {
-  const counters: Record<string, number> = {};
-  const positions = new Map<string, { x: number; y: number; h: number }>();
-
-  const measureCanvas = document.createElement('canvas').getContext('2d');
-  if (!measureCanvas) throw new Error('Canvas is not available in this browser.');
-
-  // First pass: compute node heights and positions.
-  measureCanvas.font = '600 13px "Segoe UI", sans-serif';
-  let maxBottom = 0;
-  for (const node of analysis.graph.nodes) {
-    const index = counters[node.kind] || 0;
-    counters[node.kind] = index + 1;
-    const lines = wrap(measureCanvas, node.label, NODE_WIDTH - 28, 5);
-    const h = Math.max(64, 26 + lines.length * 18);
-    const y = HEADER + index * GAP;
-    positions.set(node.id, {
-      x: MARGIN_X + (COLUMNS[node.kind] ?? 0),
-      y,
-      h,
-    });
-    maxBottom = Math.max(maxBottom, y + h);
-  }
-
-  const width = MARGIN_X * 2 + NODE_WIDTH + Math.max(...Object.values(COLUMNS));
-  const height = maxBottom + FOOTER;
+  const model = buildGraphModel(analysis);
+  const width = MARGIN_X * 2 + Math.max(model.width, 300);
+  const height = HEADER + Math.max(model.height, 120) + FOOTER;
   const canvas = document.createElement('canvas');
   canvas.width = width * SCALE;
   canvas.height = height * SCALE;
@@ -114,133 +202,76 @@ export async function exportRequirementGraph(
   // Header.
   ctx.fillStyle = '#283638';
   ctx.font = '700 30px "Segoe UI", sans-serif';
-  ctx.fillText('Requirement graph', MARGIN_X, 58);
+  ctx.fillText('Requirement graph', MARGIN_X, 56);
   ctx.fillStyle = '#49686C';
   ctx.font = '600 15px "Segoe UI", sans-serif';
-  ctx.fillText(options.projectName, MARGIN_X, 84);
+  ctx.fillText(options.projectName, MARGIN_X, 82);
   ctx.fillStyle = '#737A72';
   ctx.font = '400 13px "Segoe UI", sans-serif';
   const summary =
-    `${options.counts.requirements} requirements · ${options.counts.ambiguities} ambiguities · ` +
+    `${options.counts.requirements} requirement cards · ${options.counts.ambiguities} ambiguities · ` +
     `${options.counts.conflicts} conflicts · ${options.counts.dependencies} dependencies`;
-  ctx.fillText(summary, MARGIN_X, 108);
+  ctx.fillText(summary, MARGIN_X, 106);
 
-  // Small grouped boxes, one per functionality.
-  const perKind: Record<string, number> = {};
-  for (const node of analysis.graph.nodes) {
-    perKind[node.kind] = (perKind[node.kind] || 0) + 1;
-  }
-  for (const [kind, count] of Object.entries(perKind)) {
-    if (!count) continue;
-    const meta = CATEGORY_LABELS[kind] || CATEGORY_LABELS.requirement;
-    const x = MARGIN_X + (COLUMNS[kind] ?? 0) - 16;
-    const y = HEADER - 34;
-    const w = NODE_WIDTH + 32;
-    const h = 46 + count * GAP;
-    ctx.fillStyle = '#FCFBF7';
-    ctx.strokeStyle = '#E5E2D8';
-    ctx.lineWidth = 1;
-    rounded(ctx, x, y, w, h, 16);
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = meta.color;
-    ctx.font = '700 10px "Segoe UI", sans-serif';
-    ctx.fillText(meta.label.toUpperCase(), x + 14, y + 20);
-  }
-
-  // Edges.
-  for (const edge of analysis.graph.edges) {
-    const from = positions.get(edge.source);
-    const to = positions.get(edge.target);
+  // Only conflicts are drawn between cards. Everything else lives on the card,
+  // which keeps the exported diagram as calm as the on-screen board.
+  for (const relation of model.relations) {
+    const from = model.positions.get(relation.source);
+    const to = model.positions.get(relation.target);
     if (!from || !to) continue;
-    const conflict = edge.kind === 'conflicts_with';
-    const dependency = edge.kind === 'depends_on';
-    const x1 = from.x + NODE_WIDTH;
-    const y1 = from.y + from.h / 2;
-    let x2 = to.x;
-    const y2 = to.y + to.h / 2;
-    const midX = (x1 + x2) / 2;
+    const x1 = MARGIN_X + from.x + from.w / 2;
+    const y1 = HEADER + from.y + from.h;
+    const x2 = MARGIN_X + to.x + to.w / 2;
+    const y2 = HEADER + to.y;
+    const bend = Math.max(24, Math.abs(y2 - y1) * 0.35);
 
-    ctx.strokeStyle = conflict ? '#B94D42' : dependency ? '#49686C' : '#B9B5A9';
-    ctx.lineWidth = conflict || dependency ? 1.8 : 1;
-    if (conflict) ctx.setLineDash([6, 4]);
-    else ctx.setLineDash([]);
-    const loop = x2 <= x1 + 40;
+    ctx.strokeStyle = '#B94D42';
+    ctx.lineWidth = 1.6;
+    ctx.setLineDash([6, 4]);
     ctx.beginPath();
     ctx.moveTo(x1, y1);
-    if (!loop) {
-      ctx.bezierCurveTo(midX, y1, midX, y2, x2, y2);
-    } else {
-      // Same column (e.g. requirement depends on another requirement): loop
-      // around the right edge of the column instead of crossing the nodes.
-      const loopX = x1 + 70;
-      x2 = to.x + NODE_WIDTH;
-      ctx.bezierCurveTo(loopX, y1, loopX, y2, x2, y2);
-    }
+    ctx.bezierCurveTo(x1, y1 + bend, x2, y2 - bend, x2, y2);
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Arrow head.
-    const angle = loop ? Math.PI : Math.atan2(y2 - y1, Math.max(1, x2 - x1));
-    const size = 7;
-    ctx.fillStyle = conflict ? '#B94D42' : dependency ? '#49686C' : '#9A9688';
+    ctx.fillStyle = '#B94D42';
     ctx.beginPath();
     ctx.moveTo(x2, y2);
-    ctx.lineTo(x2 - size * Math.cos(angle - 0.45), y2 - size * Math.sin(angle - 0.45));
-    ctx.lineTo(x2 - size * Math.cos(angle + 0.45), y2 - size * Math.sin(angle + 0.45));
+    ctx.lineTo(x2 - 3.5, y2 - 7);
+    ctx.lineTo(x2 + 3.5, y2 - 7);
     ctx.closePath();
     ctx.fill();
 
-    if (edge.label) {
-      ctx.font = '600 10px "Segoe UI", sans-serif';
-      const label = edge.label;
-      const tw = ctx.measureText(label).width;
-      const lx = midX - tw / 2 - 5;
-      const ly = (y1 + y2) / 2 - 8;
-      ctx.fillStyle = '#FAFAF8';
-      rounded(ctx, lx, ly, tw + 10, 16, 5);
-      ctx.fill();
-      ctx.fillStyle = conflict ? '#B94D42' : '#49686C';
-      ctx.fillText(label, lx + 5, ly + 11.5);
-    }
+    const midY = (y1 + y2) / 2;
+    const midX = (x1 + x2) / 2;
+    ctx.font = '700 9px "Segoe UI", sans-serif';
+    const label = 'conflict';
+    const tw = ctx.measureText(label).width;
+    ctx.fillStyle = '#FDF2F0';
+    rounded(ctx, midX - tw / 2 - 5, midY - 8, tw + 10, 16, 4);
+    ctx.fill();
+    ctx.fillStyle = '#B94D42';
+    ctx.fillText(label, midX - tw / 2, midY + 3);
   }
 
-  // Nodes.
-  for (const node of analysis.graph.nodes) {
-    const pos = positions.get(node.id);
-    if (!pos) continue;
-    const style = STYLES[node.kind] || STYLES.requirement;
-    ctx.fillStyle = style.bg;
-    ctx.strokeStyle = style.border;
-    ctx.lineWidth = 1;
-    ctx.shadowColor = 'rgba(40, 54, 56, 0.08)';
-    ctx.shadowBlur = 8;
-    ctx.shadowOffsetY = 2;
-    rounded(ctx, pos.x, pos.y, NODE_WIDTH, pos.h, 10);
-    ctx.fill();
-    ctx.shadowColor = 'transparent';
-    ctx.stroke();
-
-    ctx.fillStyle = style.text;
-    ctx.font = node.kind === 'requirement' ? '700 12px "Segoe UI", sans-serif' : '600 13px "Segoe UI", sans-serif';
-    const lines = wrap(ctx, node.label, NODE_WIDTH - 28, 5);
-    lines.forEach((line, i) => {
-      ctx.fillText(line, pos.x + 14, pos.y + 24 + i * 18);
-    });
+  for (const card of model.cards) {
+    const box = model.positions.get(card.id);
+    if (!box) continue;
+    drawCard(ctx, card, MARGIN_X + box.x, HEADER + box.y);
   }
 
   // Footer legend.
-  const legend: Array<[string, string, string]> = [
-    ['requirement', 'Requirement', '#49686C'],
-    ['screen', 'Screen', '#688E5E'],
-    ['component', 'Component', '#D1B653'],
-    ['role', 'Role', '#5A8090'],
-    ['interaction', 'Interaction', '#C96839'],
+  const legend: Array<[string, string]> = [
+    ['screen', '#688E5E'],
+    ['component', '#D1B653'],
+    ['role', '#5A8090'],
+    ['interaction', '#C96839'],
+    ['conflict', '#B94D42'],
   ];
   let lx = MARGIN_X;
   const ly = height - 34;
   ctx.font = '600 12px "Segoe UI", sans-serif';
-  for (const [, label, color] of legend) {
+  for (const [label, color] of legend) {
     ctx.fillStyle = color;
     ctx.beginPath();
     ctx.arc(lx + 4, ly - 4, 4, 0, Math.PI * 2);
@@ -251,7 +282,7 @@ export async function exportRequirementGraph(
   }
   ctx.fillStyle = '#B9B5A9';
   ctx.font = '400 11px "Segoe UI", sans-serif';
-  ctx.fillText('Generated by Vector', width - 150, ly);
+  ctx.fillText('Needs = dependency · Generated by Vector', width - 280, ly);
 
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
