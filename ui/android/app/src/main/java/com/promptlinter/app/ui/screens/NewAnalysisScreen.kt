@@ -3,6 +3,7 @@ package com.promptlinter.app.ui.screens
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -33,8 +34,10 @@ import androidx.compose.ui.unit.sp
 import com.promptlinter.app.data.model.AnalysisPayload
 import com.promptlinter.app.data.model.ClarificationQuestion
 import com.promptlinter.app.data.model.ElementResult
+import com.promptlinter.app.ui.components.ProjectChip
 import com.promptlinter.app.ui.theme.*
 import com.promptlinter.app.ui.viewmodel.MainViewModel
+import com.promptlinter.app.ui.viewmodel.Tab
 
 private val EXAMPLES = listOf(
     Triple("A", "Complete button", "Add a red button at the top right corner labelled \"Sign Up\" that opens the signup form."),
@@ -54,7 +57,7 @@ fun NewAnalysisScreen(vm: MainViewModel) {
             Spacer(Modifier.height(4.dp))
             Column {
                 Text(
-                    "New UI Prompt Review",
+                    if (vm.viewingSaved) "Saved analysis" else "New UI Prompt Review",
                     style = MaterialTheme.typography.headlineSmall.copy(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
@@ -62,16 +65,50 @@ fun NewAnalysisScreen(vm: MainViewModel) {
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Describe the interface you want. Vector finds missing labels, colours, placement and actions before a generator fills them in for you.",
+                    if (vm.viewingSaved)
+                        "A saved evaluation, reopened exactly as it was stored."
+                    else
+                        "Describe the interface you want. Vector finds missing labels, colours, placement and actions before a generator fills them in for you.",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         lineHeight = 20.sp
                     )
                 )
+                Spacer(Modifier.height(9.dp))
+                ProjectChip(
+                    name = vm.currentProject?.name ?: "No project",
+                    onClick = { vm.selectedTab = Tab.PROJECTS }
+                )
             }
         }
 
-        if (!vm.engineReady) {
+        if (vm.viewingSaved) {
+            item {
+                SavedAnalysisBanner(
+                    onAnalyzeAgain = { vm.analyzeAgain() },
+                    onBack = { vm.closeSavedAnalysis() }
+                )
+            }
+        }
+
+        vm.analysisMessage?.let { message ->
+            item {
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = LocalVectorColors.current.warningBg,
+                    border = BorderStroke(1.dp, LocalVectorColors.current.warningText.copy(alpha = 0.35f))
+                ) {
+                    Text(
+                        message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = LocalVectorColors.current.warningText,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
+            }
+        }
+
+        if (!vm.viewingSaved && !vm.engineReady) {
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -104,19 +141,21 @@ fun NewAnalysisScreen(vm: MainViewModel) {
             }
         }
 
-        item { SamplePromptsCard { text -> vm.promptText = text; vm.payload = null } }
+        if (!vm.viewingSaved) {
+            item { SamplePromptsCard { text -> vm.updatePrompt(text); vm.payload = null } }
 
-        item {
-            PromptInputCard(
-                prompt = vm.promptText,
-                engine = vm.aiEngine,
-                engineReady = vm.engineReady,
-                analyzing = vm.analyzing,
-                onPromptChange = { vm.promptText = it; vm.payload = null },
-                onClear = { vm.clearAnalysis() },
-                onEngineChange = { vm.aiEngine = it; vm.payload = null },
-                onAnalyze = { vm.analyzeNew() }
-            )
+            item {
+                PromptInputCard(
+                    prompt = vm.promptText,
+                    engine = vm.aiEngine,
+                    engineReady = vm.engineReady,
+                    analyzing = vm.analyzing,
+                    onPromptChange = { vm.updatePrompt(it); vm.payload = null },
+                    onClear = { vm.clearAnalysis() },
+                    onEngineChange = { vm.aiEngine = it; vm.payload = null },
+                    onAnalyze = { vm.analyzeNew() }
+                )
+            }
         }
 
         if (payload != null) {
@@ -152,9 +191,9 @@ fun NewAnalysisScreen(vm: MainViewModel) {
                 }
             } else {
                 item { RouterCard(payload) }
-                if (payload.needsClarification) {
+                if (payload.needsClarification && !vm.viewingSaved) {
                     item { ClarificationGate(payload) }
-                } else {
+                } else if (!payload.needsClarification) {
                     item { RiskSummary(payload) }
                 }
                 item { HighlightedPromptCard(vm.promptText, payload) }
@@ -201,7 +240,11 @@ fun NewAnalysisScreen(vm: MainViewModel) {
                 }
                 item {
                     if (payload.needsClarification) {
-                        ClarificationCard(payload, vm.clarifyRound, vm.analyzing) { values, stop -> vm.submitAnswers(values, stop) }
+                        if (vm.viewingSaved) {
+                            SavedQuestionsCard(payload)
+                        } else {
+                            ClarificationCard(payload, vm.clarifyRound, vm.analyzing) { values, stop -> vm.submitAnswers(values, stop) }
+                        }
                     } else {
                         FinalPromptCard(payload)
                     }
@@ -211,6 +254,84 @@ fun NewAnalysisScreen(vm: MainViewModel) {
         }
 
         item { Spacer(Modifier.height(20.dp)) }
+    }
+}
+
+@Composable
+private fun SavedAnalysisBanner(onAnalyzeAgain: () -> Unit, onBack: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = LocalVectorColors.current.softGreen.copy(alpha = 0.55f)),
+        border = BorderStroke(1.dp, LocalVectorColors.current.teal.copy(alpha = 0.4f))
+    ) {
+        Column(Modifier.padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.History,
+                    contentDescription = null,
+                    tint = LocalVectorColors.current.softGreenText,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(7.dp))
+                Text(
+                    "Read-only saved result",
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                    color = LocalVectorColors.current.softGreenText
+                )
+            }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "This view shows the stored evaluation, not a fresh run. Re-analyse if you want the current engine's result.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(Modifier.height(9.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = onAnalyzeAgain,
+                    shape = RoundedCornerShape(9.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 11.dp, vertical = 5.dp)
+                ) { Text("Analyze again", fontSize = 11.sp) }
+                OutlinedButton(
+                    onClick = onBack,
+                    shape = RoundedCornerShape(9.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 11.dp, vertical = 5.dp)
+                ) { Text("Back to history", fontSize = 11.sp) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SavedQuestionsCard(p: AnalysisPayload) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = LocalVectorColors.current.warningBg),
+        border = BorderStroke(1.dp, LocalVectorColors.current.warningText.copy(alpha = 0.35f))
+    ) {
+        Column(Modifier.padding(15.dp)) {
+            Text(
+                "This prompt was saved with open questions",
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                color = LocalVectorColors.current.warningText
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "The score was withheld until the prompt became unambiguous. The stored questions are listed below.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(Modifier.height(8.dp))
+            p.clarification.questions.forEach { question ->
+                Text(
+                    "• ${question.prompt}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
     }
 }
 
@@ -899,22 +1020,32 @@ private fun FinalPromptCard(p: AnalysisPayload) {
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
                         .padding(10.dp)
                 )
-                Button(
-                    onClick = {
-                        val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        cm.setPrimaryClip(ClipData.newPlainText("prompt", p.finalPrompt))
-                        copied = true
-                    },
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Icon(
-                        if (copied) Icons.Default.Check else Icons.Default.ContentCopy,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(if (copied) "Copied!" else "Copy prompt")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = {
+                            val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            cm.setPrimaryClip(ClipData.newPlainText("prompt", p.finalPrompt))
+                            copied = true
+                        },
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    ) {
+                        Icon(
+                            if (copied) Icons.Default.Check else Icons.Default.ContentCopy,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(if (copied) "Copied!" else "Copy prompt")
+                    }
+                    OutlinedButton(
+                        onClick = { shareText(ctx, p.finalPrompt ?: "", "Validated prompt") },
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Share")
+                    }
                 }
             } else {
                 Text(
@@ -998,4 +1129,12 @@ private fun riskColorLevel(level: String) = when (level) {
     "High" -> LocalVectorColors.current.high
     "Medium" -> LocalVectorColors.current.medium
     else -> LocalVectorColors.current.low
+}
+
+private fun shareText(context: Context, text: String, title: String) {
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, text)
+    }
+    context.startActivity(Intent.createChooser(intent, title))
 }

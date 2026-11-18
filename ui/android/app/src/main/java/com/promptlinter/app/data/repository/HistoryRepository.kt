@@ -15,20 +15,38 @@ class HistoryRepository(context: Context) {
     private val gson = Gson()
     private val key = "prompt_linter_history_v1"
 
-    fun getAll(): List<HistoryItem> {
+    fun getAll(projectId: String? = null): List<HistoryItem> {
         val raw = prefs.getString(key, null) ?: return emptyList()
-        return try {
+        val all = try {
             val type = object : TypeToken<List<HistoryItem>>() {}.type
             gson.fromJson<List<HistoryItem>>(raw, type) ?: emptyList()
         } catch (_: Exception) { emptyList() }
+        return if (projectId == null) all else all.filter { it.projectId == projectId }
     }
 
-    fun save(prompt: String, payload: AnalysisPayload): HistoryItem {
-        val item = toHistoryItem(prompt, payload)
+    fun save(prompt: String, payload: AnalysisPayload, projectId: String? = null): HistoryItem {
+        val item = toHistoryItem(prompt, payload, projectId)
         val items = getAll().filter { it.id != item.id }.toMutableList()
         items.add(0, item)
         prefs.edit().putString(key, gson.toJson(items)).apply()
         return item
+    }
+
+    fun assignProject(projectId: String): Int {
+        var changed = 0
+        val items = getAll().map {
+            if (it.projectId.isNullOrBlank()) {
+                changed++
+                it.copy(projectId = projectId)
+            } else it
+        }
+        if (changed > 0) prefs.edit().putString(key, gson.toJson(items)).apply()
+        return changed
+    }
+
+    fun deleteByProject(projectId: String) {
+        val items = getAll().filterNot { it.projectId == projectId }
+        prefs.edit().putString(key, gson.toJson(items)).apply()
     }
 
     fun delete(id: String) {
@@ -38,7 +56,7 @@ class HistoryRepository(context: Context) {
 
     fun clear() { prefs.edit().putString(key, "[]").apply() }
 
-    private fun toHistoryItem(prompt: String, payload: AnalysisPayload): HistoryItem {
+    private fun toHistoryItem(prompt: String, payload: AnalysisPayload, projectId: String?): HistoryItem {
         val final = payload.risk.final
         val components = final.components
         val completeness = (100 * (1 - components.completeness)).toInt().coerceIn(0, 100)
@@ -58,12 +76,13 @@ class HistoryRepository(context: Context) {
             elements = payload.result.elements.map { "${it.type} #${it.id}" },
             summary = payload.result.summary.message,
             createdAt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).format(Date()),
-            payloadJson = null
+            payloadJson = gson.toJson(payload),
+            projectId = projectId
         )
     }
 
-    fun filterAndSort(search: String, riskFilter: String, sortBy: String): List<HistoryItem> {
-        var list = getAll()
+    fun filterAndSort(search: String, riskFilter: String, sortBy: String, projectId: String? = null): List<HistoryItem> {
+        var list = getAll(projectId)
         val q = search.trim().lowercase()
         if (q.isNotEmpty()) {
             list = list.filter { it.prompt.lowercase().contains(q) || it.elements.any { e -> e.lowercase().contains(q) } }

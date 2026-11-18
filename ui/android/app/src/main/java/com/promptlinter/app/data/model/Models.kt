@@ -102,5 +102,6 @@ data class HistoryItem(
     val elements: List<String>,
     val summary: String?,
     val createdAt: String,
-    val payloadJson: String? = null
+    val payloadJson: String? = null,
+    val projectId: String? = null
 )

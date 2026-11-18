@@ -8,6 +8,7 @@ composeBom = "2024.09.00"
 gson = "2.11.0"
 navigationCompose = "2.8.3"
 webkit = "1.6.1"
+pdfboxAndroid = "2.0.27.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -24,6 +25,7 @@ androidx-compose-material-icons-extended = { group = "androidx.compose.material"
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 androidx-webkit = { group = "androidx.webkit", name = "webkit", version.ref = "webkit" }
+pdfbox-android = { group = "com.tom-roush", name = "pdfbox-android", version.ref = "pdfboxAndroid" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

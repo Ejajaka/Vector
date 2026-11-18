@@ -34,10 +34,11 @@ import com.promptlinter.app.ui.viewmodel.MainViewModel
 fun HistoryScreen(vm: MainViewModel) {
     var refresh by remember { mutableIntStateOf(0) }
     var showClearConfirm by remember { mutableStateOf(false) }
-    val items = remember(vm.historySearch, vm.historyRiskFilter, vm.historySort, refresh) {
-        vm.historyRepo.filterAndSort(vm.historySearch, vm.historyRiskFilter, vm.historySort)
+    val projectId = vm.currentProject?.id
+    val items = remember(vm.historySearch, vm.historyRiskFilter, vm.historySort, refresh, projectId) {
+        vm.historyRepo.filterAndSort(vm.historySearch, vm.historyRiskFilter, vm.historySort, projectId)
     }
-    val allCount = remember(refresh) { vm.historyRepo.getAll().size }
+    val allCount = remember(refresh, projectId) { vm.historyRepo.getAll(projectId).size }
 
     Column(
         modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)
@@ -58,9 +59,11 @@ fun HistoryScreen(vm: MainViewModel) {
                     )
                 )
                 Text(
-                    "$allCount saved record(s)",
+                    "$allCount saved record(s) · ${vm.currentProject?.name ?: "No project"}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
             if (allCount > 0) {
@@ -230,7 +233,8 @@ fun HistoryScreen(vm: MainViewModel) {
             confirmButton = {
                 Button(
                     onClick = {
-                        vm.historyRepo.clear()
+                        val id = vm.currentProject?.id
+                        if (id != null) vm.historyRepo.deleteByProject(id) else vm.historyRepo.clear()
                         refresh++
                         showClearConfirm = false
                     },

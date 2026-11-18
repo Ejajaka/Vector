@@ -17,9 +17,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Analytics
-import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -81,43 +81,62 @@ class MainActivity : ComponentActivity() {
 private val tabTitles = mapOf(
     Tab.OVERVIEW to "Overview",
     Tab.NEW_ANALYSIS to "New Analysis",
+    Tab.REVIEW to "Review",
+    Tab.MORE to "More",
+    Tab.PROJECTS to "Projects",
+    Tab.PROMPT to "Prompt Studio",
     Tab.HISTORY to "History",
     Tab.SETTINGS to "Settings"
 )
 
 private val tabSubtitles = mapOf(
-    Tab.OVERVIEW to "Prompt completeness dashboard",
+    Tab.OVERVIEW to "Project dashboard",
     Tab.NEW_ANALYSIS to "Pre-generation UI prompt review",
+    Tab.REVIEW to "Requirements, suggestions & acceptance",
+    Tab.MORE to "Projects, history & help",
+    Tab.PROJECTS to "Project-scoped workspace",
+    Tab.PROMPT to "Approved requirements to brief",
     Tab.HISTORY to "Saved prompt evaluations",
     Tab.SETTINGS to "Engine, appearance & local data"
 )
 
 private val detailTitles = mapOf(
     DetailPage.ABOUT to "About Vector",
-    DetailPage.GUIDELINES to "Prompt Guidelines"
+    DetailPage.GUIDELINES to "Prompt Guidelines",
+    DetailPage.HELP to "Help & Manual"
 )
 
 private val detailSubtitles = mapOf(
     DetailPage.ABOUT to "Product overview & responsible use",
-    DetailPage.GUIDELINES to "Elements, attributes & risk bands"
+    DetailPage.GUIDELINES to "Elements, attributes & risk bands",
+    DetailPage.HELP to "Workflows, projects, review & briefs"
 )
+
+private val secondaryTabs = setOf(Tab.PROJECTS, Tab.PROMPT, Tab.HISTORY, Tab.SETTINGS)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppScaffold(vm: MainViewModel, dark: Boolean, onDarkChange: (Boolean) -> Unit, onShowOnboarding: () -> Unit) {
     val title = vm.detailPage?.let { detailTitles[it] } ?: tabTitles[vm.selectedTab] ?: "Overview"
     val subtitle = vm.detailPage?.let { detailSubtitles[it] } ?: tabSubtitles[vm.selectedTab]
+    val isSecondary = vm.selectedTab in secondaryTabs
 
     BackHandler(enabled = vm.detailPage != null || vm.selectedTab != Tab.OVERVIEW) {
-        if (vm.detailPage != null) vm.closeDetail() else vm.selectedTab = Tab.OVERVIEW
+        when {
+            vm.detailPage != null -> vm.closeDetail()
+            isSecondary -> vm.selectedTab = Tab.MORE
+            else -> vm.selectedTab = Tab.OVERVIEW
+        }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 navigationIcon = {
-                    if (vm.detailPage != null) {
-                        IconButton(onClick = { vm.closeDetail() }) {
+                    if (vm.detailPage != null || isSecondary) {
+                        IconButton(onClick = {
+                            if (vm.detailPage != null) vm.closeDetail() else vm.selectedTab = Tab.MORE
+                        }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                         }
                     }
@@ -158,13 +177,17 @@ fun AppScaffold(vm: MainViewModel, dark: Boolean, onDarkChange: (Boolean) -> Uni
         bottomBar = {
             NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 3.dp) {
                 listOf(
-                    Triple(Tab.OVERVIEW, "Overview", Icons.Filled.Home),
+                    Triple(Tab.OVERVIEW, "Home", Icons.Filled.Home),
                     Triple(Tab.NEW_ANALYSIS, "Analyze", Icons.Filled.Analytics),
-                    Triple(Tab.HISTORY, "History", Icons.Filled.History),
-                    Triple(Tab.SETTINGS, "Settings", Icons.Filled.Settings)
+                    Triple(Tab.REVIEW, "Review", Icons.Filled.FactCheck),
+                    Triple(Tab.MORE, "More", Icons.Filled.MoreHoriz)
                 ).forEach { (tab, label, icon) ->
+                    val selected = when (tab) {
+                        Tab.MORE -> vm.detailPage == null && (vm.selectedTab == Tab.MORE || isSecondary)
+                        else -> vm.detailPage == null && vm.selectedTab == tab
+                    }
                     NavigationBarItem(
-                        selected = vm.detailPage == null && vm.selectedTab == tab,
+                        selected = selected,
                         onClick = {
                             vm.detailPage = null
                             vm.selectedTab = tab
@@ -187,9 +210,14 @@ fun AppScaffold(vm: MainViewModel, dark: Boolean, onDarkChange: (Boolean) -> Uni
             when {
                 vm.detailPage == DetailPage.ABOUT -> AboutScreen(vm)
                 vm.detailPage == DetailPage.GUIDELINES -> GuidelinesScreen()
+                vm.detailPage == DetailPage.HELP -> HelpScreen()
                 else -> when (vm.selectedTab) {
                     Tab.OVERVIEW -> OverviewScreen(vm)
                     Tab.NEW_ANALYSIS -> NewAnalysisScreen(vm)
+                    Tab.REVIEW -> ReviewScreen(vm)
+                    Tab.MORE -> MoreScreen(vm)
+                    Tab.PROJECTS -> ProjectsScreen(vm)
+                    Tab.PROMPT -> PromptStudioScreen(vm)
                     Tab.HISTORY -> HistoryScreen(vm)
                     Tab.SETTINGS -> SettingsScreen(vm, dark, onDarkChange, onShowOnboarding)
                 }

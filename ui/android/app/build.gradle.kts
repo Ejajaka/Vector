@@ -70,5 +70,6 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.gson)
     implementation(libs.androidx.webkit)
+    implementation(libs.pdfbox.android)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

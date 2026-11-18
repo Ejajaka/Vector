@@ -328,10 +328,13 @@ fun SettingsScreen(
                 )
                 Spacer(Modifier.height(12.dp))
                 OutlinedButton(
-                    onClick = { vm.historyRepo.clear() },
+                    onClick = {
+                        val id = vm.currentProject?.id
+                        if (id != null) vm.historyRepo.deleteByProject(id) else vm.historyRepo.clear()
+                    },
                     shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = LocalVectorColors.current.critical)
-                ) { Text("Clear Local Storage") }
+                ) { Text("Clear project analysis history") }
             }
         }
 
@@ -348,6 +351,13 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 6.dp)
                 )
+                NavRow(
+                    icon = Icons.Default.AutoStories,
+                    title = "Help & Manual",
+                    subtitle = "Projects, review, prompt studio, engines and troubleshooting",
+                    onClick = { vm.openDetail(DetailPage.HELP) }
+                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f))
                 NavRow(
                     icon = Icons.AutoMirrored.Filled.MenuBook,
                     title = "Prompt Guidelines",

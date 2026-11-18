@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.promptlinter.app.data.model.HistoryItem
+import com.promptlinter.app.ui.components.ProjectChip
 import com.promptlinter.app.ui.components.VectorLogo
 import com.promptlinter.app.ui.components.VectorVMark
 import com.promptlinter.app.ui.theme.*
@@ -34,7 +35,7 @@ import com.promptlinter.app.ui.viewmodel.Tab
 
 @Composable
 fun OverviewScreen(vm: MainViewModel) {
-    val all = vm.historyRepo.getAll()
+    val all = vm.historyRepo.getAll(vm.currentProject?.id)
     val total = all.size
     val avgRisk = if (total > 0) all.map { it.riskScore }.average().toInt() else 0
     val avgCoverage = if (total > 0) all.map { it.coverageScore }.average().toInt() else 0
@@ -102,6 +103,11 @@ fun OverviewScreen(vm: MainViewModel) {
                                 lineHeight = 21.sp
                             )
                         )
+                        Spacer(Modifier.height(10.dp))
+                        ProjectChip(
+                            name = vm.currentProject?.name ?: "No project",
+                            onClick = { vm.selectedTab = Tab.PROJECTS }
+                        )
                         Spacer(Modifier.height(18.dp))
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             Button(
@@ -126,16 +132,16 @@ fun OverviewScreen(vm: MainViewModel) {
                                 )
                             }
                             OutlinedButton(
-                                onClick = { vm.openDetail(DetailPage.ABOUT) },
+                                onClick = { vm.selectedTab = Tab.REVIEW },
                                 modifier = Modifier.weight(1f).height(48.dp),
                                 shape = RoundedCornerShape(12.dp),
                                 border = BorderStroke(1.dp, Color.White.copy(alpha = 0.4f)),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
                             ) {
-                                Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.FactCheck, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(Modifier.width(6.dp))
                                 Text(
-                                    "About",
+                                    "Review",
                                     style = MaterialTheme.typography.labelMedium.copy(
                                         fontWeight = FontWeight.SemiBold,
                                         fontSize = 12.sp
@@ -149,6 +155,8 @@ fun OverviewScreen(vm: MainViewModel) {
                 }
             }
         }
+
+        item { ReviewQueueCard(vm) }
 
         item { RiskDistributionCard(all, distribution) }
 
@@ -272,6 +280,62 @@ fun OverviewScreen(vm: MainViewModel) {
             items(recent) { item -> RecentItem(item) { vm.openFromHistory(item) } }
         }
         item { Spacer(Modifier.height(20.dp)) }
+    }
+}
+
+@Composable
+private fun ReviewQueueCard(vm: MainViewModel) {
+    val approved = vm.requirements.count { it.status == "approved" }
+    val pending = vm.requirements.count { it.status == "pending" }
+    val openNotes = vm.suggestions.count { it.status == "pending_review" }
+    val findings = vm.findings.size
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.FactCheck, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Review queue", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                }
+                Surface(shape = RoundedCornerShape(6.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
+                    Text(
+                        "${vm.requirements.size} requirements",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                    )
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                if (vm.requirements.isEmpty()) "Import a requirement document to start the review queue."
+                else "$approved approved · $pending pending · $openNotes open notes · $findings findings",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(11.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    onClick = { vm.selectedTab = Tab.REVIEW },
+                    shape = RoundedCornerShape(9.dp),
+                    modifier = Modifier.weight(1f)
+                ) { Text(if (vm.requirements.isEmpty()) "Import document" else "Open review", fontSize = 12.sp) }
+                OutlinedButton(
+                    onClick = { vm.selectedTab = Tab.PROMPT },
+                    shape = RoundedCornerShape(9.dp),
+                    modifier = Modifier.weight(1f)
+                ) { Text("Prompt Studio", fontSize = 12.sp) }
+            }
+        }
     }
 }
 
