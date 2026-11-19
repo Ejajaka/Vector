@@ -2,8 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
+  ClipboardCheck,
   Clock3,
   FolderKanban,
+  GitBranch,
   LayoutTemplate,
   Palette,
   Plus,
@@ -33,8 +35,12 @@ interface ProjectWorkspacePageProps {
   onBlankCanvas: () => void;
   onOptimizePrompt: () => void;
   onOpenDesignSystem: () => void;
-  onGenerate: () => void;
   onDeploy: () => void;
+  onOpenRequirements: () => void;
+  onOpenIntelligence: () => void;
+  onOpenReview: () => void;
+  onOpenPromptStudio: () => void;
+  onOpenWorkspace: () => void;
 }
 
 interface SavedDoc {
@@ -50,8 +56,12 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   onBlankCanvas,
   onOptimizePrompt,
   onOpenDesignSystem,
-  onGenerate,
   onDeploy,
+  onOpenRequirements,
+  onOpenIntelligence,
+  onOpenReview,
+  onOpenPromptStudio,
+  onOpenWorkspace,
 }) => {
   const [doc, setDoc] = useState<SavedDoc | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
@@ -155,8 +165,45 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
         </div>
       </section>
 
+      {/* Pipeline */}
+      <section className="rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] p-3.5">
+        <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="v-eyebrow">Project pipeline</p>
+            <h2 className="mt-0.5 text-[14px] font-bold text-[var(--v-ink)]">Requirements → Analyse → Review → Brief → Build</h2>
+          </div>
+          <span className="text-[10px] text-[var(--v-faint)]">One workspace for every stage</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+          {[
+            { title: 'Requirements', caption: 'Upload and approve', icon: FileText, action: onOpenRequirements },
+            { title: 'Analyse', caption: 'Check the prompt', icon: Sparkles, action: onOptimizePrompt },
+            { title: 'Review findings', caption: 'Ambiguities and conflicts', icon: GitBranch, action: onOpenIntelligence },
+            { title: 'Acceptance', caption: 'Suggestions and criteria', icon: ClipboardCheck, action: onOpenReview },
+            { title: 'Brief', caption: 'Build the six-section prompt', icon: Wand2, action: onOpenPromptStudio },
+            { title: 'Build', caption: 'Generate and preview', icon: Rocket, action: onOpenWorkspace },
+          ].map((stage) => {
+            const Icon = stage.icon;
+            return (
+              <button
+                key={stage.title}
+                type="button"
+                onClick={stage.action}
+                className="group rounded-xl border border-[var(--v-line)] bg-[var(--v-surface-2)] px-3 py-2.5 text-left transition-colors hover:border-[var(--v-violet)] hover:bg-[var(--v-surface)]"
+              >
+                <span className="grid h-7 w-7 place-items-center rounded-lg bg-[var(--v-surface)] text-[var(--v-violet)] group-hover:bg-[var(--v-surface-2)]">
+                  <Icon className="h-3.5 w-3.5" />
+                </span>
+                <span className="mt-1.5 block text-[11.5px] font-bold text-[var(--v-ink)]">{stage.title}</span>
+                <span className="block text-[9.5px] leading-snug text-[var(--v-muted)]">{stage.caption}</span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
       {/* Start */}
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {[
           {
             title: doc ? 'Continue working' : 'Blank canvas',
@@ -165,10 +212,34 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
             action: doc ? onOpenCanvas : onBlankCanvas,
           },
           {
-            title: 'Optimize a prompt',
-            body: 'Score an instruction and get the gaps before you generate.',
+            title: 'Requirements',
+            body: 'Upload a document and approve the compiled requirements.',
+            icon: FileText,
+            action: onOpenRequirements,
+          },
+          {
+            title: 'Analyse a prompt',
+            body: 'Score an instruction and find its gaps before you generate.',
             icon: Sparkles,
             action: onOptimizePrompt,
+          },
+          {
+            title: 'Review findings',
+            body: 'Inspect ambiguities, conflicts and dependencies in the graph.',
+            icon: GitBranch,
+            action: onOpenIntelligence,
+          },
+          {
+            title: 'Review & acceptance',
+            body: 'Accept suggestions and approve Given/When/Then criteria.',
+            icon: ClipboardCheck,
+            action: onOpenReview,
+          },
+          {
+            title: 'Build the brief',
+            body: 'Generate the six-section prompt from approved decisions.',
+            icon: Wand2,
+            action: onOpenPromptStudio,
           },
           {
             title: 'Design system',
@@ -178,14 +249,14 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
           },
           {
             title: 'Build and generate',
-            body: 'Open the canvas, then send the brief to Base44, Bolt, Lovable or v0.',
-            icon: Wand2,
-            action: () => setComposerOpen(true),
+            body: 'Send the approved brief to the builder and preview the result.',
+            icon: Rocket,
+            action: onOpenWorkspace,
           },
           {
             title: 'Deploy',
             body: 'Connect Vercel or Netlify and publish this project.',
-            icon: Rocket,
+            icon: Send,
             action: onDeploy,
           },
           {

@@ -2,16 +2,18 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
-  Blocks,
+  ClipboardCheck,
   Compass,
   FileText,
   FolderKanban,
   GraduationCap,
   LayoutTemplate,
   Menu,
+  Monitor,
   Moon,
-  Plus,
+  Network,
   Plug,
+  Plus,
   Search,
   Settings,
   Sparkles,
@@ -53,7 +55,7 @@ const TITLES: Record<ActiveTab, string> = {
   prompt: 'Prompt studio',
   design: 'Design systems',
   workspace: 'Build workspace',
-  'new-analysis': 'New analysis',
+  'new-analysis': 'Analyse',
   editor: 'Editor',
   history: 'History',
   manual: 'Manual',
@@ -64,14 +66,18 @@ const TITLES: Record<ActiveTab, string> = {
 };
 
 const COMMANDS: Array<{ id: ActiveTab; label: string; hint: string; icon: React.ElementType }> = [
-  { id: 'dashboard', label: 'Home', hint: 'Dashboard', icon: Compass },
-  { id: 'projects', label: 'Projects', hint: 'All projects, recents, trash', icon: FolderKanban },
-  { id: 'templates', label: 'Templates', hint: '10 previewable starters', icon: LayoutTemplate },
-  { id: 'learn', label: 'Learn', hint: 'Guides and walkthroughs', icon: GraduationCap },
-  { id: 'prompt', label: 'Prompt studio', hint: 'Build the prompt', icon: Sparkles },
+  { id: 'dashboard', label: 'Home', hint: 'Overview and recent work', icon: Compass },
+  { id: 'new-analysis', label: 'Analyse', hint: 'Review a UI prompt', icon: Sparkles },
+  { id: 'projects', label: 'Projects', hint: 'All projects and recent work', icon: FolderKanban },
   { id: 'requirements', label: 'Requirements', hint: 'Documents and traceability', icon: FileText },
+  { id: 'intelligence', label: 'Requirement graph', hint: 'Ambiguities and conflicts', icon: Network },
+  { id: 'review', label: 'Review & acceptance', hint: 'Suggestions and criteria', icon: ClipboardCheck },
+  { id: 'prompt', label: 'Prompt studio', hint: 'Build the six-section brief', icon: Sparkles },
+  { id: 'workspace', label: 'Build workspace', hint: 'Generate and preview', icon: Monitor },
+  { id: 'templates', label: 'Templates', hint: 'Previewable starters', icon: LayoutTemplate },
+  { id: 'history', label: 'History', hint: 'Past analyses', icon: FileText },
+  { id: 'learn', label: 'Learn', hint: 'Guides and walkthroughs', icon: GraduationCap },
   { id: 'integrations', label: 'Integrations', hint: 'Figma, Canva, Vercel, Netlify', icon: Plug },
-  { id: 'design', label: 'Design systems', hint: 'Tokens and brand context', icon: Blocks },
   { id: 'pricing', label: 'Plans and pricing', hint: 'Trial and billing', icon: Wallet },
   { id: 'settings', label: 'Settings', hint: 'Preferences and account', icon: Settings },
 ];
@@ -225,7 +231,7 @@ export const Header: React.FC<HeaderProps> = ({
                           type="button"
                           onClick={() => {
                             selectProject(project.id);
-                            setActiveTab('requirements');
+                            setActiveTab('projects');
                             setSearchOpen(false);
                             setQuery('');
                           }}

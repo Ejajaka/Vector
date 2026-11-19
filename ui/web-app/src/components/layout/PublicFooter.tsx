@@ -28,21 +28,10 @@ const COLUMNS: Array<{ title: string; links: Array<{ label: string; tab: ActiveT
     ],
   },
   {
-    title: 'Company',
-    links: [
-      { label: 'About', tab: 'about' },
-      { label: 'Careers', tab: 'contact' },
-      { label: 'Security', tab: 'privacy' },
-      { label: 'Status', tab: 'contact' },
-    ],
-  },
-  {
     title: 'Legal',
     links: [
       { label: 'Privacy policy', tab: 'privacy' },
       { label: 'Terms of service', tab: 'terms' },
-      { label: 'Refund policy', tab: 'terms' },
-      { label: 'DPA', tab: 'privacy' },
     ],
   },
 ];
@@ -56,7 +45,7 @@ export const PublicFooter: React.FC<PublicFooterProps> = ({ activeTab, onNavigat
   return (
     <footer className="mt-20 border-t border-[var(--v-line)] bg-[var(--v-surface-2)]">
       <div className="mx-auto w-full max-w-[1240px] px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_repeat(4,1fr)]">
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_repeat(3,1fr)]">
           <div>
             <button type="button" onClick={() => go('about')} className="flex items-center gap-2" aria-label="Vector home">
               <Logo size={28} />

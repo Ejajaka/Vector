@@ -783,7 +783,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
         kind: 'system',
         title: 'Figma import complete',
         body: `${result.nodeCount} elements across ${result.pages.length} page${result.pages.length === 1 ? '' : 's'}.`,
-        action: { label: 'View prompt', tab: 'prompt' },
+        action: { label: 'Open analyser', tab: 'new-analysis' },
       });
     } catch (error) {
       notificationService.push({

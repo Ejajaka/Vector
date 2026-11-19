@@ -10,7 +10,7 @@ import { PublicHeader } from './components/layout/PublicHeader.tsx';
 import { PublicFooter } from './components/layout/PublicFooter.tsx';
 import { AuthPage } from './components/auth/AuthPage.tsx';
 import { ResetPasswordPage } from './components/auth/ResetPasswordPage.tsx';
-import { ProductTour, resetTour, shouldShowTour } from './components/onboarding/ProductTour.tsx';
+import { ProductTour, resetTour } from './components/onboarding/ProductTour.tsx';
 import { OverviewPage } from './pages/OverviewPage.tsx';
 import { DashboardPage } from './pages/DashboardPage.tsx';
 import { TemplatesPage } from './pages/TemplatesPage.tsx';
@@ -29,8 +29,11 @@ import { TermsPage } from './pages/TermsPage.tsx';
 import { ContactPage } from './pages/ContactPage.tsx';
 import { LibraryPage } from './pages/LibraryPage.tsx';
 import { PromptModePage } from './pages/PromptModePage.tsx';
-import { TemplatePickerModal } from './components/projects/TemplatePickerModal.tsx';
-import { starterPages } from './data/projectTypes.ts';
+import { RequirementsPage } from './pages/RequirementsPage.tsx';
+import { RequirementGraphPage } from './pages/RequirementGraphPage.tsx';
+import { RequirementReviewPage } from './pages/RequirementReviewPage.tsx';
+import { PromptStudioPage } from './pages/PromptStudioPage.tsx';
+import { WorkspacePage } from './pages/WorkspacePage.tsx';
 import { EditorPage } from './pages/EditorPage.tsx';
 import { AssistantPanel } from './components/ai/AssistantPanel.tsx';
 import { getAdvisorContext, setAdvisorContext } from './services/aiAdvisor.ts';
@@ -49,6 +52,11 @@ const KNOWN_TABS: ActiveTab[] = [
   'dashboard',
   'projects',
   'project',
+  'requirements',
+  'intelligence',
+  'review',
+  'prompt',
+  'workspace',
   'templates',
   'library',
   'learn',
@@ -83,13 +91,13 @@ function AppShell() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [analysisToInspect, setAnalysisToInspect] = useState<AnalysisResult | null>(null);
+  const [analysisPromptSeed, setAnalysisPromptSeed] = useState<string | null>(null);
   const [tourOpen, setTourOpen] = useState(false);
   const [editorTemplate, setEditorTemplate] = useState<TemplateDefinition | null>(null);
   const [editorSeed, setEditorSeed] = useState<{ name: string; pages: any[] } | null>(null);
   const [editorOrigin, setEditorOrigin] = useState<ActiveTab>('templates');
   const [editorProject, setEditorProject] = useState<{ id: string; name: string; type?: string } | null>(null);
   const [editorFresh, setEditorFresh] = useState(false);
-  const [pendingProject, setPendingProject] = useState<{ id: string; name: string; description?: string } | null>(null);
   const [activeProject, setActiveProject] = useState<{ id: string; name: string; description?: string } | null>(null);
 
   const openProjectWorkspace = (id: string, name: string, description?: string) => {
@@ -155,6 +163,12 @@ function AppShell() {
     }
   }, [activeTab, user?.id, tabHydrated, signedIn]);
 
+  // Each page starts at the top. Without this, switching tabs could leave the
+  // user halfway down the previous page and make the new page look "stuck".
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [activeTab]);
+
   // Guests cannot open authenticated areas.
   useEffect(() => {
     if (!signedIn && !PUBLIC_TABS.includes(activeTab)) setActiveTab('about');
@@ -209,14 +223,8 @@ function AppShell() {
     };
   }, []);
 
-  // First-run product tour. Fires for signed-in users *and* for local mode,
-  // where there is no Supabase user but there is still a workspace.
-  useEffect(() => {
-    if (!signedIn) return;
-    if (!shouldShowTour()) return;
-    const timer = window.setTimeout(() => setTourOpen(true), 700);
-    return () => window.clearTimeout(timer);
-  }, [signedIn]);
+  // The tour is opt-in from Learn or the profile menu. Auto-opening it on the
+  // first visit covered the workspace before people knew what it was for.
 
   useEffect(() => {
     if (user && pendingTab) {
@@ -249,24 +257,22 @@ function AppShell() {
       selectProject(item.projectId);
     }
     setAnalysisToInspect(item);
+    setAnalysisPromptSeed(null);
     setActiveTab('new-analysis');
   };
 
-  const handleStartNewAnalysis = () => {
+  const handleStartNewAnalysis = (prompt?: string) => {
     if (publicMode) {
       requestAuth('new-analysis');
       return;
     }
     setAnalysisToInspect(null);
+    setAnalysisPromptSeed(prompt?.trim() || null);
     setActiveTab('new-analysis');
   };
 
   const handleStartRequirementWorkflow = () => {
-    if (publicMode) {
-      requestAuth('requirements');
-      return;
-    }
-    setActiveTab('requirements');
+    handleStartNewAnalysis();
   };
 
   const requestAuth = (target?: ActiveTab) => {
@@ -276,7 +282,7 @@ function AppShell() {
 
   const handleRequestSignIn = () => {
     if (!configured) {
-      setActiveTab('overview');
+      setActiveTab('new-analysis');
       return;
     }
     requestAuth();
@@ -485,7 +491,10 @@ function AppShell() {
               onOpenSettings={() => setActiveTab('settings')}
               onBrowseTemplates={() => setActiveTab('templates')}
               onOpenIntegrations={() => setActiveTab('integrations')}
-              onCreated={(created) => setPendingProject({ id: created.id, name: created.name, description: created.description })}
+              onCreated={(created) => {
+                setActiveProject({ id: created.id, name: created.name, description: created.description });
+                setActiveTab('project');
+              }}
               onOpenEditor={() => {
                 setEditorTemplate(null);
                 setEditorProject(null);
@@ -501,9 +510,16 @@ function AppShell() {
               }}
             />
           )}
+          {activeTab === 'requirements' && <RequirementsPage />}
+          {activeTab === 'intelligence' && <RequirementGraphPage />}
+          {activeTab === 'review' && <RequirementReviewPage />}
+          {activeTab === 'prompt' && <PromptStudioPage />}
+          {activeTab === 'workspace' && <WorkspacePage />}
+
           {activeTab === 'new-analysis' && (
             <NewAnalysisPage
               initialResult={analysisToInspect}
+              initialPrompt={analysisPromptSeed}
               onClearInitialResult={() => setAnalysisToInspect(null)}
               onViewHistory={() => setActiveTab('history')}
               onOpenProjects={() => setActiveTab('projects')}
@@ -536,32 +552,6 @@ function AppShell() {
         )}
       </div>
 
-      <TemplatePickerModal
-        open={!!pendingProject}
-        projectName={pendingProject?.name || ''}
-        onPick={(typeId) => {
-          if (!pendingProject) return;
-          setEditorProject({ id: pendingProject.id, name: pendingProject.name, type: typeId });
-          setEditorOrigin('project');
-          setEditorTemplate(null);
-          setEditorSeed({ name: pendingProject.name, pages: starterPages(typeId) });
-          setEditorFresh(true);
-          setPendingProject(null);
-          setActiveTab('editor');
-        }}
-        onSkip={() => {
-          if (!pendingProject) return;
-          setActiveProject(pendingProject);
-          setPendingProject(null);
-          setActiveTab('project');
-        }}
-        onClose={() => {
-          if (!pendingProject) return;
-          setActiveProject(pendingProject);
-          setPendingProject(null);
-          setActiveTab('project');
-        }}
-      />
       <ProductTour open={tourOpen} onClose={() => setTourOpen(false)} />
       <AssistantPanel
         open={assistantOpen}
