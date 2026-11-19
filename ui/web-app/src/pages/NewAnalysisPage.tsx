@@ -30,12 +30,12 @@ import { CircularScoreGauge } from '../components/ui/CircularScoreGauge.tsx';
 import { historyStorage } from '../services/historyStorage.ts';
 import { SpellingNotice } from '../components/ui/SpellingNotice.tsx';
 import { useProject } from '../context/ProjectContext.tsx';
-import { useToast } from '../components/ui/Toast.tsx';
 import type { AnalysisResult, RiskLevel } from '../types/analysis.ts';
 import { setAdvisorContext } from '../services/aiAdvisor.ts';
 
 interface NewAnalysisPageProps {
   initialResult?: AnalysisResult | null;
+  initialPrompt?: string | null;
   onClearInitialResult?: () => void;
   onViewHistory?: () => void;
   onOpenProjects?: () => void;
@@ -282,9 +282,8 @@ function ClarificationForm({
   );
 }
 
-export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult, onViewHistory, onOpenProjects }) => {
+export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult, initialPrompt, onViewHistory, onOpenProjects }) => {
   const { projects, currentProject, selectProject } = useProject();
-  const { toast } = useToast();
   const [engineState, setEngineState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [engineError, setEngineError] = useState('');
   const engine: EngineMode = 'bert';
@@ -328,6 +327,11 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
     if (initialResult?.prompt) setText(initialResult.prompt);
   }, [initialResult]);
 
+  // Prefill a prompt handed over by the home screen.
+  useEffect(() => {
+    if (initialPrompt) setText(initialPrompt);
+  }, [initialPrompt]);
+
   const ensurePlan = useCallback(
     async (input: string): Promise<DetectionPlan> => {
       if (planRef.current) return planRef.current;
@@ -351,10 +355,6 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
 
   const analyze = useCallback(
     async (input: string, mergedAnswers: Record<string, string>, finalize: boolean) => {
-      if (!currentProject) {
-        setAnalysisError('Select or create a project before analyzing a prompt.');
-        return;
-      }
       setAnalyzing(true);
       setAnalysisError('');
       try {
@@ -365,11 +365,11 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
         if (!p.needs_clarification) p = await finish(input, p);
         setPayload(p);
         if (!p.needs_clarification) {
-          historyStorage.save({ ...toHistoryResult(input, p), projectId: currentProject.id });
+          historyStorage.save({ ...toHistoryResult(input, p), ...(currentProject ? { projectId: currentProject.id } : {}) });
         }
       } catch (e: any) {
         setAnalysisError(e?.message || String(e));
-        } finally {
+      } finally {
         setAnalyzing(false);
         setStage('idle');
       }
@@ -379,10 +379,6 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
 
   const handleAnalyze = () => {
     if (!text.trim()) return;
-    if (!currentProject) {
-      toast('Select or create a project first.', 'error');
-      return;
-    }
     setAnswers({});
     setRound(1);
     planRef.current = null;
@@ -499,13 +495,11 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <h1 className="text-xl sm:text-2xl font-bold text-[#283638] tracking-tight">New UI Prompt Analysis</h1>
-            <span className="px-2 py-0.5 rounded text-xs font-semibold bg-[#E4EBDD] text-[#30494B] border border-[#CFE2C8]">
-              Vector — Requirement engineering for UI teams
-            </span>
+            <h1 className="text-xl sm:text-2xl font-bold text-[#283638] tracking-tight">Analyse a UI prompt</h1>
           </div>
           <p className="text-xs sm:text-sm text-[#737A72]">
-            Review your interface request for missing labels, colors, placement and actions. Evaluations are saved in this browser for {currentProject ? <b>{currentProject.name}</b> : 'the selected project'} only.
+            Check the request for missing labels, colours, placement and actions before you generate.
+            {currentProject ? <> Saved to <b>{currentProject.name}</b>.</> : ' Saved to this browser only.'}
           </p>
         </div>
         <div className="flex items-center gap-2 self-start sm:self-auto">
@@ -524,13 +518,13 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
 
       {/* Project scope banner */}
       {!currentProject ? (
-        <div className="bg-[#FFF7ED] border border-[#FED7AA] rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="bg-[#F6F4EC] border border-[#E5E2D8] rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex items-start gap-2 flex-1">
-            <AlertTriangle className="w-4 h-4 text-[#9C4A28] mt-0.5 shrink-0" />
+            <Info className="w-4 h-4 text-[#49686C] mt-0.5 shrink-0" />
             <div>
-              <p className="text-sm font-bold text-[#9C4A28]">This analysis has no project</p>
-              <p className="text-xs text-[#9C4A28]/85 mt-0.5">
-                Analyses are project-scoped so history and dashboards never mix. Create or open a project first.
+              <p className="text-sm font-bold text-[#283638]">You can analyse without a project</p>
+              <p className="text-xs text-[#737A72] mt-0.5">
+                This run will be saved to History in this browser. Create a project if you want it grouped with related work.
               </p>
             </div>
           </div>
@@ -538,9 +532,9 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
             <button
               type="button"
               onClick={onOpenProjects}
-              className="shrink-0 px-3.5 py-2 rounded-lg bg-[#9C4A28] hover:bg-[#833d21] text-white text-xs font-bold"
+              className="shrink-0 px-3.5 py-2 rounded-lg border border-[#E5E2D8] bg-white hover:bg-[#FAFAF8] text-xs font-bold text-[#283638]"
             >
-              Open projects
+              Create project
             </button>
           )}
         </div>
@@ -641,7 +635,7 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
             <div className="flex items-center gap-2 text-xs text-[#737A72]">
               <Sparkles className="w-4 h-4 text-[#D1B653] shrink-0" />
               <span>
-                Your prompt is reviewed in this browser and saved locally for the selected project.
+                Your prompt is reviewed in this browser and saved to local history.
               </span>
             </div>
             <div className="flex items-center gap-2.5 self-end sm:self-auto">
@@ -653,10 +647,10 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
               <button
                 type="button"
                 onClick={handleAnalyze}
-                disabled={analyzing || engineState !== 'ready' || !currentProject}
-                title={!currentProject ? 'Select a project first' : 'Analyze prompt'}
+                disabled={analyzing || engineState !== 'ready'}
+                title={engineState !== 'ready' ? 'Preparing the analyser' : 'Analyse prompt'}
                 className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-xs font-bold text-white transition-all shadow-xs ${
-                  analyzing || engineState !== 'ready' || !currentProject
+                  analyzing || engineState !== 'ready'
                     ? 'bg-[#49686C]/60 cursor-not-allowed'
                     : 'bg-[#49686C] hover:bg-[#30494B] active:scale-[0.99]'
                 }`}
@@ -669,7 +663,7 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
                 ) : (
                   <>
                     <Play className="w-3.5 h-3.5 fill-current" />
-                    <span>Analyze Prompt</span>
+                    <span>Analyse prompt</span>
                   </>
                 )}
               </button>

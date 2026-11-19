@@ -1,18 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Bell,
-  Blocks,
   ChevronRight,
-  Compass,
   Ellipsis,
-  FileText,
   FolderKanban,
   FolderOpen,
   GraduationCap,
   History,
   LayoutTemplate,
   LogIn,
-  Monitor,
   Palette,
   Plug,
   Settings,
@@ -43,22 +39,21 @@ interface RailItem {
 }
 
 const PRIMARY: RailItem[] = [
-  { id: 'dashboard', label: 'Home', icon: Compass },
+  { id: 'new-analysis', label: 'Analyse', icon: Sparkles },
   { id: 'projects', label: 'Projects', icon: FolderKanban },
   { id: 'templates', label: 'Templates', icon: LayoutTemplate },
+  { id: 'history', label: 'History', icon: History },
+];
+
+const WORKSPACE: RailItem[] = [
   { id: 'library', label: 'Library', icon: FolderOpen },
+  { id: 'design', label: 'Design systems', icon: Palette },
   { id: 'learn', label: 'Learn', icon: GraduationCap },
   { id: 'integrations', label: 'Integrations', icon: Plug },
 ];
 
-const BUILD: RailItem[] = [
-  { id: 'design', label: 'Design systems', icon: Palette },
-  { id: 'new-analysis', label: 'Prompt analyser', icon: Sparkles },
-];
-
 const ACCOUNT: RailItem[] = [
   { id: 'pricing', label: 'Plans and pricing', icon: Wallet },
-  { id: 'history', label: 'History', icon: History },
   { id: 'settings', label: 'Settings', icon: Settings },
   { id: 'privacy', label: 'Privacy', icon: ShieldCheck },
 ];
@@ -140,10 +135,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <div className="absolute left-[64px] top-0 w-[240px] v-card p-2 shadow-[var(--v-shadow-lg)] z-50">
       <p className="px-2 py-1.5 v-eyebrow">Create</p>
       {[
+        { label: 'Analyse a prompt', tab: 'new-analysis' as ActiveTab, icon: Sparkles },
         { label: 'New project', tab: 'projects' as ActiveTab, icon: FolderKanban },
         { label: 'From a template', tab: 'templates' as ActiveTab, icon: LayoutTemplate },
-        { label: 'Analyse a prompt', tab: 'new-analysis' as ActiveTab, icon: Sparkles },
-        { label: 'Import from Figma', tab: 'integrations' as ActiveTab, icon: Plug },
       ].map((item) => {
         const Icon = item.icon;
         return (
@@ -240,8 +234,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               {moreOpen && (
                 <div className="absolute left-[64px] top-0 w-[248px] v-card p-2 shadow-[var(--v-shadow-lg)] z-50 max-h-[70vh] overflow-y-auto v-scroll">
-                  <p className="px-2 py-1.5 v-eyebrow">Build</p>
-                  {BUILD.map((item) => {
+                  <p className="px-2 py-1.5 v-eyebrow">Workspace</p>
+                  {WORKSPACE.map((item) => {
                     const Icon = item.icon;
                     return (
                       <button
@@ -348,9 +342,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             })}
           </div>
 
-          <p className="v-eyebrow px-1 mb-1.5">Build</p>
+          <p className="v-eyebrow px-1 mb-1.5">Workspace</p>
           <div className="space-y-0.5 mb-3">
-            {BUILD.map((item) => {
+            {WORKSPACE.map((item) => {
               const Icon = item.icon;
               return (
                 <button

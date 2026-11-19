@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
-  Blocks,
   Compass,
   FileText,
   FolderKanban,
@@ -10,7 +9,6 @@ import {
   LayoutTemplate,
   Menu,
   Moon,
-  Plus,
   Plug,
   Search,
   Settings,
@@ -53,7 +51,7 @@ const TITLES: Record<ActiveTab, string> = {
   prompt: 'Prompt studio',
   design: 'Design systems',
   workspace: 'Build workspace',
-  'new-analysis': 'New analysis',
+  'new-analysis': 'Analyse',
   editor: 'Editor',
   history: 'History',
   manual: 'Manual',
@@ -64,14 +62,13 @@ const TITLES: Record<ActiveTab, string> = {
 };
 
 const COMMANDS: Array<{ id: ActiveTab; label: string; hint: string; icon: React.ElementType }> = [
-  { id: 'dashboard', label: 'Home', hint: 'Dashboard', icon: Compass },
-  { id: 'projects', label: 'Projects', hint: 'All projects, recents, trash', icon: FolderKanban },
-  { id: 'templates', label: 'Templates', hint: '10 previewable starters', icon: LayoutTemplate },
+  { id: 'dashboard', label: 'Home', hint: 'Overview and recent work', icon: Compass },
+  { id: 'new-analysis', label: 'Analyse', hint: 'Review a UI prompt', icon: Sparkles },
+  { id: 'projects', label: 'Projects', hint: 'All projects and recent work', icon: FolderKanban },
+  { id: 'templates', label: 'Templates', hint: 'Previewable starters', icon: LayoutTemplate },
+  { id: 'history', label: 'History', hint: 'Past analyses', icon: FileText },
   { id: 'learn', label: 'Learn', hint: 'Guides and walkthroughs', icon: GraduationCap },
-  { id: 'prompt', label: 'Prompt studio', hint: 'Build the prompt', icon: Sparkles },
-  { id: 'requirements', label: 'Requirements', hint: 'Documents and traceability', icon: FileText },
   { id: 'integrations', label: 'Integrations', hint: 'Figma, Canva, Vercel, Netlify', icon: Plug },
-  { id: 'design', label: 'Design systems', hint: 'Tokens and brand context', icon: Blocks },
   { id: 'pricing', label: 'Plans and pricing', hint: 'Trial and billing', icon: Wallet },
   { id: 'settings', label: 'Settings', hint: 'Preferences and account', icon: Settings },
 ];
@@ -225,7 +222,7 @@ export const Header: React.FC<HeaderProps> = ({
                           type="button"
                           onClick={() => {
                             selectProject(project.id);
-                            setActiveTab('requirements');
+                            setActiveTab('projects');
                             setSearchOpen(false);
                             setQuery('');
                           }}
@@ -251,23 +248,17 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             ) : (
               <>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('projects')}
-                  className="v-btn v-btn-primary h-9 px-3.5 text-[12.5px] hidden sm:inline-flex"
-                >
-                  <Plus className="w-4 h-4" /> Create
-                </button>
-
-                <button
-                  type="button"
-                  onClick={onOpenAssistant}
-                  className="v-btn v-btn-ghost h-9 px-3 text-[12.5px] text-[var(--v-violet)]"
-                  title="Ask AI for help with this prompt"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  <span className="hidden lg:inline">Ask AI</span>
-                </button>
+                {activeTab === 'new-analysis' && (
+                  <button
+                    type="button"
+                    onClick={onOpenAssistant}
+                    className="v-btn v-btn-ghost h-9 px-3 text-[12.5px] text-[var(--v-violet)]"
+                    title="Ask AI for help with this prompt"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span className="hidden lg:inline">Ask AI</span>
+                  </button>
+                )}
 
                 <NotificationsMenu
                   open={notificationsOpen}

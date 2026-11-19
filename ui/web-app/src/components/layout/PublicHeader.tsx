@@ -17,7 +17,6 @@ const LINKS: Array<{ id: ActiveTab; label: string }> = [
   { id: 'templates', label: 'Templates' },
   { id: 'pricing', label: 'Pricing' },
   { id: 'learn', label: 'Learn' },
-  { id: 'manual', label: 'Docs' },
   { id: 'contact', label: 'Contact' },
 ];
 

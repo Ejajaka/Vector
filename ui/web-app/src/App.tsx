@@ -10,7 +10,7 @@ import { PublicHeader } from './components/layout/PublicHeader.tsx';
 import { PublicFooter } from './components/layout/PublicFooter.tsx';
 import { AuthPage } from './components/auth/AuthPage.tsx';
 import { ResetPasswordPage } from './components/auth/ResetPasswordPage.tsx';
-import { ProductTour, resetTour, shouldShowTour } from './components/onboarding/ProductTour.tsx';
+import { ProductTour, resetTour } from './components/onboarding/ProductTour.tsx';
 import { OverviewPage } from './pages/OverviewPage.tsx';
 import { DashboardPage } from './pages/DashboardPage.tsx';
 import { TemplatesPage } from './pages/TemplatesPage.tsx';
@@ -83,6 +83,7 @@ function AppShell() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [analysisToInspect, setAnalysisToInspect] = useState<AnalysisResult | null>(null);
+  const [analysisPromptSeed, setAnalysisPromptSeed] = useState<string | null>(null);
   const [tourOpen, setTourOpen] = useState(false);
   const [editorTemplate, setEditorTemplate] = useState<TemplateDefinition | null>(null);
   const [editorSeed, setEditorSeed] = useState<{ name: string; pages: any[] } | null>(null);
@@ -132,7 +133,9 @@ function AppShell() {
 
   // Restore the current tab for this browser session.
   useEffect(() => {
-    let next: ActiveTab = signedIn ? 'dashboard' : 'about';
+    // Local mode has no account wall, so the first visit starts on the public
+    // product page instead of dropping straight into a busy workspace.
+    let next: ActiveTab = signedIn && configured ? 'dashboard' : 'about';
     try {
       const saved = sessionStorage.getItem(tabSessionKey(user?.id));
       if (isKnownTab(saved)) next = saved;
@@ -209,14 +212,8 @@ function AppShell() {
     };
   }, []);
 
-  // First-run product tour. Fires for signed-in users *and* for local mode,
-  // where there is no Supabase user but there is still a workspace.
-  useEffect(() => {
-    if (!signedIn) return;
-    if (!shouldShowTour()) return;
-    const timer = window.setTimeout(() => setTourOpen(true), 700);
-    return () => window.clearTimeout(timer);
-  }, [signedIn]);
+  // The tour is opt-in from Learn or the profile menu. Auto-opening it on the
+  // first visit covered the workspace before people knew what it was for.
 
   useEffect(() => {
     if (user && pendingTab) {
@@ -249,24 +246,22 @@ function AppShell() {
       selectProject(item.projectId);
     }
     setAnalysisToInspect(item);
+    setAnalysisPromptSeed(null);
     setActiveTab('new-analysis');
   };
 
-  const handleStartNewAnalysis = () => {
+  const handleStartNewAnalysis = (prompt?: string) => {
     if (publicMode) {
       requestAuth('new-analysis');
       return;
     }
     setAnalysisToInspect(null);
+    setAnalysisPromptSeed(prompt?.trim() || null);
     setActiveTab('new-analysis');
   };
 
   const handleStartRequirementWorkflow = () => {
-    if (publicMode) {
-      requestAuth('requirements');
-      return;
-    }
-    setActiveTab('requirements');
+    handleStartNewAnalysis();
   };
 
   const requestAuth = (target?: ActiveTab) => {
@@ -276,7 +271,7 @@ function AppShell() {
 
   const handleRequestSignIn = () => {
     if (!configured) {
-      setActiveTab('overview');
+      setActiveTab('new-analysis');
       return;
     }
     requestAuth();
@@ -426,6 +421,7 @@ function AppShell() {
               onStartNewAnalysis={handleStartNewAnalysis}
               onStartTour={handleReplayTour}
               onOpenProject={(id, name) => openProjectWorkspace(id, name)}
+              onOpenAnalysis={handleOpenAnalysis}
             />
           )}
 
@@ -508,6 +504,7 @@ function AppShell() {
           {activeTab === 'new-analysis' && (
             <NewAnalysisPage
               initialResult={analysisToInspect}
+              initialPrompt={analysisPromptSeed}
               onClearInitialResult={() => setAnalysisToInspect(null)}
               onViewHistory={() => setActiveTab('history')}
               onOpenProjects={() => setActiveTab('projects')}
