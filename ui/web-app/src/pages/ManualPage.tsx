@@ -153,7 +153,7 @@ const SECTIONS: ManualSection[] = [
       'Read the risk index, completeness and per-element suggestions.',
       'Reopen any saved analysis from History.',
     ],
-    tip: 'Completed analyses are saved only to the selected project.',
+    tip: 'Completed analyses are stored in this browser, scoped to the selected project.',
   },
   {
     id: 'history',
