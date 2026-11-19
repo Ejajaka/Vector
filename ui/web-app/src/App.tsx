@@ -28,7 +28,7 @@ import { ManualPage } from './pages/ManualPage.tsx';
 import { TermsPage } from './pages/TermsPage.tsx';
 import { ContactPage } from './pages/ContactPage.tsx';
 import { LibraryPage } from './pages/LibraryPage.tsx';
-import { ProjectWorkspacePage } from './pages/ProjectWorkspacePage.tsx';
+import { PromptModePage } from './pages/PromptModePage.tsx';
 import { TemplatePickerModal } from './components/projects/TemplatePickerModal.tsx';
 import { starterPages } from './data/projectTypes.ts';
 import { EditorPage } from './pages/EditorPage.tsx';
@@ -471,15 +471,11 @@ function AppShell() {
           )}
 
           {activeTab === 'project' && activeProject && (
-            <ProjectWorkspacePage
-              project={activeProject}
+            <PromptModePage
+              projectName={activeProject.name}
               onBack={() => setActiveTab('projects')}
               onOpenCanvas={() => enterProjectCanvas({ fresh: false })}
-              onBlankCanvas={() => enterProjectCanvas({ fresh: true })}
-              onOptimizePrompt={() => setActiveTab('new-analysis')}
-              onOpenDesignSystem={() => setActiveTab('design')}
               onGenerate={() => enterProjectCanvas({ fresh: false })}
-              onDeploy={() => setActiveTab('integrations')}
             />
           )}
 

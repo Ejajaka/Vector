@@ -1,0 +1,22 @@
+{
+  "name": "Vector — UI prompt engineering",
+  "short_name": "Vector",
+  "description": "Review, complete and validate UI prompts before you generate. Works offline for the rules engine.",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F6F4EC",
+  "theme_color": "#2D5D4F",
+  "categories": ["developer", "productivity", "design"],
+  "icons": [
+    { "src": "/favicon-32.png", "sizes": "32x32", "type": "image/png" },
+    { "src": "/favicon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/favicon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Dashboard", "url": "/?tab=dashboard" },
+    { "name": "Templates", "url": "/?tab=templates" },
+    { "name": "New analysis", "url": "/?tab=new-analysis" }
+  ]
+}
