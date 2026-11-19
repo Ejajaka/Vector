@@ -6,7 +6,11 @@ import { REQUIRED_ATTRS, type CompiledElement } from '../../services/promptCompi
 interface Props {
   elements: CompiledElement[];
   dark?: boolean;
-  /** Shown when there is nothing to draw yet. */
+  /** Board size in layout coordinates. */
+  width?: number;
+  height?: number;
+  /** Maximum rendered width in the panel. */
+  maxWidth?: number;
   empty?: React.ReactNode;
 }
 
@@ -17,8 +21,13 @@ const SAMPLE: Record<string, string> = {
   text: 'Supporting copy that explains the value in one or two lines.',
   button: 'Button',
   input: 'Field',
+  link: 'Learn more',
   card: 'Card title',
   image: 'Image',
+  avatar: 'User',
+  badge: 'New',
+  tabs: 'Overview',
+  progress: 'Progress',
   table: 'Table',
   chart: 'Chart',
   modal: 'Dialog',
@@ -33,6 +42,9 @@ function styleFor(element: CompiledElement): StyleKey {
     case 'heading': return element.h >= 64 ? 'text-display' : 'text-h2';
     case 'text': return 'text-body';
     case 'button': return 'btn-solid';
+    case 'link': return 'btn-ghost';
+    case 'badge': return 'badge-soft';
+    case 'avatar': return 'avatar-initials';
     case 'input': return 'input-labelled';
     case 'card': return 'card-media';
     case 'image': return 'image-rounded';
@@ -56,37 +68,90 @@ const CheckboxRow: React.FC<{ element: CompiledElement; dark: boolean }> = ({ el
   </div>
 );
 
+const TabsRow: React.FC<{ element: CompiledElement; dark: boolean }> = ({ element, dark }) => {
+  const labels = element.label
+    ? element.label.split(/[,/|]|\band\b/i).map((part) => part.trim()).filter(Boolean).slice(0, 4)
+    : ['Overview', 'Activity', 'Settings'];
+  return (
+    <div
+      className="flex h-full w-full items-center gap-1 rounded-[10px] p-1"
+      style={{ background: dark ? '#151923' : '#F1EFF8' }}
+    >
+      {labels.map((label, index) => (
+        <span
+          key={label}
+          className="flex-1 truncate rounded-[7px] px-2 text-center text-[12px] font-semibold"
+          style={{
+            lineHeight: '30px',
+            background: index === 0 ? (dark ? '#262B38' : '#FFFFFF') : 'transparent',
+            color: index === 0 ? (dark ? '#FFFFFF' : '#0B0E14') : '#8A8F98',
+            boxShadow: index === 0 ? '0 1px 3px rgba(11,14,20,.08)' : undefined,
+          }}
+        >
+          {label}
+        </span>
+      ))}
+    </div>
+  );
+};
+
+const ProgressRow: React.FC<{ element: CompiledElement; dark: boolean }> = ({ element, dark }) => (
+  <div className="flex h-full w-full flex-col justify-center gap-1.5">
+    <span className="text-[11px] font-semibold" style={{ color: dark ? '#F5F5F7' : '#0B0E14' }}>
+      {element.label || SAMPLE.progress}
+    </span>
+    <span
+      className="block h-2 w-full overflow-hidden rounded-full"
+      style={{ background: dark ? '#262B38' : '#EFEDF6' }}
+    >
+      <span
+        className="block h-full rounded-full"
+        style={{ width: '62%', background: element.colour || '#7C5CFF' }}
+      />
+    </span>
+  </div>
+);
+
 /**
- * Draws the compiler's 1200×800 board with the editor's real component
- * renderer, then scales the whole board to fit the panel. Same coordinates,
- * same components — so a button looks like a button.
+ * Draws the compiler's board with the editor's real component renderer, then
+ * scales the whole board to fit the panel. Same coordinates, same components —
+ * so a button looks like a button.
  */
-export const WireframePreview: React.FC<Props> = ({ elements, dark = false, empty }) => {
+export const WireframePreview: React.FC<Props> = ({
+  elements,
+  dark = false,
+  width = 1200,
+  height = 800,
+  maxWidth,
+  empty,
+}) => {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0);
 
   useEffect(() => {
     const node = wrapRef.current;
     if (!node) return;
-    const measure = () => setScale(node.clientWidth / 1200);
+    const measure = () => setScale(node.clientWidth / width);
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(node);
     return () => observer.disconnect();
-  }, []);
+  }, [width]);
 
   return (
     <div
       ref={wrapRef}
-      className="relative aspect-[3/2] w-full overflow-hidden rounded-lg shadow-sm"
-      style={{ background: dark ? '#0B0E14' : '#FFFFFF' }}
+      className="relative mx-auto w-full overflow-hidden rounded-lg shadow-sm"
+      style={{
+        aspectRatio: `${width} / ${height}`,
+        maxWidth: maxWidth ?? (width < 900 ? 240 : 560),
+        background: dark ? '#0B0E14' : '#FFFFFF',
+      }}
     >
       {elements.length === 0 ? (
         <div className="absolute inset-0 grid place-items-center p-4 text-center">
           {empty || (
-            <p className="text-[11px] text-[#8A8F98]">
-              Analyse a prompt and the layout appears here.
-            </p>
+            <p className="text-[11px] text-[#8A8F98]">Analyse a prompt and the layout appears here.</p>
           )}
         </div>
       ) : (
@@ -95,8 +160,8 @@ export const WireframePreview: React.FC<Props> = ({ elements, dark = false, empt
             position: 'absolute',
             top: 0,
             left: 0,
-            width: 1200,
-            height: 800,
+            width,
+            height,
             transform: `scale(${scale || 1})`,
             transformOrigin: 'top left',
             opacity: scale ? 1 : 0,
@@ -126,11 +191,17 @@ export const WireframePreview: React.FC<Props> = ({ elements, dark = false, empt
               >
                 {element.kind === 'checkbox' ? (
                   <CheckboxRow element={element} dark={dark} />
+                ) : element.kind === 'tabs' ? (
+                  <TabsRow element={element} dark={dark} />
+                ) : element.kind === 'progress' ? (
+                  <ProgressRow element={element} dark={dark} />
                 ) : (
                   <StyledElement
                     style={styleFor(element)}
                     label={element.label || SAMPLE[element.kind] || ''}
                     color={textColour}
+                    radius={element.radius}
+                    fontFamily={element.fontFamily}
                   />
                 )}
 
