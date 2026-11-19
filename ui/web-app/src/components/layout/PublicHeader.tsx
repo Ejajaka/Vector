@@ -47,9 +47,9 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ activeTab, onNavigat
 
   return (
     <header
-      className={`sticky top-0 z-50 border-b transition-colors duration-300 ${
+      className={`sticky top-0 z-50 border-b transition-colors duration-200 ${
         scrolled
-          ? 'border-[var(--v-line)] bg-[var(--v-bg)]/85 backdrop-blur-xl'
+          ? 'border-[var(--v-line)] bg-[var(--v-bg)]'
           : 'border-transparent bg-transparent'
       }`}
     >

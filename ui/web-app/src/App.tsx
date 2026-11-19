@@ -158,6 +158,12 @@ function AppShell() {
     }
   }, [activeTab, user?.id, tabHydrated, signedIn]);
 
+  // Each page starts at the top. Without this, switching tabs could leave the
+  // user halfway down the previous page and make the new page look "stuck".
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [activeTab]);
+
   // Guests cannot open authenticated areas.
   useEffect(() => {
     if (!signedIn && !PUBLIC_TABS.includes(activeTab)) setActiveTab('about');
