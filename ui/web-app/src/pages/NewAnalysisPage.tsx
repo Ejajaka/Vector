@@ -564,7 +564,8 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
           <Loader2 className="w-7 h-7 text-[#49686C] animate-spin mx-auto mb-3" />
           <div className="text-sm font-bold text-[#283638]">Preparing your analyzer…</div>
           <p className="text-xs text-[#737A72] mt-1 max-w-md mx-auto">
-            This only takes a few seconds and is cached for next time.
+            The first visit downloads the local runtime and BERT model (about 80 MB). It is cached afterwards,
+            so later analyses are much faster.
           </p>
         </div>
       )}
