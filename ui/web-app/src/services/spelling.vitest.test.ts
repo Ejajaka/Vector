@@ -26,7 +26,7 @@ describe('spelling', () => {
 
   it('does not flag valid product vocabulary or British spellings', () => {
     const text =
-      'The navbar, dropdown and checkbox use the colour palette while the centre panel keeps its behaviour.';
+      'The responsive profile screen must be usable on mobile; the navbar, dropdown and checkbox use the colour palette while the centre panel keeps its behaviour.';
     expect(findSpellingIssues(text)).toEqual([]);
   });
 

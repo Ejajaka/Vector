@@ -499,7 +499,7 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
             </span>
           </div>
           <p className="text-xs sm:text-sm text-[#737A72]">
-            Review your interface request for missing labels, colors, placement and actions. Evaluations are saved to {currentProject ? <b>{currentProject.name}</b> : 'the selected project'} only.
+            Review your interface request for missing labels, colors, placement and actions. Evaluations are saved in this browser for {currentProject ? <b>{currentProject.name}</b> : 'the selected project'} only.
           </p>
         </div>
         <div className="flex items-center gap-2 self-start sm:self-auto">
@@ -554,7 +554,7 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
               <option key={project.id} value={project.id}>{project.name}</option>
             ))}
           </select>
-          <span className="text-[#737A72]">· history stays scoped to this project</span>
+          <span className="text-[#737A72]">· history stays in this browser</span>
         </div>
       )}
 
@@ -634,7 +634,7 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
             <div className="flex items-center gap-2 text-xs text-[#737A72]">
               <Sparkles className="w-4 h-4 text-[#D1B653] shrink-0" />
               <span>
-                Your prompt is reviewed in this browser and saved only to the selected project.
+                Your prompt is reviewed in this browser and saved locally for the selected project.
               </span>
             </div>
             <div className="flex items-center gap-2.5 self-end sm:self-auto">

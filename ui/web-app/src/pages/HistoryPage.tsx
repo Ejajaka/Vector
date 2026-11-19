@@ -78,7 +78,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
             Analysis History
           </h1>
           <p className="text-xs sm:text-sm text-[#737A72]">
-            Review, reopen, and manage previous UI prompt evaluations.
+            Review, reopen, and manage previous UI prompt evaluations stored in this browser.
           </p>
         </div>
 
@@ -109,11 +109,11 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <select
             value={currentProject?.id || ''}
             onChange={(event) => selectProject(event.target.value)}
-            className="py-2 px-3 text-xs bg-[#FAFAF8] border border-[#E5E2D8] rounded-lg text-[#283638] focus:outline-none focus:border-[#49686C] max-w-[180px]"
+            className="py-2 px-3 text-xs bg-[#FAFAF8] border border-[#E5E2D8] rounded-lg text-[#283638] focus:outline-none focus:border-[#49686C] max-w-[180px] min-w-0"
             aria-label="Project to view history for"
           >
             {!currentProject && <option value="">Select project</option>}

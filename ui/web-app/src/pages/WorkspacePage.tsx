@@ -57,6 +57,7 @@ export const WorkspacePage: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
   const [rightTab, setRightTab] = useState<'builder' | 'live'>('builder');
+  const [builderLoaded, setBuilderLoaded] = useState(false);
 
   const load = useCallback(async () => {
     if (!currentProject || localMode) {
@@ -332,12 +333,43 @@ export const WorkspacePage: React.FC = () => {
                     Open Base44
                   </button>
                 </div>
-                <iframe
-                  src="https://app.base44.com"
-                  title="Base44 app builder"
-                  className="flex-1 w-full min-h-[600px] bg-white"
-                  allow="clipboard-read; clipboard-write; fullscreen; popups"
-                />
+                {builderLoaded ? (
+                  <iframe
+                    src="https://app.base44.com"
+                    title="Base44 app builder"
+                    className="flex-1 w-full min-h-[600px] bg-white"
+                    allow="clipboard-read; clipboard-write; fullscreen; popups"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="flex-1 flex items-center justify-center p-6 bg-[#F6F4EC]">
+                    <div className="max-w-md w-full bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl p-6 text-center">
+                      <Monitor className="w-8 h-8 text-[#49686C] mx-auto mb-3" />
+                      <h2 className="text-sm font-bold text-[#283638]">Open the Base44 builder</h2>
+                      <p className="text-xs text-[#737A72] mt-2 leading-relaxed">
+                        Base44 is a separate service. Loading it here embeds its sign-in page; you can also open it
+                        in a new tab. Nothing is sent to Base44 until you load or open the builder.
+                      </p>
+                      <div className="flex flex-wrap justify-center gap-2 mt-4">
+                        <button
+                          type="button"
+                          onClick={() => setBuilderLoaded(true)}
+                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#49686C] text-white text-xs font-bold hover:bg-[#30494B]"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" /> Load Base44 here
+                        </button>
+                        <a
+                          href="https://app.base44.com"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#E5E2D8] bg-white text-xs font-bold text-[#49686C] hover:bg-[#FAFAF8]"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" /> Open in new tab
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <>
@@ -385,7 +417,9 @@ export const WorkspacePage: React.FC = () => {
       </div>
 
       <div className="text-[10px] text-[#737A72] leading-relaxed">
-        The Base44 builder is embedded from app.base44.com. If sign-in or framing is blocked, open it in a new tab. Building and publishing happen in Base44; Vector previews the published app when the host allows it.
+        Base44 is loaded only when you choose “Load Base44 here”; if sign-in or framing is blocked, open it in
+        a new tab. Building and publishing happen in Base44; Vector previews the published app when the host
+        allows it.
       </div>
     </div>
   );
