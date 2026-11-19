@@ -29,8 +29,11 @@ import { TermsPage } from './pages/TermsPage.tsx';
 import { ContactPage } from './pages/ContactPage.tsx';
 import { LibraryPage } from './pages/LibraryPage.tsx';
 import { ProjectWorkspacePage } from './pages/ProjectWorkspacePage.tsx';
-import { TemplatePickerModal } from './components/projects/TemplatePickerModal.tsx';
-import { starterPages } from './data/projectTypes.ts';
+import { RequirementsPage } from './pages/RequirementsPage.tsx';
+import { RequirementGraphPage } from './pages/RequirementGraphPage.tsx';
+import { RequirementReviewPage } from './pages/RequirementReviewPage.tsx';
+import { PromptStudioPage } from './pages/PromptStudioPage.tsx';
+import { WorkspacePage } from './pages/WorkspacePage.tsx';
 import { EditorPage } from './pages/EditorPage.tsx';
 import { AssistantPanel } from './components/ai/AssistantPanel.tsx';
 import { getAdvisorContext, setAdvisorContext } from './services/aiAdvisor.ts';
@@ -49,6 +52,11 @@ const KNOWN_TABS: ActiveTab[] = [
   'dashboard',
   'projects',
   'project',
+  'requirements',
+  'intelligence',
+  'review',
+  'prompt',
+  'workspace',
   'templates',
   'library',
   'learn',
@@ -90,7 +98,6 @@ function AppShell() {
   const [editorOrigin, setEditorOrigin] = useState<ActiveTab>('templates');
   const [editorProject, setEditorProject] = useState<{ id: string; name: string; type?: string } | null>(null);
   const [editorFresh, setEditorFresh] = useState(false);
-  const [pendingProject, setPendingProject] = useState<{ id: string; name: string; description?: string } | null>(null);
   const [activeProject, setActiveProject] = useState<{ id: string; name: string; description?: string } | null>(null);
 
   const openProjectWorkspace = (id: string, name: string, description?: string) => {
@@ -477,8 +484,12 @@ function AppShell() {
               onBlankCanvas={() => enterProjectCanvas({ fresh: true })}
               onOptimizePrompt={() => setActiveTab('new-analysis')}
               onOpenDesignSystem={() => setActiveTab('design')}
-              onGenerate={() => enterProjectCanvas({ fresh: false })}
               onDeploy={() => setActiveTab('integrations')}
+              onOpenRequirements={() => setActiveTab('requirements')}
+              onOpenIntelligence={() => setActiveTab('intelligence')}
+              onOpenReview={() => setActiveTab('review')}
+              onOpenPromptStudio={() => setActiveTab('prompt')}
+              onOpenWorkspace={() => setActiveTab('workspace')}
             />
           )}
 
@@ -488,7 +499,10 @@ function AppShell() {
               onOpenSettings={() => setActiveTab('settings')}
               onBrowseTemplates={() => setActiveTab('templates')}
               onOpenIntegrations={() => setActiveTab('integrations')}
-              onCreated={(created) => setPendingProject({ id: created.id, name: created.name, description: created.description })}
+              onCreated={(created) => {
+                setActiveProject({ id: created.id, name: created.name, description: created.description });
+                setActiveTab('project');
+              }}
               onOpenEditor={() => {
                 setEditorTemplate(null);
                 setEditorProject(null);
@@ -504,6 +518,12 @@ function AppShell() {
               }}
             />
           )}
+          {activeTab === 'requirements' && <RequirementsPage />}
+          {activeTab === 'intelligence' && <RequirementGraphPage />}
+          {activeTab === 'review' && <RequirementReviewPage />}
+          {activeTab === 'prompt' && <PromptStudioPage />}
+          {activeTab === 'workspace' && <WorkspacePage />}
+
           {activeTab === 'new-analysis' && (
             <NewAnalysisPage
               initialResult={analysisToInspect}
@@ -540,32 +560,6 @@ function AppShell() {
         )}
       </div>
 
-      <TemplatePickerModal
-        open={!!pendingProject}
-        projectName={pendingProject?.name || ''}
-        onPick={(typeId) => {
-          if (!pendingProject) return;
-          setEditorProject({ id: pendingProject.id, name: pendingProject.name, type: typeId });
-          setEditorOrigin('project');
-          setEditorTemplate(null);
-          setEditorSeed({ name: pendingProject.name, pages: starterPages(typeId) });
-          setEditorFresh(true);
-          setPendingProject(null);
-          setActiveTab('editor');
-        }}
-        onSkip={() => {
-          if (!pendingProject) return;
-          setActiveProject(pendingProject);
-          setPendingProject(null);
-          setActiveTab('project');
-        }}
-        onClose={() => {
-          if (!pendingProject) return;
-          setActiveProject(pendingProject);
-          setPendingProject(null);
-          setActiveTab('project');
-        }}
-      />
       <ProductTour open={tourOpen} onClose={() => setTourOpen(false)} />
       <AssistantPanel
         open={assistantOpen}

@@ -9,6 +9,8 @@ import {
   AlertTriangle,
   Copy,
   Check,
+  FolderKanban,
+  Save,
   Sparkles,
   Loader2,
 } from 'lucide-react';
@@ -294,6 +296,8 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
   const [round, setRound] = useState(1);
   const [copied, setCopied] = useState(false);
   const [analysisError, setAnalysisError] = useState('');
+  const [saveTarget, setSaveTarget] = useState('');
+  const [savedTarget, setSavedTarget] = useState<string | null>(null);
   const [stage, setStage] = useState<'idle' | 'routing' | 'detecting' | 'clarify' | 'explaining'>('idle');
   const [plan, setPlan] = useState<DetectionPlan | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -419,6 +423,16 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
       setAnalyzing(false);
       setStage('idle');
     }
+  };
+
+  const saveToProject = (projectId: string) => {
+    if (!payload || !projectId) return;
+    historyStorage.save({
+      ...toHistoryResult(text.trim(), payload),
+      id: `pl-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      projectId,
+    });
+    setSavedTarget(projectId);
   };
 
   const handleCopy = async () => {
@@ -741,6 +755,44 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
             </div>
             {!payload.needs_clarification && (
               <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+                {!currentProject && !payload.needs_clarification && (
+                  projects.length > 0 ? (
+                    <div className="flex items-center gap-1.5">
+                      <select
+                        value={saveTarget}
+                        onChange={(event) => {
+                          setSaveTarget(event.target.value);
+                          setSavedTarget(null);
+                        }}
+                        className="h-8 rounded-lg border border-[#E5E2D8] bg-white px-2 text-[11px] font-semibold text-[#283638] focus:outline-none focus:border-[#49686C]"
+                        aria-label="Project to save this analysis to"
+                      >
+                        <option value="">Save to project…</option>
+                        {projects.map((project) => (
+                          <option key={project.id} value={project.id}>{project.name}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        disabled={!saveTarget || !!savedTarget}
+                        onClick={() => saveToProject(saveTarget)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#CFE2C8] bg-[#F4F9F1] text-xs font-semibold text-[#3E6B33] transition-colors disabled:opacity-60"
+                      >
+                        {savedTarget ? <Check className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
+                        <span>{savedTarget ? 'Saved' : 'Save'}</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={onOpenProjects}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E5E2D8] bg-white hover:bg-[#F6F4EC] text-xs font-semibold text-[#283638] transition-colors"
+                    >
+                      <FolderKanban className="w-3.5 h-3.5 text-[#49686C]" />
+                      <span>Create project</span>
+                    </button>
+                  )
+                )}
                 <button
                   type="button"
                   onClick={() => downloadReport('markdown')}

@@ -3,6 +3,7 @@ import {
   Bell,
   Blocks,
   ChevronRight,
+  ClipboardCheck,
   Compass,
   Ellipsis,
   FileText,
@@ -13,6 +14,7 @@ import {
   LayoutTemplate,
   LogIn,
   Monitor,
+  Network,
   Palette,
   Plug,
   Settings,
@@ -52,6 +54,11 @@ const PRIMARY: RailItem[] = [
 ];
 
 const BUILD: RailItem[] = [
+  { id: 'requirements', label: 'Requirements', icon: FileText },
+  { id: 'intelligence', label: 'Requirement graph', icon: Network },
+  { id: 'review', label: 'Review & acceptance', icon: ClipboardCheck },
+  { id: 'prompt', label: 'Prompt studio', icon: Sparkles },
+  { id: 'workspace', label: 'Build workspace', icon: Monitor },
   { id: 'design', label: 'Design systems', icon: Palette },
   { id: 'new-analysis', label: 'Prompt analyser', icon: Sparkles },
 ];
@@ -240,7 +247,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               {moreOpen && (
                 <div className="absolute left-[64px] top-0 w-[248px] v-card p-2 shadow-[var(--v-shadow-lg)] z-50 max-h-[70vh] overflow-y-auto v-scroll">
-                  <p className="px-2 py-1.5 v-eyebrow">Build</p>
+                  <p className="px-2 py-1.5 v-eyebrow">Project workflow</p>
                   {BUILD.map((item) => {
                     const Icon = item.icon;
                     return (
@@ -348,7 +355,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             })}
           </div>
 
-          <p className="v-eyebrow px-1 mb-1.5">Build</p>
+          <p className="v-eyebrow px-1 mb-1.5">Project workflow</p>
           <div className="space-y-0.5 mb-3">
             {BUILD.map((item) => {
               const Icon = item.icon;
