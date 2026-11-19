@@ -133,9 +133,7 @@ function AppShell() {
 
   // Restore the current tab for this browser session.
   useEffect(() => {
-    // Local mode has no account wall, so the first visit starts on the public
-    // product page instead of dropping straight into a busy workspace.
-    let next: ActiveTab = signedIn && configured ? 'dashboard' : 'about';
+    let next: ActiveTab = signedIn ? 'dashboard' : 'about';
     try {
       const saved = sessionStorage.getItem(tabSessionKey(user?.id));
       if (isKnownTab(saved)) next = saved;
@@ -427,7 +425,6 @@ function AppShell() {
               onStartNewAnalysis={handleStartNewAnalysis}
               onStartTour={handleReplayTour}
               onOpenProject={(id, name) => openProjectWorkspace(id, name)}
-              onOpenAnalysis={handleOpenAnalysis}
             />
           )}
 

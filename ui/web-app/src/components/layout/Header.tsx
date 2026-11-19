@@ -10,6 +10,7 @@ import {
   Menu,
   Moon,
   Plug,
+  Plus,
   Search,
   Settings,
   Sparkles,
@@ -248,17 +249,23 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             ) : (
               <>
-                {activeTab === 'new-analysis' && (
-                  <button
-                    type="button"
-                    onClick={onOpenAssistant}
-                    className="v-btn v-btn-ghost h-9 px-3 text-[12.5px] text-[var(--v-violet)]"
-                    title="Ask AI for help with this prompt"
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    <span className="hidden lg:inline">Ask AI</span>
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('projects')}
+                  className="v-btn v-btn-primary h-9 px-3.5 text-[12.5px] hidden sm:inline-flex"
+                >
+                  <Plus className="w-4 h-4" /> Create
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onOpenAssistant}
+                  className="v-btn v-btn-ghost h-9 px-3 text-[12.5px] text-[var(--v-violet)]"
+                  title="Ask AI for help with this prompt"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span className="hidden lg:inline">Ask AI</span>
+                </button>
 
                 <NotificationsMenu
                   open={notificationsOpen}

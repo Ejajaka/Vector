@@ -1,202 +1,203 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ArrowUpRight,
   Clock3,
-  FolderKanban,
-  History,
+  Compass,
+  GraduationCap,
   LayoutTemplate,
   Plus,
+  Search,
   Sparkles,
+  Wand2,
 } from 'lucide-react';
-import type { ActiveTab, AnalysisResult } from '../types/analysis.ts';
+import type { ActiveTab } from '../types/analysis.ts';
 import { useProject } from '../context/ProjectContext.tsx';
-import { TEMPLATES } from '../data/templates.ts';
+import { useAuth } from '../context/AuthContext.tsx';
+import { TEMPLATE_CATEGORIES, TEMPLATES } from '../data/templates.ts';
 import { TemplateArt } from '../components/templates/TemplateArt.tsx';
-import { historyStorage } from '../services/historyStorage.ts';
-import { TRIAL_PROJECTS, isPaid, readEntitlements, trialRemaining } from '../services/entitlements.ts';
+import { FeatureSpotlight } from '../components/onboarding/FeatureSpotlight.tsx';
+import {
+  TRIAL_PROJECTS,
+  isPaid,
+  planFor,
+  readEntitlements,
+  trialRemaining,
+  type EntitlementState,
+} from '../services/entitlements.ts';
 
 interface DashboardPageProps {
   onNavigate: (tab: ActiveTab) => void;
-  onStartNewAnalysis: (prompt?: string) => void;
+  onStartNewAnalysis: () => void;
   onStartTour?: () => void;
   onOpenProject?: (id: string, name: string) => void;
-  onOpenAnalysis?: (item: AnalysisResult) => void;
 }
 
-const EXAMPLES = [
-  'Add a red button at the top right labelled "Sign Up".',
-  'Build a pricing page with three plans and a monthly toggle.',
-  'Create a login form and a forgot-password link.',
-];
+const CATEGORY_STYLES: Record<string, { from: string; to: string }> = {
+  All: { from: '#0FA3A3', to: '#4F7DF3' },
+  Dashboard: { from: '#4F7DF3', to: '#8B5CF6' },
+  Marketing: { from: '#FF6B8A', to: '#FF8A6B' },
+  Commerce: { from: '#FFC53D', to: '#FF8A6B' },
+  Auth: { from: '#8B5CF6', to: '#4F7DF3' },
+  Mobile: { from: '#0FA3A3', to: '#22C1A6' },
+  Data: { from: '#4F7DF3', to: '#0FA3A3' },
+  Collaboration: { from: '#FF8A6B', to: '#FF6B8A' },
+};
 
-export const DashboardPage: React.FC<DashboardPageProps> = ({
-  onNavigate,
-  onStartNewAnalysis,
-  onOpenProject,
-  onOpenAnalysis,
-}) => {
-  const { projects, currentProject } = useProject();
-  const [prompt, setPrompt] = useState('');
-  const entitlements = readEntitlements();
-  const remaining = trialRemaining(entitlements);
-  const paid = isPaid(entitlements);
+function firstName(input: string): string {
+  return input.replace(/@.*/, '').trim().split(/\s+/)[0] || 'there';
+}
 
-  const recentProjects = projects.slice(0, 4);
-  const recentAnalyses = historyStorage
-    .filterAndSort({ projectId: currentProject?.id, sortBy: 'date_desc' })
-    .slice(0, 4);
-  const templates = TEMPLATES.slice(0, 4);
+export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onStartNewAnalysis, onStartTour, onOpenProject }) => {
+  const { projects, selectProject } = useProject();
+  const { user } = useAuth();
+  const [state, setState] = useState<EntitlementState>(readEntitlements());
+  const [query, setQuery] = useState('');
 
-  const submit = (event: React.FormEvent) => {
+  useEffect(() => {
+    const sync = () => setState(readEntitlements());
+    window.addEventListener('vector:entitlements', sync);
+    return () => window.removeEventListener('vector:entitlements', sync);
+  }, []);
+
+  const plan = planFor(state.plan);
+  const paid = isPaid(state);
+  const remaining = trialRemaining(state);
+  const used = Math.min(TRIAL_PROJECTS, state.projectsCreated);
+
+  const name =
+    (user?.user_metadata?.display_name as string | undefined) ||
+    (user?.user_metadata?.full_name as string | undefined) ||
+    user?.email ||
+    'there';
+
+  const recent = projects.slice(0, 4);
+  const explore = TEMPLATES.slice(0, 5);
+
+  const search = (event: React.FormEvent) => {
     event.preventDefault();
-    onStartNewAnalysis(prompt.trim());
+    if (!query.trim()) {
+      onNavigate('templates');
+      return;
+    }
+    const match = TEMPLATES.find(
+      (template) =>
+        template.name.toLowerCase().includes(query.toLowerCase()) ||
+        template.tags.some((tag) => tag.includes(query.toLowerCase()))
+    );
+    onNavigate(match ? 'templates' : 'projects');
   };
 
   return (
-    <div className="space-y-6 v-fade-up">
-      <section className="v-mesh v-noise rounded-3xl px-5 py-8 text-white sm:px-8 sm:py-10 lg:px-10">
-        <div className="relative z-10 mx-auto max-w-3xl text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold">
-            <Sparkles className="h-3 w-3 text-[#FFD98A]" />
-            Prompt completeness check
-          </span>
-          <h1 className="v-display mt-4 text-[30px] leading-tight sm:text-[38px]">
-            Find the gaps before you <span className="italic text-[#FFD98A]">generate</span>.
+    <div className="space-y-5 v-fade-up relative">
+      {onStartTour && <FeatureSpotlight onStartTour={onStartTour} />}
+      {/* Hero */}
+      <section className="v-mesh v-noise rounded-3xl px-5 sm:px-8 lg:px-10 py-7 sm:py-9 text-white">
+        <div className="relative z-10 flex flex-col items-center text-center">
+          <div className="inline-flex items-center gap-1 p-1 rounded-full bg-white/12 border border-white/20 backdrop-blur">
+            <button
+              type="button"
+              onClick={() => onNavigate('dashboard')}
+              className="px-4 py-1.5 rounded-full bg-white text-[#14121F] text-[12px] font-bold"
+            >
+              Home
+            </button>
+            <button
+              type="button"
+              onClick={() => onNavigate('templates')}
+              className="px-4 py-1.5 rounded-full text-white/85 text-[12px] font-semibold hover:text-white transition-colors"
+            >
+              Templates
+            </button>
+          </div>
+
+          <h1 className="v-display mt-4 text-[28px] sm:text-[34px] lg:text-[40px] max-w-[18ch]">
+            What will you <span className="italic text-[#FFD98A]">build</span> today?
           </h1>
-          <p className="mx-auto mt-2 max-w-xl text-[12.5px] leading-relaxed text-white/75 sm:text-[13.5px]">
-            Paste a UI prompt. Vector detects each element, points out what is missing or vague,
-            and gives you a clearer prompt to use instead.
+          <p className="mt-2 text-[12px] sm:text-[13px] text-white/75 max-w-md">
+            Turn one vague sentence into a complete, scored prompt — with every label, action, colour and placement resolved before you generate.
           </p>
 
-          <form onSubmit={submit} className="mx-auto mt-6 w-full max-w-2xl">
-            <div className="rounded-2xl bg-white p-2 shadow-[0_24px_60px_-28px_rgba(0,0,0,.7)]">
-              <textarea
-                value={prompt}
-                onChange={(event) => setPrompt(event.target.value)}
-                rows={3}
-                placeholder='e.g. Add a red button at the top right labelled "Sign Up" that opens the signup form.'
-                className="w-full resize-none bg-transparent px-3 py-2 text-[14px] leading-relaxed text-[#14121F] outline-none placeholder:text-[#8B8798]"
+          <form onSubmit={search} className="mt-5 w-full max-w-[520px]">
+            <div className="flex items-center gap-2 bg-white rounded-full p-1.5 pl-4 shadow-[0_20px_50px_-24px_rgba(0,0,0,.6)]">
+              <Search className="w-4 h-4 text-[#8B8798] shrink-0" />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search templates, elements or prompt ideas"
+                className="flex-1 min-w-0 bg-transparent outline-none text-[14px] text-[#14121F] placeholder:text-[#8B8798]"
               />
-              <div className="flex flex-col gap-2 border-t border-[#ECE9F2] px-2 pt-2 sm:flex-row sm:items-center sm:justify-between">
-                <span className="px-1 text-[10.5px] text-[#8B8798]">
-                  {currentProject ? `Saving to ${currentProject.name}` : 'Runs locally. No account needed.'}
-                </span>
-                <button type="submit" className="v-btn v-btn-primary h-10 px-5 text-[12.5px]">
-                  Analyse prompt <ArrowUpRight className="h-3.5 w-3.5" />
-                </button>
-              </div>
+              <button type="submit" className="v-btn v-btn-primary h-10 px-5 text-[12.5px] shrink-0">
+                Start <ArrowUpRight className="w-3.5 h-3.5" />
+              </button>
             </div>
           </form>
 
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-            <span className="text-[10.5px] text-white/55">Try an example:</span>
-            {EXAMPLES.map((example) => (
-              <button
-                key={example}
-                type="button"
-                onClick={() => setPrompt(example)}
-                className="max-w-[280px] truncate rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10.5px] text-white/80 transition-colors hover:bg-white/20 hover:text-white"
-                title={example}
-              >
-                {example}
-              </button>
-            ))}
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-2 text-[11.5px]">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/15">
+              <Sparkles className="w-3 h-3 text-[#FFD98A]" />
+              {paid ? `${plan.name} plan active` : `${remaining} of ${TRIAL_PROJECTS} free projects left`}
+            </span>
+            <button
+              type="button"
+              onClick={onStartNewAnalysis}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 hover:bg-white/20 transition-colors"
+            >
+              <Wand2 className="w-3 h-3" /> Score a prompt
+            </button>
           </div>
         </div>
 
-        <div className="v-orb -bottom-24 -right-10 h-[280px] w-[280px] bg-[#FFC53D]/40" aria-hidden="true" />
-        <div className="v-orb -left-16 top-0 h-[220px] w-[220px] bg-[#0FA3A3]/50" aria-hidden="true" />
+        <div className="v-orb w-[280px] h-[280px] bg-[#FFC53D]/40 -right-10 -bottom-24" aria-hidden="true" />
+        <div className="v-orb w-[220px] h-[220px] bg-[#0FA3A3]/50 -left-16 top-0" aria-hidden="true" />
       </section>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <button
-          type="button"
-          onClick={() => onStartNewAnalysis()}
-          className="v-card v-card-lift flex items-center gap-3 rounded-2xl p-4 text-left"
-        >
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl v-grad text-white">
-            <Sparkles className="h-4 w-4" />
-          </span>
-          <span className="min-w-0">
-            <span className="block text-[12.5px] font-bold text-[var(--v-ink)]">Analyse a prompt</span>
-            <span className="block text-[10.5px] text-[var(--v-muted)]">Start with one clear action</span>
-          </span>
-        </button>
-        <button
-          type="button"
-          onClick={() => onNavigate('templates')}
-          className="v-card v-card-lift flex items-center gap-3 rounded-2xl p-4 text-left"
-        >
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--v-surface-2)] text-[var(--v-violet)]">
-            <LayoutTemplate className="h-4 w-4" />
-          </span>
-          <span className="min-w-0">
-            <span className="block text-[12.5px] font-bold text-[var(--v-ink)]">Start from a template</span>
-            <span className="block text-[10.5px] text-[var(--v-muted)]">Pre-filled, editable examples</span>
-          </span>
-        </button>
-        <button
-          type="button"
-          onClick={() => onNavigate('history')}
-          className="v-card v-card-lift flex items-center gap-3 rounded-2xl p-4 text-left"
-        >
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--v-surface-2)] text-[var(--v-muted)]">
-            <History className="h-4 w-4" />
-          </span>
-          <span className="min-w-0">
-            <span className="block text-[12.5px] font-bold text-[var(--v-ink)]">Open history</span>
-            <span className="block text-[10.5px] text-[var(--v-muted)]">Return to a previous analysis</span>
-          </span>
-        </button>
-      </div>
-
-      {recentAnalyses.length > 0 && (
-        <section>
-          <div className="mb-3 flex items-end justify-between">
-            <div>
-              <p className="v-eyebrow">Recent</p>
-              <h2 className="v-display mt-0.5 text-[18px]">Your last analyses</h2>
-            </div>
-            <button
-              type="button"
-              onClick={() => onNavigate('history')}
-              className="text-[12px] font-bold text-[var(--v-violet)] hover:underline"
-            >
-              View all
-            </button>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {recentAnalyses.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => onOpenAnalysis?.(item)}
-                className="v-card v-card-lift rounded-2xl p-3.5 text-left"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--v-faint)]">
-                    {item.riskLevel} risk
-                  </span>
-                  <span className="text-[10px] font-mono font-bold text-[var(--v-ink)]">{item.riskScore}/100</span>
-                </div>
-                <p className="mt-2 line-clamp-2 min-h-[34px] text-[12px] font-semibold leading-snug text-[var(--v-ink)]">
-                  {item.prompt}
-                </p>
-                <p className="mt-2 flex items-center gap-1 text-[9.5px] text-[var(--v-faint)]">
-                  <Clock3 className="h-3 w-3" />
-                  {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Saved analysis'}
-                </p>
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
-
+      {/* Categories */}
       <section>
-        <div className="mb-3 flex items-end justify-between">
+        <div className="flex items-end justify-between mb-4">
           <div>
-            <p className="v-eyebrow">Projects</p>
-            <h2 className="v-display mt-0.5 text-[18px]">Keep work together</h2>
+            <p className="v-eyebrow">Browse by</p>
+            <h2 className="v-display text-[18px] mt-0.5">Pick a starting shape</h2>
+          </div>
+          <button
+            type="button"
+            onClick={() => onNavigate('templates')}
+            className="text-[12px] font-bold text-[var(--v-violet)] hover:underline"
+          >
+            See all templates
+          </button>
+        </div>
+
+        <div className="flex gap-4 overflow-x-auto v-scroll pb-2">
+          {TEMPLATE_CATEGORIES.filter((category) => category !== 'All').map((category) => {
+            const tone = CATEGORY_STYLES[category] || CATEGORY_STYLES.All;
+            return (
+              <button
+                key={category}
+                type="button"
+                onClick={() => onNavigate('templates')}
+                className="group flex flex-col items-center gap-2 shrink-0 w-[86px]"
+              >
+                <span
+                  className="w-[48px] h-[48px] rounded-full grid place-items-center text-white shadow-[var(--v-shadow-sm)] group-hover:scale-105 transition-transform"
+                  style={{ backgroundImage: `linear-gradient(140deg, ${tone.from}, ${tone.to})` }}
+                >
+                  <LayoutTemplate className="w-5 h-5" />
+                </span>
+                <span className="text-[11px] font-semibold text-[var(--v-muted)] group-hover:text-[var(--v-ink)] transition-colors">
+                  {category}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Continue */}
+      <section>
+        <div className="flex items-end justify-between mb-4">
+          <div>
+            <p className="v-eyebrow">Continue</p>
+            <h2 className="v-display text-[18px] mt-0.5">Pick up where you left off</h2>
           </div>
           <button
             type="button"
@@ -211,59 +212,79 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           <button
             type="button"
             onClick={() => onNavigate('projects')}
-            className="v-card v-card-lift flex min-h-[118px] flex-col items-start justify-between rounded-2xl border-dashed bg-[var(--v-surface-2)] p-3.5"
+            className="v-card v-card-lift rounded-2xl p-3.5 flex flex-col items-start justify-between min-h-[132px] border-dashed bg-[var(--v-surface-2)]"
           >
-            <span className="grid h-9 w-9 place-items-center rounded-2xl v-grad text-white">
-              <Plus className="h-4 w-4" />
+            <span className="w-10 h-10 rounded-2xl v-grad text-white grid place-items-center shadow-[0_10px_24px_-14px_rgba(79,125,243,.9)]">
+              <Plus className="w-5 h-5" />
             </span>
             <div className="text-left">
-              <p className="text-[13px] font-bold text-[var(--v-ink)]">New project</p>
-              <p className="mt-0.5 text-[10.5px] text-[var(--v-muted)]">
-                {paid ? 'Unlimited on your plan' : `${remaining} of ${TRIAL_PROJECTS} free left`}
+              <p className="text-[14px] font-bold text-[var(--v-ink)]">New project</p>
+              <p className="mt-0.5 text-[11.5px] text-[var(--v-muted)]">
+                {paid ? 'Unlimited on your plan' : `${remaining} free left`}
               </p>
             </div>
           </button>
 
-          {recentProjects.map((project) => (
+          {recent.map((project) => (
             <button
               key={project.id}
               type="button"
               onClick={() => {
                 if (onOpenProject) onOpenProject(project.id, project.name);
-                else onNavigate('projects');
+                else { selectProject(project.id); onNavigate('projects'); }
               }}
-              className="v-card v-card-lift overflow-hidden rounded-2xl text-left"
+              className="v-card v-card-lift rounded-2xl overflow-hidden text-left group"
             >
-              <div className="relative h-[62px] bg-[linear-gradient(140deg,#4F7DF3,#8B5CF6)]">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,white,transparent_45%)] opacity-25" />
-                <FolderKanban className="absolute bottom-2 left-2.5 h-4 w-4 text-white/90" />
+              <div
+                className="h-[74px] relative"
+                style={{
+                  backgroundImage: `linear-gradient(140deg, ${
+                    CATEGORY_STYLES[Object.keys(CATEGORY_STYLES)[(project.name.length % 6) + 1]]?.from || '#4F7DF3'
+                  }, ${CATEGORY_STYLES[Object.keys(CATEGORY_STYLES)[(project.name.length % 6) + 1]]?.to || '#8B5CF6'})`,
+                }}
+              >
+                <div className="absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_20%_20%,white,transparent_45%)]" />
+                <span className="absolute bottom-2 left-2.5 text-white/95 text-[18px] font-extrabold v-display">
+                  {project.name.slice(0, 2).toUpperCase()}
+                </span>
+                <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white/25 backdrop-blur grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <ArrowUpRight className="w-3.5 h-3.5 text-white" />
+                </span>
               </div>
               <div className="p-2.5">
-                <p className="truncate text-[11px] font-bold text-[var(--v-ink)]">{project.name}</p>
-                <p className="mt-0.5 flex items-center gap-1 text-[9.5px] text-[var(--v-muted)]">
-                  <Clock3 className="h-3 w-3" />
-                  {new Date(project.updatedAt).toLocaleDateString()}
+                <p className="text-[11px] font-bold text-[var(--v-ink)] truncate">{project.name}</p>
+                <p className="mt-0.5 text-[9.5px] text-[var(--v-muted)] flex items-center gap-1">
+                  <Clock3 className="w-3 h-3" />
+                  {new Date(project.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                 </p>
               </div>
             </button>
           ))}
 
-          {recentProjects.length === 0 && (
-            <div className="v-card col-span-2 flex flex-col justify-center rounded-2xl p-5 sm:col-span-2 xl:col-span-3">
-              <p className="text-[13px] font-bold text-[var(--v-ink)]">No projects yet</p>
-              <p className="mt-1 max-w-md text-[11.5px] text-[var(--v-muted)]">
-                You can analyse a prompt without one. Projects simply keep saved analyses and documents together.
+          {recent.length === 0 && (
+            <div className="col-span-2 sm:col-span-2 xl:col-span-3 v-card rounded-2xl p-5 flex flex-col justify-center">
+              <p className="text-[14px] font-bold text-[var(--v-ink)]">No projects yet</p>
+              <p className="mt-1 text-[12px] text-[var(--v-muted)] max-w-md">
+                Start from a template — it pre-fills every required attribute so your first prompt is already complete.
               </p>
+              <button
+                type="button"
+                onClick={() => onNavigate('templates')}
+                className="mt-3 self-start v-btn v-btn-dark h-9 px-4 text-[12px]"
+              >
+                Browse templates
+              </button>
             </div>
           )}
         </div>
       </section>
 
+      {/* Explore templates */}
       <section>
-        <div className="mb-3 flex items-end justify-between">
+        <div className="flex items-end justify-between mb-4">
           <div>
             <p className="v-eyebrow">Templates</p>
-            <h2 className="v-display mt-0.5 text-[18px]">Start from something real</h2>
+            <h2 className="v-display text-[18px] mt-0.5">Start from something real</h2>
           </div>
           <button
             type="button"
@@ -274,11 +295,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {templates.map((template) => (
-            <button key={template.id} type="button" onClick={() => onNavigate('templates')} className="group text-left">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+          {explore.map((template) => (
+            <button
+              key={template.id}
+              type="button"
+              onClick={() => onNavigate('templates')}
+              className="group text-left"
+            >
               <div
-                className="relative aspect-[4/3] overflow-hidden rounded-xl border border-[var(--v-line)] transition-transform duration-500 group-hover:-translate-y-0.5"
+                className="aspect-[4/3] rounded-xl overflow-hidden relative border border-[var(--v-line)] group-hover:-translate-y-0.5 transition-transform duration-500"
                 style={{ backgroundImage: `linear-gradient(160deg, ${template.palette[0]}, ${template.palette[1]})` }}
               >
                 <TemplateArt template={template} />
@@ -290,6 +316,52 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               <p className="text-[9.5px] text-[var(--v-faint)]">{template.category}</p>
             </button>
           ))}
+        </div>
+      </section>
+
+      {/* Learn strip */}
+      <section className="grid lg:grid-cols-[1.3fr_1fr] gap-4">
+        <div className="v-card rounded-[24px] p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+          <span className="w-11 h-11 rounded-2xl v-grad-warm text-white grid place-items-center shrink-0">
+            <GraduationCap className="w-5 h-5" />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13.5px] font-bold text-[var(--v-ink)]">New here? Take the 60-second tour</p>
+            <p className="mt-0.5 text-[11.5px] text-[var(--v-muted)]">
+              Five short steps covering projects, templates, the block palette and the risk score.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => onNavigate('learn')}
+            className="v-btn v-btn-ghost h-9 px-4 text-[12px] shrink-0"
+          >
+            Open Learn
+          </button>
+        </div>
+
+        <div className="v-card rounded-[24px] p-5 flex items-center gap-4">
+          <span className="w-11 h-11 rounded-2xl bg-[var(--v-surface-2)] grid place-items-center shrink-0">
+            <Compass className="w-5 h-5 text-[var(--v-muted)]" />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13.5px] font-bold text-[var(--v-ink)]">
+              {paid ? `${plan.name} plan` : `${used}/${TRIAL_PROJECTS} free projects used`}
+            </p>
+            <div className="mt-1.5 h-1.5 rounded-full bg-[var(--v-surface-2)] overflow-hidden">
+              <div
+                className="h-full rounded-full v-grad transition-all duration-500"
+                style={{ width: `${paid ? 100 : Math.max(6, (used / TRIAL_PROJECTS) * 100)}%` }}
+              />
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => onNavigate('pricing')}
+            className="v-btn v-btn-dark h-9 px-4 text-[12px] shrink-0"
+          >
+            {paid ? 'Manage' : 'Upgrade'}
+          </button>
         </div>
       </section>
     </div>
