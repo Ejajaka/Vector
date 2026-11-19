@@ -1,386 +1,438 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   ArrowRight,
-  ChevronLeft,
-  ChevronRight,
-  History,
-  Loader2,
+  Check,
+  Download,
+  Lock,
   Palette,
+  Pencil,
   Plus,
-  RotateCcw,
-  Save,
+  Sparkles,
   Trash2,
+  Upload,
+  X,
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext.tsx';
-import { useProject } from '../context/ProjectContext.tsx';
-import { useToast } from '../components/ui/Toast.tsx';
-import { ConfirmDialog } from '../components/ui/ConfirmDialog.tsx';
 import {
-  createDesignSystem,
   deleteDesignSystem,
-  listDesignSystemVersions,
+  designSystemPrompt,
+  downloadSystem,
+  getActiveId,
+  importDesignSystem,
   listDesignSystems,
-  restoreDesignSystemVersion,
-  updateDesignSystem,
-} from '../services/generation/designSystems.ts';
-import type { DesignSystemVersion } from '../services/generation/designSystems.ts';
-import type { DesignSystem, DesignTokens } from '../types/designSystem.ts';
-import { DEFAULT_DESIGN_SYSTEM } from '../types/designSystem.ts';
-import { DESIGN_PRESETS, presetTokens } from '../services/generation/designPresets.ts';
-import { ThemePreview, ThemeThumb } from '../components/ui/ThemePreview.tsx';
+  pagesFromDesignSystem,
+  saveDesignSystem,
+  setActiveDesignSystem,
+  type DesignSystem,
+  type DesignTokens,
+} from '../services/designSystems.ts';
+import type { CanvasPage } from '../data/canvas.ts';
 
-const FIELDS: Array<{ key: keyof DesignTokens; label: string; multiline?: boolean }> = [
-  { key: 'primaryColor', label: 'Primary color' },
-  { key: 'secondaryColor', label: 'Secondary color' },
-  { key: 'accentColor', label: 'Accent color' },
-  { key: 'typography', label: 'Typography' },
-  { key: 'fontSizes', label: 'Font sizes' },
-  { key: 'spacing', label: 'Spacing scale' },
-  { key: 'borderRadius', label: 'Border radius' },
-  { key: 'shadows', label: 'Shadows' },
-  { key: 'navigationPattern', label: 'Navigation pattern' },
-  { key: 'responsiveBreakpoints', label: 'Responsive breakpoints' },
-  { key: 'buttonStyles', label: 'Button styles' },
-  { key: 'inputStyles', label: 'Input styles' },
-  { key: 'componentStyles', label: 'Component styles' },
-  { key: 'brandGuidelines', label: 'Brand guidelines', multiline: true },
+interface DesignSystemsPageProps {
+  onOpenEditor: (name: string, pages: CanvasPage[]) => void;
+}
+
+const FONTS: Array<{ id: DesignTokens['font']; label: string }> = [
+  { id: 'jakarta', label: 'Jakarta (sans)' },
+  { id: 'bricolage', label: 'Bricolage (display)' },
+  { id: 'georgia', label: 'Georgia (serif)' },
+  { id: 'mono', label: 'JetBrains Mono' },
 ];
 
-export const DesignSystemsPage: React.FC = () => {
-  const { user, localMode } = useAuth();
-  const { currentProject } = useProject();
-  const { toast } = useToast();
-  const [systems, setSystems] = useState<DesignSystem[]>([]);
-  const [selected, setSelected] = useState<DesignSystem | null>(null);
-  const [name, setName] = useState('');
-  const [tokens, setTokens] = useState<DesignTokens>({ ...DEFAULT_DESIGN_SYSTEM.tokens });
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [versions, setVersions] = useState<DesignSystemVersion[]>([]);
-  const [restoring, setRestoring] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<DesignSystem | null>(null);
-  const [deleting, setDeleting] = useState(false);
-  const presetScrollerRef = useRef<HTMLDivElement>(null);
+const DEFAULT_TOKENS: DesignTokens = {
+  primary: '#7C5CFF',
+  accent: '#22D3EE',
+  surface: '#FFFFFF',
+  ink: '#0B0E14',
+  font: 'jakarta',
+  radius: 12,
+  spacing: 8,
+};
 
-  const scrollPresets = (direction: number) => {
-    presetScrollerRef.current?.scrollBy({ left: direction * 300, behavior: 'smooth' });
+interface FormState {
+  id?: string;
+  name: string;
+  note: string;
+  tokens: DesignTokens;
+}
+
+export const DesignSystemsPage: React.FC<DesignSystemsPageProps> = ({ onOpenEditor }) => {
+  const [systems, setSystems] = useState<DesignSystem[]>(() => listDesignSystems());
+  const [activeId, setActiveIdState] = useState<string | null>(() => getActiveId());
+  const [form, setForm] = useState<FormState | null>(null);
+  const [error, setError] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const refresh = () => {
+    setSystems(listDesignSystems());
+    setActiveIdState(getActiveId());
   };
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const list = await listDesignSystems();
-      setSystems(list);
-      if (list.length) {
-        setSelected(list[0]);
-        setName(list[0].name);
-        setTokens(list[0].tokens);
-        setVersions(await listDesignSystemVersions(list[0].id));
-      }
-    } catch (e: any) {
-      toast(e?.message || 'Could not load design systems.', 'error');
-    } finally {
-      setLoading(false);
+  const startCreate = () => setForm({ name: '', note: '', tokens: { ...DEFAULT_TOKENS } });
+  const startEdit = (system: DesignSystem) =>
+    setForm({ id: system.id, name: system.name, note: system.note || '', tokens: { ...system.tokens } });
+
+  const commit = () => {
+    if (!form) return;
+    if (!form.name.trim()) {
+      setError('Give the system a name.');
+      return;
     }
-  }, [toast]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  const choose = (system: DesignSystem) => {
-    setSelected(system);
-    setName(system.name);
-    setTokens({ ...DEFAULT_DESIGN_SYSTEM.tokens, ...system.tokens });
-    setVersions([]);
-    void listDesignSystemVersions(system.id)
-      .then(setVersions)
-      .catch(() => setVersions([]));
+    saveDesignSystem({ id: form.id, name: form.name, note: form.note, tokens: form.tokens });
+    setForm(null);
+    setError('');
+    refresh();
   };
 
-  const applyPreset = (preset: (typeof DESIGN_PRESETS)[number]) => {
-    setSelected(null);
-    setName(preset.name);
-    setTokens(presetTokens(preset));
-    setVersions([]);
-    toast(`${preset.name} applied. Save to add it to your library.`, 'success');
-    document.getElementById('design-system-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const useForPrompts = (system: DesignSystem) => {
+    setActiveDesignSystem(system.id);
+    refresh();
   };
 
-  const startNew = () => {
-    setSelected(null);
-    setName('');
-    setTokens({ ...DEFAULT_DESIGN_SYSTEM.tokens });
-    setVersions([]);
+  const createTemplate = (system: DesignSystem) => {
+    setActiveDesignSystem(system.id);
+    refresh();
+    onOpenEditor(system.name, pagesFromDesignSystem(system));
   };
 
-  const restore = async (version: DesignSystemVersion) => {
-    if (!selected) return;
-    setRestoring(true);
-    try {
-      const restored = await restoreDesignSystemVersion(selected.id, version.version);
-      setSelected(restored);
-      setName(restored.name);
-      setTokens({ ...DEFAULT_DESIGN_SYSTEM.tokens, ...restored.tokens });
-      setVersions(await listDesignSystemVersions(restored.id));
-      toast(`Restored version ${version.version}.`, 'success');
-    } catch (e: any) {
-      toast(e?.message || 'Could not restore design system version.', 'error');
-    } finally {
-      setRestoring(false);
-    }
-  };
-
-  const save = async () => {
-    if (!user) return;
-    setSaving(true);
-    try {
-      const result = selected
-        ? await updateDesignSystem(selected.id, name, tokens)
-        : await createDesignSystem(user.id, currentProject?.id || null, name, tokens, true);
-      setSelected(result);
-      setName(result.name);
-      await load();
-      setVersions(await listDesignSystemVersions(result.id));
-      toast(selected ? 'Design system updated' : 'Design system created', 'success');
-    } catch (e: any) {
-      toast(e?.message || 'Could not save design system.', 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const remove = async () => {
-    if (!deleteTarget) return;
-    setDeleting(true);
-    try {
-      await deleteDesignSystem(deleteTarget.id);
-      if (selected?.id === deleteTarget.id) startNew();
-      setDeleteTarget(null);
-      await load();
-      toast('Design system deleted', 'info');
-    } catch (e: any) {
-      toast(e?.message || 'Could not delete design system.', 'error');
-    } finally {
-      setDeleting(false);
-    }
-  };
+  const active = systems.find((system) => system.id === activeId) || null;
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+    <div className="space-y-5 v-fade-up">
+      {/* Private notice */}
+      <section className="rounded-xl border border-[#FED7AA] bg-[#FFF7ED] px-4 py-3 text-[11.5px] leading-relaxed text-[#9C4A28] dark:border-[#4E3A1F] dark:bg-[#2A2118] dark:text-[#F0B37E]">
+        <b>Private to this workspace.</b> Design systems here belong to your organisation. They are not published to
+        any public library, and only members of this workspace can open or attach them. There are no third-party brand
+        presets.
+      </section>
+
+      {/* Header */}
+      <section className="flex flex-col gap-3 rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] p-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-[#283638] tracking-tight">Design Systems</h1>
-          <p className="text-xs sm:text-sm text-[#737A72] mt-1">Reusable design tokens injected into specifications and generated prompts.</p>
+          <p className="v-eyebrow">Design system</p>
+          <h1 className="v-display mt-1.5 text-[24px] text-[var(--v-ink)] sm:text-[28px]">Your tokens, your prompts</h1>
+          <p className="mt-1 max-w-xl text-[12.5px] text-[var(--v-muted)]">
+            Define the colours, type and radius once. While a system is active, every prompt you build carries it —
+            and you can generate a starter template that already wears it.
+          </p>
         </div>
-        <button type="button" onClick={startNew} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[#E5E2D8] bg-white text-xs font-bold text-[#49686C] hover:bg-[#F6F4EC]">
-          <Plus className="w-3.5 h-3.5" /> New design system
-        </button>
-      </div>
-
-      {localMode && <div className="rounded-xl border border-[#FED7AA] bg-[#FFF7ED] p-4 text-xs text-[#9C4A28]">Connect Supabase to save design systems across projects.</div>}
-
-      <section className="bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl shadow-xs p-5 sm:p-6">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <Palette className="w-4 h-4 text-[#49686C]" />
-              <h2 className="text-base font-bold text-[#283638]">Company-inspired themes</h2>
-            </div>
-            <p className="text-xs text-[#737A72] mt-1">
-              Pick a domain, then a company-inspired starting point. Preview the look before applying it.
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="hidden sm:inline text-[10px] text-[#737A72]">Inspired by public brand patterns · not affiliated</span>
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => scrollPresets(-1)}
-                aria-label="Scroll themes left"
-                className="p-1.5 rounded-lg border border-[#E5E2D8] bg-white text-[#49686C] hover:bg-[#F6F4EC]"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => scrollPresets(1)}
-                aria-label="Scroll themes right"
-                className="p-1.5 rounded-lg border border-[#E5E2D8] bg-white text-[#49686C] hover:bg-[#F6F4EC]"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div
-          ref={presetScrollerRef}
-          className="flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2 mt-4 [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#D9D5C7] [&::-webkit-scrollbar-track]:bg-transparent"
-        >
-          {DESIGN_PRESETS.map((preset) => {
-            const tokens = presetTokens(preset);
-            const active = name === preset.name && tokens.primaryColor === preset.tokens.primaryColor;
-            return (
-              <button
-                key={preset.id}
-                type="button"
-                onClick={() => applyPreset(preset)}
-                className={`group snap-start shrink-0 w-[248px] text-left rounded-2xl border bg-white overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-md ${
-                  active
-                    ? 'border-[#49686C] ring-2 ring-[#49686C]/10'
-                    : 'border-[#E5E2D8] hover:border-[#C3D0D0]'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-2 px-3 pt-3">
-                  <div className="min-w-0">
-                    <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#737A72]">
-                      {preset.domain}
-                    </span>
-                    <h3 className="text-sm font-bold text-[#283638] leading-tight mt-0.5 truncate">
-                      {preset.inspiration}
-                    </h3>
-                  </div>
-                  <span className="text-[9px] text-[#9A9688] whitespace-nowrap pt-0.5">{preset.name}</span>
-                </div>
-
-                <ThemePreview tokens={tokens} className="mx-2.5 mt-2 rounded-lg border border-[#EFECE3]" />
-
-                <div className="px-3 py-2.5">
-                  <p className="text-[10px] text-[#737A72] leading-relaxed line-clamp-2">{preset.description}</p>
-                  <div className="flex items-center justify-between gap-2 mt-2">
-                    <span className="text-[9px] font-mono text-[#9A9688] truncate">
-                      {tokens.typography.split(',')[0]}
-                    </span>
-                    <span
-                      className={`inline-flex items-center gap-1 shrink-0 text-[10px] font-bold ${
-                        active ? 'text-[#3E6B33]' : 'text-[#49686C]'
-                      }`}
-                    >
-                      {active ? 'Applied' : 'Use theme'}
-                      <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
-                    </span>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
+        <div className="flex shrink-0 gap-1.5">
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="h-9 rounded-lg border border-[var(--v-line)] px-3 text-[11.5px] font-bold text-[var(--v-ink)] hover:bg-[var(--v-surface-2)] inline-flex items-center gap-1.5"
+          >
+            <Upload className="w-3.5 h-3.5" /> Import
+          </button>
+          <button
+            type="button"
+            onClick={startCreate}
+            className="h-9 rounded-lg px-3.5 text-[11.5px] font-bold text-white inline-flex items-center gap-1.5"
+            style={{ backgroundImage: 'linear-gradient(118deg,#7C5CFF,#4D7CFE 55%,#22D3EE)' }}
+          >
+            <Plus className="w-3.5 h-3.5" /> New system
+          </button>
         </div>
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        <div className="bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl shadow-xs p-4">
-          <div className="flex items-center gap-2 pb-3 border-b border-[#E5E2D8]">
-            <Palette className="w-4 h-4 text-[#49686C]" />
-            <h2 className="text-sm font-bold text-[#283638]">Library</h2>
-            {loading && <Loader2 className="w-3.5 h-3.5 animate-spin text-[#737A72]" />}
-          </div>
-          <div className="divide-y divide-[#E5E2D8] mt-1">
-            {systems.length === 0 && <p className="text-xs text-[#737A72] py-6 text-center">Using the built-in default.</p>}
-            {systems.map((system) => (
-              <div key={system.id} className="py-3 flex items-center gap-2.5">
-                <ThemeThumb tokens={system.tokens} className="h-9 w-[58px]" />
-                <button type="button" onClick={() => choose(system)} className="min-w-0 flex-1 text-left">
-                  <p className="text-xs font-bold text-[#283638] truncate">{system.name}</p>
-                  <p className="text-[10px] text-[#737A72]">{system.isShared ? 'shared' : 'private'} · {system.projectId ? 'project' : 'library'}</p>
-                </button>
-                <button type="button" onClick={() => setDeleteTarget(system)} className="p-1.5 rounded-md text-[#B94D42] hover:bg-[#FDF2F0]" aria-label={`Delete ${system.name}`}>
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
+      {error && <p className="text-[11.5px] text-[var(--v-coral)]">{error}</p>}
 
-        <div id="design-system-form" className="lg:col-span-2 bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl shadow-xs p-5 scroll-mt-20">
-          <div className="flex items-center justify-between gap-2 pb-3 border-b border-[#E5E2D8]">
-            <h2 className="text-sm font-bold text-[#283638]">{selected ? 'Edit design system' : 'Create design system'}</h2>
-            <span className="text-[10px] text-[#737A72]">{currentProject?.name || 'Library-wide'}</span>
-          </div>
-          <div className="mt-3">
-            <label className="block">
-              <span className="text-xs font-bold text-[#283638] block mb-1">Name</span>
-              <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Product design system" className="w-full px-3 py-2.5 rounded-lg border border-[#E5E2D8] bg-[#FAFAF8] text-sm text-[#283638] focus:bg-white focus:outline-none focus:border-[#49686C]" />
-            </label>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-            {FIELDS.map((field) => (
-              <label key={field.key} className={field.multiline ? 'sm:col-span-2' : ''}>
-                <span className="text-[11px] font-bold text-[#283638] block mb-1">{field.label}</span>
-                {field.multiline ? (
-                  <textarea rows={3} value={tokens[field.key]} onChange={(event) => setTokens((prev) => ({ ...prev, [field.key]: event.target.value }))} className="w-full px-3 py-2 rounded-lg border border-[#E5E2D8] bg-[#FAFAF8] text-xs text-[#283638] focus:bg-white focus:outline-none focus:border-[#49686C]" />
-                ) : (
-                  <input value={tokens[field.key]} onChange={(event) => setTokens((prev) => ({ ...prev, [field.key]: event.target.value }))} className="w-full px-3 py-2 rounded-lg border border-[#E5E2D8] bg-[#FAFAF8] text-xs text-[#283638] focus:bg-white focus:outline-none focus:border-[#49686C]" />
-                )}
-              </label>
-            ))}
-          </div>
-          <div className="flex items-center gap-2 mt-4">
-            <button type="button" onClick={() => void save()} disabled={saving || !user || !name.trim()} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#49686C] hover:bg-[#30494B] text-white text-xs font-bold disabled:opacity-60">
-              {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-              Save design system
-            </button>
-            <span className="text-[10px] text-[#737A72]">Tokens are injected into the specification and prompt.</span>
-          </div>
-
-          {selected && (
-            <div className="mt-5 pt-4 border-t border-[#E5E2D8]">
-              <div className="flex items-center gap-2">
-                <History className="w-4 h-4 text-[#49686C]" />
-                <h3 className="text-sm font-bold text-[#283638]">Version history</h3>
-                {restoring && <Loader2 className="w-3.5 h-3.5 animate-spin text-[#737A72]" />}
-              </div>
-              {loading ? (
-                <p className="text-xs text-[#737A72] mt-2 inline-flex items-center gap-2">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading versions…
-                </p>
-              ) : versions.length === 0 ? (
-                <p className="text-xs text-[#737A72] mt-2">No saved versions yet. Saving this design system records a snapshot.</p>
-              ) : (
-                <div className="mt-2 divide-y divide-[#E5E2D8] border border-[#E5E2D8] rounded-lg overflow-hidden">
-                  {versions.map((version) => (
-                    <div key={version.id} className="flex items-center gap-2 px-3 py-2 bg-[#FAFAF8]">
-                      <span className="text-xs font-bold text-[#283638]">v{version.version}</span>
-                      <span className="text-[10px] text-[#737A72]">{new Date(version.createdAt).toLocaleString()}</span>
-                      <div className="ml-auto flex items-center gap-1">
-                        {[version.tokens.primaryColor, version.tokens.secondaryColor, version.tokens.accentColor].map((color, index) => (
-                          <span key={index} className="w-3.5 h-3.5 rounded-full border border-white shadow-xs" style={{ backgroundColor: color }} />
-                        ))}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => void restore(version)}
-                        disabled={restoring || localMode}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-[#E5E2D8] bg-white text-[10px] font-bold text-[#49686C] hover:bg-[#F6F4EC] disabled:opacity-60"
-                      >
-                        <RotateCcw className="w-3 h-3" /> Restore
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <p className="text-[10px] text-[#737A72] mt-2 leading-relaxed">
-                Restoring applies the saved tokens and records the restore as a new version, so history is never lost.
-              </p>
+      {/* Active */}
+      {active && (
+        <section className="rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] p-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F0FBF7] px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wider text-[#0C7A5B]">
+              <Check className="w-2.5 h-2.5" /> Attached to prompts
+            </span>
+            <p className="text-[12.5px] font-bold text-[var(--v-ink)]">{active.name}</p>
+            <div className="flex gap-1">
+              {[active.tokens.primary, active.tokens.accent, active.tokens.surface, active.tokens.ink].map((colour) => (
+                <span key={colour} className="h-4 w-4 rounded-full border border-[var(--v-line)]" style={{ background: colour }} />
+              ))}
             </div>
-          )}
-        </div>
-      </div>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveDesignSystem(null);
+                refresh();
+              }}
+              className="ml-auto text-[10.5px] font-bold text-[var(--v-muted)] hover:text-[var(--v-ink)]"
+            >
+              Detach
+            </button>
+          </div>
+          <pre className="mt-2.5 max-h-[120px] overflow-auto v-scroll rounded-lg bg-[var(--v-surface-2)] p-2.5 font-mono text-[9.5px] leading-relaxed text-[var(--v-muted)]">
+            {designSystemPrompt(active)}
+          </pre>
+        </section>
+      )}
 
-      <ConfirmDialog
-        open={!!deleteTarget}
-        title="Delete this design system?"
-        message={
-          <>
-            Deleting <b>{deleteTarget?.name}</b> removes its tokens and version history. Prompts that
-            already referenced it keep their saved text, but future briefs will need another system.
-          </>
-        }
-        confirmLabel="Delete design system"
-        busy={deleting}
-        onConfirm={() => void remove()}
-        onCancel={() => setDeleteTarget(null)}
+      {/* List */}
+      {systems.length === 0 ? (
+        <section className="rounded-2xl border border-dashed border-[var(--v-line)] bg-[var(--v-surface-2)] p-10 text-center">
+          <Palette className="mx-auto h-6 w-6 text-[var(--v-faint)]" />
+          <p className="mt-2 text-[13.5px] font-bold text-[var(--v-ink)]">No design system yet</p>
+          <p className="mx-auto mt-1 max-w-sm text-[11.5px] text-[var(--v-muted)]">
+            Create one from your organisation's documented colours and type. It stays inside this workspace.
+          </p>
+          <button type="button" onClick={startCreate} className="mt-3 v-btn v-btn-primary h-9 px-4 text-[12px]">
+            <Plus className="w-3.5 h-3.5" /> Create design system
+          </button>
+        </section>
+      ) : (
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {systems.map((system) => {
+            const isActive = system.id === activeId;
+            return (
+              <article
+                key={system.id}
+                className={`rounded-2xl border bg-[var(--v-surface)] p-4 ${
+                  isActive ? 'border-[var(--v-violet)]' : 'border-[var(--v-line)]'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <Lock className="h-3 w-3 shrink-0 text-[var(--v-faint)]" />
+                      <p className="truncate text-[12.5px] font-bold text-[var(--v-ink)]">{system.name}</p>
+                    </div>
+                    <p className="mt-0.5 text-[10px] text-[var(--v-faint)]">
+                      {system.tokens.font} · {system.tokens.radius}px radius · {system.tokens.spacing}px grid
+                    </p>
+                  </div>
+                  {isActive && (
+                    <span className="shrink-0 rounded-full bg-[#F0FBF7] px-1.5 py-0.5 text-[8.5px] font-bold uppercase tracking-wider text-[#0C7A5B]">
+                      Active
+                    </span>
+                  )}
+                </div>
+
+                {/* Token preview */}
+                <div className="mt-3 rounded-xl border border-[var(--v-line)] p-2.5" style={{ background: system.tokens.surface }}>
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-6 w-6 rounded-md" style={{ background: system.tokens.primary }} />
+                    <span className="h-2 w-16 rounded-full" style={{ background: system.tokens.ink }} />
+                    <span className="ml-auto rounded px-2 py-1 text-[8px] font-bold text-white" style={{ background: system.tokens.primary }}>
+                      Button
+                    </span>
+                  </div>
+                  <div className="mt-2 h-2 w-3/4 rounded-full" style={{ background: `${system.tokens.ink}22` }} />
+                  <div className="mt-1 h-2 w-1/2 rounded-full" style={{ background: `${system.tokens.ink}14` }} />
+                  <div className="mt-2 flex gap-1">
+                    <span className="h-1.5 w-6 rounded-full" style={{ background: system.tokens.accent }} />
+                    <span className="h-1.5 w-6 rounded-full" style={{ background: system.tokens.primary }} />
+                  </div>
+                </div>
+
+                {system.note && <p className="mt-2 line-clamp-2 text-[10.5px] text-[var(--v-muted)]">{system.note}</p>}
+
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => useForPrompts(system)}
+                    className={`h-7 rounded-md px-2.5 text-[10px] font-bold ${
+                      isActive ? 'bg-[var(--v-surface-2)] text-[var(--v-muted)]' : 'bg-[var(--v-ink)] text-[var(--v-surface)]'
+                    }`}
+                  >
+                    {isActive ? 'Attached' : 'Use for prompts'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => createTemplate(system)}
+                    className="inline-flex h-7 items-center gap-1 rounded-md border border-[var(--v-line)] px-2.5 text-[10px] font-bold text-[var(--v-ink)] hover:bg-[var(--v-surface-2)]"
+                  >
+                    <Sparkles className="h-3 w-3" /> Create template
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => startEdit(system)}
+                    className="grid h-7 w-7 place-items-center rounded-md border border-[var(--v-line)] text-[var(--v-muted)] hover:bg-[var(--v-surface-2)]"
+                    aria-label="Edit"
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => downloadSystem(system)}
+                    className="grid h-7 w-7 place-items-center rounded-md border border-[var(--v-line)] text-[var(--v-muted)] hover:bg-[var(--v-surface-2)]"
+                    aria-label="Export"
+                  >
+                    <Download className="h-3 w-3" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      deleteDesignSystem(system.id);
+                      refresh();
+                    }}
+                    className="grid h-7 w-7 place-items-center rounded-md border border-[var(--v-line)] text-[var(--v-coral)] hover:bg-[var(--v-surface-2)]"
+                    aria-label="Delete"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </section>
+      )}
+
+      <input
+        ref={fileRef}
+        type="file"
+        accept=".json,application/json"
+        className="hidden"
+        onChange={async (event) => {
+          const file = event.target.files?.[0];
+          event.target.value = '';
+          if (!file) return;
+          try {
+            importDesignSystem(await file.text());
+            setError('');
+            refresh();
+          } catch (err) {
+            setError(err instanceof Error ? err.message : 'Import failed.');
+          }
+        }}
       />
+
+      {/* Editor */}
+      {form && (
+        <div className="fixed inset-0 z-[70] grid place-items-center p-4">
+          <div className="absolute inset-0 bg-[#06080C]/55 backdrop-blur-sm" onClick={() => setForm(null)} aria-hidden="true" />
+          <div className="relative w-full max-w-[520px] overflow-hidden rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] shadow-[var(--v-shadow-lg)]">
+            <div className="flex items-start justify-between border-b border-[var(--v-line)] px-5 py-3.5">
+              <div>
+                <p className="v-eyebrow">{form.id ? 'Edit system' : 'New system'}</p>
+                <h2 className="mt-1 text-[16px] font-bold text-[var(--v-ink)]">Design tokens</h2>
+              </div>
+              <button type="button" onClick={() => setForm(null)} className="v-icon-btn h-7 w-7" aria-label="Close">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="max-h-[70vh] space-y-3 overflow-y-auto v-scroll px-5 py-4">
+              <label className="block">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--v-muted)]">Name</span>
+                <input
+                  value={form.name}
+                  onChange={(event) => setForm({ ...form, name: event.target.value })}
+                  placeholder="Acme internal UI"
+                  className="v-input mt-1 h-9 px-3 text-[12px]"
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--v-muted)]">Note for the prompt</span>
+                <textarea
+                  value={form.note}
+                  onChange={(event) => setForm({ ...form, note: event.target.value })}
+                  rows={2}
+                  placeholder="Documented rules, e.g. no gradients, 8px grid, sentence case."
+                  className="mt-1 w-full resize-none rounded-xl border border-[var(--v-line)] bg-[var(--v-surface)] px-3 py-2 text-[12px] text-[var(--v-ink)] outline-none focus:border-[var(--v-violet)]"
+                />
+              </label>
+
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  ['primary', 'Primary'],
+                  ['accent', 'Accent'],
+                  ['surface', 'Surface'],
+                  ['ink', 'Text'],
+                ] as const).map(([key, label]) => (
+                  <label key={key} className="flex items-center gap-2 rounded-lg border border-[var(--v-line)] px-2 py-1.5">
+                    <input
+                      type="color"
+                      value={form.tokens[key]}
+                      onChange={(event) =>
+                        setForm({ ...form, tokens: { ...form.tokens, [key]: event.target.value } })
+                      }
+                      className="h-6 w-6 cursor-pointer rounded border-0 bg-transparent p-0"
+                      aria-label={label}
+                    />
+                    <span className="text-[11px] font-semibold text-[var(--v-ink)]">{label}</span>
+                    <span className="ml-auto font-mono text-[9px] text-[var(--v-faint)]">{form.tokens[key].toUpperCase()}</span>
+                  </label>
+                ))}
+              </div>
+
+              <label className="block">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--v-muted)]">Typeface</span>
+                <select
+                  value={form.tokens.font}
+                  onChange={(event) =>
+                    setForm({ ...form, tokens: { ...form.tokens, font: event.target.value as DesignTokens['font'] } })
+                  }
+                  className="mt-1 h-9 w-full rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] px-2 text-[12px] text-[var(--v-ink)] outline-none"
+                >
+                  {FONTS.map((font) => (
+                    <option key={font.id} value={font.id}>
+                      {font.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--v-muted)]">
+                    Radius · {form.tokens.radius}px
+                  </span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={32}
+                    value={form.tokens.radius}
+                    onChange={(event) => setForm({ ...form, tokens: { ...form.tokens, radius: Number(event.target.value) } })}
+                    className="mt-2 w-full accent-[var(--v-violet)]"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--v-muted)]">
+                    Spacing · {form.tokens.spacing}px
+                  </span>
+                  <input
+                    type="range"
+                    min={2}
+                    max={16}
+                    value={form.tokens.spacing}
+                    onChange={(event) => setForm({ ...form, tokens: { ...form.tokens, spacing: Number(event.target.value) } })}
+                    className="mt-2 w-full accent-[var(--v-violet)]"
+                  />
+                </label>
+              </div>
+
+              <div className="rounded-xl border border-[var(--v-line)] p-3" style={{ background: form.tokens.surface }}>
+                <div className="flex items-center gap-2">
+                  <span className="h-7 w-7 rounded-md" style={{ background: form.tokens.primary }} />
+                  <span className="text-[12px] font-bold" style={{ color: form.tokens.ink }}>
+                    {form.name || 'Preview'}
+                  </span>
+                  <span
+                    className="ml-auto px-2 py-1 text-[9px] font-bold text-white"
+                    style={{ background: form.tokens.primary, borderRadius: form.tokens.radius }}
+                  >
+                    Button
+                  </span>
+                </div>
+                <div className="mt-2 h-2 w-3/4 rounded-full" style={{ background: `${form.tokens.ink}22` }} />
+                <div className="mt-1 h-2 w-1/2 rounded-full" style={{ background: `${form.tokens.ink}14` }} />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-2 border-t border-[var(--v-line)] px-5 py-3">
+              <p className="text-[9.5px] text-[var(--v-faint)]">Stored in this workspace only.</p>
+              <div className="flex gap-1.5">
+                <button type="button" onClick={() => setForm(null)} className="h-8 rounded-lg border border-[var(--v-line)] px-3 text-[11px] font-semibold text-[var(--v-muted)]">
+                  Cancel
+                </button>
+                <button type="button" onClick={commit} className="h-8 rounded-lg bg-[var(--v-ink)] px-3.5 text-[11px] font-bold text-[var(--v-surface)]">
+                  Save system
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,25 +1,80 @@
-import React, { useState } from 'react';
-import { ArrowRight, Database, FolderKanban, Loader2, Pencil, Plus, Sparkles, Trash2, UploadCloud, X } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import {
+  ArrowUpRight,
+  Clock3,
+  Database,
+  FolderKanban,
+  LayoutGrid,
+  LayoutTemplate,
+  List,
+  Loader2,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  RotateCcw,
+  Search,
+  Share2,
+  Sparkles,
+  Trash2,
+  Upload,
+  Users,
+  X,
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useProject } from '../context/ProjectContext.tsx';
-import { migrateLocalHistory } from '../services/historyMigration.ts';
 import { useToast } from '../components/ui/Toast.tsx';
+import { SpotlightHost } from '../components/onboarding/SpotlightHost.tsx';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog.tsx';
 import type { Project } from '../types/projects.ts';
+import { isPaid, readEntitlements, trialRemaining } from '../services/entitlements.ts';
 
 interface ProjectsPageProps {
-  onOpenProject: () => void;
+  onOpenProject: (project: Project) => void;
   onOpenSettings: () => void;
+  onBrowseTemplates?: () => void;
+  onOpenIntegrations?: () => void;
+  onOpenEditor?: () => void;
+  onCreated?: (project: Project) => void;
 }
 
-export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onOpenProject, onOpenSettings }) => {
-  const { user, localMode } = useAuth();
-  const { projects, currentProject, loading, error, createProject, updateProject, deleteProject, selectProject, refresh } = useProject();
+type Tab = 'all' | 'recent' | 'shared' | 'trash';
+
+const TONES = [
+  ['#0FA3A3', '#4F7DF3'],
+  ['#4F7DF3', '#8B5CF6'],
+  ['#FF6B8A', '#FF8A6B'],
+  ['#FFC53D', '#FF8A6B'],
+  ['#8B5CF6', '#FF6B8A'],
+  ['#22C1A6', '#4F7DF3'],
+];
+
+function toneFor(id: string): [string, string] {
+  const sum = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return TONES[sum % TONES.length] as [string, string];
+}
+
+export const ProjectsPage: React.FC<ProjectsPageProps> = ({
+  onOpenProject,
+  onOpenSettings,
+  onBrowseTemplates,
+  onOpenIntegrations,
+  onOpenEditor,
+  onCreated,
+}) => {
+  const { localMode } = useAuth();
+  const { projects, currentProject, loading, error, createProject, updateProject, deleteProject, selectProject, refresh } =
+    useProject();
   const { toast } = useToast();
+
+  const [tab, setTab] = useState<Tab>('all');
+  const [view, setView] = useState<'grid' | 'list'>('grid');
+  const [query, setQuery] = useState('');
+  const [sort, setSort] = useState<'updated' | 'name'>('updated');
+  const [createOpen, setCreateOpen] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [creating, setCreating] = useState(false);
-  const [migrating, setMigrating] = useState(false);
+  const [menuFor, setMenuFor] = useState<string | null>(null);
   const [editTarget, setEditTarget] = useState<Project | null>(null);
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
@@ -27,45 +82,48 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onOpenProject, onOpe
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  const entitlements = readEntitlements();
+  const paid = isPaid(entitlements);
+  const remaining = trialRemaining(entitlements);
+
+  const active = projects.filter((project) => project.status === 'active');
+  const trashed = projects.filter((project) => project.status === 'archived');
+
+  const visible = useMemo(() => {
+    const base = tab === 'trash' ? trashed : active;
+    const term = query.trim().toLowerCase();
+    const filtered = term
+      ? base.filter(
+          (project) =>
+            project.name.toLowerCase().includes(term) || (project.description || '').toLowerCase().includes(term)
+        )
+      : base;
+    return [...filtered].sort((a, b) =>
+      sort === 'name' ? a.name.localeCompare(b.name) : new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    );
+  }, [tab, active, trashed, query, sort]);
+
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!name.trim() || creating) return;
     setCreating(true);
     try {
-      await createProject(name, description);
+      const created = await createProject(name, description);
       setName('');
       setDescription('');
+      setCreateOpen(false);
       toast('Project created', 'success');
-    } catch (e: any) {
-      toast(e?.message || 'Could not create project.', 'error');
+      onCreated?.(created);
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Could not create project.', 'error');
     } finally {
       setCreating(false);
     }
   };
 
-  const handleOpen = (projectId: string) => {
-    selectProject(projectId);
-    onOpenProject();
-  };
-
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
-    setDeleting(true);
-    try {
-      await deleteProject(deleteTarget.id);
-      toast('Project deleted', 'info');
-      setDeleteTarget(null);
-    } catch (e: any) {
-      toast(e?.message || 'Could not delete project.', 'error');
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  const startEdit = (project: Project) => {
-    setEditTarget(project);
-    setEditName(project.name);
-    setEditDescription(project.description || '');
+  const openProject = (project: Project) => {
+    selectProject(project.id);
+    onOpenProject(project);
   };
 
   const handleEditSave = async (event: React.FormEvent) => {
@@ -76,252 +134,457 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onOpenProject, onOpe
       await updateProject(editTarget.id, { name: editName.trim(), description: editDescription.trim() });
       toast('Project updated', 'success');
       setEditTarget(null);
-    } catch (e: any) {
-      toast(e?.message || 'Could not update project.', 'error');
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Could not update project.', 'error');
     } finally {
       setSavingEdit(false);
     }
   };
 
-  const handleMigrate = async () => {
-    if (!user || !currentProject) return;
-    setMigrating(true);
+  const archive = async (project: Project) => {
     try {
-      const result = await migrateLocalHistory(currentProject.id, user.id);
-      if (result.skipped) toast('This project already contains imported analyses.', 'info');
-      else if (result.imported === 0) toast('No local analyses to import.', 'info');
-      else toast(`Imported ${result.imported} local analyses without deleting them.`, 'success');
-    } catch (e: any) {
-      toast(e?.message || 'Migration failed.', 'error');
-    } finally {
-      setMigrating(false);
+      await updateProject(project.id, { status: 'archived' });
+      setMenuFor(null);
+      toast('Moved to trash', 'info');
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Could not move project.', 'error');
     }
   };
 
+  const restore = async (project: Project) => {
+    try {
+      await updateProject(project.id, { status: 'active' });
+      toast('Project restored', 'success');
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Could not restore project.', 'error');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await deleteProject(deleteTarget.id);
+      toast('Project deleted permanently', 'info');
+      setDeleteTarget(null);
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Could not delete project.', 'error');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const share = async (project: Project) => {
+    const link = `${window.location.origin}${window.location.pathname}?project=${project.id}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      toast('View link copied to clipboard', 'success');
+    } catch {
+      toast(link, 'info');
+    }
+    setMenuFor(null);
+  };
+
+  const TABS: Array<{ id: Tab; label: string; icon: React.ElementType; count?: number }> = [
+    { id: 'all', label: 'All projects', icon: LayoutGrid },
+    { id: 'recent', label: 'Recents', icon: Clock3 },
+    { id: 'shared', label: 'Shared with you', icon: Users },
+    { id: 'trash', label: 'Trash', icon: Trash2 },
+  ];
+
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-[#283638] tracking-tight">Projects</h1>
-          <p className="text-xs sm:text-sm text-[#737A72] mt-1">
-            Each project carries its own requirement documents, approvals, design system, prompts and memory.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onOpenSettings}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[#E5E2D8] bg-white text-xs font-bold text-[#49686C] hover:bg-[#F6F4EC]"
-        >
-          <Database className="w-3.5 h-3.5" />
-          Account & data
-        </button>
-      </div>
+    <div className="flex flex-col lg:flex-row gap-5 v-fade-up">
+      <SpotlightHost page="projects" />
+      {/* Sub navigation */}
+      <aside className="lg:w-[214px] shrink-0">
+        <div className="lg:sticky lg:top-[84px] space-y-1">
+          {TABS.map((item) => {
+            const Icon = item.icon;
+            const isActive = tab === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setTab(item.id)}
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[12.5px] font-semibold transition-colors ${
+                  isActive
+                    ? 'bg-[var(--v-surface)] text-[var(--v-ink)] shadow-[var(--v-shadow-sm)]'
+                    : 'text-[var(--v-muted)] hover:bg-[var(--v-surface-2)] hover:text-[var(--v-ink)]'
+                }`}
+              >
+                <Icon className={`w-4 h-4 ${isActive ? 'text-[var(--v-violet)]' : ''}`} />
+                <span className="flex-1 text-left">{item.label}</span>
+                {item.id === 'trash' && trashed.length > 0 && (
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[var(--v-surface-2)]">
+                    {trashed.length}
+                  </span>
+                )}
+              </button>
+            );
+          })}
 
-      {localMode && (
-        <div className="rounded-xl border border-[#FED7AA] bg-[#FFF7ED] p-4 text-xs text-[#9C4A28] leading-relaxed">
-          <b>Local mode.</b> Supabase is not configured, so projects are stored in this browser only. Add
-          <code className="font-mono mx-1">VITE_SUPABASE_URL</code> and
-          <code className="font-mono mx-1">VITE_SUPABASE_ANON_KEY</code> to enable accounts and cloud projects.
-        </div>
-      )}
-
-      {error && <div className="rounded-xl border border-[#F0C4BF] bg-[#FDF2F0] p-4 text-xs text-[#B94D42]">{error}</div>}
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        <div className="lg:col-span-2 space-y-4">
-          <div className="bg-[#FFFFFF] rounded-xl border border-[#E5E2D8] shadow-xs p-5 sm:p-6">
-            <div className="flex items-center gap-2 pb-3 border-b border-[#E5E2D8]">
-              <FolderKanban className="w-4 h-4 text-[#49686C]" />
-              <h2 className="text-base font-bold text-[#283638]">Your projects</h2>
-              {loading && <Loader2 className="w-3.5 h-3.5 animate-spin text-[#737A72]" />}
-            </div>
-
-            {!loading && projects.length === 0 ? (
-              <div className="py-10 text-center">
-                <Sparkles className="w-7 h-7 text-[#49686C] mx-auto mb-2" />
-                <p className="text-sm font-bold text-[#283638]">Create your first project</p>
-                <p className="text-xs text-[#737A72] mt-1">A project groups documents, requirements and generated prompts.</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-[#E5E2D8] mt-1">
-                {projects.map((project) => (
-                  <div key={project.id} className="py-3 flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-[#F6F4EC] border border-[#E5E2D8] flex items-center justify-center shrink-0">
-                      <FolderKanban className="w-4 h-4 text-[#49686C]" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <button
-                        type="button"
-                        onClick={() => handleOpen(project.id)}
-                        className="text-sm font-bold text-[#283638] hover:text-[#49686C] text-left truncate"
-                      >
-                        {project.name}
-                      </button>
-                      <p className="text-[11px] text-[#737A72] truncate">
-                        {project.description || 'No description'} · updated {new Date(project.updatedAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    {currentProject?.id === project.id && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md border border-[#CFE2C8] bg-[#F4F9F1] text-[#3E6B33]">
-                        current
-                      </span>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => handleOpen(project.id)}
-                      className="p-2 rounded-lg text-[#49686C] hover:bg-[#F6F4EC]"
-                      aria-label={`Open ${project.name}`}
-                      title="Open project"
-                    >
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => startEdit(project)}
-                      className="p-2 rounded-lg text-[#737A72] hover:bg-[#F6F4EC] hover:text-[#283638]"
-                      aria-label={`Edit ${project.name}`}
-                      title="Edit project"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDeleteTarget(project)}
-                      className="p-2 rounded-lg text-[#B94D42] hover:bg-[#FDF2F0]"
-                      aria-label={`Delete ${project.name}`}
-                      title="Delete project"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+          <div className="!mt-4 rounded-2xl border border-dashed border-[var(--v-line)] p-3.5">
+            <p className="text-[11.5px] font-bold text-[var(--v-ink)]">
+              {paid ? 'Unlimited projects' : `${remaining} free project${remaining === 1 ? '' : 's'} left`}
+            </p>
+            <p className="mt-1 text-[10.5px] leading-relaxed text-[var(--v-muted)]">
+              {paid
+                ? 'Your plan includes unlimited projects, all templates and integrations.'
+                : 'Two full projects on the house. Upgrade when you need more.'}
+            </p>
+            <button
+              type="button"
+              onClick={() => setTab('all')}
+              className="mt-2 text-[10.5px] font-bold text-[var(--v-violet)] hover:underline"
+            >
+              {paid ? 'Manage plan' : 'See plans'}
+            </button>
           </div>
 
-          {!localMode && currentProject && (
-            <div className="bg-[#FFFFFF] rounded-xl border border-[#E5E2D8] shadow-xs p-5 sm:p-6">
-              <div className="flex items-start gap-3">
-                <UploadCloud className="w-5 h-5 text-[#49686C] mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-[#283638]">Import existing browser history</p>
-                  <p className="text-xs text-[#737A72] mt-1 leading-relaxed">
-                    Copy your existing local analyses into <b>{currentProject.name}</b>. They stay in this
-                    browser and are attached to this project so other projects keep a clean history.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleMigrate}
-                    disabled={migrating}
-                    className="mt-3 inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[#E5E2D8] bg-[#FAFAF8] text-xs font-bold text-[#49686C] hover:bg-white disabled:opacity-60"
-                  >
-                    {migrating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UploadCloud className="w-3.5 h-3.5" />}
-                    Import local history
-                  </button>
-                </div>
-              </div>
+          {localMode && (
+            <div className="rounded-2xl bg-[var(--v-surface-2)] p-3 text-[10.5px] leading-relaxed text-[var(--v-muted)]">
+              <b className="text-[var(--v-ink)]">Local mode.</b> Projects are stored in this browser only.
             </div>
           )}
+
+          <button
+            type="button"
+            onClick={onOpenSettings}
+            className="w-full flex items-center gap-2 px-3 py-2 text-[11.5px] font-semibold text-[var(--v-muted)] hover:text-[var(--v-ink)]"
+          >
+            <Database className="w-3.5 h-3.5" /> Account & data
+          </button>
+        </div>
+      </aside>
+
+      {/* Main */}
+      <section className="flex-1 min-w-0">
+        <div className="text-center max-w-xl mx-auto">
+          <h1 className="v-display text-[30px] sm:text-[38px] text-[var(--v-ink)]">
+            {tab === 'trash' ? 'Trash' : tab === 'shared' ? 'Shared with you' : tab === 'recent' ? 'Recents' : 'All projects'}
+          </h1>
+          <p className="mt-1.5 text-[12.5px] text-[var(--v-muted)]">
+            {tab === 'trash'
+              ? 'Restore a project or delete it permanently.'
+              : 'Every project keeps its requirements, prompts, design system and history in one place.'}
+          </p>
         </div>
 
-        <form onSubmit={handleCreate} className="bg-[#FFFFFF] rounded-xl border border-[#E5E2D8] shadow-xs p-5 sm:p-6 space-y-3">
-          <div className="flex items-center gap-2 pb-3 border-b border-[#E5E2D8]">
-            <Plus className="w-4 h-4 text-[#49686C]" />
-            <h2 className="text-base font-bold text-[#283638]">New project</h2>
+        {error && (
+          <div className="mt-4 rounded-2xl border border-[#F0C4BF] bg-[#FDF2F0] px-4 py-3 text-[12px] text-[#B94D42]">
+            {error}
           </div>
-          <label className="block">
-            <span className="text-xs font-bold text-[#283638] block mb-1">Name</span>
-            <input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="Customer portal redesign"
-              className="w-full px-3 py-2.5 rounded-lg border border-[#E5E2D8] bg-[#FAFAF8] text-sm text-[#283638] focus:bg-white focus:outline-none focus:border-[#49686C]"
-              maxLength={120}
-            />
-          </label>
-          <label className="block">
-            <span className="text-xs font-bold text-[#283638] block mb-1">Description</span>
-            <textarea
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              rows={3}
-              placeholder="What is being designed?"
-              className="w-full px-3 py-2.5 rounded-lg border border-[#E5E2D8] bg-[#FAFAF8] text-sm text-[#283638] focus:bg-white focus:outline-none focus:border-[#49686C]"
-            />
-          </label>
-          <button
-            type="submit"
-            disabled={creating || !name.trim()}
-            className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#49686C] hover:bg-[#30494B] disabled:opacity-60 text-white text-xs font-bold"
-          >
-            {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-            Create project
-          </button>
-          <button type="button" onClick={() => void refresh()} className="w-full text-[11px] font-semibold text-[#737A72] hover:text-[#49686C]">
-            Refresh list
-          </button>
-        </form>
-      </div>
+        )}
 
-      {editTarget && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#283638]/50 backdrop-blur-xs">
-          <form
-            onSubmit={handleEditSave}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Edit project"
-            className="bg-[#FFFFFF] dark:bg-[#1F2B2D] border border-[#E5E2D8] dark:border-[#33403F] rounded-xl max-w-md w-full p-5 shadow-2xl"
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-[#E5E2D8] dark:border-[#33403F]">
-              <div className="flex items-center gap-2">
-                <Pencil className="w-4 h-4 text-[#49686C]" />
-                <h3 className="text-sm font-bold text-[#283638] dark:text-[#E7E4D9]">Edit project</h3>
+        {/* Search + filters */}
+        <div className="mt-5">
+          <div className="relative max-w-[620px] mx-auto">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--v-faint)]" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search projects"
+              className="v-input h-11 pl-11 pr-4 text-[13px]"
+              disabled={tab === 'shared'}
+            />
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+            <button type="button" className="v-chip" onClick={() => setSort('updated')} data-active={sort === 'updated'}>
+              Last modified
+            </button>
+            <button type="button" className="v-chip" onClick={() => setSort('name')} data-active={sort === 'name'}>
+              Name
+            </button>
+            <button type="button" className="v-chip" onClick={() => setView(view === 'grid' ? 'list' : 'grid')}>
+              {view === 'grid' ? <List className="w-3.5 h-3.5" /> : <LayoutGrid className="w-3.5 h-3.5" />}
+              {view === 'grid' ? 'List' : 'Grid'}
+            </button>
+            <button type="button" onClick={() => void refresh()} className="v-chip">
+              <RotateCcw className="w-3.5 h-3.5" /> Refresh
+            </button>
+            {loading && <Loader2 className="w-4 h-4 animate-spin text-[var(--v-faint)]" />}
+          </div>
+        </div>
+
+        {tab === 'shared' ? (
+          <div className="mt-10 v-card rounded-[24px] p-10 text-center max-w-xl mx-auto">
+            <Users className="w-7 h-7 mx-auto text-[var(--v-faint)]" />
+            <p className="mt-2 text-[14px] font-bold text-[var(--v-ink)]">Nothing shared with you yet</p>
+            <p className="mt-1 text-[12px] text-[var(--v-muted)]">
+              When a teammate shares a project, it appears here with their permissions.
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Create card + grid */}
+            <div
+              className={`mt-6 ${
+                view === 'grid' ? 'grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4' : 'space-y-2'
+              }`}
+            >
+              {tab !== 'trash' && view === 'grid' && (
+                <button
+                  type="button"
+                  data-spot="projects-create"
+                  onClick={() => setCreateOpen(true)}
+                  className="rounded-[20px] border-2 border-dashed border-[var(--v-line)] hover:border-[var(--v-violet)] bg-[var(--v-surface-2)] min-h-[190px] flex flex-col items-center justify-center gap-2 transition-colors group"
+                >
+                  <span className="w-11 h-11 rounded-2xl v-grad text-white grid place-items-center group-hover:scale-105 transition-transform">
+                    <Plus className="w-5 h-5" />
+                  </span>
+                  <span className="text-[12.5px] font-bold text-[var(--v-ink)]">New project</span>
+                  <span className="text-[10.5px] text-[var(--v-faint)]">
+                    {paid ? 'Unlimited' : `${remaining} free left`}
+                  </span>
+                </button>
+              )}
+
+              {visible.map((project) => {
+                const [from, to] = toneFor(project.id);
+                const isCurrent = currentProject?.id === project.id;
+                const menuOpen = menuFor === project.id;
+
+                return (
+                  <article
+                    key={project.id}
+                    className={`relative group ${
+                      view === 'grid'
+                        ? 'v-card v-card-lift rounded-[20px]'
+                        : 'v-card rounded-2xl p-3 flex items-center gap-3'
+                    }`}
+                  >
+                    {view === 'grid' ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => (tab === 'trash' ? undefined : openProject(project))}
+                          className="block w-full text-left"
+                        >
+                          <div
+                            className="h-[132px] relative overflow-hidden rounded-t-[20px]"
+                            style={{ backgroundImage: `linear-gradient(140deg, ${from}, ${to})` }}
+                          >
+                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_15%,rgba(255,255,255,.45),transparent_55%)]" />
+                            <span className="absolute bottom-2.5 left-3.5 v-display text-white/95 text-[28px]">
+                              {project.name.slice(0, 2).toUpperCase()}
+                            </span>
+                            {isCurrent && (
+                              <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full bg-white/90 text-[9px] font-bold uppercase tracking-wider text-[#14121F]">
+                                Current
+                              </span>
+                            )}
+                            <span className="absolute bottom-2.5 right-3 w-7 h-7 rounded-full bg-white/25 backdrop-blur grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <ArrowUpRight className="w-3.5 h-3.5 text-white" />
+                            </span>
+                          </div>
+                          <div className="p-3.5">
+                            <p className="text-[12.5px] font-bold text-[var(--v-ink)] truncate">{project.name}</p>
+                            <p className="mt-0.5 text-[10.5px] text-[var(--v-faint)] truncate">
+                              {project.description || 'No description'}
+                            </p>
+                            <p className="mt-1 text-[10px] text-[var(--v-faint)] flex items-center gap-1">
+                              <Clock3 className="w-2.5 h-2.5" />
+                              {new Date(project.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                            </p>
+                          </div>
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <span
+                          className="w-10 h-10 rounded-xl shrink-0 grid place-items-center text-white text-[12px] font-bold"
+                          style={{ backgroundImage: `linear-gradient(140deg, ${from}, ${to})` }}
+                        >
+                          {project.name.slice(0, 2).toUpperCase()}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => (tab === 'trash' ? undefined : openProject(project))}
+                          className="min-w-0 flex-1 text-left"
+                        >
+                          <p className="text-[12.5px] font-bold text-[var(--v-ink)] truncate">{project.name}</p>
+                          <p className="text-[10.5px] text-[var(--v-faint)] truncate">
+                            {project.description || 'No description'} · {new Date(project.updatedAt).toLocaleDateString()}
+                          </p>
+                        </button>
+                      </>
+                    )}
+
+                    {/* Actions */}
+                    <div className={`${view === 'grid' ? 'absolute top-2.5 right-2.5 z-20' : 'relative'}`}>
+                      {tab === 'trash' ? (
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => void restore(project)}
+                            className="px-2.5 py-1.5 rounded-lg bg-[var(--v-surface)] border border-[var(--v-line)] text-[10.5px] font-bold text-[var(--v-ink)] hover:border-[var(--v-violet)]"
+                          >
+                            Restore
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeleteTarget(project)}
+                            className="px-2.5 py-1.5 rounded-lg bg-[#FDF2F0] text-[10.5px] font-bold text-[#B94D42] hover:bg-[#FBEAE7]"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setMenuFor(menuOpen ? null : project.id)}
+                            className="w-7 h-7 rounded-full bg-[var(--v-surface)]/90 backdrop-blur border border-[var(--v-line)] grid place-items-center text-[var(--v-muted)] hover:text-[var(--v-ink)]"
+                            aria-label={`Actions for ${project.name}`}
+                          >
+                            <MoreHorizontal className="w-3.5 h-3.5" />
+                          </button>
+
+                          {menuOpen && (
+                            <div className="absolute right-0 top-9 w-[176px] v-card p-1.5 shadow-[var(--v-shadow-lg)] z-30">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditTarget(project);
+                                  setEditName(project.name);
+                                  setEditDescription(project.description || '');
+                                  setMenuFor(null);
+                                }}
+                                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[11.5px] font-semibold hover:bg-[var(--v-surface-2)]"
+                              >
+                                <Pencil className="w-3.5 h-3.5 text-[var(--v-muted)]" /> Rename
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void share(project)}
+                                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[11.5px] font-semibold hover:bg-[var(--v-surface-2)]"
+                              >
+                                <Share2 className="w-3.5 h-3.5 text-[var(--v-muted)]" /> Share link
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void archive(project)}
+                                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[11.5px] font-semibold text-[#B94D42] hover:bg-[#FDF2F0]"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" /> Move to trash
+                              </button>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            {!loading && visible.length === 0 && (
+              <div className="mt-6 v-card rounded-[24px] p-10 text-center">
+                <Sparkles className="w-6 h-6 mx-auto text-[var(--v-faint)]" />
+                <p className="mt-2 text-[13.5px] font-bold text-[var(--v-ink)]">
+                  {query ? `No projects match “${query}”` : tab === 'trash' ? 'Trash is empty' : 'No projects yet'}
+                </p>
+                <p className="mt-1 text-[11.5px] text-[var(--v-muted)]">
+                  {tab === 'trash' ? 'Deleted projects can be restored for 30 days.' : 'Create one, or start from a template.'}
+                </p>
+                {tab !== 'trash' && (
+                  <button type="button" onClick={() => setCreateOpen(true)} className="mt-3 v-btn v-btn-primary h-9 px-4 text-[12px]">
+                    <Plus className="w-3.5 h-3.5" /> New project
+                  </button>
+                )}
               </div>
-              <button
-                type="button"
-                onClick={() => setEditTarget(null)}
-                className="p-1 text-[#737A72] hover:text-[#283638] dark:hover:text-white rounded"
-                aria-label="Close"
-              >
+            )}
+          </>
+        )}
+      </section>
+
+      {/* Create modal */}
+      {createOpen && (
+        <div className="fixed inset-0 z-[70] grid place-items-center p-4">
+          <div className="absolute inset-0 bg-[#14121F]/50 backdrop-blur-sm" onClick={() => setCreateOpen(false)} aria-hidden="true" />
+          <form onSubmit={handleCreate} className="relative w-full max-w-[440px] v-card rounded-[24px] p-6 shadow-[var(--v-shadow-lg)]">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="v-eyebrow">New</p>
+                <h2 className="v-display text-[24px] mt-1 text-[var(--v-ink)]">Create a project</h2>
+              </div>
+              <button type="button" onClick={() => setCreateOpen(false)} className="v-icon-btn -mr-2 -mt-2" aria-label="Close">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <label className="block mt-4">
-              <span className="text-xs font-bold text-[#283638] dark:text-[#E7E4D9] block mb-1">Name</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--v-muted)]">Name</span>
               <input
-                value={editName}
-                onChange={(event) => setEditName(event.target.value)}
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="Customer portal redesign"
                 maxLength={120}
-                required
-                className="w-full px-3 py-2.5 rounded-lg border border-[#E5E2D8] dark:border-[#33403F] bg-[#FAFAF8] dark:bg-[#141C1D] text-sm text-[#283638] dark:text-[#E7E4D9] focus:bg-white dark:focus:bg-[#1B2526] focus:outline-none focus:border-[#49686C]"
+                autoFocus
+                className="v-input mt-1.5 h-11 px-4 text-[13px]"
               />
             </label>
+
             <label className="block mt-3">
-              <span className="text-xs font-bold text-[#283638] dark:text-[#E7E4D9] block mb-1">Description</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--v-muted)]">Description</span>
+              <textarea
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                rows={3}
+                placeholder="What is being designed?"
+                className="mt-1.5 w-full rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] px-4 py-3 text-[13px] text-[var(--v-ink)] outline-none focus:border-[var(--v-violet)]"
+              />
+            </label>
+
+            <div className="mt-5 flex items-center justify-between gap-3">
+              <p className="text-[10.5px] text-[var(--v-faint)]">
+                {paid ? 'Unlimited projects' : `${remaining} free project${remaining === 1 ? '' : 's'} remaining`}
+              </p>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setCreateOpen(false)} className="v-btn v-btn-ghost h-9 px-4 text-[12px]">
+                  Cancel
+                </button>
+                <button type="submit" disabled={creating || !name.trim()} className="v-btn v-btn-primary h-9 px-4 text-[12px] disabled:opacity-60">
+                  {creating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                  Create
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Edit modal */}
+      {editTarget && (
+        <div className="fixed inset-0 z-[70] grid place-items-center p-4">
+          <div className="absolute inset-0 bg-[#14121F]/50 backdrop-blur-sm" onClick={() => setEditTarget(null)} aria-hidden="true" />
+          <form onSubmit={handleEditSave} className="relative w-full max-w-[440px] v-card rounded-[24px] p-6 shadow-[var(--v-shadow-lg)]">
+            <div className="flex items-start justify-between">
+              <h2 className="v-display text-[22px] text-[var(--v-ink)]">Edit project</h2>
+              <button type="button" onClick={() => setEditTarget(null)} className="v-icon-btn -mr-2 -mt-2" aria-label="Close">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <label className="block mt-4">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--v-muted)]">Name</span>
+              <input value={editName} onChange={(event) => setEditName(event.target.value)} required maxLength={120} className="v-input mt-1.5 h-11 px-4 text-[13px]" />
+            </label>
+            <label className="block mt-3">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--v-muted)]">Description</span>
               <textarea
                 value={editDescription}
                 onChange={(event) => setEditDescription(event.target.value)}
                 rows={3}
-                className="w-full px-3 py-2.5 rounded-lg border border-[#E5E2D8] dark:border-[#33403F] bg-[#FAFAF8] dark:bg-[#141C1D] text-sm text-[#283638] dark:text-[#E7E4D9] focus:bg-white dark:focus:bg-[#1B2526] focus:outline-none focus:border-[#49686C]"
+                className="mt-1.5 w-full rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] px-4 py-3 text-[13px] text-[var(--v-ink)] outline-none focus:border-[var(--v-violet)]"
               />
             </label>
-
-            <div className="flex justify-end gap-2 pt-4">
-              <button
-                type="button"
-                onClick={() => setEditTarget(null)}
-                className="px-3.5 py-1.5 border border-[#E5E2D8] dark:border-[#33403F] rounded-lg text-xs font-semibold text-[#737A72] hover:bg-[#F6F4EC] dark:hover:bg-[#263335]"
-              >
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => setEditTarget(null)} className="v-btn v-btn-ghost h-9 px-4 text-[12px]">
                 Cancel
               </button>
-              <button
-                type="submit"
-                disabled={savingEdit || !editName.trim()}
-                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-lg bg-[#49686C] text-white text-xs font-semibold hover:bg-[#30494B] disabled:opacity-60"
-              >
-                {savingEdit && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                Save changes
+              <button type="submit" disabled={savingEdit || !editName.trim()} className="v-btn v-btn-primary h-9 px-4 text-[12px] disabled:opacity-60">
+                {savingEdit && <Loader2 className="w-3.5 h-3.5 animate-spin" />} Save
               </button>
             </div>
           </form>
@@ -330,14 +593,13 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onOpenProject, onOpe
 
       <ConfirmDialog
         open={!!deleteTarget}
-        title="Delete this project?"
+        title="Delete permanently?"
         message={
           <>
-            Deleting <b>{deleteTarget?.name}</b> also removes its documents, requirements,
-            analysis history, design systems and prompts. This cannot be undone.
+            <b>{deleteTarget?.name}</b> and everything inside it will be removed. This cannot be undone.
           </>
         }
-        confirmLabel="Delete project"
+        confirmLabel="Delete forever"
         busy={deleting}
         onConfirm={() => void handleDelete()}
         onCancel={() => setDeleteTarget(null)}

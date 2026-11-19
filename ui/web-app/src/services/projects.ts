@@ -1,5 +1,6 @@
 import type { Project, ProjectStatus } from '../types/projects.ts';
 import { supabase } from './supabase/client.ts';
+import { recordProjectCreated } from './entitlements.ts';
 
 const LOCAL_KEY = 'vector_projects_v1';
 
@@ -57,6 +58,7 @@ export const projectService = {
   async create(userId: string | null, name: string, description = ''): Promise<Project> {
     const trimmed = name.trim();
     if (!trimmed) throw new Error('Project name is required.');
+    recordProjectCreated();
     if (!supabase || !userId) {
       const now = new Date().toISOString();
       const project: Project = {

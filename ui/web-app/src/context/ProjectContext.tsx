@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import type { Project } from '../types/projects.ts';
+import type { Project, ProjectStatus } from '../types/projects.ts';
 import { projectService } from '../services/projects.ts';
 import { useAuth } from './AuthContext.tsx';
 
@@ -10,7 +10,7 @@ interface ProjectContextValue {
   error: string | null;
   selectProject: (projectId: string) => void;
   createProject: (name: string, description?: string) => Promise<Project>;
-  updateProject: (projectId: string, patch: { name?: string; description?: string }) => Promise<Project>;
+  updateProject: (projectId: string, patch: { name?: string; description?: string; status?: ProjectStatus }) => Promise<Project>;
   deleteProject: (projectId: string) => Promise<void>;
   refresh: () => Promise<void>;
 }

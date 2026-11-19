@@ -32,6 +32,7 @@ import { SpellingNotice } from '../components/ui/SpellingNotice.tsx';
 import { useProject } from '../context/ProjectContext.tsx';
 import { useToast } from '../components/ui/Toast.tsx';
 import type { AnalysisResult, RiskLevel } from '../types/analysis.ts';
+import { setAdvisorContext } from '../services/aiAdvisor.ts';
 
 interface NewAnalysisPageProps {
   initialResult?: AnalysisResult | null;
@@ -298,6 +299,11 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
   const [plan, setPlan] = useState<DetectionPlan | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
   const planRef = useRef<DetectionPlan | null>(null);
+
+  // Keep the AI help panel aware of the prompt being analysed.
+  useEffect(() => {
+    setAdvisorContext({ title: currentProject?.name || 'Prompt analysis', prompt: text, kind: 'prompt' });
+  }, [text, currentProject?.name]);
 
   // Boot Pyodide on mount.
   useEffect(() => {

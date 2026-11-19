@@ -1,21 +1,30 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Check,
-  ChevronDown,
+  ArrowLeft,
+  ArrowRight,
+  Blocks,
+  Compass,
+  FileText,
   FolderKanban,
-  LogIn,
-  LogOut,
+  GraduationCap,
+  LayoutTemplate,
   Menu,
   Moon,
+  Plus,
+  Plug,
+  Search,
   Settings,
+  Sparkles,
   Sun,
-  UserRound,
+  Wallet,
 } from 'lucide-react';
 import type { ActiveTab } from '../../types/analysis.ts';
 import { useTheme } from '../../context/ThemeContext.tsx';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { useProject } from '../../context/ProjectContext.tsx';
 import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
+import { ProfileMenu } from './ProfileMenu.tsx';
+import { NotificationsMenu } from './NotificationsMenu.tsx';
 
 interface HeaderProps {
   activeTab: ActiveTab;
@@ -23,7 +32,49 @@ interface HeaderProps {
   onOpenMobileMenu: () => void;
   publicMode?: boolean;
   onRequestSignIn?: () => void;
+  onReplayTour?: () => void;
+  onOpenAssistant?: () => void;
 }
+
+const TITLES: Record<ActiveTab, string> = {
+  about: 'About Vector',
+  overview: 'Overview',
+  dashboard: 'Home',
+  projects: 'Projects',
+  project: 'Project workspace',
+  templates: 'Templates',
+  library: 'Library',
+  learn: 'Learn',
+  pricing: 'Plans and pricing',
+  integrations: 'Integrations',
+  requirements: 'Requirements',
+  intelligence: 'Requirement intelligence',
+  review: 'Review & acceptance',
+  prompt: 'Prompt studio',
+  design: 'Design systems',
+  workspace: 'Build workspace',
+  'new-analysis': 'New analysis',
+  editor: 'Editor',
+  history: 'History',
+  manual: 'Manual',
+  settings: 'Settings',
+  privacy: 'Privacy',
+  terms: 'Terms of service',
+  contact: 'Contact',
+};
+
+const COMMANDS: Array<{ id: ActiveTab; label: string; hint: string; icon: React.ElementType }> = [
+  { id: 'dashboard', label: 'Home', hint: 'Dashboard', icon: Compass },
+  { id: 'projects', label: 'Projects', hint: 'All projects, recents, trash', icon: FolderKanban },
+  { id: 'templates', label: 'Templates', hint: '10 previewable starters', icon: LayoutTemplate },
+  { id: 'learn', label: 'Learn', hint: 'Guides and walkthroughs', icon: GraduationCap },
+  { id: 'prompt', label: 'Prompt studio', hint: 'Build the prompt', icon: Sparkles },
+  { id: 'requirements', label: 'Requirements', hint: 'Documents and traceability', icon: FileText },
+  { id: 'integrations', label: 'Integrations', hint: 'Figma, Canva, Vercel, Netlify', icon: Plug },
+  { id: 'design', label: 'Design systems', hint: 'Tokens and brand context', icon: Blocks },
+  { id: 'pricing', label: 'Plans and pricing', hint: 'Trial and billing', icon: Wallet },
+  { id: 'settings', label: 'Settings', hint: 'Preferences and account', icon: Settings },
+];
 
 export const Header: React.FC<HeaderProps> = ({
   activeTab,
@@ -31,48 +82,47 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenMobileMenu,
   publicMode = false,
   onRequestSignIn,
+  onReplayTour,
+  onOpenAssistant,
 }) => {
   const { theme, toggleTheme } = useTheme();
-  const { user, signOut, localMode } = useAuth();
-  const { projects, currentProject, selectProject } = useProject();
-  const [projectMenuOpen, setProjectMenuOpen] = useState(false);
+  const { signOut } = useAuth();
+  const { selectProject, projects } = useProject();
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [confirmingLogout, setConfirmingLogout] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
-  const projectMenuRef = useRef<HTMLDivElement>(null);
+  const [query, setQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!projectMenuOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        inputRef.current?.focus();
+        setSearchOpen(true);
+      }
+      if (event.key === 'Escape') setSearchOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  useEffect(() => {
     const onDown = (event: MouseEvent) => {
-      if (!projectMenuRef.current?.contains(event.target as Node)) setProjectMenuOpen(false);
+      if (!searchRef.current?.contains(event.target as Node)) setSearchOpen(false);
     };
     window.addEventListener('mousedown', onDown);
     return () => window.removeEventListener('mousedown', onDown);
-  }, [projectMenuOpen]);
+  }, []);
 
-  const titles: Record<ActiveTab, { title: string; subtitle: string }> = {
-    about: { title: 'About Vector', subtitle: 'Vector — Requirement engineering for UI teams' },
-    overview: { title: 'Overview', subtitle: 'Projects & Analysis' },
-    projects: { title: 'Projects', subtitle: 'Requirement Workspaces' },
-    requirements: { title: 'Requirement Compiler', subtitle: 'Documents & Traceability' },
-    intelligence: { title: 'Requirement Intelligence', subtitle: 'Graph, Conflicts & Dependencies' },
-    review: { title: 'Review & Acceptance', subtitle: 'Suggestions, Edge Cases & Criteria' },
-    prompt: { title: 'Specification & Prompt', subtitle: 'Design Brief Generator' },
-    design: { title: 'Design Systems', subtitle: 'Tokens & Brand Context' },
-    workspace: { title: 'Base44 Workspace', subtitle: 'Prompt → Build → Preview' },
-    'new-analysis': { title: 'New UI Prompt Analysis', subtitle: 'Vector — Requirement engineering for UI teams' },
-    history: { title: 'Analysis History', subtitle: 'Past Evaluations' },
-    manual: { title: 'Manual', subtitle: 'How to use Vector' },
-    settings: { title: 'Settings', subtitle: 'Preferences & Help' },
-    privacy: { title: 'Privacy Policy', subtitle: 'Data & Processing' },
-  };
-
-  const current = titles[activeTab] || titles.overview;
-  const displayName =
-    (user?.user_metadata?.display_name as string | undefined)?.trim() ||
-    (user?.user_metadata?.full_name as string | undefined)?.trim() ||
-    (user?.user_metadata?.name as string | undefined)?.trim() ||
-    user?.email ||
-    'Account';
+  const filtered = COMMANDS.filter(
+    (command) =>
+      !query.trim() ||
+      command.label.toLowerCase().includes(query.toLowerCase()) ||
+      command.hint.toLowerCase().includes(query.toLowerCase())
+  );
 
   const handleSignOut = async () => {
     setSigningOut(true);
@@ -86,167 +136,165 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <>
-      <header className="sticky top-0 z-30 h-16 border-b border-[#E5E2D8] bg-[#FFFFFF] dark:border-[#29383A] dark:bg-[#1B2426]">
-        <div className="mx-auto flex h-full w-full max-w-[1600px] items-center justify-between gap-2 px-4 lg:px-8">
-        <div className="flex items-center gap-3 min-w-0">
+      <header className="sticky top-0 z-30 h-[68px] border-b border-[var(--v-line)] v-glass">
+        <div className="mx-auto flex h-full w-full max-w-[1680px] items-center gap-3 px-4 lg:px-6">
           <button
             onClick={onOpenMobileMenu}
-            className="lg:hidden p-2 -ml-2 text-[#283638] dark:text-[#E7E4D9] hover:bg-[#F6F4EC] dark:hover:bg-[#263335] rounded-lg transition-colors"
+            className="lg:hidden v-icon-btn -ml-2"
             aria-label="Open navigation menu"
           >
             <Menu className="w-5 h-5" />
           </button>
 
-          <div className="flex items-center gap-2 text-sm text-[#737A72] min-w-0">
-            <span className="font-semibold text-[#283638] dark:text-[#E7E4D9] text-base sm:text-lg tracking-tight truncate">
-              {current.title}
-            </span>
-            <span className="hidden sm:inline-block text-[#CDC9BC]" aria-hidden="true">/</span>
-            <span className="hidden sm:inline-block text-xs font-medium text-[#737A72] dark:text-[#8E9A93] truncate">
-              {current.subtitle}
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {publicMode ? (
-            <>
-              <button
-                type="button"
-                onClick={onRequestSignIn}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#49686C] hover:bg-[#30494B] text-white text-xs font-bold transition-colors"
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Sign in</span>
-              </button>
-            </>
-          ) : (
-            <>
-              {/* Project switcher */}
-              <div className="relative" ref={projectMenuRef}>
-                <button
-                  type="button"
-                  onClick={() => setProjectMenuOpen((open) => !open)}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#F6F4EC] dark:bg-[#141C1D] border border-[#E5E2D8] dark:border-[#33403F] text-xs font-semibold text-[#49686C] dark:text-[#B9D1D4] hover:bg-[#F0EDE3] dark:hover:bg-[#222E30] transition-colors max-w-[190px]"
-                  aria-haspopup="menu"
-                  aria-expanded={projectMenuOpen}
-                  aria-label="Switch project"
-                >
-                  <FolderKanban className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">{currentProject?.name || 'No project'}</span>
-                  <ChevronDown className={`w-3 h-3 shrink-0 transition-transform ${projectMenuOpen ? 'rotate-180' : ''}`} />
-                </button>
-
-                {projectMenuOpen && (
-                  <div
-                    role="menu"
-                    className="absolute right-0 top-full mt-2 w-72 bg-[#FFFFFF] dark:bg-[#1B2426] border border-[#E5E2D8] dark:border-[#33403F] rounded-xl shadow-xl z-50 overflow-hidden"
-                  >
-                    <div className="px-3 py-2 border-b border-[#E5E2D8] dark:border-[#29383A]">
-                      <span className="text-[10px] uppercase tracking-wider font-bold text-[#737A72]">Switch project</span>
-                    </div>
-                    <div className="max-h-64 overflow-y-auto py-1">
-                      {projects.length === 0 && (
-                        <p className="px-3 py-3 text-xs text-[#737A72]">No projects yet.</p>
-                      )}
-                      {projects.map((project) => {
-                        const active = project.id === currentProject?.id;
-                        return (
-                          <button
-                            key={project.id}
-                            type="button"
-                            role="menuitem"
-                            onClick={() => {
-                              selectProject(project.id);
-                              setProjectMenuOpen(false);
-                            }}
-                            className="w-full flex items-start gap-2 px-3 py-2 text-left hover:bg-[#F6F4EC] dark:hover:bg-[#222E30] transition-colors"
-                          >
-                            <span className="mt-0.5 w-4 h-4 rounded-full border border-[#E5E2D8] dark:border-[#33403F] flex items-center justify-center shrink-0">
-                              {active && <Check className="w-2.5 h-2.5 text-[#3E6B33]" />}
-                            </span>
-                            <span className="min-w-0">
-                              <span className="block text-xs font-bold text-[#283638] dark:text-[#E7E4D9] truncate">
-                                {project.name}
-                              </span>
-                              <span className="block text-[10px] text-[#737A72] truncate">
-                                {project.description || 'No description'}
-                              </span>
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => {
-                        setActiveTab('projects');
-                        setProjectMenuOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-2.5 border-t border-[#E5E2D8] dark:border-[#29383A] text-xs font-bold text-[#49686C] dark:text-[#B9D1D4] hover:bg-[#F6F4EC] dark:hover:bg-[#222E30]"
-                    >
-                      Manage projects
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {localMode ? (
-                <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#FFF7ED] border border-[#FED7AA] text-[11px] font-semibold text-[#9C4A28]">
-                  Local mode
-                </span>
-              ) : (
-                <span
-                  className="hidden xl:inline-flex items-center gap-1 text-[11px] text-[#737A72] dark:text-[#8E9A93] max-w-[150px] truncate"
-                  title={displayName}
-                >
-                  <UserRound className="w-3 h-3 shrink-0" />
-                  {displayName}
-                </span>
-              )}
-            </>
-          )}
-
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className="p-2 rounded-lg text-[#737A72] dark:text-[#8E9A93] hover:text-[#283638] dark:hover:text-white hover:bg-[#F6F4EC] dark:hover:bg-[#263335] transition-colors cursor-pointer"
-            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-          >
-            {theme === 'dark' ? (
-              <Sun className="w-4 h-4 text-[#D1B653]" />
-            ) : (
-              <Moon className="w-4 h-4 text-[#49686C]" />
-            )}
-          </button>
-
-          {!publicMode && (
-            <button
-              onClick={() => setActiveTab('settings')}
-              className={`p-2 rounded-lg text-[#737A72] dark:text-[#8E9A93] hover:text-[#283638] dark:hover:text-white hover:bg-[#F6F4EC] dark:hover:bg-[#263335] transition-colors ${
-                activeTab === 'settings' ? 'bg-[#F6F4EC] dark:bg-[#263335] text-[#283638] dark:text-white' : ''
-              }`}
-              aria-label="Open settings"
-              title="Open settings"
-            >
-              <Settings className="w-4 h-4" />
-            </button>
-          )}
-
-          {!publicMode && !localMode && (
+          {activeTab !== 'dashboard' && (
             <button
               type="button"
-              onClick={() => setConfirmingLogout(true)}
-              className="p-2 rounded-lg text-[#737A72] dark:text-[#8E9A93] hover:text-[#283638] dark:hover:text-white hover:bg-[#F6F4EC] dark:hover:bg-[#263335] transition-colors"
-              aria-label="Log out"
-              title="Log out"
+              onClick={() => {
+                if (window.history.length > 1) window.history.back();
+                else setActiveTab('dashboard');
+              }}
+              className="v-icon-btn shrink-0 -ml-1"
+              aria-label="Go back"
+              title="Back"
             >
-              <LogOut className="w-4 h-4" />
+              <ArrowLeft className="w-4 h-4" />
             </button>
           )}
-        </div>
+
+          <span className="v-display text-[19px] tracking-tight text-[var(--v-ink)] shrink-0">
+            {TITLES[activeTab] || 'Vector'}
+          </span>
+
+          {!publicMode && (
+            <div className="relative flex-1 max-w-[520px] mx-auto hidden md:block" ref={searchRef}>
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--v-faint)] pointer-events-none" />
+              <input
+                ref={inputRef}
+                value={query}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setSearchOpen(true);
+                }}
+                onFocus={() => setSearchOpen(true)}
+                placeholder="Search projects, templates and tools"
+                className="v-input h-10 pl-11 pr-16 text-[13px]"
+                aria-label="Search"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 hidden lg:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md border border-[var(--v-line)] text-[10px] font-semibold text-[var(--v-faint)]">
+                ⌘K
+              </span>
+
+              {searchOpen && (
+                <div className="absolute left-0 right-0 top-[46px] v-card p-2 shadow-[var(--v-shadow-lg)] z-50">
+                  <p className="px-2 py-1.5 v-eyebrow">Jump to</p>
+                  {filtered.length === 0 && (
+                    <p className="px-2 py-3 text-[12px] text-[var(--v-muted)]">Nothing matches “{query}”.</p>
+                  )}
+                  {filtered.map((command) => {
+                    const Icon = command.icon;
+                    return (
+                      <button
+                        key={command.id}
+                        type="button"
+                        onClick={() => {
+                          setActiveTab(command.id);
+                          setSearchOpen(false);
+                          setQuery('');
+                        }}
+                        className="w-full flex items-center gap-3 px-2.5 py-2 rounded-xl text-left hover:bg-[var(--v-surface-2)] transition-colors"
+                      >
+                        <span className="w-7 h-7 rounded-lg bg-[var(--v-surface-2)] grid place-items-center shrink-0">
+                          <Icon className="w-3.5 h-3.5 text-[var(--v-muted)]" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[12.5px] font-semibold text-[var(--v-ink)] truncate">{command.label}</span>
+                          <span className="block text-[10.5px] text-[var(--v-faint)] truncate">{command.hint}</span>
+                        </span>
+                        <ArrowRight className="w-3.5 h-3.5 text-[var(--v-faint)]" />
+                      </button>
+                    );
+                  })}
+
+                  {projects.length > 0 && !query && (
+                    <>
+                      <div className="h-px bg-[var(--v-line)] my-1.5" />
+                      <p className="px-2 py-1.5 v-eyebrow">Recent projects</p>
+                      {projects.slice(0, 3).map((project) => (
+                        <button
+                          key={project.id}
+                          type="button"
+                          onClick={() => {
+                            selectProject(project.id);
+                            setActiveTab('requirements');
+                            setSearchOpen(false);
+                            setQuery('');
+                          }}
+                          className="w-full flex items-center gap-3 px-2.5 py-2 rounded-xl text-left hover:bg-[var(--v-surface-2)]"
+                        >
+                          <span className="w-7 h-7 rounded-lg v-grad text-white grid place-items-center text-[10px] font-bold shrink-0">
+                            {project.name.slice(0, 2).toUpperCase()}
+                          </span>
+                          <span className="text-[12.5px] font-semibold text-[var(--v-ink)] truncate">{project.name}</span>
+                        </button>
+                      ))}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="ml-auto flex items-center gap-1 sm:gap-1.5 shrink-0">
+            {publicMode ? (
+              <button type="button" onClick={onRequestSignIn} className="v-btn v-btn-primary h-9 px-4 text-[12.5px]">
+                Sign in
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('projects')}
+                  className="v-btn v-btn-primary h-9 px-3.5 text-[12.5px] hidden sm:inline-flex"
+                >
+                  <Plus className="w-4 h-4" /> Create
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onOpenAssistant}
+                  className="v-btn v-btn-ghost h-9 px-3 text-[12.5px] text-[var(--v-violet)]"
+                  title="Ask AI for help with this prompt"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span className="hidden lg:inline">Ask AI</span>
+                </button>
+
+                <NotificationsMenu
+                  open={notificationsOpen}
+                  onOpenChange={setNotificationsOpen}
+                  onNavigate={setActiveTab}
+                />
+
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className="v-icon-btn"
+                  aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                >
+                  {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                </button>
+
+                <ProfileMenu
+                  activeTab={activeTab}
+                  onNavigate={setActiveTab}
+                  onSignOut={() => setConfirmingLogout(true)}
+                  onReplayTour={() => onReplayTour?.()}
+                  onOpenNotifications={() => setNotificationsOpen(true)}
+                  unreadCount={0}
+                />
+              </>
+            )}
+          </div>
         </div>
       </header>
 

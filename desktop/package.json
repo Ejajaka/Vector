@@ -1,0 +1,39 @@
+{
+  "name": "vector-desktop",
+  "productName": "Vector",
+  "version": "2.0.0",
+  "description": "Vector desktop — UI prompt engineering for Windows, macOS and Linux",
+  "main": "main.js",
+  "author": "Vector",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "start:dev": "cross-env VECTOR_DEV_URL=http://localhost:3000 electron .",
+    "dist": "electron-builder --win --x64",
+    "dist:mac": "electron-builder --mac --universal",
+    "dist:linux": "electron-builder --linux --x64"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "dev.vector.desktop",
+    "productName": "Vector",
+    "directories": { "output": "release" },
+    "files": ["main.js", "preload.js", "package.json"],
+    "extraResources": [{ "from": "../ui/web-app/dist", "to": "app" }],
+    "win": { "target": ["nsis"], "artifactName": "Vector-Setup-${version}.${ext}" },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true },
+    "mac": {
+      "target": ["dmg"],
+      "category": "public.app-category.developer-tools",
+      "artifactName": "Vector-${version}-${arch}.${ext}",
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false
+    },
+    "linux": { "target": ["AppImage"], "category": "Development" }
+  }
+}
