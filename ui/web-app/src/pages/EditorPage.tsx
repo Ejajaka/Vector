@@ -4022,7 +4022,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
 
               <div className="rounded-lg bg-[#383838] p-3">
                 <p className="text-[11px] font-semibold mb-1">2. Open Base44 and paste</p>
-                <p className="text-[10.5px] text-white/50">Base44's own sign-in is required â€” Vector does not hold your credentials.</p>
+                <p className="text-[10.5px] text-white/50">Base44's own sign-in is required — Vector does not hold your credentials.</p>
                 <a href="https://app.base44.com" target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-[11px] font-semibold text-white" style={{ background: '#0D99FF' }}>
                   Open Base44 <ExternalLink className="w-3 h-3" />
                 </a>
@@ -4035,9 +4035,15 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                   <span className="w-2 h-2 rounded-full bg-[#22D3EE]" />
                   <span className="ml-1 text-[9.5px] text-white/35">app.base44.com</span>
                 </div>
-                <iframe title="Base44" src="https://app.base44.com" className="w-full h-[420px] canvas-surface" sandbox="allow-scripts allow-forms allow-same-origin allow-popups" />
+                <iframe
+                  title="Base44"
+                  src="https://app.base44.com"
+                  className="w-full h-[420px] canvas-surface"
+                  sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-modals"
+                  allow="clipboard-read; clipboard-write"
+                />
               </div>
-              <p className="text-[9.5px] text-white/30">If the panel stays blank, Base44 blocks embedding. Use â€œOpen Base44â€ â€” the prompt is already copied.</p>
+              <p className="text-[9.5px] text-white/30">If the panel stays blank, Base44 blocks embedding. Use "Open Base44" — the prompt is already copied.</p>
             </div>
           </div>
         </div>

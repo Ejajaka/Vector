@@ -1,5 +1,10 @@
 # Base44 proxy
 
+> **Current app behaviour:** the Build workspace embeds `https://app.base44.com`
+> in an iframe and offers **Copy prompt for Base44**. No API token or proxy is
+> used by the UI today. This document is kept for the optional server-side
+> generation path in `api/base44/apps.ts`.
+
 Vector can create a Base44 app directly from the active UI prompt. The browser
 must not hold a workspace token in production, so use the server proxy in
 `api/base44/apps.ts`.
