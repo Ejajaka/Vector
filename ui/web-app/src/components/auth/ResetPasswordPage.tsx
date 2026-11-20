@@ -29,11 +29,11 @@ export const ResetPasswordPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#F6F4EC] flex items-center justify-center px-4">
-      <div className="w-full max-w-md bg-[#FFFFFF] border border-[#E5E2D8] rounded-2xl shadow-xs p-6">
+      <div className="w-full max-w-md bg-[#FFFFFF] border border-[#E5E2D8] rounded-lg shadow-xs p-6">
         <div className="w-11 h-11 rounded-xl bg-[#2D5D4F] text-white flex items-center justify-center mb-4">
           <KeyRound className="w-5 h-5" />
         </div>
-        <h1 className="text-xl font-bold text-[#283638] tracking-tight">Choose a new password</h1>
+        <h1 className="text-xl font-semibold text-[#283638] tracking-tight">Choose a new password</h1>
         <p className="text-xs text-[#737A72] mt-1 mb-5">Your reset link signed you in securely. Set a new password to continue.</p>
 
         {done ? (
@@ -45,7 +45,7 @@ export const ResetPasswordPage: React.FC = () => {
             <button
               type="button"
               onClick={() => { void signOut(); }}
-              className="w-full px-4 py-2.5 rounded-lg bg-[#49686C] hover:bg-[#30494B] text-white text-xs font-bold"
+              className="w-full px-4 py-2.5 rounded-lg bg-[#49686C] hover:bg-[#30494B] text-white text-xs font-semibold"
             >
               Sign in with the new password
             </button>
@@ -53,7 +53,7 @@ export const ResetPasswordPage: React.FC = () => {
         ) : (
           <form onSubmit={submit} className="space-y-4">
             <label className="block">
-              <span className="text-xs font-bold text-[#283638] block mb-1">New password</span>
+              <span className="text-xs font-semibold text-[#283638] block mb-1">New password</span>
               <div className="relative">
                 <LockKeyhole className="w-4 h-4 text-[#737A72] absolute left-3 top-3" />
                 <input
@@ -68,7 +68,7 @@ export const ResetPasswordPage: React.FC = () => {
               </div>
             </label>
             <label className="block">
-              <span className="text-xs font-bold text-[#283638] block mb-1">Confirm password</span>
+              <span className="text-xs font-semibold text-[#283638] block mb-1">Confirm password</span>
               <input
                 type="password"
                 required
@@ -83,7 +83,7 @@ export const ResetPasswordPage: React.FC = () => {
             <button
               type="submit"
               disabled={busy}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#49686C] hover:bg-[#30494B] disabled:opacity-60 text-white text-xs font-bold"
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#49686C] hover:bg-[#30494B] disabled:opacity-60 text-white text-xs font-semibold"
             >
               {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
               Update password

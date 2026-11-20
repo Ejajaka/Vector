@@ -53,7 +53,7 @@ export const SideBySideBuild: React.FC<SideBySideBuildProps> = ({ open, prompt, 
                 setToolId(entry.id);
                 setReloadKey((value) => value + 1);
               }}
-              className={`h-7 rounded-md px-2 text-[10px] font-bold ${
+              className={`h-7 rounded-md px-2 text-[10px] font-semibold ${
                 toolId === entry.id ? 'bg-white text-[#17171A]' : 'text-white/55 hover:bg-white/10 hover:text-white'
               }`}
               title={entry.hint}
@@ -71,7 +71,7 @@ export const SideBySideBuild: React.FC<SideBySideBuildProps> = ({ open, prompt, 
       <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(320px,38%)_1fr]">
         <section className="flex min-h-0 flex-col border-b border-white/10 lg:border-b-0 lg:border-r">
           <div className="flex shrink-0 items-center gap-2 border-b border-white/10 px-3 py-2">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/35">Final prompt</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">Final prompt</p>
             <button
               type="button"
               onClick={copy}
@@ -109,7 +109,7 @@ export const SideBySideBuild: React.FC<SideBySideBuildProps> = ({ open, prompt, 
               href={tool.url}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex h-7 items-center gap-1 rounded-md bg-white px-2.5 text-[10px] font-bold text-[#17171A]"
+              className="inline-flex h-7 items-center gap-1 rounded-md bg-white px-2.5 text-[10px] font-semibold text-[#17171A]"
             >
               Open in new tab <ArrowUpRight className="h-3 w-3" />
             </a>

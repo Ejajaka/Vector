@@ -18,7 +18,7 @@ export const TemplatePickerModal: React.FC<TemplatePickerModalProps> = ({ open, 
     <div className="fixed inset-0 z-[70] grid place-items-center p-4" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-[#06080C]/55 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
 
-      <div className="relative w-full max-w-[960px] overflow-hidden rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] shadow-[var(--v-shadow-lg)]">
+      <div className="relative w-full max-w-[960px] overflow-hidden rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] shadow-[var(--v-shadow-lg)]">
         <div className="flex items-start justify-between border-b border-[var(--v-line)] px-5 py-4">
           <div>
             <p className="v-eyebrow">Step 2 of 2</p>
@@ -43,8 +43,8 @@ export const TemplatePickerModal: React.FC<TemplatePickerModalProps> = ({ open, 
               >
                 <div className="flex items-center gap-2">
                   <span className="h-7 w-7 rounded-lg" style={{ background: type.accent }} />
-                  <span className="text-[13px] font-bold text-[var(--v-ink)]">{type.name}</span>
-                  <span className="ml-auto text-[9px] font-bold uppercase tracking-wider text-[var(--v-faint)]">Theme</span>
+                  <span className="text-[13px] font-semibold text-[var(--v-ink)]">{type.name}</span>
+                  <span className="ml-auto text-[9px] font-semibold uppercase tracking-wider text-[var(--v-faint)]">Theme</span>
                 </div>
                 <p className="mt-1.5 text-[11px] text-[var(--v-muted)]">{type.blurb}</p>
                 <div className="mt-2 flex flex-wrap gap-1">
@@ -65,7 +65,7 @@ export const TemplatePickerModal: React.FC<TemplatePickerModalProps> = ({ open, 
             <button type="button" onClick={onSkip} className="h-8 rounded-lg border border-[var(--v-line)] px-3 text-[11px] font-semibold text-[var(--v-muted)]">
               Skip for now
             </button>
-            <button type="button" onClick={onSkip} className="h-8 rounded-lg bg-[var(--v-ink)] px-3.5 text-[11px] font-bold text-[var(--v-surface)] inline-flex items-center gap-1.5">
+            <button type="button" onClick={onSkip} className="h-8 rounded-lg bg-[var(--v-ink)] px-3.5 text-[11px] font-semibold text-[var(--v-surface)] inline-flex items-center gap-1.5">
               Open blank canvas <ArrowRight className="w-3 h-3" />
             </button>
           </div>

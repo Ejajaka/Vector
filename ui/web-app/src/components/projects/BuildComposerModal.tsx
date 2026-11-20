@@ -66,7 +66,7 @@ export const BuildComposerModal: React.FC<BuildComposerModalProps> = ({
         {on ? <Check className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[11.5px] font-bold text-[var(--v-ink)]">{title}</span>
+        <span className="block text-[11.5px] font-semibold text-[var(--v-ink)]">{title}</span>
         <span className="block text-[10px] text-[var(--v-muted)]">{body}</span>
       </span>
     </button>
@@ -76,11 +76,11 @@ export const BuildComposerModal: React.FC<BuildComposerModalProps> = ({
     <div className="fixed inset-0 z-[80] grid place-items-center p-4" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-[#06080C]/55 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
 
-      <div className="relative flex max-h-[88vh] w-full max-w-[760px] flex-col overflow-hidden rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] shadow-[var(--v-shadow-lg)]">
+      <div className="relative flex max-h-[88vh] w-full max-w-[760px] flex-col overflow-hidden rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] shadow-[var(--v-shadow-lg)]">
         <div className="flex items-start justify-between border-b border-[var(--v-line)] px-5 py-3.5">
           <div>
             <p className="v-eyebrow">Build and generate</p>
-            <h2 className="mt-1 text-[16px] font-bold text-[var(--v-ink)]">Compose the final brief</h2>
+            <h2 className="mt-1 text-[16px] font-semibold text-[var(--v-ink)]">Compose the final brief</h2>
             <p className="mt-0.5 text-[10.5px] text-[var(--v-muted)]">Everything selected is merged into one prompt for the generator.</p>
           </div>
           <button type="button" onClick={onClose} className="v-icon-btn h-7 w-7" aria-label="Close">
@@ -90,7 +90,7 @@ export const BuildComposerModal: React.FC<BuildComposerModalProps> = ({
 
         <div className="grid flex-1 gap-4 overflow-y-auto v-scroll px-5 py-4 md:grid-cols-2">
           <div className="space-y-2">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--v-faint)]">Sources</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--v-faint)]">Sources</p>
             <Source
               icon={LayoutTemplate}
               title="Canvas brief"
@@ -117,7 +117,7 @@ export const BuildComposerModal: React.FC<BuildComposerModalProps> = ({
             />
 
             <label className="block pt-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--v-faint)]">Add your own instructions</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--v-faint)]">Add your own instructions</span>
               <textarea
                 value={extra}
                 onChange={(event) => setExtra(event.target.value)}
@@ -129,7 +129,7 @@ export const BuildComposerModal: React.FC<BuildComposerModalProps> = ({
           </div>
 
           <div className="flex min-h-0 flex-col">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--v-faint)]">Merged prompt</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--v-faint)]">Merged prompt</p>
             <textarea
               readOnly
               value={finalPrompt}
@@ -143,8 +143,8 @@ export const BuildComposerModal: React.FC<BuildComposerModalProps> = ({
           <button
             type="button"
             onClick={() => onConnect(finalPrompt)}
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg px-4 text-[11.5px] font-bold text-white"
-            style={{ backgroundImage: 'linear-gradient(118deg,#7C5CFF,#4D7CFE 55%,#22D3EE)' }}
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg px-4 text-[11.5px] font-semibold text-white"
+            style={{ backgroundColor: 'var(--v-accent)' }}
           >
             <Sparkles className="h-3.5 w-3.5" /> Continue to generator <ArrowRight className="h-3.5 w-3.5" />
           </button>

@@ -85,7 +85,7 @@ export const ProjectSetupWizard: React.FC<ProjectSetupWizardProps> = ({ open, pr
   return (
     <div className="fixed inset-0 z-[96] grid place-items-center overflow-y-auto p-3 sm:p-5" role="dialog" aria-modal="true" aria-label="Set up this project">
       <div className="absolute inset-0 bg-[#14121F]/65 backdrop-blur-sm" aria-hidden="true" />
-      <div className="v-scroll relative max-h-[92vh] w-full max-w-[820px] overflow-y-auto rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] p-4 shadow-[0_40px_100px_-30px_rgba(20,18,31,.55)] sm:p-6">
+      <div className="v-scroll relative max-h-[92vh] w-full max-w-[820px] overflow-y-auto rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] p-4 shadow-[0_40px_100px_-30px_rgba(20,18,31,.55)] sm:p-6">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
             <p className="v-eyebrow">New project · {project.name}</p>
@@ -100,7 +100,7 @@ export const ProjectSetupWizard: React.FC<ProjectSetupWizardProps> = ({ open, pr
                   : 'Choose a template, start blank, or import a design. You can change any of this later.'}
             </p>
           </div>
-          <span className="rounded-full bg-[var(--v-surface-2)] px-2.5 py-1 text-[9.5px] font-bold text-[var(--v-muted)]">
+          <span className="rounded-full bg-[var(--v-surface-2)] px-2.5 py-1 text-[9.5px] font-semibold text-[var(--v-muted)]">
             {step + 1} of 3
           </span>
         </div>
@@ -126,7 +126,7 @@ export const ProjectSetupWizard: React.FC<ProjectSetupWizardProps> = ({ open, pr
                     {active && <Check className="h-2.5 w-2.5" />}
                   </span>
                   <span className="min-w-0">
-                    <span className="block text-[11.5px] font-bold text-[var(--v-ink)]">{purpose.label}</span>
+                    <span className="block text-[11.5px] font-semibold text-[var(--v-ink)]">{purpose.label}</span>
                     <span className="mt-0.5 block text-[9.5px] leading-relaxed text-[var(--v-muted)]">{purpose.hint}</span>
                   </span>
                 </button>
@@ -180,7 +180,7 @@ export const ProjectSetupWizard: React.FC<ProjectSetupWizardProps> = ({ open, pr
                     <span className={`grid h-8 w-8 place-items-center rounded-lg ${active ? 'bg-[var(--v-violet)] text-white' : 'bg-[var(--v-surface)] text-[var(--v-muted)]'}`}>
                       <Icon className="h-4 w-4" />
                     </span>
-                    <span className="mt-2 block text-[11.5px] font-bold text-[var(--v-ink)]">{option.title}</span>
+                    <span className="mt-2 block text-[11.5px] font-semibold text-[var(--v-ink)]">{option.title}</span>
                     <span className="mt-0.5 block text-[9.5px] leading-relaxed text-[var(--v-muted)]">{option.body}</span>
                   </button>
                 );
@@ -190,7 +190,7 @@ export const ProjectSetupWizard: React.FC<ProjectSetupWizardProps> = ({ open, pr
             {start === 'template' && (
               <div>
                 <div className="mb-1.5 flex items-center justify-between">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--v-faint)]">Suggested for you</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--v-faint)]">Suggested for you</p>
                   <span className="text-[9.5px] text-[var(--v-faint)]">{suggested.length} templates</span>
                 </div>
                 <div className="grid gap-2 sm:grid-cols-2">
@@ -213,7 +213,7 @@ export const ProjectSetupWizard: React.FC<ProjectSetupWizardProps> = ({ open, pr
                           </span>
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[11px] font-bold text-[var(--v-ink)]">{template.name}</span>
+                          <span className="block truncate text-[11px] font-semibold text-[var(--v-ink)]">{template.name}</span>
                           <span className="block truncate text-[9px] text-[var(--v-muted)]">{template.category} · {template.blocks.length} blocks</span>
                         </span>
                         {active && <Check className="h-4 w-4 shrink-0 text-[var(--v-violet)]" />}

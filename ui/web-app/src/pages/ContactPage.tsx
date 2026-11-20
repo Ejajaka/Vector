@@ -35,7 +35,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
             <div className="flex items-center gap-2.5 rounded-xl border border-[var(--v-line)] bg-[var(--v-surface)] px-3 py-2.5">
               <Mail className="h-4 w-4 text-[var(--v-violet)]" />
               <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-bold text-[var(--v-ink)]">Email</p>
+                <p className="text-[11px] font-semibold text-[var(--v-ink)]">Email</p>
                 <p className="truncate font-mono text-[10.5px] text-[var(--v-muted)]">{EMAIL}</p>
               </div>
               <button
@@ -59,7 +59,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
             <div className="flex items-center gap-2.5 rounded-xl border border-[var(--v-line)] bg-[var(--v-surface)] px-3 py-2.5">
               <MapPin className="h-4 w-4 text-[var(--v-violet)]" />
               <div>
-                <p className="text-[11px] font-bold text-[var(--v-ink)]">Studio</p>
+                <p className="text-[11px] font-semibold text-[var(--v-ink)]">Studio</p>
                 <p className="text-[10.5px] text-[var(--v-muted)]">Bengaluru, India · remote-first</p>
               </div>
             </div>
@@ -67,13 +67,13 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
             <div className="flex items-center gap-2.5 rounded-xl border border-[var(--v-line)] bg-[var(--v-surface)] px-3 py-2.5">
               <MessageSquare className="h-4 w-4 text-[var(--v-violet)]" />
               <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-bold text-[var(--v-ink)]">In-app help</p>
+                <p className="text-[11px] font-semibold text-[var(--v-ink)]">In-app help</p>
                 <p className="text-[10.5px] text-[var(--v-muted)]">Ask Vector AI from any canvas</p>
               </div>
               <button
                 type="button"
                 onClick={() => onNavigate('learn')}
-                className="text-[10.5px] font-bold text-[var(--v-violet)] hover:underline"
+                className="text-[10.5px] font-semibold text-[var(--v-violet)] hover:underline"
               >
                 Learn
               </button>
@@ -93,13 +93,13 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
           </p>
         </div>
 
-        <form onSubmit={submit} className="rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] p-5">
-          <h2 className="text-[14px] font-bold text-[var(--v-ink)]">Send a message</h2>
+        <form onSubmit={submit} className="rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] p-5">
+          <h2 className="text-[14px] font-semibold text-[var(--v-ink)]">Send a message</h2>
           <p className="mt-0.5 text-[11px] text-[var(--v-muted)]">Opens your mail client with everything filled in.</p>
 
           <div className="mt-4 space-y-2.5">
             <label className="block">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--v-muted)]">Name</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--v-muted)]">Name</span>
               <input
                 value={form.name}
                 onChange={(event) => setForm({ ...form, name: event.target.value })}
@@ -108,7 +108,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
               />
             </label>
             <label className="block">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--v-muted)]">Email</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--v-muted)]">Email</span>
               <input
                 type="email"
                 value={form.email}
@@ -118,7 +118,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
               />
             </label>
             <label className="block">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--v-muted)]">Topic</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--v-muted)]">Topic</span>
               <select
                 value={form.topic}
                 onChange={(event) => setForm({ ...form, topic: event.target.value })}
@@ -132,7 +132,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
               </select>
             </label>
             <label className="block">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--v-muted)]">Message</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--v-muted)]">Message</span>
               <textarea
                 value={form.message}
                 onChange={(event) => setForm({ ...form, message: event.target.value })}

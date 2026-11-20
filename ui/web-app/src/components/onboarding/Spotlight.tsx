@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import { X } from 'lucide-react';
 
 export type SpotlightArt = 'drag' | 'style' | 'pages' | 'template' | 'prompt';
@@ -53,7 +53,7 @@ const ART: Record<SpotlightArt, React.ReactNode> = {
         {[1, 2, 3].map((n) => (
           <span
             key={n}
-            className={`w-9 h-11 rounded-md border grid place-items-center text-[10px] font-bold ${
+            className={`w-9 h-11 rounded-md border grid place-items-center text-[10px] font-semibold ${
               n === 2 ? 'bg-[#0D99FF] border-[#0D99FF] text-white' : 'border-white/20 text-white/45'
             }`}
           >
@@ -96,106 +96,37 @@ export const Spotlight: React.FC<SpotlightProps> = ({
   title,
   body,
   art,
-  anchor,
-  placement = 'top',
   learnLabel = 'Learn more',
   onLearnMore,
   onDismiss,
 }) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState<{ top: number; left: number; arrow: number; side: 'top' | 'bottom' }>({
-    top: 0,
-    left: 0,
-    arrow: 50,
-    side: 'top',
-  });
-
-  useEffect(() => {
-    const measure = () => {
-      const width = 320;
-      const margin = 12;
-      const node = anchor ? document.querySelector(anchor) : null;
-      if (!node) {
-        setPosition({
-          top: window.innerHeight - 260,
-          left: Math.max(16, window.innerWidth / 2 - width / 2),
-          arrow: 50,
-          side: 'bottom',
-        });
-        return;
-      }
-      const rect = node.getBoundingClientRect();
-      const cardHeight = ref.current?.offsetHeight || 250;
-
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const side: 'top' | 'bottom' = spaceBelow > cardHeight + 24 ? 'bottom' : 'top';
-      const top = side === 'bottom' ? rect.bottom + 14 : Math.max(12, rect.top - cardHeight - 14);
-      const center = rect.left + rect.width / 2;
-      const left = Math.min(Math.max(12, center - width / 2), window.innerWidth - width - 12);
-      const arrow = Math.min(Math.max(24, center - left), width - 24);
-
-      setPosition({ top, left, arrow, side });
-    };
-
-    measure();
-    const timer = window.setTimeout(measure, 60);
-    window.addEventListener('resize', measure);
-    window.addEventListener('scroll', measure, true);
-    return () => {
-      window.clearTimeout(timer);
-      window.removeEventListener('resize', measure);
-      window.removeEventListener('scroll', measure, true);
-    };
-  }, [anchor]);
-
   return (
-    <div className="fixed inset-0 z-[92] pointer-events-none" role="dialog" aria-modal="false" aria-labelledby="spotlight-title">
-      <div
-        ref={ref}
-        className="pointer-events-auto absolute w-[320px] rounded-xl overflow-visible bg-[#2C2C2C] border border-white/12 shadow-[0_30px_70px_-20px_rgba(0,0,0,.85)]"
-        style={{ top: position.top, left: position.left }}
-      >
-        {/* Arrow */}
-        <span
-          className="absolute w-3 h-3 bg-[#2C2C2C] border-white/12 rotate-45"
-          style={{
-            left: position.arrow - 6,
-            top: position.side === 'bottom' ? -7 : undefined,
-            bottom: position.side === 'top' ? -7 : undefined,
-            borderTopWidth: position.side === 'bottom' ? 1 : 0,
-            borderLeftWidth: position.side === 'bottom' ? 1 : 0,
-            borderRightWidth: position.side === 'top' ? 1 : 0,
-            borderBottomWidth: position.side === 'top' ? 1 : 0,
-            borderStyle: 'solid',
-            borderColor: 'rgba(255,255,255,.12)',
-          }}
-          aria-hidden="true"
-        />
-
+    <div className="pointer-events-none fixed bottom-4 right-4 z-[92]" role="dialog" aria-modal="false" aria-labelledby="spotlight-title">
+      <div className="pointer-events-auto w-[320px] overflow-hidden rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] shadow-[0_30px_70px_-20px_rgba(0,0,0,.85)]">
         <div className="flex items-center justify-between px-4 pt-3">
-          <p id="spotlight-title" className="text-[12.5px] font-semibold text-white">
+          <p id="spotlight-title" className="text-[12.5px] font-semibold text-[var(--v-ink)]">
             {title}
           </p>
           <button
             type="button"
             onClick={onDismiss}
-            className="w-6 h-6 rounded grid place-items-center text-white/50 hover:text-white hover:bg-white/10"
+            className="v-icon-btn h-6 w-6"
             aria-label="Dismiss"
           >
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        <div className="mx-4 mt-2.5 h-[136px] rounded-lg overflow-hidden border border-white/10">{ART[art]}</div>
+        <div className="mx-4 mt-2.5 h-[136px] overflow-hidden rounded-md border border-[var(--v-line)]">{ART[art]}</div>
 
-        <p className="px-4 pt-3 pb-3 text-[12px] leading-relaxed text-white/70">{body}</p>
+        <p className="px-4 pb-3 pt-3 text-[12px] leading-relaxed text-[var(--v-muted)]">{body}</p>
 
         <div className="flex items-center justify-end gap-2 px-4 pb-3.5">
           {onLearnMore && (
             <button
               type="button"
               onClick={onLearnMore}
-              className="h-8 px-3 rounded-md border border-white/20 text-[11.5px] font-semibold text-white/85 hover:bg-white/5"
+              className="h-7 rounded-md border border-[var(--v-line)] px-3 text-[11.5px] font-medium text-[var(--v-muted)] hover:bg-[var(--v-surface-2)] hover:text-[var(--v-ink)]"
             >
               {learnLabel}
             </button>
@@ -203,8 +134,7 @@ export const Spotlight: React.FC<SpotlightProps> = ({
           <button
             type="button"
             onClick={onDismiss}
-            className="h-8 px-3.5 rounded-md text-[11.5px] font-semibold text-white"
-            style={{ background: '#0D99FF' }}
+            className="v-btn v-btn-primary h-7 rounded-md px-3 text-[11.5px]"
           >
             Got it
           </button>

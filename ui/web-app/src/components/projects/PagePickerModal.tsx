@@ -26,7 +26,7 @@ export const PagePickerModal: React.FC<PagePickerModalProps> = ({ open, projectT
       <div className="relative w-full max-w-[620px] overflow-hidden rounded-xl border border-white/10 bg-[#2C2C2C] text-white shadow-[0_40px_90px_-30px_rgba(0,0,0,.9)]">
         <div className="flex items-start justify-between px-4 pt-4">
           <div>
-            <p className="text-[9.5px] font-bold uppercase tracking-[0.14em] text-white/40">
+            <p className="text-[9.5px] font-semibold uppercase tracking-[0.14em] text-white/40">
               {theme.name} theme · locked
             </p>
             <h2 className="mt-1 text-[14px] font-semibold">{kind ? kind.name : 'Add a page'}</h2>
@@ -69,7 +69,7 @@ export const PagePickerModal: React.FC<PagePickerModalProps> = ({ open, projectT
                   className="flex w-full items-center gap-3 rounded-lg border border-white/10 bg-[#333] p-2.5 text-left hover:border-[#0D99FF]"
                 >
                   <span
-                    className="grid h-10 w-14 shrink-0 place-items-center rounded-md text-[8px] font-bold"
+                    className="grid h-10 w-14 shrink-0 place-items-center rounded-md text-[8px] font-semibold"
                     style={{ background: theme.surface, color: theme.accent }}
                   >
                     {variant.name.slice(0, 6)}

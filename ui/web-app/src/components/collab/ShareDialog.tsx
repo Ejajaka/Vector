@@ -116,7 +116,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
             {everyone.map((person) => (
               <div key={person.id} className="flex items-center gap-2.5 rounded-md px-1.5 py-1.5 hover:bg-white/5">
                 <span
-                  className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[10px] font-bold"
+                  className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[10px] font-semibold"
                   style={{ background: person.colour, color: '#fff' }}
                 >
                   {person.name.replace(/\(you\)/, '').trim().slice(0, 2).toUpperCase()}

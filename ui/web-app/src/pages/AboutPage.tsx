@@ -69,7 +69,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis, onOpenTem
       {/* Hero ------------------------------------------------------- */}
       <div aria-hidden="true" className="v-spotlight pointer-events-none absolute inset-x-0 -top-40 h-[620px]" />
       <section className="relative mx-auto w-full max-w-[1200px] px-4 pb-6 pt-14 sm:px-6 sm:pt-20 lg:px-8 lg:pt-24" aria-label="Hero">
-        <div className="mx-auto max-w-[860px] text-center">
+        <div className="max-w-[900px] text-left">
           <button
             type="button"
             onClick={onStartAnalysis}
@@ -82,18 +82,18 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis, onOpenTem
             <ChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
           </button>
 
-          <h1 className="v-display mx-auto mt-7 max-w-[820px] text-[38px] text-[var(--v-ink)] sm:text-[54px] lg:text-[62px]">
+          <h1 className="v-display mt-7 max-w-[900px] text-[42px] text-[var(--v-ink)] sm:text-[58px] lg:text-[68px]">
             The review layer for
             <br className="hidden sm:block" />
-            <span className="v-gradient-text"> AI-built interfaces.</span>
+            <span className="text-[var(--v-muted)]"> AI-built interfaces.</span>
           </h1>
 
-          <p className="mx-auto mt-5 max-w-[620px] text-[14.5px] leading-[1.65] text-[var(--v-muted)] sm:text-[16px]">
+          <p className="mt-5 max-w-[560px] text-[14.5px] leading-[1.65] text-[var(--v-muted)] sm:text-[16px]">
             Vector reads a natural-language UI request, finds every missing label, state and
             interaction, and hands back a complete brief your generator can actually build.
           </p>
 
-          <div className="mt-7 flex flex-wrap items-center justify-center gap-2">
+          <div className="mt-7 flex flex-wrap items-center justify-start gap-2">
             <button
               type="button"
               onClick={onStartAnalysis}
@@ -110,7 +110,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis, onOpenTem
             </button>
           </div>
 
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[11.5px] text-[var(--v-faint)]">
+          <div className="mt-5 flex flex-wrap items-center justify-start gap-x-4 gap-y-2 text-[11.5px] text-[var(--v-faint)]">
             {['Runs in your browser', 'No account needed to try', 'Grounded in your wording'].map((item) => (
               <span key={item} className="inline-flex items-center gap-1.5">
                 <Check className="h-3 w-3 text-[var(--v-success)]" />
@@ -121,10 +121,10 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis, onOpenTem
         </div>
 
         {/* Product preview ---------------------------------------- */}
-        <div className="relative mx-auto mt-14 max-w-[1040px] sm:mt-16">
+        <div className="relative mt-12 max-w-[1200px] sm:mt-14">
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-x-16 -top-6 h-40 rounded-full bg-[#7170ff]/20 blur-[70px]"
+            className="pointer-events-none absolute inset-x-24 -top-6 h-32 rounded-full bg-[#7170ff]/10 blur-[70px]"
           />
           <div className="relative overflow-hidden rounded-xl border border-[var(--v-line)] bg-[var(--v-surface)] shadow-[0_50px_140px_-60px_rgba(0,0,0,0.9)]">
             <div className="flex h-10 items-center gap-3 border-b border-[var(--v-line)] px-3.5">
@@ -311,7 +311,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis, onOpenTem
           <div className="relative">
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute -inset-6 rounded-3xl bg-[#7170ff]/10 blur-2xl"
+              className="pointer-events-none absolute -inset-6 rounded-lg bg-[#7170ff]/10 blur-2xl"
             />
             <div className="relative overflow-hidden rounded-xl border border-[var(--v-line)] bg-[var(--v-surface)]">
               <div className="flex items-center gap-2 border-b border-[var(--v-line)] px-3.5 py-2.5">
@@ -379,7 +379,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis, onOpenTem
               Paste a request, review what is missing, and hand your generator a brief with no
               guesses left in it.
             </p>
-            <div className="mt-7 flex flex-wrap items-center justify-center gap-2">
+            <div className="mt-7 flex flex-wrap items-center justify-start gap-2">
               <button
                 type="button"
                 onClick={onStartAnalysis}

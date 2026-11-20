@@ -201,15 +201,15 @@ export const ManualPage: React.FC<ManualPageProps> = ({ onOpenProjects }) => {
 
   return (
     <div className="max-w-6xl mx-auto">
-      <section className="relative overflow-hidden rounded-2xl border border-[#E5E2D8] dark:border-[#29383A] bg-[#FFFFFF] dark:bg-[#1B2426] p-7 sm:p-10 shadow-xs">
+      <section className="relative overflow-hidden rounded-lg border border-[#E5E2D8] dark:border-[#29383A] bg-[#FFFFFF] dark:bg-[#1B2426] p-7 sm:p-10 shadow-xs">
         <div className="absolute -right-16 -top-20 w-72 h-72 rounded-full bg-[#49686C]/8 blur-2xl" />
         <div className="absolute -left-10 -bottom-24 w-64 h-64 rounded-full bg-[#D1B653]/12 blur-2xl" />
         <div className="relative max-w-2xl">
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#E4EBDD] dark:bg-[#23301F] text-[#30494B] dark:text-[#B7D9B0] border border-[#CFE2C8] dark:border-[#3D5236]">
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#E4EBDD] dark:bg-[#23301F] text-[#30494B] dark:text-[#B7D9B0] border border-[#CFE2C8] dark:border-[#3D5236]">
             <BookOpen className="w-3 h-3" />
             Vector manual
           </div>
-          <h1 className="mt-4 text-3xl sm:text-4xl font-extrabold tracking-tight text-[#283638] dark:text-[#F2F5F3] leading-[1.15]">
+          <h1 className="mt-4 text-3xl sm:text-4xl font-semibold tracking-tight text-[#283638] dark:text-[#F2F5F3] leading-[1.15]">
             Everything you need to run Vector.
           </h1>
           <p className="mt-3 text-sm sm:text-base text-[#737A72] dark:text-[#9AA6A2] leading-relaxed">
@@ -220,7 +220,7 @@ export const ManualPage: React.FC<ManualPageProps> = ({ onOpenProjects }) => {
             <button
               type="button"
               onClick={onOpenProjects}
-              className="mt-5 inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#49686C] hover:bg-[#30494B] text-white text-sm font-bold shadow-sm transition-all active:scale-[0.99]"
+              className="mt-5 inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#49686C] hover:bg-[#30494B] text-white text-sm font-semibold shadow-sm transition-all active:scale-[0.99]"
             >
               Open Projects
               <ArrowRight className="w-4 h-4" />
@@ -231,7 +231,7 @@ export const ManualPage: React.FC<ManualPageProps> = ({ onOpenProjects }) => {
 
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-8 items-start">
         <nav className="hidden lg:block sticky top-24 space-y-1" aria-label="Manual contents">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-[#737A72] px-2 mb-2">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-[#737A72] px-2 mb-2">
             Contents
           </div>
           {SECTIONS.map(({ id, title, icon: Icon }) => (
@@ -259,7 +259,7 @@ export const ManualPage: React.FC<ManualPageProps> = ({ onOpenProjects }) => {
                   <Icon className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-[#283638] dark:text-[#E7E4D9]">{title}</h2>
+                  <h2 className="text-base font-semibold text-[#283638] dark:text-[#E7E4D9]">{title}</h2>
                   <p className="text-xs text-[#737A72] dark:text-[#9AA6A2] leading-relaxed mt-1">{intro}</p>
                 </div>
               </div>
@@ -282,7 +282,7 @@ export const ManualPage: React.FC<ManualPageProps> = ({ onOpenProjects }) => {
           ))}
 
           <section className="bg-[#30494B] rounded-xl p-6 sm:p-8 text-center text-white">
-            <h2 className="text-xl font-extrabold tracking-tight">Ready to start?</h2>
+            <h2 className="text-xl font-semibold tracking-tight">Ready to start?</h2>
             <p className="text-sm text-gray-200 mt-1.5">
               Open a project, upload a requirement document and let Vector do the first pass.
             </p>
@@ -290,7 +290,7 @@ export const ManualPage: React.FC<ManualPageProps> = ({ onOpenProjects }) => {
               <button
                 type="button"
                 onClick={onOpenProjects}
-                className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#D1B653] hover:bg-[#bda241] text-[#283638] text-sm font-bold transition-all"
+                className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#D1B653] hover:bg-[#bda241] text-[#283638] text-sm font-semibold transition-all"
               >
                 Go to Projects
                 <ArrowRight className="w-4 h-4" />

@@ -62,7 +62,7 @@ export const CircularScoreGauge: React.FC<CircularScoreGaugeProps> = ({
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-          <span className="text-2xl font-bold tracking-tight text-[#283638] font-mono tabular-nums">
+          <span className="text-2xl font-semibold tracking-tight text-[#283638] font-mono tabular-nums">
             {clampedScore}
           </span>
           <span className="text-[10px] text-[#737A72] uppercase font-semibold tracking-wider">

@@ -1,11 +1,9 @@
 ﻿import React, { useEffect, useRef, useState } from 'react';
 import {
   Bell,
-  Blocks,
-  ChevronRight,
+  ChevronDown,
   ClipboardCheck,
   Compass,
-  Ellipsis,
   FileText,
   FolderKanban,
   FolderOpen,
@@ -18,6 +16,7 @@ import {
   Network,
   Palette,
   Plug,
+  Plus,
   Settings,
   ShieldCheck,
   Sparkles,
@@ -72,6 +71,18 @@ const ACCOUNT: RailItem[] = [
   { id: 'privacy', label: 'Privacy', icon: ShieldCheck },
 ];
 
+const PUBLIC_ITEMS: RailItem[] = [
+  { id: 'about', label: 'Product', icon: Info },
+  { id: 'pricing', label: 'Pricing', icon: Wallet },
+  { id: 'learn', label: 'Learn', icon: GraduationCap },
+];
+
+const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <p className="px-2 pb-1.5 pt-5 text-[10.5px] font-medium uppercase tracking-[0.05em] text-[var(--v-faint)]">
+    {children}
+  </p>
+);
+
 export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   setActiveTab,
@@ -80,9 +91,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   publicMode = false,
   onRequestSignIn,
 }) => {
-  const [moreOpen, setMoreOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
-  const moreRef = useRef<HTMLDivElement>(null);
   const createRef = useRef<HTMLDivElement>(null);
 
   const entitlements = readEntitlements();
@@ -92,14 +101,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   useEffect(() => {
     const onDown = (event: MouseEvent) => {
-      if (!moreRef.current?.contains(event.target as Node)) setMoreOpen(false);
       if (!createRef.current?.contains(event.target as Node)) setCreateOpen(false);
     };
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setMoreOpen(false);
-        setCreateOpen(false);
-      }
+      if (event.key === 'Escape') setCreateOpen(false);
     };
     window.addEventListener('mousedown', onDown);
     window.addEventListener('keydown', onKey);
@@ -112,11 +117,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const go = (tab: ActiveTab) => {
     setActiveTab(tab);
     setIsMobileOpen(false);
-    setMoreOpen(false);
     setCreateOpen(false);
   };
 
-  const RailButton: React.FC<{ item: RailItem }> = ({ item }) => {
+  const NavItem: React.FC<{ item: RailItem }> = ({ item }) => {
     const Icon = item.icon;
     const active = activeTab === item.id;
     return (
@@ -125,27 +129,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
         onClick={() => go(item.id)}
         data-tour={`nav-${item.id}`}
         aria-current={active ? 'page' : undefined}
-        className={`group relative flex flex-col items-center justify-center gap-1 w-[56px] py-1.5 rounded-lg transition-all ${
-          active ? 'bg-[var(--v-surface-2)] text-[var(--v-ink)]'
-            : 'text-[var(--v-muted)] hover:bg-[var(--v-surface-2)] hover:text-[var(--v-ink)]'
+        className={`flex h-[30px] w-full items-center gap-2.5 rounded-[5px] px-2 text-left text-[12.5px] transition-colors ${
+          active
+            ? 'bg-[var(--v-surface-2)] font-medium text-[var(--v-ink)]'
+            : 'text-[var(--v-muted)] hover:bg-[var(--v-surface-2)]/60 hover:text-[var(--v-ink)]'
         }`}
         title={item.label}
       >
-        <span
-          className={`grid place-items-center w-6 h-6 ${active ? 'text-[var(--v-violet)]' : ''}`}
-        >
-          <Icon className="w-[19px] h-[19px]" strokeWidth={active ? 2.2 : 1.8} />
-        </span>
-        <span className="text-[9.5px] leading-none tracking-[-0.01em]">{item.label}</span>
-        {active && (
-          <span className="absolute -left-[14px] top-1/2 -translate-y-1/2 w-[2px] h-4 rounded-full bg-[var(--v-accent)]" />
-        )}
+        <Icon
+          className={`h-[15px] w-[15px] shrink-0 ${active ? 'text-[var(--v-accent-hover)]' : 'opacity-80'}`}
+          strokeWidth={active ? 2 : 1.7}
+        />
+        <span className="min-w-0 flex-1 truncate">{item.label}</span>
       </button>
     );
   };
 
   const CreateMenu: React.FC = () => (
-    <div className="absolute left-[60px] top-0 w-[240px] v-card p-1.5 shadow-[var(--v-shadow-lg)] z-50">
+    <div className="absolute left-0 top-full z-50 mt-1 w-[232px] v-card p-1.5 shadow-[var(--v-shadow-lg)]">
       <p className="px-2 py-1.5 v-eyebrow">Create</p>
       {[
         { label: 'New project', tab: 'projects' as ActiveTab, icon: FolderKanban },
@@ -159,9 +160,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             key={item.label}
             type="button"
             onClick={() => go(item.tab)}
-            className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[12.5px] font-medium text-[var(--v-ink)] hover:bg-[var(--v-surface-2)] transition-colors"
+            className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[12.5px] font-medium text-[var(--v-ink)] transition-colors hover:bg-[var(--v-surface-2)]"
           >
-            <Icon className="w-4 h-4 text-[var(--v-muted)]" />
+            <Icon className="h-4 w-4 text-[var(--v-muted)]" />
             {item.label}
           </button>
         );
@@ -169,253 +170,240 @@ export const Sidebar: React.FC<SidebarProps> = ({
     </div>
   );
 
+  const PlanCard: React.FC = () => (
+    <div className="px-2 pb-2">
+      <div className="rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] p-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[10.5px] font-medium uppercase tracking-[0.05em] text-[var(--v-faint)]">
+            {paid ? plan.name : 'Free'}
+          </span>
+          <span className="rounded-full border border-[var(--v-line)] px-1.5 py-0.5 text-[9.5px] text-[var(--v-muted)]">
+            {paid ? 'Active' : `${remaining} left`}
+          </span>
+        </div>
+        <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--v-surface-2)]">
+          <div
+            className="h-full rounded-full bg-[var(--v-accent)]"
+            style={{ width: paid ? '100%' : `${Math.max(8, ((2 - remaining) / 2) * 100)}%` }}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => go('pricing')}
+          className="mt-2 w-full rounded-md border border-[var(--v-line)] px-2 py-1.5 text-[11.5px] font-medium text-[var(--v-ink)] transition-colors hover:border-[var(--v-line-strong)] hover:bg-[var(--v-surface-2)]"
+        >
+          {paid ? 'Manage plan' : 'Upgrade'}
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <>
       {isMobileOpen && (
         <div
-          className="fixed inset-0 bg-[#14121F]/40 z-40 lg:hidden backdrop-blur-sm"
+          className="fixed inset-0 z-40 bg-black/55 backdrop-blur-sm lg:hidden"
           onClick={() => setIsMobileOpen(false)}
           aria-hidden="true"
         />
       )}
 
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 w-[76px] hidden lg:flex flex-col items-center py-4 gap-2 border-r border-[var(--v-line)] v-glass ${
-          isMobileOpen ? 'flex' : ''
-        }`}
+        className="fixed inset-y-0 left-0 z-50 hidden w-[232px] flex-col border-r border-[var(--v-line)] bg-[var(--v-sidebar,#0b0c0d)] lg:flex"
         aria-label="Primary navigation"
       >
-        {/* Brand */}
-        <button
-          type="button"
-          onClick={() => go('dashboard')}
-          className="mb-1 rounded-2xl p-0.5 hover:scale-105 transition-transform"
-          aria-label="Vector â€” go to home"
-          title="Vector"
-        >
-          <Logo size={36} />
-        </button>
+        <div className="flex items-center gap-2 px-3 pb-2 pt-3">
+          <button
+            type="button"
+            onClick={() => go('dashboard')}
+            className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1 text-left transition-colors hover:bg-[var(--v-surface-2)]"
+            aria-label="Vector home"
+            title="Vector"
+          >
+            <Logo size={20} />
+            <span className="truncate text-[13.5px] font-semibold tracking-[-0.015em] text-[var(--v-ink)]">
+              Vector
+            </span>
+            <ChevronDown className="ml-auto h-3.5 w-3.5 text-[var(--v-faint)]" />
+          </button>
+        </div>
 
-        {/* Create */}
-        <div className="relative mb-1" ref={createRef}>
+        <div className="relative px-3 pb-1" ref={createRef}>
           <button
             type="button"
             onClick={() => setCreateOpen((value) => !value)}
-            className="w-[40px] h-[40px] rounded-lg bg-[#e5e5e6] text-[#08090a] grid place-items-center hover:bg-white transition-colors dark:bg-[#e5e5e6] dark:text-[#08090a]"
-            aria-label="Create"
+            className="flex h-8 w-full items-center gap-2 rounded-md bg-[var(--v-surface)] px-2.5 text-left text-[12.5px] font-medium text-[var(--v-ink)] ring-1 ring-inset ring-[var(--v-line)] transition-colors hover:ring-[var(--v-line-strong)]"
             aria-expanded={createOpen}
-            title="Create"
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
+            <Plus className="h-4 w-4 text-[var(--v-muted)]" />
+            Create
+            <ChevronDown className="ml-auto h-3.5 w-3.5 text-[var(--v-faint)]" />
           </button>
           {createOpen && <CreateMenu />}
         </div>
 
-        <div className="w-8 h-px bg-[var(--v-line)] my-1" />
+        <nav className="v-scroll mt-1 flex-1 overflow-y-auto px-2 pb-2">
+          {publicMode ? (
+            <>
+              <SectionLabel>Workspace</SectionLabel>
+              {PUBLIC_ITEMS.map((item) => (
+                <NavItem key={item.id} item={item} />
+              ))}
+            </>
+          ) : (
+            <>
+              <SectionLabel>Workspace</SectionLabel>
+              {PRIMARY.map((item) => (
+                <NavItem key={item.id} item={item} />
+              ))}
+
+              <SectionLabel>Project</SectionLabel>
+              {BUILD.map((item) => (
+                <NavItem key={item.id} item={item} />
+              ))}
+
+              <SectionLabel>Account</SectionLabel>
+              {ACCOUNT.map((item) => (
+                <NavItem key={item.id} item={item} />
+              ))}
+            </>
+          )}
+        </nav>
 
         {publicMode ? (
-          <div className="flex flex-col items-center gap-1.5">
-            {[
-              { id: 'about' as ActiveTab, label: 'About', icon: Sparkles },
-              { id: 'pricing' as ActiveTab, label: 'Pricing', icon: Wallet },
-              { id: 'learn' as ActiveTab, label: 'Learn', icon: GraduationCap },
-            ].map((item) => (
-              <RailButton key={item.id} item={item} />
-            ))}
-          </div>
-        ) : (
-          <nav className="flex flex-col items-center gap-1.5 flex-1">
-            {PRIMARY.map((item) => (
-              <RailButton key={item.id} item={item} />
-            ))}
-
-            <div className="relative mt-1" ref={moreRef}>
-              <button
-                type="button"
-                onClick={() => setMoreOpen((value) => !value)}
-                className={`flex flex-col items-center justify-center gap-1 w-[56px] py-1.5 rounded-lg transition-all ${
-                  moreOpen ? 'bg-[var(--v-surface-2)] text-[var(--v-ink)]' : 'text-[var(--v-muted)] hover:bg-[var(--v-surface-2)] hover:text-[var(--v-ink)]'
-                }`}
-                aria-expanded={moreOpen}
-                aria-label="More"
-                title="More"
-              >
-                <Ellipsis className="w-[19px] h-[19px]" />
-                <span className="text-[9.5px] font-semibold leading-none">More</span>
-              </button>
-
-              {moreOpen && (
-                <div className="absolute left-[60px] top-0 w-[248px] v-card p-1.5 shadow-[var(--v-shadow-lg)] z-50 max-h-[70vh] overflow-y-auto v-scroll">
-                  <p className="px-2 py-1.5 v-eyebrow">Project workflow</p>
-                  {BUILD.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => go(item.id)}
-                        className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[12.5px] font-medium text-[var(--v-ink)] hover:bg-[var(--v-surface-2)] transition-colors"
-                      >
-                        <Icon className="w-4 h-4 text-[var(--v-muted)]" />
-                        <span className="flex-1 text-left">{item.label}</span>
-                        <ChevronRight className="w-3 h-3 text-[var(--v-faint)]" />
-                      </button>
-                    );
-                  })}
-                  <div className="h-px bg-[var(--v-line)] my-1.5" />
-                  <p className="px-2 py-1.5 v-eyebrow">Account</p>
-                  {ACCOUNT.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => go(item.id)}
-                        className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[12.5px] font-medium text-[var(--v-ink)] hover:bg-[var(--v-surface-2)] transition-colors"
-                      >
-                        <Icon className="w-4 h-4 text-[var(--v-muted)]" />
-                        <span className="flex-1 text-left">{item.label}</span>
-                        <ChevronRight className="w-3 h-3 text-[var(--v-faint)]" />
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </nav>
-        )}
-
-        {/* Plan */}
-        <div className="mt-auto flex flex-col items-center gap-1.5 pt-2">
-          {publicMode ? (
+          <div className="border-t border-[var(--v-line)] p-2">
             <button
               type="button"
               onClick={onRequestSignIn}
-              className="w-[52px] h-[52px] rounded-2xl bg-[var(--v-ink)] text-[var(--v-surface)] grid place-items-center hover:opacity-90"
-              title="Sign in"
-              aria-label="Sign in"
+              className="flex h-9 w-full items-center justify-center gap-2 rounded-md bg-[var(--v-ink)] text-[12.5px] font-medium text-[var(--v-bg)] transition-opacity hover:opacity-90"
             >
-              <LogIn className="w-4 h-4" />
+              <LogIn className="h-4 w-4" /> Sign in
             </button>
-          ) : paid ? (
-            <button
-              type="button"
-              onClick={() => go('pricing')}
-              className="w-[52px] py-2 rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] text-center hover:border-[var(--v-violet)] transition-colors"
-              title={`${plan.name} plan`}
-            >
-              <span className="block text-[9px] font-bold uppercase tracking-wider text-[var(--v-violet)]">{plan.name}</span>
-              <span className="block text-[8.5px] text-[var(--v-faint)] mt-0.5">active</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => go('pricing')}
-              className="w-[52px] py-2 rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] text-center hover:border-[var(--v-violet)] transition-colors"
-              title={`${remaining} free projects left`}
-            >
-              <span className="block text-[10px] font-extrabold text-[var(--v-ink)]">{remaining}</span>
-              <span className="block text-[8px] font-bold uppercase tracking-wider text-[var(--v-faint)]">free</span>
-            </button>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="border-t border-[var(--v-line)] pt-2">
+            <PlanCard />
+          </div>
+        )}
       </aside>
 
       {/* Mobile drawer */}
       {isMobileOpen && (
-        <div className="fixed inset-y-0 left-0 z-50 w-[260px] bg-[var(--v-surface)] border-r border-[var(--v-line)] p-4 lg:hidden overflow-y-auto v-scroll">
-          <div className="flex items-center justify-between mb-4">
+        <div className="fixed inset-y-0 left-0 z-50 w-[280px] overflow-y-auto border-r border-[var(--v-line)] bg-[var(--v-bg)] p-3 v-scroll lg:hidden">
+          <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Logo size={30} />
-              <span className="font-bold text-[15px]">Vector</span>
+              <Logo size={24} />
+              <span className="text-[14px] font-semibold tracking-[-0.015em]">Vector</span>
             </div>
             <button type="button" onClick={() => setIsMobileOpen(false)} className="v-icon-btn" aria-label="Close menu">
-              <X className="w-4 h-4" />
+              <X className="h-4 w-4" />
             </button>
           </div>
 
-          <p className="v-eyebrow px-1 mb-1.5">Workspace</p>
-          <div className="space-y-0.5 mb-3">
-            {PRIMARY.map((item) => {
-              const Icon = item.icon;
-              const active = activeTab === item.id;
-              return (
+          {publicMode ? (
+            <>
+              <SectionLabel>Workspace</SectionLabel>
+              <div className="space-y-0.5">
+                {PUBLIC_ITEMS.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => go(item.id)}
+                      className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium text-[var(--v-muted)] hover:bg-[var(--v-surface-2)] hover:text-[var(--v-ink)]"
+                    >
+                      <Icon className="h-4 w-4" /> {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <>
+              <SectionLabel>Workspace</SectionLabel>
+              <div className="space-y-0.5">
+                {PRIMARY.map((item) => {
+                  const Icon = item.icon;
+                  const active = activeTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => go(item.id)}
+                      className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors ${
+                        active
+                          ? 'bg-[var(--v-surface-2)] text-[var(--v-ink)]'
+                          : 'text-[var(--v-muted)] hover:bg-[var(--v-surface-2)] hover:text-[var(--v-ink)]'
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" /> {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <SectionLabel>Project</SectionLabel>
+              <div className="space-y-0.5">
+                {BUILD.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => go(item.id)}
+                      className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium text-[var(--v-muted)] hover:bg-[var(--v-surface-2)] hover:text-[var(--v-ink)]"
+                    >
+                      <Icon className="h-4 w-4" /> {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <SectionLabel>Account</SectionLabel>
+              <div className="space-y-0.5">
+                {ACCOUNT.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => go(item.id)}
+                      className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium text-[var(--v-muted)] hover:bg-[var(--v-surface-2)] hover:text-[var(--v-ink)]"
+                    >
+                      <Icon className="h-4 w-4" /> {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-3 rounded-lg border border-[var(--v-line)] bg-[var(--v-surface-2)] p-2.5">
+                <p className="px-1 text-[9.5px] font-medium uppercase tracking-[0.12em] text-[var(--v-muted)]">
+                  Starter hub
+                </p>
                 <button
-                  key={item.id}
                   type="button"
-                  onClick={() => go(item.id)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-md text-[13px] font-medium transition-colors ${
-                    active ? 'bg-[var(--v-surface-2)] text-[var(--v-ink)]' : 'text-[var(--v-muted)] hover:bg-[var(--v-surface-2)]'
-                  }`}
+                  onClick={() => window.dispatchEvent(new CustomEvent('vector:open-plan-hub', { detail: 'included' }))}
+                  className="mt-1 w-full rounded-md px-1.5 py-1.5 text-left text-[11px] font-medium text-[var(--v-muted)] hover:bg-[var(--v-surface)] hover:text-[var(--v-ink)]"
                 >
-                  <Icon className="w-4 h-4" /> {item.label}
+                  See what's included
                 </button>
-              );
-            })}
-          </div>
-
-          <p className="v-eyebrow px-1 mb-1.5">Project workflow</p>
-          <div className="space-y-0.5 mb-3">
-            {BUILD.map((item) => {
-              const Icon = item.icon;
-              return (
                 <button
-                  key={item.id}
                   type="button"
-                  onClick={() => go(item.id)}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-md text-[13px] font-medium text-[var(--v-muted)] hover:bg-[var(--v-surface-2)] hover:text-[var(--v-ink)]"
+                  onClick={() => window.dispatchEvent(new CustomEvent('vector:open-plan-hub', { detail: 'usage' }))}
+                  className="w-full rounded-md px-1.5 py-1.5 text-left text-[11px] font-medium text-[var(--v-muted)] hover:bg-[var(--v-surface)] hover:text-[var(--v-ink)]"
                 >
-                  <Icon className="w-4 h-4" /> {item.label}
+                  Your plan and usage
                 </button>
-              );
-            })}
-          </div>
+              </div>
 
-          <p className="v-eyebrow px-1 mb-1.5">Account</p>
-          <div className="space-y-0.5">
-            {ACCOUNT.map((item) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => go(item.id)}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-md text-[13px] font-medium text-[var(--v-muted)] hover:bg-[var(--v-surface-2)] hover:text-[var(--v-ink)]"
-                >
-                  <Icon className="w-4 h-4" /> {item.label}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="mt-3 rounded-xl border border-[var(--v-line)] bg-[var(--v-surface-2)] p-2.5">
-            <p className="px-1 text-[9.5px] font-bold uppercase tracking-[0.14em] text-[var(--v-muted)]">
-              Starter hub
-            </p>
-            <button
-              type="button"
-              onClick={() => window.dispatchEvent(new CustomEvent('vector:open-plan-hub', { detail: 'included' }))}
-              className="mt-1 w-full rounded-lg px-1.5 py-1.5 text-left text-[11px] font-semibold text-[var(--v-muted)] hover:bg-[var(--v-surface)] hover:text-[var(--v-ink)]"
-            >
-              See what's included
-            </button>
-            <button
-              type="button"
-              onClick={() => window.dispatchEvent(new CustomEvent('vector:open-plan-hub', { detail: 'usage' }))}
-              className="w-full rounded-lg px-1.5 py-1.5 text-left text-[11px] font-semibold text-[var(--v-muted)] hover:bg-[var(--v-surface)] hover:text-[var(--v-ink)]"
-            >
-              Your plan and usage
-            </button>
-          </div>
-
-          <button type="button" onClick={() => go('pricing')} className="mt-3 w-full v-btn v-btn-primary">
-            <Bell className="w-4 h-4" /> {paid ? 'Manage plan' : 'Upgrade'}
-          </button>
+              <button type="button" onClick={() => go('pricing')} className="mt-3 w-full v-btn v-btn-primary">
+                <Bell className="h-4 w-4" /> {paid ? 'Manage plan' : 'Upgrade'}
+              </button>
+            </>
+          )}
         </div>
       )}
     </>
   );
 };
-

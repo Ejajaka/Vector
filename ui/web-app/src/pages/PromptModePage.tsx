@@ -1012,7 +1012,7 @@ export const PromptModePage: React.FC<Props> = ({
           <ArrowLeft className="w-4 h-4" />
         </button>
         <div className="min-w-0">
-          <h1 className="truncate text-[16px] font-bold text-[var(--v-ink)]">{projectName}</h1>
+          <h1 className="truncate text-[16px] font-semibold text-[var(--v-ink)]">{projectName}</h1>
           <p className="text-[10.5px] text-[var(--v-faint)]">
             Prompt mode · deterministic engine · {screens.length > 1 ? `${screens.length} pages · ` : ''}optional local model
           </p>
@@ -1024,15 +1024,15 @@ export const PromptModePage: React.FC<Props> = ({
 
       <div className="grid gap-4 lg:grid-cols-2">
         {/* ------------------------------------------------ prompt + engine */}
-        <section className="rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] p-4">
+        <section className="rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] p-4">
           <div className="block">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--v-muted)]">Describe the screen</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--v-muted)]">Describe the screen</span>
               <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={listening || voiceState === 'requesting' ? stopVoice : () => void startVoice()}
-                  className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[10px] font-bold transition-colors ${
+                  className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[10px] font-semibold transition-colors ${
                     voiceState === 'requesting'
                       ? 'border-[#F59E0B] bg-[#F59E0B]/10 text-[#9A6700]'
                       : listening
@@ -1055,7 +1055,7 @@ export const PromptModePage: React.FC<Props> = ({
                   type="button"
                   onClick={localVoiceState === 'recording' ? stopLocalVoice : () => void startLocalVoice()}
                   disabled={localVoiceState === 'transcribing'}
-                  className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[10px] font-bold transition-colors ${
+                  className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[10px] font-semibold transition-colors ${
                     localVoiceState === 'recording'
                       ? 'border-[#FF7A59] bg-[#FF7A59]/10 text-[#C2410C]'
                       : 'border-[var(--v-line)] bg-[var(--v-surface)] text-[var(--v-muted)] hover:border-[var(--v-teal)] hover:text-[var(--v-teal)] disabled:opacity-50'
@@ -1129,7 +1129,7 @@ export const PromptModePage: React.FC<Props> = ({
             <button
               type="button"
               onClick={addScreen}
-              className="flex h-6 items-center gap-1 rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] px-2 text-[9.5px] font-bold text-[var(--v-muted)] hover:border-[var(--v-violet)] hover:text-[var(--v-violet)]"
+              className="flex h-6 items-center gap-1 rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] px-2 text-[9.5px] font-semibold text-[var(--v-muted)] hover:border-[var(--v-violet)] hover:text-[var(--v-violet)]"
             >
               <Plus className="h-3 w-3" /> Add screen
             </button>
@@ -1151,12 +1151,12 @@ export const PromptModePage: React.FC<Props> = ({
           {submitted && (
             <div className="mt-3 rounded-xl border border-[var(--v-line)] bg-[var(--v-surface-2)] p-3">
               <div className="flex flex-wrap items-center justify-between gap-1">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--v-muted)]">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--v-muted)]">
                   Analysis{screens.length > 1 ? ` · page ${pageIndex + 1} of ${screens.length}` : ''}
                 </p>
                 <div className="flex items-center gap-1">
                   {model && (
-                    <span className="rounded-full bg-[var(--v-violet)]/10 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-[var(--v-violet)]">
+                    <span className="rounded-full bg-[var(--v-violet)]/10 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wider text-[var(--v-violet)]">
                       Model
                     </span>
                   )}
@@ -1168,7 +1168,7 @@ export const PromptModePage: React.FC<Props> = ({
               </div>
 
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                <span className="flex items-center gap-1 rounded-full bg-[var(--v-surface)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--v-muted)]">
+                <span className="flex items-center gap-1 rounded-full bg-[var(--v-surface)] px-1.5 py-0.5 text-[9px] font-semibold text-[var(--v-muted)]">
                   <span className="h-2.5 w-2.5 rounded-full" style={{ background: compiled.meta.tokens.primary }} />
                   {compiled.meta.tokens.primary}
                   {!compiled.meta.tokens.statedColour && ' (house)'}
@@ -1203,7 +1203,7 @@ export const PromptModePage: React.FC<Props> = ({
                     type="button"
                     onClick={runDeepPass}
                     disabled={deep.running || elements.length === 0}
-                    className="flex h-7 items-center gap-1.5 rounded-lg bg-[var(--v-ink)] px-2.5 text-[10px] font-bold text-[var(--v-surface)] disabled:opacity-50"
+                    className="flex h-7 items-center gap-1.5 rounded-lg bg-[var(--v-ink)] px-2.5 text-[10px] font-semibold text-[var(--v-surface)] disabled:opacity-50"
                   >
                     {deep.running ? <Loader2 className="h-3 w-3 animate-spin" /> : <Cpu className="h-3 w-3" />}
                     {refined ? 'Re-run deep pass' : 'Deep pass (local BERT)'}
@@ -1264,7 +1264,7 @@ export const PromptModePage: React.FC<Props> = ({
                     type="button"
                     onClick={runModelParse}
                     disabled={modelStatus.running}
-                    className="flex h-7 items-center gap-1.5 rounded-lg bg-[var(--v-violet)] px-2.5 text-[10px] font-bold text-white disabled:opacity-50"
+                    className="flex h-7 items-center gap-1.5 rounded-lg bg-[var(--v-violet)] px-2.5 text-[10px] font-semibold text-white disabled:opacity-50"
                   >
                     {modelStatus.running ? (
                       <Loader2 className="h-3 w-3 animate-spin" />
@@ -1321,13 +1321,13 @@ export const PromptModePage: React.FC<Props> = ({
               </div>
 
               {/* ------------------------------------------------ components */}
-              <p className="mt-2.5 text-[9px] font-bold uppercase tracking-wider text-[var(--v-faint)]">Components</p>
+              <p className="mt-2.5 text-[9px] font-semibold uppercase tracking-wider text-[var(--v-faint)]">Components</p>
               <div className="mt-1 max-h-[200px] space-y-1 overflow-auto v-scroll pr-1">
                 {elements.map((element) => {
                   const missing = missingAttrs(element);
                   return (
                     <div key={element.id} className="flex flex-wrap items-center gap-1 text-[10px]">
-                      <span className="rounded bg-[var(--v-surface)] px-1.5 py-0.5 font-bold uppercase tracking-wider text-[var(--v-muted)]">
+                      <span className="rounded bg-[var(--v-surface)] px-1.5 py-0.5 font-semibold uppercase tracking-wider text-[var(--v-muted)]">
                         {element.kind}
                       </span>
                       <span className="font-semibold text-[var(--v-ink)]">
@@ -1342,7 +1342,7 @@ export const PromptModePage: React.FC<Props> = ({
                         <span className="text-[9px] text-[var(--v-faint)]">@{element.section}</span>
                       )}
                       {element.mentions && element.mentions > 1 && (
-                        <span className="rounded-full bg-[var(--v-surface)] px-1 text-[9px] font-bold text-[var(--v-muted)]">
+                        <span className="rounded-full bg-[var(--v-surface)] px-1 text-[9px] font-semibold text-[var(--v-muted)]">
                           ×{element.mentions}
                         </span>
                       )}
@@ -1379,7 +1379,7 @@ export const PromptModePage: React.FC<Props> = ({
 
               {issues.length > 0 && (
                 <div className="mt-2 rounded-lg bg-[var(--v-surface)] p-2">
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-[#B94D42]">
+                  <p className="text-[9px] font-semibold uppercase tracking-wider text-[#B94D42]">
                     Design audit · {issues.length}
                   </p>
                   <ul className="mt-1 space-y-0.5">
@@ -1411,7 +1411,7 @@ export const PromptModePage: React.FC<Props> = ({
           {/* ------------------------------------------ unmapped vocabulary */}
           {submitted && compiled.clarifications.length > 0 && (
             <div className="mt-3 rounded-xl border border-[#F59E0B]/40 bg-[var(--v-surface-2)] p-3">
-              <p className="flex items-center gap-1.5 text-[11px] font-bold text-[var(--v-ink)]">
+              <p className="flex items-center gap-1.5 text-[11px] font-semibold text-[var(--v-ink)]">
                 <HelpCircle className="h-3.5 w-3.5 text-[#B45309]" />
                 Clarify before drawing
               </p>
@@ -1444,7 +1444,7 @@ export const PromptModePage: React.FC<Props> = ({
           {submitted && open.length > 0 && (
             <div className="mt-3 rounded-xl border border-[var(--v-violet)]/40 bg-[var(--v-surface-2)] p-3">
               <div className="flex flex-wrap items-center justify-between gap-1">
-                <p className="flex items-center gap-1.5 text-[11px] font-bold text-[var(--v-ink)]">
+                <p className="flex items-center gap-1.5 text-[11px] font-semibold text-[var(--v-ink)]">
                   <AlertCircle className="h-3.5 w-3.5 text-[var(--v-violet)]" />
                   {open.length} open question{open.length === 1 ? '' : 's'}
                   {screens.length > 1 ? ` on ${compiled.name}` : ''}
@@ -1484,7 +1484,7 @@ export const PromptModePage: React.FC<Props> = ({
                         type="button"
                         disabled={(answers[question.id] || '').trim().length < 2}
                         onClick={() => answer(question.id)}
-                        className="h-8 rounded-lg bg-[var(--v-ink)] px-2.5 text-[10.5px] font-bold text-[var(--v-surface)] disabled:opacity-30"
+                        className="h-8 rounded-lg bg-[var(--v-ink)] px-2.5 text-[10.5px] font-semibold text-[var(--v-surface)] disabled:opacity-30"
                       >
                         Answer
                       </button>
@@ -1502,7 +1502,7 @@ export const PromptModePage: React.FC<Props> = ({
           {submitted && (answeredCount > 0 || refined) && baselineRisk !== null && (
             <div className="mt-3 rounded-xl border border-[var(--v-teal)]/40 bg-[var(--v-surface-2)] p-3">
               <div className="flex flex-wrap items-center justify-between gap-1">
-                <p className="flex items-center gap-1.5 text-[11px] font-bold text-[var(--v-ink)]">
+                <p className="flex items-center gap-1.5 text-[11px] font-semibold text-[var(--v-ink)]">
                   <Check className="h-3.5 w-3.5 text-[var(--v-teal)]" />
                   {answeredCount > 0
                     ? `Re-analysed after ${answeredCount} answer${answeredCount === 1 ? '' : 's'}${refined ? ' + model pass' : ''}`
@@ -1554,7 +1554,7 @@ export const PromptModePage: React.FC<Props> = ({
         </section>
 
         {/* ------------------------------------------------ artifact preview */}
-        <section className="rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] p-4">
+        <section className="rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex rounded-full bg-[var(--v-surface-2)] p-0.5">
               {(['wireframe', 'prompt'] as const).map((option) => (
@@ -1562,7 +1562,7 @@ export const PromptModePage: React.FC<Props> = ({
                   key={option}
                   type="button"
                   onClick={() => setView(option)}
-                  className={`rounded-full px-2.5 py-1 text-[9.5px] font-bold capitalize ${
+                  className={`rounded-full px-2.5 py-1 text-[9.5px] font-semibold capitalize ${
                     view === option ? 'bg-[var(--v-ink)] text-[var(--v-surface)]' : 'text-[var(--v-muted)]'
                   }`}
                 >
@@ -1578,7 +1578,7 @@ export const PromptModePage: React.FC<Props> = ({
                     key={option}
                     type="button"
                     onClick={() => setViewport(option)}
-                    className={`rounded-full px-2 py-1 text-[9px] font-bold capitalize ${
+                    className={`rounded-full px-2 py-1 text-[9px] font-semibold capitalize ${
                       viewport === option ? 'bg-[var(--v-ink)] text-[var(--v-surface)]' : 'text-[var(--v-muted)]'
                     }`}
                   >
@@ -1620,7 +1620,7 @@ export const PromptModePage: React.FC<Props> = ({
                     )}
                     {pageView && pageView.screen.clarifications.length > 0 && (
                       <span
-                        className={`rounded-full px-1 text-[8px] font-bold ${
+                        className={`rounded-full px-1 text-[8px] font-semibold ${
                           active ? 'bg-white/20' : 'bg-[#F59E0B]/10 text-[#B45309]'
                         }`}
                       >
@@ -1631,7 +1631,7 @@ export const PromptModePage: React.FC<Props> = ({
                       pageView.screen.meta.usedLines === 0 &&
                       pageView.screen.meta.specLines > 0 && (
                         <span
-                          className={`rounded-full px-1 text-[8px] font-bold ${
+                          className={`rounded-full px-1 text-[8px] font-semibold ${
                             active ? 'bg-white/20' : 'bg-[#B45309]/10 text-[#B45309]'
                           }`}
                         >
@@ -1655,7 +1655,7 @@ export const PromptModePage: React.FC<Props> = ({
                   empty={
                     submitted && compiled.clarifications.length > 0 ? (
                       <div className="px-4 text-center">
-                        <p className={`text-[11px] font-bold ${compiled.meta.dark ? 'text-white' : 'text-[#0B0E14]'}`}>
+                        <p className={`text-[11px] font-semibold ${compiled.meta.dark ? 'text-white' : 'text-[#0B0E14]'}`}>
                           Waiting for a clarification
                         </p>
                         <p className={`mt-1 text-[10px] leading-relaxed ${compiled.meta.dark ? 'text-white/70' : 'text-[#64626F]'}`}>
@@ -1664,7 +1664,7 @@ export const PromptModePage: React.FC<Props> = ({
                       </div>
                     ) : submitted && compiled.meta.usedLines === 0 && compiled.meta.specLines > 0 ? (
                       <div className="px-4 text-center">
-                        <p className={`text-[11px] font-bold ${compiled.meta.dark ? 'text-white' : 'text-[#0B0E14]'}`}>
+                        <p className={`text-[11px] font-semibold ${compiled.meta.dark ? 'text-white' : 'text-[#0B0E14]'}`}>
                           No UI components on this page
                         </p>
                         <p className={`mt-1 text-[10px] leading-relaxed ${compiled.meta.dark ? 'text-white/70' : 'text-[#64626F]'}`}>
@@ -1675,7 +1675,7 @@ export const PromptModePage: React.FC<Props> = ({
                     ) : (
                       <div className="text-center">
                         <Layers className="mx-auto h-5 w-5 text-[#C3C1CE]" />
-                        <p className="mt-2 text-[11px] font-bold text-[#0B0E14]">Nothing to preview</p>
+                        <p className="mt-2 text-[11px] font-semibold text-[#0B0E14]">Nothing to preview</p>
                         <p className="mt-0.5 text-[10px] text-[#64626F]">
                           Write a prompt and press Analyse.
                         </p>
@@ -1696,13 +1696,13 @@ export const PromptModePage: React.FC<Props> = ({
           ) : (
             <div className="mt-2">
               <div className="flex items-center justify-between">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--v-muted)]">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--v-muted)]">
                   Revised prompt{screens.length > 1 ? ` · ${screens.length} pages` : ''}
                 </p>
                 <button
                   type="button"
                   onClick={copy}
-                  className="text-[10.5px] font-bold text-[var(--v-violet)] hover:underline"
+                  className="text-[10.5px] font-semibold text-[var(--v-violet)] hover:underline"
                 >
                   {copied ? 'Copied' : 'Copy'}
                 </button>

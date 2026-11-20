@@ -32,17 +32,6 @@ interface DashboardPageProps {
   onOpenProject?: (id: string, name: string) => void;
 }
 
-const CATEGORY_STYLES: Record<string, { from: string; to: string }> = {
-  All: { from: '#00b8cc', to: '#7170ff' },
-  Dashboard: { from: '#7170ff', to: '#8b7bff' },
-  Marketing: { from: '#d46ec0', to: '#8b7bff' },
-  Commerce: { from: '#f2c94c', to: '#fc7840' },
-  Auth: { from: '#8b7bff', to: '#4ea7fc' },
-  Mobile: { from: '#00b8cc', to: '#4cc38a' },
-  Data: { from: '#4ea7fc', to: '#00b8cc' },
-  Collaboration: { from: '#fc7840', to: '#d46ec0' },
-};
-
 function firstName(input: string): string {
   return input.replace(/@.*/, '').trim().split(/\s+/)[0] || 'there';
 }
@@ -91,60 +80,62 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onStar
     <div className="space-y-5 v-fade-up relative">
       {onStartTour && <FeatureSpotlight onStartTour={onStartTour} />}
       {/* Hero */}
-      <section className="v-mesh v-noise rounded-3xl px-5 sm:px-8 lg:px-10 py-7 sm:py-9 text-white">
-        <div className="relative z-10 flex flex-col items-center text-center">
-          <div className="inline-flex items-center gap-1 p-0.5 rounded-full border border-[var(--v-line)] bg-[var(--v-surface)]/70">
+      <section className="v-card rounded-xl px-5 py-6 sm:px-7 sm:py-7">
+        <div className="flex items-start justify-between gap-6">
+          <div className="min-w-0">
+            <p className="v-eyebrow">Workspace</p>
+            <h1 className="v-display mt-1.5 text-[25px] text-[var(--v-ink)] sm:text-[28px]">
+              What will you <span className="text-[var(--v-muted)]">build</span> today?
+            </h1>
+            <p className="mt-2 max-w-[560px] text-[13px] leading-[1.6] text-[var(--v-muted)]">
+              Turn one vague sentence into a complete, scored prompt — with every label, action, colour and placement resolved before you generate.
+            </p>
+          </div>
+          <div className="hidden shrink-0 items-center gap-1 rounded-md border border-[var(--v-line)] bg-[var(--v-surface-2)] p-0.5 sm:flex">
             <button
               type="button"
               onClick={() => onNavigate('dashboard')}
-              className="px-3.5 py-1.5 rounded-full bg-[#e5e5e6] text-[#08090a] text-[12px] font-medium"
+              className="rounded bg-[var(--v-surface)] px-2.5 py-1 text-[11.5px] font-medium text-[var(--v-ink)]"
             >
               Home
             </button>
             <button
               type="button"
               onClick={() => onNavigate('templates')}
-              className="px-3.5 py-1.5 rounded-full text-[var(--v-muted)] text-[12px] font-medium hover:text-[var(--v-ink)] transition-colors"
+              className="rounded px-2.5 py-1 text-[11.5px] font-medium text-[var(--v-muted)] transition-colors hover:text-[var(--v-ink)]"
             >
               Templates
             </button>
           </div>
+        </div>
 
-          <h1 className="v-display mt-4 text-[28px] sm:text-[34px] lg:text-[40px] max-w-[18ch]">
-            What will you <span className="text-[var(--v-muted)]">build</span> today?
-          </h1>
-          <p className="mt-2 text-[12px] sm:text-[13px] text-[var(--v-muted)] max-w-md">
-            Turn one vague sentence into a complete, scored prompt — with every label, action, colour and placement resolved before you generate.
-          </p>
-
-          <form onSubmit={search} className="mt-5 w-full max-w-[520px]">
-            <div className="flex items-center gap-2 rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] p-1 pl-3 shadow-[0_20px_60px_-30px_rgba(0,0,0,.8)]">
-              <Search className="w-4 h-4 text-[var(--v-faint)] shrink-0" />
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search templates, elements or prompt ideas"
-                className="flex-1 min-w-0 bg-transparent outline-none text-[13px] text-[var(--v-ink)] placeholder:text-[var(--v-faint)]"
-              />
-              <button type="submit" className="v-btn v-btn-primary h-8 px-4 text-[12.5px] shrink-0">
-                Start <ArrowUpRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </form>
-
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-2 text-[11.5px]">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--v-surface-2)] border border-[var(--v-line)] text-[var(--v-muted)]">
-              <Sparkles className="w-3 h-3 text-[var(--v-accent)]" />
-              {paid ? `${plan.name} plan active` : `${remaining} of ${TRIAL_PROJECTS} free projects left`}
-            </span>
-            <button
-              type="button"
-              onClick={onStartNewAnalysis}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--v-surface-2)] border border-[var(--v-line)] text-[var(--v-muted)] transition-colors hover:text-[var(--v-ink)] hover:border-[var(--v-line-strong)]"
-            >
-              <Wand2 className="w-3 h-3" /> Score a prompt
+        <form onSubmit={search} className="mt-5 w-full max-w-[560px]">
+          <div className="flex items-center gap-2 rounded-md border border-[var(--v-line)] bg-[var(--v-bg)] p-1 pl-3">
+            <Search className="h-4 w-4 shrink-0 text-[var(--v-faint)]" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search templates, elements or prompt ideas"
+              className="min-w-0 flex-1 bg-transparent text-[13px] text-[var(--v-ink)] outline-none placeholder:text-[var(--v-faint)]"
+            />
+            <button type="submit" className="v-btn v-btn-primary h-7 shrink-0 px-3 text-[12px]">
+              Start <ArrowUpRight className="h-3.5 w-3.5" />
             </button>
           </div>
+        </form>
+
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-[11.5px]">
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-[var(--v-line)] bg-[var(--v-surface-2)] px-2.5 py-1 text-[var(--v-muted)]">
+            <Sparkles className="h-3 w-3 text-[var(--v-accent)]" />
+            {paid ? `${plan.name} plan active` : `${remaining} of ${TRIAL_PROJECTS} free projects left`}
+          </span>
+          <button
+            type="button"
+            onClick={onStartNewAnalysis}
+            className="inline-flex items-center gap-1.5 rounded-md border border-[var(--v-line)] bg-[var(--v-surface-2)] px-2.5 py-1 text-[var(--v-muted)] transition-colors hover:border-[var(--v-line-strong)] hover:text-[var(--v-ink)]"
+          >
+            <Wand2 className="h-3 w-3" /> Score a prompt
+          </button>
         </div>
       </section>
 
@@ -158,7 +149,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onStar
           <button
             type="button"
             onClick={() => onNavigate('templates')}
-            className="text-[12px] font-bold text-[var(--v-violet)] hover:underline"
+            className="text-[12px] font-semibold text-[var(--v-violet)] hover:underline"
           >
             See all templates
           </button>
@@ -166,7 +157,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onStar
 
         <div className="flex gap-4 overflow-x-auto v-scroll pb-2">
           {TEMPLATE_CATEGORIES.filter((category) => category !== 'All').map((category) => {
-            const tone = CATEGORY_STYLES[category] || CATEGORY_STYLES.All;
             return (
               <button
                 key={category}
@@ -174,11 +164,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onStar
                 onClick={() => onNavigate('templates')}
                 className="group flex flex-col items-center gap-2 shrink-0 w-[86px]"
               >
-                <span
-                  className="w-[44px] h-[44px] rounded-lg border border-[var(--v-line)] grid place-items-center transition-colors group-hover:border-[var(--v-line-strong)]"
-                  style={{ backgroundColor: `${tone.from}14`, color: tone.from }}
-                >
-                  <LayoutTemplate className="w-[18px] h-[18px]" />
+                <span className="grid h-[40px] w-[40px] place-items-center rounded-md border border-[var(--v-line)] bg-[var(--v-surface)] text-[var(--v-muted)] transition-colors group-hover:border-[var(--v-line-strong)] group-hover:text-[var(--v-ink)]">
+                  <LayoutTemplate className="h-[17px] w-[17px]" />
                 </span>
                 <span className="text-[11px] font-medium text-[var(--v-muted)] group-hover:text-[var(--v-ink)] transition-colors">
                   {category}
@@ -199,7 +186,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onStar
           <button
             type="button"
             onClick={() => onNavigate('projects')}
-            className="text-[12px] font-bold text-[var(--v-violet)] hover:underline"
+            className="text-[12px] font-semibold text-[var(--v-violet)] hover:underline"
           >
             All projects
           </button>
@@ -209,13 +196,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onStar
           <button
             type="button"
             onClick={() => onNavigate('projects')}
-            className="v-card v-card-lift rounded-2xl p-3.5 flex flex-col items-start justify-between min-h-[132px] border-dashed bg-[var(--v-surface-2)]"
+            className="v-card v-card-lift flex min-h-[124px] flex-col items-start justify-between rounded-lg border-dashed bg-[var(--v-surface-2)] p-3.5"
           >
-            <span className="w-10 h-10 rounded-2xl v-grad text-white grid place-items-center shadow-[0_10px_24px_-14px_rgba(79,125,243,.9)]">
+            <span className="grid h-9 w-9 place-items-center rounded-md bg-[var(--v-accent-soft)] text-[var(--v-accent-hover)]">
               <Plus className="w-5 h-5" />
             </span>
             <div className="text-left">
-              <p className="text-[14px] font-bold text-[var(--v-ink)]">New project</p>
+              <p className="text-[14px] font-semibold text-[var(--v-ink)]">New project</p>
               <p className="mt-0.5 text-[11.5px] text-[var(--v-muted)]">
                 {paid ? 'Unlimited on your plan' : `${remaining} free left`}
               </p>
@@ -230,19 +217,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onStar
                 if (onOpenProject) onOpenProject(project.id, project.name);
                 else { selectProject(project.id); onNavigate('projects'); }
               }}
-              className="v-card v-card-lift rounded-2xl overflow-hidden text-left group"
+              className="v-card v-card-lift group overflow-hidden rounded-lg text-left"
             >
-              <div
-                className="h-[74px] relative"
-                style={{
-                  backgroundImage: `linear-gradient(140deg, ${
-                    CATEGORY_STYLES[Object.keys(CATEGORY_STYLES)[(project.name.length % 6) + 1]]?.from || '#7170ff'
-                  }26, ${
-                    CATEGORY_STYLES[Object.keys(CATEGORY_STYLES)[(project.name.length % 6) + 1]]?.to || '#4ea7fc'
-                  }14)`,
-                }}
-              >
-                <div className="absolute inset-0 bg-[var(--v-surface)]/30" />
+              <div className="relative h-[74px] bg-[var(--v-surface-2)]">
+                <div className="absolute inset-0 bg-[radial-gradient(120%_100%_at_15%_0%,rgba(113,112,255,.14),transparent_60%)]" />
                 <span className="absolute bottom-2 left-2.5 text-[17px] font-semibold tracking-[-0.02em] text-[var(--v-ink)]">
                   {project.name.slice(0, 2).toUpperCase()}
                 </span>
@@ -251,7 +229,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onStar
                 </span>
               </div>
               <div className="p-2.5">
-                <p className="text-[11px] font-bold text-[var(--v-ink)] truncate">{project.name}</p>
+                <p className="text-[11px] font-semibold text-[var(--v-ink)] truncate">{project.name}</p>
                 <p className="mt-0.5 text-[9.5px] text-[var(--v-muted)] flex items-center gap-1">
                   <Clock3 className="w-3 h-3" />
                   {new Date(project.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
@@ -261,8 +239,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onStar
           ))}
 
           {recent.length === 0 && (
-            <div className="col-span-2 sm:col-span-2 xl:col-span-3 v-card rounded-2xl p-5 flex flex-col justify-center">
-              <p className="text-[14px] font-bold text-[var(--v-ink)]">No projects yet</p>
+            <div className="v-card col-span-2 flex flex-col justify-center rounded-lg p-5 sm:col-span-2 xl:col-span-3">
+              <p className="text-[14px] font-semibold text-[var(--v-ink)]">No projects yet</p>
               <p className="mt-1 text-[12px] text-[var(--v-muted)] max-w-md">
                 Start from a template — it pre-fills every required attribute so your first prompt is already complete.
               </p>
@@ -288,7 +266,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onStar
           <button
             type="button"
             onClick={() => onNavigate('templates')}
-            className="text-[12px] font-bold text-[var(--v-violet)] hover:underline"
+            className="text-[12px] font-semibold text-[var(--v-violet)] hover:underline"
           >
             Explore all
           </button>
@@ -303,15 +281,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onStar
               className="group text-left"
             >
               <div
-                className="aspect-[4/3] rounded-xl overflow-hidden relative border border-[var(--v-line)] group-hover:-translate-y-0.5 transition-transform duration-500"
-                style={{ backgroundImage: `linear-gradient(160deg, ${template.palette[0]}, ${template.palette[1]})` }}
+                className="relative aspect-[4/3] overflow-hidden rounded-lg border border-[var(--v-line)] bg-[var(--v-bg)] transition-transform duration-500 group-hover:-translate-y-0.5"
               >
                 <TemplateArt template={template} />
-                <span className="absolute inset-x-1.5 bottom-1.5 rounded-full bg-[#0B0E14]/75 py-1 text-center text-[9px] font-bold text-white opacity-0 transition-opacity group-hover:opacity-100">
+                <span className="absolute inset-x-1.5 bottom-1.5 rounded-full bg-[#0B0E14]/75 py-1 text-center text-[9px] font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100">
                   Open in editor
                 </span>
               </div>
-              <p className="mt-1.5 truncate text-[11px] font-bold text-[var(--v-ink)]">{template.name}</p>
+              <p className="mt-1.5 truncate text-[11px] font-semibold text-[var(--v-ink)]">{template.name}</p>
               <p className="text-[9.5px] text-[var(--v-faint)]">{template.category}</p>
             </button>
           ))}
@@ -320,12 +297,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onStar
 
       {/* Learn strip */}
       <section className="grid lg:grid-cols-[1.3fr_1fr] gap-4">
-        <div className="v-card rounded-[24px] p-5 flex flex-col sm:flex-row sm:items-center gap-4">
-          <span className="w-11 h-11 rounded-2xl v-grad-warm text-white grid place-items-center shrink-0">
+        <div className="v-card flex flex-col gap-4 rounded-lg p-5 sm:flex-row sm:items-center">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md border border-[var(--v-line)] bg-[var(--v-surface-2)] text-[var(--v-accent-hover)]">
             <GraduationCap className="w-5 h-5" />
           </span>
           <div className="flex-1 min-w-0">
-            <p className="text-[13.5px] font-bold text-[var(--v-ink)]">New here? Take the 60-second tour</p>
+            <p className="text-[13.5px] font-semibold text-[var(--v-ink)]">New here? Take the 60-second tour</p>
             <p className="mt-0.5 text-[11.5px] text-[var(--v-muted)]">
               Five short steps covering projects, templates, the block palette and the risk score.
             </p>
@@ -339,12 +316,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onStar
           </button>
         </div>
 
-        <div className="v-card rounded-[24px] p-5 flex items-center gap-4">
-          <span className="w-11 h-11 rounded-2xl bg-[var(--v-surface-2)] grid place-items-center shrink-0">
+        <div className="v-card rounded-lg p-5 flex items-center gap-4">
+          <span className="w-11 h-11 rounded-lg bg-[var(--v-surface-2)] grid place-items-center shrink-0">
             <Compass className="w-5 h-5 text-[var(--v-muted)]" />
           </span>
           <div className="flex-1 min-w-0">
-            <p className="text-[13.5px] font-bold text-[var(--v-ink)]">
+            <p className="text-[13.5px] font-semibold text-[var(--v-ink)]">
               {paid ? `${plan.name} plan` : `${used}/${TRIAL_PROJECTS} free projects used`}
             </p>
             <div className="mt-1.5 h-1.5 rounded-full bg-[var(--v-surface-2)] overflow-hidden">

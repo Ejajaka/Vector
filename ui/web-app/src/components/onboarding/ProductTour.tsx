@@ -152,7 +152,7 @@ export const ProductTour: React.FC<ProductTourProps> = ({ open, onClose }) => {
       {canAnchor ? (
         <>
           <div
-            className="pointer-events-none rounded-2xl"
+            className="pointer-events-none rounded-lg"
             style={{
               position: 'fixed',
               top: rect!.top - 6,
@@ -171,7 +171,7 @@ export const ProductTour: React.FC<ProductTourProps> = ({ open, onClose }) => {
 
       <div
         style={cardStyle}
-        className="z-10 bg-[var(--v-surface)] border border-[var(--v-line)] rounded-2xl shadow-[0_40px_90px_-40px_rgba(0,0,0,.8)] overflow-hidden"
+        className="z-10 bg-[var(--v-surface)] border border-[var(--v-line)] rounded-lg shadow-[0_40px_90px_-40px_rgba(0,0,0,.8)] overflow-hidden"
       >
         <div className="flex items-center justify-between px-4 pt-3.5">
           <div className="flex items-center gap-1.5">
@@ -197,7 +197,7 @@ export const ProductTour: React.FC<ProductTourProps> = ({ open, onClose }) => {
           <span className="w-10 h-10 rounded-xl bg-[var(--v-surface-2)] grid place-items-center">
             <Icon className="w-[18px] h-[18px] text-[var(--v-violet)]" />
           </span>
-          <h2 id="tour-title" className="mt-3 text-[17px] font-bold tracking-tight text-[var(--v-ink)]">
+          <h2 id="tour-title" className="mt-3 text-[17px] font-semibold tracking-tight text-[var(--v-ink)]">
             {current.title}
           </h2>
           <p className="mt-1.5 text-[12.5px] leading-relaxed text-[var(--v-muted)]">{current.body}</p>
@@ -224,8 +224,8 @@ export const ProductTour: React.FC<ProductTourProps> = ({ open, onClose }) => {
             <button
               type="button"
               onClick={() => (last ? finish() : setStep((value) => value + 1))}
-              className="h-8 px-3.5 rounded-lg text-[11.5px] font-bold text-white inline-flex items-center gap-1.5"
-              style={{ backgroundImage: 'linear-gradient(118deg,#7C5CFF,#4D7CFE 55%,#22D3EE)' }}
+              className="h-8 px-3.5 rounded-lg text-[11.5px] font-semibold text-white inline-flex items-center gap-1.5"
+              style={{ backgroundColor: 'var(--v-accent)' }}
             >
               {last ? 'Start building' : 'Next'}
               {!last && <ArrowRight className="w-3 h-3" />}

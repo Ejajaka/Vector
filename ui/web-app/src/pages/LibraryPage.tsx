@@ -64,7 +64,7 @@ export const LibraryPage: React.FC = () => {
 
   return (
     <div className="space-y-5 v-fade-up">
-      <section className="flex flex-col gap-3 rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] p-5 sm:flex-row sm:items-end sm:justify-between">
+      <section className="flex flex-col gap-3 rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] p-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="v-eyebrow">Library</p>
           <h1 className="v-display mt-1.5 text-[24px] text-[var(--v-ink)] sm:text-[28px]">Everything you have uploaded</h1>
@@ -77,8 +77,8 @@ export const LibraryPage: React.FC = () => {
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="h-9 rounded-lg px-3.5 text-[11.5px] font-bold text-white inline-flex items-center gap-1.5"
-            style={{ backgroundImage: 'linear-gradient(118deg,#7C5CFF,#4D7CFE 55%,#22D3EE)' }}
+            className="h-9 rounded-lg px-3.5 text-[11.5px] font-semibold text-white inline-flex items-center gap-1.5"
+            style={{ backgroundColor: 'var(--v-accent)' }}
           >
             <Upload className="w-3.5 h-3.5" /> Add files
           </button>
@@ -124,9 +124,9 @@ export const LibraryPage: React.FC = () => {
           <Loader2 className="h-5 w-5 animate-spin" />
         </div>
       ) : visible.length === 0 ? (
-        <section className="rounded-2xl border border-dashed border-[var(--v-line)] bg-[var(--v-surface-2)] p-10 text-center">
+        <section className="rounded-lg border border-dashed border-[var(--v-line)] bg-[var(--v-surface-2)] p-10 text-center">
           <ImageIcon className="mx-auto h-6 w-6 text-[var(--v-faint)]" />
-          <p className="mt-2 text-[13.5px] font-bold text-[var(--v-ink)]">
+          <p className="mt-2 text-[13.5px] font-semibold text-[var(--v-ink)]">
             {assets.length === 0 ? 'Nothing in the library yet' : 'Nothing matches that filter'}
           </p>
           <p className="mx-auto mt-1 max-w-sm text-[11.5px] text-[var(--v-muted)]">
@@ -184,13 +184,13 @@ export const LibraryPage: React.FC = () => {
                   </button>
                 </div>
                 {copied === asset.id && (
-                  <span className="absolute right-1.5 top-1.5 rounded bg-[var(--v-ink)] px-1.5 py-0.5 text-[8.5px] font-bold text-[var(--v-surface)]">
+                  <span className="absolute right-1.5 top-1.5 rounded bg-[var(--v-ink)] px-1.5 py-0.5 text-[8.5px] font-semibold text-[var(--v-surface)]">
                     copied
                   </span>
                 )}
               </div>
               <div className="p-2">
-                <p className="truncate text-[11px] font-bold text-[var(--v-ink)]">{asset.name}</p>
+                <p className="truncate text-[11px] font-semibold text-[var(--v-ink)]">{asset.name}</p>
                 <p className="text-[9.5px] text-[var(--v-faint)]">
                   {formatBytes(asset.size)} · {new Date(asset.createdAt).toLocaleDateString()}
                 </p>

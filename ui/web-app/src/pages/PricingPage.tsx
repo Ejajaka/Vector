@@ -88,7 +88,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
   return (
     <div className="space-y-6 v-fade-up">
       <section className="text-center max-w-2xl mx-auto">
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--v-surface-2)] text-[var(--v-violet)] text-[10.5px] font-bold uppercase tracking-[0.12em]">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--v-surface-2)] text-[var(--v-violet)] text-[10.5px] font-semibold uppercase tracking-[0.12em]">
           <Sparkles className="w-3 h-3" /> {paid ? `${planFor(state.plan).name} plan` : `${remaining} of ${TRIAL_PROJECTS} free projects left`}
         </span>
         <h1 className="v-display text-[32px] sm:text-[42px] mt-3 text-[var(--v-ink)]">
@@ -103,7 +103,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
 
       {flash && (
         <div
-          className={`max-w-3xl mx-auto rounded-2xl border px-4 py-3 text-[12.5px] flex items-start gap-2 ${
+          className={`max-w-3xl mx-auto rounded-lg border px-4 py-3 text-[12.5px] flex items-start gap-2 ${
             flash.tone === 'ok'
               ? 'bg-[#F0FBF7] border-[#BFE9DA] text-[#0C7A5B]'
               : 'bg-[#FDF2F0] border-[#F0C4BF] text-[#B94D42]'
@@ -114,7 +114,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
         </div>
       )}
 
-      <section className="v-card rounded-[28px] overflow-hidden">
+      <section className="v-card rounded-xl overflow-hidden">
         <div className="grid lg:grid-cols-[380px_1fr]">
           {/* Chooser */}
           <div className="p-5 sm:p-7 border-b lg:border-b-0 lg:border-r border-[var(--v-line)]">
@@ -124,14 +124,14 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
                   key={option}
                   type="button"
                   onClick={() => setBilling(option)}
-                  className={`px-3.5 py-1.5 rounded-full text-[11.5px] font-bold capitalize transition-colors ${
+                  className={`px-3.5 py-1.5 rounded-full text-[11.5px] font-semibold capitalize transition-colors ${
                     billing === option ? 'bg-[var(--v-surface)] text-[var(--v-ink)] shadow-[var(--v-shadow-sm)]' : 'text-[var(--v-muted)]'
                   }`}
                 >
                   {option}
                 </button>
               ))}
-              <span className="ml-1 mr-2 text-[10px] font-bold text-[var(--v-teal)]">−17%</span>
+              <span className="ml-1 mr-2 text-[10px] font-semibold text-[var(--v-teal)]">−17%</span>
             </div>
 
             <p className="mt-5 v-eyebrow">Choose your plan</p>
@@ -145,7 +145,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
                     key={option.code}
                     type="button"
                     onClick={() => setSelected(option.code)}
-                    className={`w-full text-left rounded-2xl border p-3.5 transition-all ${
+                    className={`w-full text-left rounded-lg border p-3.5 transition-all ${
                       isSelected
                         ? 'border-[var(--v-violet)] bg-[var(--v-surface)] shadow-[0_0_0_3px_rgba(139,92,246,.14)]'
                         : 'border-[var(--v-line)] hover:border-[var(--v-faint)]'
@@ -161,20 +161,20 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center gap-1.5">
-                          <span className="text-[13px] font-bold text-[var(--v-ink)]">{option.name}</span>
+                          <span className="text-[13px] font-semibold text-[var(--v-ink)]">{option.name}</span>
                           {isCurrent && (
-                            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#F0FBF7] text-[#0C7A5B]">
+                            <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#F0FBF7] text-[#0C7A5B]">
                               Current
                             </span>
                           )}
                           {option.code === 'pro' && !isCurrent && (
-                            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--v-surface-2)] text-[var(--v-violet)]">
+                            <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--v-surface-2)] text-[var(--v-violet)]">
                               Popular
                             </span>
                           )}
                         </span>
                         <span className="mt-0.5 block text-[10.5px] text-[var(--v-muted)]">{option.tagline}</span>
-                        <span className="mt-1 block text-[12px] font-bold text-[var(--v-ink)]">
+                        <span className="mt-1 block text-[12px] font-semibold text-[var(--v-ink)]">
                           ₹{(billing === 'annual' ? option.annualInr : option.monthlyInr).toLocaleString('en-IN')}
                           <span className="text-[10px] font-medium text-[var(--v-faint)]">
                             {option.code === 'free' ? ' forever' : billing === 'annual' ? ' / year' : ' / month'}
@@ -229,11 +229,11 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
               <table className="w-full min-w-[520px] text-left border-separate border-spacing-0">
                 <thead>
                   <tr>
-                    <th className="pb-2 text-[10px] uppercase tracking-[0.12em] font-bold text-[var(--v-faint)]">Compare</th>
+                    <th className="pb-2 text-[10px] uppercase tracking-[0.12em] font-semibold text-[var(--v-faint)]">Compare</th>
                     {PLANS.map((option) => (
                       <th
                         key={option.code}
-                        className={`pb-2 px-2 text-[11px] font-bold ${
+                        className={`pb-2 px-2 text-[11px] font-semibold ${
                           option.code === selected ? 'text-[var(--v-violet)]' : 'text-[var(--v-muted)]'
                         }`}
                       >
@@ -276,13 +276,13 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
 
       {/* Payments config */}
       <section className="grid md:grid-cols-2 gap-4">
-        <div className="v-card rounded-[24px] p-5">
+        <div className="v-card rounded-lg p-5">
           <div className="flex items-center justify-between">
-            <h2 className="text-[13px] font-bold text-[var(--v-ink)] flex items-center gap-2">
+            <h2 className="text-[13px] font-semibold text-[var(--v-ink)] flex items-center gap-2">
               <Wallet className="w-4 h-4 text-[var(--v-muted)]" /> Razorpay checkout
             </h2>
             <span
-              className={`text-[9.5px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+              className={`text-[9.5px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full ${
                 getRazorpayKey() ? 'bg-[#F0FBF7] text-[#0C7A5B]' : 'bg-[var(--v-surface-2)] text-[var(--v-muted)]'
               }`}
             >
@@ -317,8 +317,8 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
           </div>
         </div>
 
-        <div className="v-card rounded-[24px] p-5">
-          <h2 className="text-[13px] font-bold text-[var(--v-ink)] flex items-center gap-2">
+        <div className="v-card rounded-lg p-5">
+          <h2 className="text-[13px] font-semibold text-[var(--v-ink)] flex items-center gap-2">
             <Crown className="w-4 h-4 text-[#FFC53D]" /> Before you pay
           </h2>
           <ul className="mt-2.5 space-y-1.5 text-[11px] text-[var(--v-muted)]">
@@ -330,7 +330,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
           <button
             type="button"
             onClick={() => onNavigate('settings')}
-            className="mt-3 text-[11px] font-bold text-[var(--v-violet)] hover:underline"
+            className="mt-3 text-[11px] font-semibold text-[var(--v-violet)] hover:underline"
           >
             Manage billing in Settings
           </button>

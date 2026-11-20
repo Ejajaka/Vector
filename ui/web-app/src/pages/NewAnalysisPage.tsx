@@ -74,7 +74,7 @@ function toRiskLevel(level: string): RiskLevel {
 function riskBadge(level: string) {
   const meta = RISK_META[level] || RISK_META.Low;
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-xs font-bold ${meta.badge}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-xs font-semibold ${meta.badge}`}>
       <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: meta.color }} />
       {level} risk
     </span>
@@ -129,13 +129,13 @@ function ElementCard({ el }: { el: AnalysisPayload['result']['elements'][number]
     <div className="bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl p-4 shadow-xs">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-sm font-bold text-[#283638]">
+          <div className="text-sm font-semibold text-[#283638]">
             {complete ? '✅' : '⚠️'} {el.type} #{el.id}
           </div>
           <div className="text-xs text-[#737A72] mt-0.5">“{el.text}”</div>
         </div>
         <span
-          className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+          className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-md border ${
             complete
               ? 'bg-[#F4F9F1] border-[#CFE2C8] text-[#3E6B33]'
               : 'bg-[#FEFCE8] border-[#FEF08A] text-[#856C16]'
@@ -167,7 +167,7 @@ function ElementCard({ el }: { el: AnalysisPayload['result']['elements'][number]
         </ul>
       )}
 
-      <div className="mt-3 text-[10px] font-bold text-[#737A72] uppercase tracking-wider">Suggested rewrite</div>
+      <div className="mt-3 text-[10px] font-semibold text-[#737A72] uppercase tracking-wider">Suggested rewrite</div>
       <div className="mt-1 p-2.5 rounded-lg bg-[#F6F4EC] border border-dashed border-[#CDC9BC] font-mono text-[11px] text-[#283638] leading-relaxed">
         {el.suggestion}
       </div>
@@ -201,7 +201,7 @@ function ClarificationForm({
   return (
     <div className="bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl p-5 shadow-xs">
       <div className="flex items-center justify-between gap-3 mb-1">
-        <h3 className="text-base font-bold text-[#283638]">A few details are still unclear</h3>
+        <h3 className="text-base font-semibold text-[#283638]">A few details are still unclear</h3>
         <span className="text-[10px] font-mono text-[#856C16] bg-[#FEFCE8] border border-[#FEF08A] px-2 py-0.5 rounded-md font-semibold">
           Round {round}
         </span>
@@ -266,7 +266,7 @@ function ClarificationForm({
           type="button"
           disabled={disabled}
           onClick={() => handleSubmit(false)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#49686C] hover:bg-[#30494B] text-white text-xs font-bold transition-colors disabled:opacity-60"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#49686C] hover:bg-[#30494B] text-white text-xs font-semibold transition-colors disabled:opacity-60"
         >
           {disabled ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
           Submit answers
@@ -509,7 +509,7 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <h1 className="text-xl sm:text-2xl font-bold text-[#283638] tracking-tight">Analyse a UI prompt</h1>
+            <h1 className="text-xl sm:text-2xl font-semibold text-[#283638] tracking-tight">Analyse a UI prompt</h1>
           </div>
           <p className="text-xs sm:text-sm text-[#737A72]">
             Check the request for missing labels, colours, placement and actions before you generate.
@@ -536,7 +536,7 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
           <div className="flex items-start gap-2 flex-1">
             <Info className="w-4 h-4 text-[#49686C] mt-0.5 shrink-0" />
             <div>
-              <p className="text-sm font-bold text-[#283638]">You can analyse without a project</p>
+              <p className="text-sm font-semibold text-[#283638]">You can analyse without a project</p>
               <p className="text-xs text-[#737A72] mt-0.5">
                 This run will be saved to History in this browser. Create a project if you want it grouped with related work.
               </p>
@@ -546,7 +546,7 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
             <button
               type="button"
               onClick={onOpenProjects}
-              className="shrink-0 px-3.5 py-2 rounded-lg border border-[#E5E2D8] bg-white hover:bg-[#FAFAF8] text-xs font-bold text-[#283638]"
+              className="shrink-0 px-3.5 py-2 rounded-lg border border-[#E5E2D8] bg-white hover:bg-[#FAFAF8] text-xs font-semibold text-[#283638]"
             >
               Create project
             </button>
@@ -576,7 +576,7 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
       {engineState === 'loading' && (
         <div className="bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl p-10 text-center shadow-xs">
           <Loader2 className="w-7 h-7 text-[#49686C] animate-spin mx-auto mb-3" />
-          <div className="text-sm font-bold text-[#283638]">Preparing your analyzer…</div>
+          <div className="text-sm font-semibold text-[#283638]">Preparing your analyzer…</div>
           <p className="text-xs text-[#737A72] mt-1 max-w-md mx-auto">
             The first visit downloads the local runtime and BERT model (about 80 MB). It is cached afterwards,
             so later analyses are much faster.
@@ -586,7 +586,7 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
 
       {engineState === 'error' && (
         <div className="bg-[#FDF2F0] border border-[#F0C4BF] rounded-xl p-5 shadow-xs">
-          <div className="flex items-center gap-2 text-[#B94D42] font-bold text-sm">
+          <div className="flex items-center gap-2 text-[#B94D42] font-semibold text-sm">
             <AlertTriangle className="w-4 h-4" />
             Could not start the analyzer
           </div>
@@ -602,7 +602,7 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
         <div className="bg-[#FFFFFF] rounded-xl border border-[#E5E2D8] shadow-xs p-5 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
             <div>
-              <label htmlFor="prompt-input" className="text-base font-bold text-[#283638] block">
+              <label htmlFor="prompt-input" className="text-base font-semibold text-[#283638] block">
                 Describe the UI you want
               </label>
               <span className="text-xs text-[#737A72]">
@@ -663,7 +663,7 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
                 onClick={handleAnalyze}
                 disabled={analyzing || engineState !== 'ready'}
                 title={engineState !== 'ready' ? 'Preparing the analyser' : 'Analyse prompt'}
-                className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-xs font-bold text-white transition-all shadow-xs ${
+                className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-xs font-semibold text-white transition-all shadow-xs ${
                   analyzing || engineState !== 'ready'
                     ? 'bg-[#49686C]/60 cursor-not-allowed'
                     : 'bg-[#49686C] hover:bg-[#30494B] active:scale-[0.99]'
@@ -730,7 +730,7 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
       {/* Analysis error (engine-specific; the editor stays usable) */}
       {analysisError && (
         <div className="bg-[#FDF2F0] border border-[#F0C4BF] rounded-xl p-4 shadow-xs">
-          <div className="flex items-center gap-2 text-[#B94D42] font-bold text-sm">
+          <div className="flex items-center gap-2 text-[#B94D42] font-semibold text-sm">
             <AlertTriangle className="w-4 h-4" />
             Analysis failed
           </div>
@@ -746,7 +746,7 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
           <div className="bg-[#FFFFFF] p-4 rounded-xl border border-[#E5E2D8] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2 flex-wrap">
               <span className={`w-2 h-2 rounded-full ${payload.needs_clarification ? 'bg-[#D1B653]' : 'bg-[#49686C]'}`} />
-              <span className="text-xs font-bold text-[#283638]">
+              <span className="text-xs font-semibold text-[#283638]">
                 {payload.needs_clarification ? 'Clarification required' : 'Diagnosis complete'}
               </span>
               <span className="text-xs text-[#737A72] hidden md:inline">
@@ -816,7 +816,7 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
           {/* Clarification gate: no score/explanation until ambiguity is resolved */}
           {payload.needs_clarification && (
             <div className="bg-[#FFFDF5] rounded-xl border border-[#FEF08A] p-4">
-              <div className="text-xs font-bold text-[#856C16]">Score withheld until the prompt is unambiguous</div>
+              <div className="text-xs font-semibold text-[#856C16]">Score withheld until the prompt is unambiguous</div>
               <p className="text-xs text-[#737A72] mt-1">
                 The analyzer found{' '}
                 {payload.clarification.questions.length} unresolved detail(s). Answer the questions on the right;
@@ -840,7 +840,7 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
                 <div className="flex items-center justify-between gap-3 flex-wrap pb-4 border-b border-[#E5E2D8]">
                   <div>
                     <div className="flex items-center gap-2">
-                      <h2 className="text-base font-bold text-[#283638]">Evaluation Summary</h2>
+                      <h2 className="text-base font-semibold text-[#283638]">Evaluation Summary</h2>
                       {riskBadge(level)}
                     </div>
                     <div className="text-xs text-[#737A72] mt-1">A single, explainable read-out for this prompt.</div>
@@ -854,15 +854,15 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
                   <CircularScoreGauge score={Math.round(final.score)} label="Risk index" sublabel="Lower is safer" variant="risk" size={104} />
                   <CircularScoreGauge score={completeness} label="Completeness" sublabel="Required details stated" variant="coverage" size={104} />
                   <div className="bg-[#FAFAF8] border border-[#E5E2D8] rounded-xl p-4 flex flex-col justify-center">
-                    <div className="text-xs font-bold text-[#283638] mb-2">Review confidence</div>
-                    <div className="text-2xl font-bold font-mono text-[#283638] tabular-nums">{confidence}%</div>
+                    <div className="text-xs font-semibold text-[#283638] mb-2">Review confidence</div>
+                    <div className="text-2xl font-semibold font-mono text-[#283638] tabular-nums">{confidence}%</div>
                     <div className="h-1.5 rounded-full bg-[#E5E2D8] overflow-hidden mt-2">
                       <div className="h-full rounded-full bg-[#49686C] transition-all duration-700" style={{ width: `${confidence}%` }} />
                     </div>
                     <div className="text-[11px] text-[#737A72] mt-2">How certain the review is about the detected details.</div>
                   </div>
                   <div className="bg-[#FAFAF8] border border-[#E5E2D8] rounded-xl p-4">
-                    <div className="text-xs font-bold text-[#283638] mb-2">Detected findings</div>
+                    <div className="text-xs font-semibold text-[#283638] mb-2">Detected findings</div>
                     <div className="space-y-1.5 text-[11px]">
                       <div className="flex items-center justify-between"><span className="text-[#737A72]">UI elements</span><b className="font-mono text-[#283638]">{payload.result.elements.length}</b></div>
                       <div className="flex items-center justify-between"><span className="text-[#737A72]">Missing details</span><b className="font-mono text-[#283638]">{counts.missing ?? 0}</b></div>
@@ -883,7 +883,7 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
                   <div className="mt-5 flex gap-2.5 items-start bg-[#F6F4EC] border border-[#E5E2D8] rounded-xl p-3.5">
                     <Info className="w-4 h-4 text-[#49686C] shrink-0 mt-0.5" />
                     <div>
-                      <div className="text-xs font-bold text-[#30494B]">
+                      <div className="text-xs font-semibold text-[#30494B]">
                         Reviewer note
                       </div>
                       <div className="text-xs text-[#283638] leading-relaxed mt-0.5">{payload.explanation || final.explanation}</div>
@@ -896,15 +896,15 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
 
           {/* Highlighted prompt */}
           <div className="bg-[#FFFFFF] rounded-xl border border-[#E5E2D8] shadow-xs p-5 sm:p-6">
-            <div className="text-[10px] font-bold text-[#737A72] uppercase tracking-wider mb-1">Prompt under review</div>
-            <div className="text-base font-bold text-[#283638] mb-3">Your interface request</div>
+            <div className="text-[10px] font-semibold text-[#737A72] uppercase tracking-wider mb-1">Prompt under review</div>
+            <div className="text-base font-semibold text-[#283638] mb-3">Your interface request</div>
             <div className="p-3.5 rounded-lg border border-[#E5E2D8] bg-[#FAFAF8]">
               <HighlightedPrompt text={text} spans={payload.spans} />
             </div>
             <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-[11px] text-[#737A72]">
               {Object.entries(SPAN_STYLES).map(([label, cls]) => (
                 <span key={label} className="inline-flex items-center gap-1.5">
-                  <span className={`px-1.5 py-0.5 rounded ${cls} font-bold text-[11px]`}>{label}</span>
+                  <span className={`px-1.5 py-0.5 rounded ${cls} font-semibold text-[11px]`}>{label}</span>
                 </span>
               ))}
             </div>
@@ -914,7 +914,7 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
             <div className="lg:col-span-7 space-y-3">
               <div className="flex items-center justify-between">
-                <div className="text-base font-bold text-[#283638]">Detected elements ({payload.result.elements.length})</div>
+                <div className="text-base font-semibold text-[#283638]">Detected elements ({payload.result.elements.length})</div>
                 <div className="text-[11px] text-[#737A72]">Detected in your prompt</div>
               </div>
               {payload.result.elements.length === 0 ? (
@@ -936,8 +936,8 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
                 />
               ) : (
                 <div className="bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl p-5 shadow-xs">
-                  <div className="text-[10px] font-bold text-[#737A72] uppercase tracking-wider mb-1">Validated recommendation</div>
-                  <h3 className="text-base font-bold text-[#283638] mb-2">Best prompt</h3>
+                  <div className="text-[10px] font-semibold text-[#737A72] uppercase tracking-wider mb-1">Validated recommendation</div>
+                  <h3 className="text-base font-semibold text-[#283638] mb-2">Best prompt</h3>
 
                   {payload.clarification.unresolved.length > 0 && (
                     <div className="mb-3 p-2.5 rounded-lg bg-[#FEFCE8] border border-[#FEF08A] text-[11px] text-[#856C16]">
@@ -968,7 +968,7 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
 
                   {payload.recommendations && payload.recommendations.length > 0 && (
                     <>
-                      <div className="mt-4 text-[10px] font-bold text-[#737A72] uppercase tracking-wider">Recommendations</div>
+                      <div className="mt-4 text-[10px] font-semibold text-[#737A72] uppercase tracking-wider">Recommendations</div>
                       <ul className="mt-1.5 space-y-1.5 text-xs text-[#283638] list-disc pl-4">
                         {payload.recommendations.map((r, i) => (
                           <li key={i}>{r}</li>
@@ -987,7 +987,7 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
 
           {/* Why this result */}
           <details className="bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl shadow-xs overflow-hidden">
-            <summary className="cursor-pointer px-5 py-3.5 text-sm font-bold text-[#283638] hover:bg-[#FAFAF8] transition-colors">
+            <summary className="cursor-pointer px-5 py-3.5 text-sm font-semibold text-[#283638] hover:bg-[#FAFAF8] transition-colors">
               How this score works
             </summary>
             <div className="px-5 pb-4 text-xs text-[#737A72] space-y-1.5">

@@ -127,15 +127,15 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
   if (publicMode) {
     return (
       <div className="space-y-14 max-w-6xl mx-auto pb-8">
-        <section className="relative bg-[#FFFFFF] dark:bg-[#1B2426] rounded-2xl border border-[#E5E2D8] dark:border-[#29383A] p-7 sm:p-10 shadow-xs overflow-hidden">
+        <section className="relative bg-[#FFFFFF] dark:bg-[#1B2426] rounded-lg border border-[#E5E2D8] dark:border-[#29383A] p-7 sm:p-10 shadow-xs overflow-hidden">
           <div className="absolute -right-16 -top-16 w-72 h-72 rounded-full bg-[#49686C]/8 blur-2xl" />
           <div className="absolute -left-10 -bottom-20 w-64 h-64 rounded-full bg-[#D1B653]/12 blur-2xl" />
           <div className="max-w-3xl space-y-4 relative z-10">
-            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#E4EBDD] dark:bg-[#23301F] text-[#30494B] dark:text-[#B7D9B0] border border-[#CFE2C8] dark:border-[#3D5236]">
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#E4EBDD] dark:bg-[#23301F] text-[#30494B] dark:text-[#B7D9B0] border border-[#CFE2C8] dark:border-[#3D5236]">
               <Sparkles className="w-3 h-3" />
               Vector — Requirement engineering for UI teams
             </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#283638] dark:text-[#F2F5F3] leading-[1.15]">
+            <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-[#283638] dark:text-[#F2F5F3] leading-[1.15]">
               Everything between a document and a design.
             </h1>
             <p className="text-sm sm:text-base text-[#737A72] dark:text-[#9AA6A2] leading-relaxed max-w-2xl">
@@ -146,7 +146,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
               <button
                 type="button"
                 onClick={onRequestSignIn}
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#49686C] hover:bg-[#30494B] text-white text-sm font-bold shadow-sm transition-all active:scale-[0.99]"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#49686C] hover:bg-[#30494B] text-white text-sm font-semibold shadow-sm transition-all active:scale-[0.99]"
               >
                 <LogIn className="w-4 h-4" />
                 Sign in or create an account
@@ -154,7 +154,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
               <button
                 type="button"
                 onClick={() => document.getElementById('feature-grid')?.scrollIntoView({ behavior: 'smooth' })}
-                className="inline-flex items-center gap-1.5 px-4 py-3 rounded-xl border border-[#E5E2D8] dark:border-[#33403F] bg-white dark:bg-[#141C1D] text-sm font-bold text-[#283638] dark:text-[#E7E4D9] hover:bg-[#F6F4EC] dark:hover:bg-[#222E30] transition-colors"
+                className="inline-flex items-center gap-1.5 px-4 py-3 rounded-xl border border-[#E5E2D8] dark:border-[#33403F] bg-white dark:bg-[#141C1D] text-sm font-semibold text-[#283638] dark:text-[#E7E4D9] hover:bg-[#F6F4EC] dark:hover:bg-[#222E30] transition-colors"
               >
                 Explore features
                 <ArrowRight className="w-4 h-4" />
@@ -172,10 +172,10 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
 
         <section id="feature-grid" className="space-y-5 scroll-mt-20">
           <div className="max-w-2xl">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-[#49686C] dark:text-[#9DBEC1]">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-[#49686C] dark:text-[#9DBEC1]">
               What is inside
             </div>
-            <h2 className="text-2xl font-bold text-[#283638] dark:text-[#F2F5F3] tracking-tight mt-1">
+            <h2 className="text-2xl font-semibold text-[#283638] dark:text-[#F2F5F3] tracking-tight mt-1">
               Eight connected steps, one source of truth.
             </h2>
           </div>
@@ -188,7 +188,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${tone}18`, color: tone }}>
                   <Icon className="w-4 h-4" />
                 </div>
-                <h3 className="text-sm font-bold text-[#283638] dark:text-[#E7E4D9] mt-3">{title}</h3>
+                <h3 className="text-sm font-semibold text-[#283638] dark:text-[#E7E4D9] mt-3">{title}</h3>
                 <p className="text-[11px] text-[#737A72] dark:text-[#8E9A93] leading-relaxed mt-1.5">{text}</p>
               </article>
             ))}
@@ -202,20 +202,20 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
             ['03', 'Generate', 'Produce the six-section brief, inject your design tokens, and build in Base44.'],
           ].map(([step, title, text]) => (
             <div key={step} className="bg-[#FFFFFF] dark:bg-[#1B2426] rounded-xl border border-[#E5E2D8] dark:border-[#29383A] p-5 shadow-xs">
-              <span className="font-mono text-xs font-bold text-[#D1B653]">{step}</span>
-              <h3 className="text-base font-bold text-[#283638] dark:text-[#E7E4D9] mt-2">{title}</h3>
+              <span className="font-mono text-xs font-semibold text-[#D1B653]">{step}</span>
+              <h3 className="text-base font-semibold text-[#283638] dark:text-[#E7E4D9] mt-2">{title}</h3>
               <p className="text-xs text-[#737A72] dark:text-[#8E9A93] leading-relaxed mt-1">{text}</p>
             </div>
           ))}
         </section>
 
-        <section className="bg-[#30494B] rounded-2xl p-8 sm:p-10 text-center text-white">
-          <h2 className="text-2xl font-extrabold tracking-tight">Start with your next requirement document.</h2>
+        <section className="bg-[#30494B] rounded-lg p-8 sm:p-10 text-center text-white">
+          <h2 className="text-2xl font-semibold tracking-tight">Start with your next requirement document.</h2>
           <p className="text-sm text-gray-200 mt-2">Create a free workspace. Your projects stay private and isolated.</p>
           <button
             type="button"
             onClick={onRequestSignIn}
-            className="mt-5 inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#D1B653] hover:bg-[#bda241] text-[#283638] text-sm font-bold transition-all"
+            className="mt-5 inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#D1B653] hover:bg-[#bda241] text-[#283638] text-sm font-semibold transition-all"
           >
             <LogIn className="w-4 h-4" />
             Sign in to Vector
@@ -234,7 +234,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
             <span>·</span>
               <span>Vector — Requirement engineering for UI teams</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#283638] dark:text-[#F2F5F3]">
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#283638] dark:text-[#F2F5F3]">
             {currentProject ? currentProject.name : 'Select a project to begin'}
           </h1>
           <p className="text-sm text-[#737A72] dark:text-[#9AA6A2] leading-relaxed">
@@ -248,14 +248,14 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
               <>
                 <button
                   onClick={onStartNewAnalysis}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#49686C] hover:bg-[#30494B] text-white text-xs font-bold transition-all shadow-xs"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#49686C] hover:bg-[#30494B] text-white text-xs font-semibold transition-all shadow-xs"
                 >
                   <PlusCircle className="w-4 h-4" />
                   <span>New Analysis</span>
                 </button>
                 <button
                   onClick={onViewAllHistory}
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-[#E5E2D8] dark:border-[#33403F] bg-white dark:bg-[#141C1D] hover:bg-[#F6F4EC] dark:hover:bg-[#222E30] text-xs font-bold text-[#283638] dark:text-[#E7E4D9] transition-colors"
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-[#E5E2D8] dark:border-[#33403F] bg-white dark:bg-[#141C1D] hover:bg-[#F6F4EC] dark:hover:bg-[#222E30] text-xs font-semibold text-[#283638] dark:text-[#E7E4D9] transition-colors"
                 >
                   <span>View recent analyses</span>
                 </button>
@@ -263,7 +263,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
             ) : (
               <button
                 onClick={onOpenProjects}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#49686C] hover:bg-[#30494B] text-white text-xs font-bold transition-all shadow-xs"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#49686C] hover:bg-[#30494B] text-white text-xs font-semibold transition-all shadow-xs"
               >
                 <FolderOpen className="w-4 h-4" />
                 <span>Create or open a project</span>
@@ -288,7 +288,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
             </div>
           </div>
           <div>
-            <div className="text-3xl font-bold text-[#283638] dark:text-[#F2F5F3] font-mono tabular-nums">{totalCount}</div>
+            <div className="text-3xl font-semibold text-[#283638] dark:text-[#F2F5F3] font-mono tabular-nums">{totalCount}</div>
             <div className="text-[11px] text-[#737A72] dark:text-[#8E9A93] mt-1">Prompts evaluated in this project</div>
           </div>
         </div>
@@ -301,7 +301,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
             </div>
           </div>
           <div>
-            <div className="text-3xl font-bold text-[#283638] dark:text-[#F2F5F3] font-mono tabular-nums">
+            <div className="text-3xl font-semibold text-[#283638] dark:text-[#F2F5F3] font-mono tabular-nums">
               {totalCount > 0 ? `${avgRisk}/100` : '—'}
             </div>
             <div className="text-[11px] text-[#737A72] dark:text-[#8E9A93] mt-1">Across this project's prompts</div>
@@ -316,7 +316,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
             </div>
           </div>
           <div>
-            <div className="text-3xl font-bold text-[#283638] dark:text-[#F2F5F3] font-mono tabular-nums">
+            <div className="text-3xl font-semibold text-[#283638] dark:text-[#F2F5F3] font-mono tabular-nums">
               {totalCount > 0 ? `${avgCoverage}%` : '—'}
             </div>
             <div className="text-[11px] text-[#737A72] dark:text-[#8E9A93] mt-1">Required details stated</div>
@@ -331,7 +331,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
             </div>
           </div>
           <div>
-            <div className="text-3xl font-bold text-[#B94D42] font-mono tabular-nums">{highRiskCount}</div>
+            <div className="text-3xl font-semibold text-[#B94D42] font-mono tabular-nums">{highRiskCount}</div>
             <div className="text-[11px] text-[#737A72] dark:text-[#8E9A93] mt-1">Classified High or Critical</div>
           </div>
         </div>
@@ -341,7 +341,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         <div className="lg:col-span-8 bg-[#FFFFFF] dark:bg-[#1B2426] rounded-xl border border-[#E5E2D8] dark:border-[#29383A] shadow-xs p-5 sm:p-6 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="text-base font-bold text-[#283638] dark:text-[#E7E4D9]">Recent Analyses</h3>
+              <h3 className="text-base font-semibold text-[#283638] dark:text-[#E7E4D9]">Recent Analyses</h3>
               <p className="text-xs text-[#737A72] dark:text-[#8E9A93]">
                 {currentProject ? `Evaluations saved to ${currentProject.name}` : 'Choose a project to see its history'}
               </p>
@@ -388,7 +388,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
               </p>
               <button
                 onClick={currentProject ? onStartNewAnalysis : onOpenProjects}
-                className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#49686C] text-white text-xs font-bold hover:bg-[#30494B] transition-colors"
+                className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#49686C] text-white text-xs font-semibold hover:bg-[#30494B] transition-colors"
               >
                 <PlusCircle className="w-3.5 h-3.5" />
                 <span>{currentProject ? 'Start an analysis' : 'Open projects'}</span>
@@ -432,7 +432,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                       </td>
                       <td className="py-3 px-3">
                         <div className="flex items-center gap-1.5">
-                          <span className="font-mono font-bold text-[#283638] dark:text-[#E7E4D9] tabular-nums">{item.riskScore}</span>
+                          <span className="font-mono font-semibold text-[#283638] dark:text-[#E7E4D9] tabular-nums">{item.riskScore}</span>
                           <RiskBadge level={item.riskLevel} size="sm" showIcon={false} />
                         </div>
                       </td>
@@ -462,7 +462,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-[#49686C]" />
-              <h3 className="text-base font-bold text-[#283638] dark:text-[#E7E4D9]">Risk Distribution</h3>
+              <h3 className="text-base font-semibold text-[#283638] dark:text-[#E7E4D9]">Risk Distribution</h3>
             </div>
             <span className="text-xs font-mono font-medium text-[#737A72]">{totalCount} saved</span>
           </div>
@@ -519,7 +519,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <span className="text-lg font-bold font-mono text-[#283638] dark:text-[#F2F5F3] leading-tight">{totalCount}</span>
+                  <span className="text-lg font-semibold font-mono text-[#283638] dark:text-[#F2F5F3] leading-tight">{totalCount}</span>
                   <span className="text-[10px] text-[#737A72] uppercase font-semibold">Prompts</span>
                 </div>
               </div>

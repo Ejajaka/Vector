@@ -83,7 +83,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
           <button
             type="button"
             onClick={onBack}
-            className="inline-flex items-center gap-2 text-xs font-bold text-[#49686C] dark:text-[#B9D1D4] hover:text-[#283638] dark:hover:text-white transition-colors"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-[#49686C] dark:text-[#B9D1D4] hover:text-[#283638] dark:hover:text-white transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             Back to overview
@@ -93,7 +93,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
           </span>
         </div>
 
-        <div className="grid lg:grid-cols-[1.05fr_1fr] rounded-3xl overflow-hidden border border-[#E5E2D8] dark:border-[#33403F] shadow-2xl bg-white dark:bg-[#1B2526]">
+        <div className="grid lg:grid-cols-[1.05fr_1fr] rounded-lg overflow-hidden border border-[#E5E2D8] dark:border-[#33403F] shadow-2xl bg-white dark:bg-[#1B2526]">
           {/* Brand / product panel */}
           <aside className="relative hidden lg:flex flex-col justify-between p-9 bg-[#2D5D4F] text-white overflow-hidden">
             <div
@@ -111,14 +111,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
               <div className="flex items-center gap-3">
                 <Logo size={42} />
                 <div>
-                  <div className="text-lg font-bold tracking-tight leading-none">Vector</div>
+                  <div className="text-lg font-semibold tracking-tight leading-none">Vector</div>
                   <div className="text-[10px] uppercase tracking-[0.18em] text-white/60 mt-1">
                     Vector — Requirement engineering for UI teams
                   </div>
                 </div>
               </div>
 
-              <h1 className="mt-10 text-[2rem] leading-[1.15] font-extrabold tracking-tight">
+              <h1 className="mt-10 text-[2rem] leading-[1.15] font-semibold tracking-tight">
                 Requirements in.
                 <br />
                 Interfaces that hold up.
@@ -144,10 +144,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
             <div className="relative mt-8">
               <div className="rounded-xl bg-white/8 border border-white/15 backdrop-blur-sm p-3.5 space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[9px] uppercase tracking-[0.16em] text-white/50 font-bold">
+                  <span className="text-[9px] uppercase tracking-[0.16em] text-white/50 font-semibold">
                     Generated brief
                   </span>
-                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#FAD237]/15 text-[#FAD237] border border-[#FAD237]/25">
+                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[#FAD237]/15 text-[#FAD237] border border-[#FAD237]/25">
                     Ready
                   </span>
                 </div>
@@ -178,7 +178,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
             <div className="lg:hidden flex items-center gap-3 mb-6">
               <Logo size={38} />
               <div>
-                <div className="text-base font-bold text-[#283638] dark:text-[#E7E4D9] leading-none">Vector</div>
+                <div className="text-base font-semibold text-[#283638] dark:text-[#E7E4D9] leading-none">Vector</div>
                 <div className="text-[10px] uppercase tracking-[0.16em] text-[#737A72] dark:text-[#8E9A93] mt-1">
                   Vector — Requirement engineering for UI teams
                 </div>
@@ -194,7 +194,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
                   key={item.id}
                   type="button"
                   onClick={() => { setMode(item.id); setError(''); setNotice(''); }}
-                  className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+                  className={`flex-1 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
                     mode === item.id
                       ? 'bg-white dark:bg-[#263335] text-[#283638] dark:text-white shadow-xs'
                       : 'text-[#737A72] dark:text-[#8E9A93] hover:text-[#283638] dark:hover:text-white'
@@ -206,7 +206,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
             </div>
 
             <div className="mb-5">
-              <h2 className="text-xl font-bold text-[#283638] dark:text-[#E7E4D9] tracking-tight">
+              <h2 className="text-xl font-semibold text-[#283638] dark:text-[#E7E4D9] tracking-tight">
                 {mode === 'login' ? 'Welcome back' : mode === 'register' ? 'Create your workspace' : 'Reset your password'}
               </h2>
               <p className="text-xs text-[#737A72] dark:text-[#8E9A93] mt-1">
@@ -221,7 +221,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
             <form onSubmit={submit} className="space-y-4">
               {mode === 'register' && (
                 <label className="block">
-                  <span className="text-xs font-bold text-[#283638] dark:text-[#E7E4D9] block mb-1">Name</span>
+                  <span className="text-xs font-semibold text-[#283638] dark:text-[#E7E4D9] block mb-1">Name</span>
                   <div className="relative">
                     <UserPlus className="w-4 h-4 text-[#737A72] absolute left-3 top-3" />
                     <input
@@ -236,7 +236,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
               )}
 
               <label className="block">
-                <span className="text-xs font-bold text-[#283638] dark:text-[#E7E4D9] block mb-1">Email</span>
+                <span className="text-xs font-semibold text-[#283638] dark:text-[#E7E4D9] block mb-1">Email</span>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-[#737A72] absolute left-3 top-3" />
                   <input
@@ -253,7 +253,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
 
               {mode !== 'reset' && (
                 <label className="block">
-                  <span className="text-xs font-bold text-[#283638] dark:text-[#E7E4D9] block mb-1">Password</span>
+                  <span className="text-xs font-semibold text-[#283638] dark:text-[#E7E4D9] block mb-1">Password</span>
                   <div className="relative">
                     <LockKeyhole className="w-4 h-4 text-[#737A72] absolute left-3 top-3" />
                     <input
@@ -292,7 +292,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
               <button
                 type="submit"
                 disabled={busy}
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#49686C] hover:bg-[#30494B] disabled:opacity-60 text-white text-sm font-bold transition-all shadow-sm active:scale-[0.99]"
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#49686C] hover:bg-[#30494B] disabled:opacity-60 text-white text-sm font-semibold transition-all shadow-sm active:scale-[0.99]"
               >
                 {busy ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

@@ -96,26 +96,26 @@ export const IntegrationsPage: React.FC<IntegrationsPageProps> = ({ onNavigate }
 
   return (
     <div className="space-y-6 v-fade-up">
-      <section className="text-center max-w-2xl mx-auto">
-        <p className="v-eyebrow">Integrations</p>
-        <h1 className="v-display text-[30px] sm:text-[40px] mt-2 text-[var(--v-ink)]">
-          Connect the tools you <span className="v-gradient-text">already use</span>
-        </h1>
-        <p className="mt-2 text-[13px] text-[var(--v-muted)]">
-          Import a design, generate the build, then deploy it — without copying prompts between tabs.
-        </p>
-        <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--v-surface)] border border-[var(--v-line)]">
-          <BadgeCheck className={`w-3.5 h-3.5 ${paid ? 'text-[var(--v-teal)]' : 'text-[var(--v-faint)]'}`} />
-          <span className="text-[11px] font-bold text-[var(--v-ink)]">{plan.name} plan</span>
+      <section className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="v-eyebrow">Integrations</p>
+          <h1 className="v-display mt-1 text-[26px] text-[var(--v-ink)]">Connect the tools you already use</h1>
+          <p className="mt-1 max-w-[620px] text-[13px] text-[var(--v-muted)]">
+            Import a design, generate the build, then deploy it — without copying prompts between tabs.
+          </p>
+        </div>
+        <div className="inline-flex items-center gap-2 rounded-md border border-[var(--v-line)] bg-[var(--v-surface)] px-3 py-1.5">
+          <BadgeCheck className={`h-3.5 w-3.5 ${paid ? 'text-[var(--v-accent-hover)]' : 'text-[var(--v-faint)]'}`} />
+          <span className="text-[11px] font-semibold text-[var(--v-ink)]">{plan.name} plan</span>
           {!paid && (
-            <button type="button" onClick={() => onNavigate('pricing')} className="text-[10.5px] font-bold text-[var(--v-violet)] hover:underline">
+            <button type="button" onClick={() => onNavigate('pricing')} className="text-[10.5px] font-semibold text-[var(--v-violet)] hover:underline">
               Unlock
             </button>
           )}
         </div>
       </section>
 
-      <div className="flex items-center gap-2 overflow-x-auto v-scroll pb-1 justify-start sm:justify-center">
+      <div className="v-scroll flex items-center gap-2 overflow-x-auto pb-1">
         {(['All', 'Design import', 'Generate', 'Deploy', 'Repository'] as const).map((item) => (
           <button key={item} type="button" onClick={() => setFilter(item)} className="v-chip" data-active={filter === item}>
             {item}
@@ -128,19 +128,19 @@ export const IntegrationsPage: React.FC<IntegrationsPageProps> = ({ onNavigate }
           const Icon = provider.icon;
           const isConnected = connected.includes(provider.id);
           return (
-            <article key={provider.id} className="v-card v-card-lift rounded-[24px] p-4 flex flex-col">
+            <article key={provider.id} className="v-card v-card-lift rounded-lg p-4 flex flex-col">
               <div className="flex items-start gap-3">
                 <span
-                  className="w-11 h-11 rounded-2xl grid place-items-center text-white shrink-0"
+                  className="w-11 h-11 rounded-lg grid place-items-center text-white shrink-0"
                   style={{ backgroundImage: `linear-gradient(140deg, ${provider.from}, ${provider.to})` }}
                 >
                   <Icon className="w-5 h-5" />
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <h3 className="text-[13px] font-bold text-[var(--v-ink)] truncate">{provider.name}</h3>
+                    <h3 className="text-[13px] font-semibold text-[var(--v-ink)] truncate">{provider.name}</h3>
                     {provider.badge && (
-                      <span className="text-[8.5px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--v-surface-2)] text-[var(--v-muted)]">
+                      <span className="text-[8.5px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--v-surface-2)] text-[var(--v-muted)]">
                         {provider.badge}
                       </span>
                     )}
@@ -181,13 +181,13 @@ export const IntegrationsPage: React.FC<IntegrationsPageProps> = ({ onNavigate }
       </section>
 
       <section className="grid lg:grid-cols-2 gap-4">
-        <div className="v-card rounded-[24px] p-5">
+        <div className="v-card rounded-lg p-5">
           <div className="flex items-start gap-3">
-            <span className="w-10 h-10 rounded-2xl v-grad text-white grid place-items-center shrink-0">
+            <span className="w-10 h-10 rounded-lg v-grad text-white grid place-items-center shrink-0">
               <Rocket className="w-5 h-5" />
             </span>
             <div className="flex-1 min-w-0">
-              <h2 className="text-[13.5px] font-bold text-[var(--v-ink)]">Deploy from here</h2>
+              <h2 className="text-[13.5px] font-semibold text-[var(--v-ink)]">Deploy from here</h2>
               <p className="mt-0.5 text-[11px] text-[var(--v-muted)]">
                 Once a project is generated, send it to a host and get a live URL back in the project.
                 {!paid && ' Deployment is available on paid plans.'}
@@ -224,20 +224,20 @@ export const IntegrationsPage: React.FC<IntegrationsPageProps> = ({ onNavigate }
         </div>
 
         <div className="grid sm:grid-cols-2 gap-4">
-          <div className="v-card rounded-[24px] p-4">
+          <div className="v-card rounded-lg p-4">
             <Laptop className="w-4 h-4 text-[var(--v-muted)]" />
-            <p className="mt-2 text-[12.5px] font-bold text-[var(--v-ink)]">Desktop app</p>
+            <p className="mt-2 text-[12.5px] font-semibold text-[var(--v-ink)]">Desktop app</p>
             <p className="mt-0.5 text-[10.5px] text-[var(--v-muted)]">Windows 10+ and macOS 12+.</p>
             <a
               href="/downloads/vector-windows.exe"
-              className="mt-2.5 inline-flex items-center gap-1 text-[11px] font-bold text-[var(--v-violet)] hover:underline"
+              className="mt-2.5 inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--v-violet)] hover:underline"
             >
               Download <ArrowUpRight className="w-3 h-3" />
             </a>
           </div>
-          <div className="v-card rounded-[24px] p-4">
+          <div className="v-card rounded-lg p-4">
             <Smartphone className="w-4 h-4 text-[var(--v-muted)]" />
-            <p className="mt-2 text-[12.5px] font-bold text-[var(--v-ink)]">iPhone</p>
+            <p className="mt-2 text-[12.5px] font-semibold text-[var(--v-ink)]">iPhone</p>
             <p className="mt-0.5 text-[10.5px] text-[var(--v-muted)]">Share → Add to Home Screen.</p>
             <span className="mt-2.5 inline-block text-[10px] text-[var(--v-faint)]">Works offline</span>
           </div>

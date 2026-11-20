@@ -74,7 +74,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-[#283638] tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-semibold text-[#283638] tracking-tight">
             Analysis History
           </h1>
           <p className="text-xs sm:text-sm text-[#737A72]">
@@ -154,13 +154,13 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
       {!currentProject ? (
         <div className="bg-[#FFFFFF] rounded-xl border border-[#E5E2D8] p-12 text-center space-y-3">
           <FolderKanban className="w-10 h-10 text-[#CDC9BC] mx-auto" />
-          <h3 className="text-base font-bold text-[#283638]">Choose a project first</h3>
+          <h3 className="text-base font-semibold text-[#283638]">Choose a project first</h3>
           <p className="text-xs text-[#737A72] max-w-sm mx-auto">
             Analysis history is scoped per project, so prompts from different products never mix.
           </p>
           <button
             onClick={onOpenProjects}
-            className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-[#49686C] text-white text-xs font-bold rounded-lg hover:bg-[#30494B] transition-colors"
+            className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-[#49686C] text-white text-xs font-semibold rounded-lg hover:bg-[#30494B] transition-colors"
           >
             <PlusCircle className="w-4 h-4" />
             <span>Open projects</span>
@@ -177,7 +177,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
               <button
                 type="button"
                 onClick={attachLegacy}
-                className="shrink-0 px-3 py-1.5 rounded-lg border border-[#E5E2D8] bg-white text-[11px] font-bold text-[#49686C] hover:bg-[#FAFAF8]"
+                className="shrink-0 px-3 py-1.5 rounded-lg border border-[#E5E2D8] bg-white text-[11px] font-semibold text-[#49686C] hover:bg-[#FAFAF8]"
               >
                 Assign to {currentProject.name}
               </button>
@@ -188,7 +188,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
       {items.length === 0 ? (
         <div className="bg-[#FFFFFF] rounded-xl border border-[#E5E2D8] p-12 text-center space-y-3">
           <FolderOpen className="w-10 h-10 text-[#CDC9BC] mx-auto" />
-          <h3 className="text-base font-bold text-[#283638]">No analysis history</h3>
+          <h3 className="text-base font-semibold text-[#283638]">No analysis history</h3>
           <p className="text-xs text-[#737A72] max-w-sm mx-auto">
             {search || riskFilter !== 'ALL'
               ? 'No evaluations match your search or filter criteria.'
@@ -196,7 +196,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
           </p>
           <button
             onClick={onStartNewAnalysis}
-            className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-[#49686C] text-white text-xs font-bold rounded-lg hover:bg-[#30494B] transition-colors"
+            className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-[#49686C] text-white text-xs font-semibold rounded-lg hover:bg-[#30494B] transition-colors"
           >
             <PlusCircle className="w-4 h-4" />
             <span>Start your first analysis</span>
@@ -245,7 +245,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-2">
                         <RiskBadge level={item.riskLevel} size="sm" />
-                        <span className="font-mono font-bold text-[#283638] tabular-nums">
+                        <span className="font-mono font-semibold text-[#283638] tabular-nums">
                           {item.riskScore}/100
                         </span>
                       </div>
@@ -302,7 +302,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
             <div className="flex items-center justify-between pb-3 border-b border-[#E5E2D8]">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-[#B94D42]" />
-                <h3 className="text-sm font-bold text-[#283638]">Confirm Deletion</h3>
+                <h3 className="text-sm font-semibold text-[#283638]">Confirm Deletion</h3>
               </div>
               <button
                 onClick={() => setDeleteTargetId(null)}

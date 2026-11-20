@@ -41,7 +41,7 @@ export const VariantPreview: React.FC<{ variant: StyleVariant }> = ({ variant })
           <path d="M0 46 L22 24 L40 42 L58 18 L82 44 L100 30 L100 60 L0 60 Z" fill="#B9D4F0" />
           <path d="M0 52 L18 40 L34 52 L52 34 L70 52 L88 42 L100 50 L100 60 L0 60 Z" fill="#7FA8D8" />
         </svg>
-        <span className="absolute right-1 top-1 rounded bg-white/85 px-1 py-0.5 text-[6px] font-bold uppercase tracking-wider text-[#4D7CFE]">
+        <span className="absolute right-1 top-1 rounded bg-white/85 px-1 py-0.5 text-[6px] font-semibold uppercase tracking-wider text-[#4D7CFE]">
           Image
         </span>
       </div>
@@ -82,8 +82,8 @@ export const VariantPreview: React.FC<{ variant: StyleVariant }> = ({ variant })
           {stat ? (
             <div className="flex flex-1 flex-col p-1.5">
               <span className="h-1 w-5 rounded-full bg-[#E4E0EF]" />
-              <span className="mt-1 text-[11px] font-extrabold leading-none">48k</span>
-              <span className="mt-1 inline-flex w-fit rounded-full bg-[#DFF7F1] px-1 py-0.5 text-[6px] font-bold text-[#0E8A9A]">
+              <span className="mt-1 text-[11px] font-semibold leading-none">48k</span>
+              <span className="mt-1 inline-flex w-fit rounded-full bg-[#DFF7F1] px-1 py-0.5 text-[6px] font-semibold text-[#0E8A9A]">
                 ▲ 12%
               </span>
               <div className="mt-auto flex h-4 items-end gap-0.5">
@@ -112,7 +112,7 @@ export const VariantPreview: React.FC<{ variant: StyleVariant }> = ({ variant })
               <span className="h-1.5 w-4/5 rounded-full" style={{ background: gradient ? 'rgba(255,255,255,.9)' : '#D9D6E4' }} />
               <span className="mt-1 h-1 w-3/5 rounded-full" style={{ background: gradient ? 'rgba(255,255,255,.45)' : '#EFEDF6' }} />
               <span
-                className="mt-auto inline-flex w-fit rounded px-1.5 py-0.5 text-[6px] font-bold"
+                className="mt-auto inline-flex w-fit rounded px-1.5 py-0.5 text-[6px] font-semibold"
                 style={gradient ? { background: '#FFFFFF', color: '#0B0E14' } : { background: accent, color: '#FFFFFF' }}
               >
                 Open
@@ -142,7 +142,7 @@ export const VariantPreview: React.FC<{ variant: StyleVariant }> = ({ variant })
     return (
       <div className="grid h-full w-full place-items-center p-2">
         <div
-          className="grid h-6 w-[78%] place-items-center rounded-md text-[9px] font-bold"
+          className="grid h-6 w-[78%] place-items-center rounded-md text-[9px] font-semibold"
           style={{ ...buttonStyle, borderRadius: style === 'btn-pill' ? 999 : undefined }}
         >
           {variant.label || 'Button'}
@@ -186,13 +186,13 @@ export const VariantPreview: React.FC<{ variant: StyleVariant }> = ({ variant })
   if (variant.group === 'Badges') {
     return (
       <div className="flex h-full w-full flex-wrap content-center items-center justify-center gap-1 p-2">
-        <span className="rounded-full px-1.5 py-0.5 text-[6px] font-bold" style={{ background: `${accent}1F`, color: accent }}>
+        <span className="rounded-full px-1.5 py-0.5 text-[6px] font-semibold" style={{ background: `${accent}1F`, color: accent }}>
           NEW
         </span>
-        <span className="rounded-full px-1.5 py-0.5 text-[6px] font-bold text-white" style={{ background: accent }}>
+        <span className="rounded-full px-1.5 py-0.5 text-[6px] font-semibold text-white" style={{ background: accent }}>
           PRO
         </span>
-        <span className="rounded-full border border-[#E7E5F0] px-1.5 py-0.5 text-[6px] font-bold text-[#64626F]">
+        <span className="rounded-full border border-[#E7E5F0] px-1.5 py-0.5 text-[6px] font-semibold text-[#64626F]">
           • Live
         </span>
       </div>
@@ -206,7 +206,7 @@ export const VariantPreview: React.FC<{ variant: StyleVariant }> = ({ variant })
           <span className="block h-1.5 w-2/3 rounded-full bg-[#D9D6E4]" />
           <span className="mt-1 block h-1 w-full rounded-full bg-[#EFEDF6]" />
           <span className="mt-0.5 block h-1 w-4/5 rounded-full bg-[#EFEDF6]" />
-          <span className="mt-1.5 inline-flex rounded px-1.5 py-0.5 text-[6px] font-bold text-white" style={{ background: accent }}>
+          <span className="mt-1.5 inline-flex rounded px-1.5 py-0.5 text-[6px] font-semibold text-white" style={{ background: accent }}>
             Confirm
           </span>
         </div>
@@ -316,7 +316,7 @@ export const VariantPreview: React.FC<{ variant: StyleVariant }> = ({ variant })
     return (
       <div className="flex h-full w-full items-center gap-1.5 px-2.5">
         <span className="h-px flex-1 bg-[#E4E0EF]" />
-        <span className="text-[7px] font-bold text-[#9B99A6]">OR</span>
+        <span className="text-[7px] font-semibold text-[#9B99A6]">OR</span>
         <span className="h-px flex-1 bg-[#E4E0EF]" />
       </div>
     );
@@ -338,7 +338,7 @@ export const VariantPreview: React.FC<{ variant: StyleVariant }> = ({ variant })
   if (variant.style === 'badge-count') {
     return (
       <div className="grid h-full w-full place-items-center">
-        <span className="grid h-5 w-5 place-items-center rounded-full text-[8px] font-bold text-white" style={{ background: accent }}>
+        <span className="grid h-5 w-5 place-items-center rounded-full text-[8px] font-semibold text-white" style={{ background: accent }}>
           8
         </span>
       </div>

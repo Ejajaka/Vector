@@ -127,10 +127,10 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Account menu"
-        className={`relative w-8 h-8 rounded-full grid place-items-center text-[11px] font-bold text-white transition-transform hover:scale-105 ${
+        className={`relative w-8 h-8 rounded-full grid place-items-center text-[11px] font-semibold text-white transition-transform hover:scale-105 ${
           open ? 'ring-2 ring-[#49686C] ring-offset-2 ring-offset-[#FFFFFF] dark:ring-offset-[#1B2426]' : ''
         }`}
-        style={{ background: 'linear-gradient(135deg, #49686C, #2F4B4E)' }}
+        style={{ background: 'linear-gradient(135deg, #5e6ad2, #7170ff)' }}
       >
         {initials(displayName)}
         {unreadCount > 0 && (
@@ -141,7 +141,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full mt-2 w-[320px] bg-[#FFFFFF] dark:bg-[#1B2426] border border-[#E5E2D8] dark:border-[#33403F] rounded-2xl shadow-[0_24px_60px_-24px_rgba(16,32,32,0.45)] z-50 overflow-hidden"
+          className="absolute right-0 top-full mt-2 w-[320px] bg-[#FFFFFF] dark:bg-[#1B2426] border border-[#E5E2D8] dark:border-[#33403F] rounded-lg shadow-[0_24px_60px_-24px_rgba(16,32,32,0.45)] z-50 overflow-hidden"
         >
           {/* Account header */}
           <button
@@ -150,8 +150,8 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
             className="w-full flex items-center gap-3 px-4 py-4 border-b border-[#E5E2D8] dark:border-[#29383A] hover:bg-[#F6F4EC] dark:hover:bg-[#222E30] transition-colors text-left"
           >
             <span
-              className="w-11 h-11 rounded-full grid place-items-center text-sm font-bold text-white shrink-0"
-              style={{ background: 'linear-gradient(135deg, #49686C, #2F4B4E)' }}
+              className="w-11 h-11 rounded-full grid place-items-center text-sm font-semibold text-white shrink-0"
+              style={{ background: 'linear-gradient(135deg, #5e6ad2, #7170ff)' }}
             >
               {initials(displayName)}
             </span>
@@ -166,13 +166,13 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
 
           {/* Plan / workspace */}
           <div className="px-4 py-3 border-b border-[#E5E2D8] dark:border-[#29383A]">
-            <p className="text-[10px] uppercase tracking-[0.14em] font-bold text-[#737A72] mb-2">Workspace</p>
+            <p className="text-[10px] uppercase tracking-[0.14em] font-semibold text-[#737A72] mb-2">Workspace</p>
             <button
               type="button"
               onClick={() => go('pricing')}
               className="w-full flex items-center gap-3 text-left rounded-lg hover:bg-[#F6F4EC] dark:hover:bg-[#222E30] transition-colors p-1 -m-1"
             >
-              <span className="w-9 h-9 rounded-full bg-[#D1B653]/25 text-[#856C16] dark:text-[#E2C768] grid place-items-center text-[11px] font-bold shrink-0">
+              <span className="w-9 h-9 rounded-full bg-[#D1B653]/25 text-[#856C16] dark:text-[#E2C768] grid place-items-center text-[11px] font-semibold shrink-0">
                 {initials(displayName)}
               </span>
               <span className="min-w-0 flex-1">
@@ -208,7 +208,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
             />
             <Row icon={Bell} label="Notifications" onClick={onOpenNotifications} trailing={
               unreadCount > 0 ? (
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#49686C] text-white">{unreadCount}</span>
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#49686C] text-white">{unreadCount}</span>
               ) : null
             } />
           </div>

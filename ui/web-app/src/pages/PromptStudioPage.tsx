@@ -191,7 +191,7 @@ export const PromptStudioPage: React.FC = () => {
     return (
       <div className="max-w-3xl mx-auto bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl p-10 text-center shadow-xs">
         <FileText className="w-8 h-8 text-[#49686C] mx-auto mb-3" />
-        <h1 className="text-lg font-bold text-[#283638]">Choose a project first</h1>
+        <h1 className="text-lg font-semibold text-[#283638]">Choose a project first</h1>
         <p className="text-xs text-[#737A72] mt-1">Specifications and prompt versions are project-scoped.</p>
       </div>
     );
@@ -201,21 +201,21 @@ export const PromptStudioPage: React.FC = () => {
     <div className="space-y-6 max-w-[1500px] mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-[#283638] tracking-tight">UI Specification & Prompt</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold text-[#283638] tracking-tight">UI Specification & Prompt</h1>
           <p className="text-xs sm:text-sm text-[#737A72] mt-1">
             Generate a source-of-truth brief with the exact six-section professional prompt structure.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={() => void load()} disabled={loading} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[#E5E2D8] bg-white text-xs font-bold text-[#49686C] hover:bg-[#F6F4EC] disabled:opacity-60">
+          <button type="button" onClick={() => void load()} disabled={loading} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[#E5E2D8] bg-white text-xs font-semibold text-[#49686C] hover:bg-[#F6F4EC] disabled:opacity-60">
             {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
             Refresh
           </button>
-          <button type="button" onClick={copyPrompt} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[#E5E2D8] bg-white text-xs font-bold text-[#49686C] hover:bg-[#F6F4EC]">
+          <button type="button" onClick={copyPrompt} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[#E5E2D8] bg-white text-xs font-semibold text-[#49686C] hover:bg-[#F6F4EC]">
             {copied ? <Check className="w-3.5 h-3.5" /> : <Clipboard className="w-3.5 h-3.5" />}
             Copy prompt
           </button>
-          <button type="button" onClick={() => void handleSave()} disabled={saving || localMode} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[#49686C] hover:bg-[#30494B] text-white text-xs font-bold disabled:opacity-60">
+          <button type="button" onClick={() => void handleSave()} disabled={saving || localMode} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[#49686C] hover:bg-[#30494B] text-white text-xs font-semibold disabled:opacity-60">
             {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
             Save version
           </button>
@@ -229,19 +229,19 @@ export const PromptStudioPage: React.FC = () => {
         <div className="lg:col-span-2 bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl shadow-xs overflow-hidden">
           <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-[#E5E2D8]">
             <Sparkles className="w-4 h-4 text-[#49686C]" />
-            <h2 className="text-sm font-bold text-[#283638]">Generated prompt</h2>
+            <h2 className="text-sm font-semibold text-[#283638]">Generated prompt</h2>
             {isEdited && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md border border-[#FED7AA] bg-[#FFF7ED] text-[#9C4A28]">
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md border border-[#FED7AA] bg-[#FFF7ED] text-[#9C4A28]">
                 Edited draft
               </span>
             )}
             <div className="ml-auto flex items-center gap-2">
               {isEdited && (
-                <button type="button" onClick={() => void resetDraft()} className="text-[10px] font-bold text-[#49686C] hover:underline">
+                <button type="button" onClick={() => void resetDraft()} className="text-[10px] font-semibold text-[#49686C] hover:underline">
                   Reset to generated
                 </button>
               )}
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${isEdited ? (coverageComplete ? 'bg-[#F4F9F1] border-[#CFE2C8] text-[#3E6B33]' : 'bg-[#FEFCE8] border-[#FEF08A] text-[#856C16]') : generated.specification.status.startsWith('Ready') ? 'bg-[#F4F9F1] border-[#CFE2C8] text-[#3E6B33]' : 'bg-[#FEFCE8] border-[#FEF08A] text-[#856C16]'}`}>
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${isEdited ? (coverageComplete ? 'bg-[#F4F9F1] border-[#CFE2C8] text-[#3E6B33]' : 'bg-[#FEFCE8] border-[#FEF08A] text-[#856C16]') : generated.specification.status.startsWith('Ready') ? 'bg-[#F4F9F1] border-[#CFE2C8] text-[#3E6B33]' : 'bg-[#FEFCE8] border-[#FEF08A] text-[#856C16]'}`}>
                 {isEdited ? (coverageComplete ? 'Edited · all covered' : 'Edited · items missing') : generated.specification.status}
               </span>
             </div>
@@ -260,14 +260,14 @@ export const PromptStudioPage: React.FC = () => {
         <div className="space-y-4">
           <div className="bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl shadow-xs p-4">
             <label className="block">
-              <span className="text-xs font-bold text-[#283638] block mb-1">Design system</span>
+              <span className="text-xs font-semibold text-[#283638] block mb-1">Design system</span>
               <select value={designSystemId} onChange={(event) => setDesignSystemId(event.target.value)} className="w-full px-3 py-2 rounded-lg border border-[#E5E2D8] bg-[#FAFAF8] text-xs text-[#283638] focus:bg-white focus:outline-none focus:border-[#49686C]">
                 {designSystems.map((system) => <option key={system.id} value={system.id}>{system.name}</option>)}
               </select>
             </label>
             <div className="flex items-center justify-between gap-2 mt-4">
-              <h2 className="text-sm font-bold text-[#283638]">Source of truth</h2>
-              <span className="text-[9px] font-bold uppercase tracking-wide text-[#737A72]">live from this project</span>
+              <h2 className="text-sm font-semibold text-[#283638]">Source of truth</h2>
+              <span className="text-[9px] font-semibold uppercase tracking-wide text-[#737A72]">live from this project</span>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
               <div className="bg-[#FAFAF8] border border-[#E5E2D8] rounded-lg p-2.5">
@@ -308,8 +308,8 @@ export const PromptStudioPage: React.FC = () => {
 
           <div className="bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl shadow-xs p-4">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="text-sm font-bold text-[#283638]">Coverage check</h2>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${coverageComplete ? 'bg-[#F4F9F1] border-[#CFE2C8] text-[#3E6B33]' : 'bg-[#FEFCE8] border-[#FEF08A] text-[#856C16]'}`}>
+              <h2 className="text-sm font-semibold text-[#283638]">Coverage check</h2>
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${coverageComplete ? 'bg-[#F4F9F1] border-[#CFE2C8] text-[#3E6B33]' : 'bg-[#FEFCE8] border-[#FEF08A] text-[#856C16]'}`}>
                 {coverageComplete ? 'Complete' : 'Needs review'}
               </span>
             </div>
@@ -338,8 +338,8 @@ export const PromptStudioPage: React.FC = () => {
 
           <div className="bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl shadow-xs p-4">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="text-sm font-bold text-[#283638]">Regression check</h2>
-              <button type="button" onClick={() => void handleBaseline()} className="text-[10px] font-bold text-[#49686C] hover:underline">Save baseline</button>
+              <h2 className="text-sm font-semibold text-[#283638]">Regression check</h2>
+              <button type="button" onClick={() => void handleBaseline()} className="text-[10px] font-semibold text-[#49686C] hover:underline">Save baseline</button>
             </div>
             <p className={`text-[11px] mt-2 leading-relaxed ${regression.removed.length || regression.changed.length ? 'text-[#B94D42]' : 'text-[#737A72]'}`}>{regression.summary}</p>
           </div>
@@ -347,7 +347,7 @@ export const PromptStudioPage: React.FC = () => {
           <div className="bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl shadow-xs p-4">
             <div className="flex items-center gap-2">
               <History className="w-4 h-4 text-[#49686C]" />
-              <h2 className="text-sm font-bold text-[#283638]">Versions</h2>
+              <h2 className="text-sm font-semibold text-[#283638]">Versions</h2>
             </div>
             {versions.length === 0 ? <p className="text-xs text-[#737A72] mt-2">No saved versions yet.</p> : (
               <div className="mt-3 space-y-2">
@@ -361,7 +361,7 @@ export const PromptStudioPage: React.FC = () => {
                         tabIndex={0}
                         onClick={(event) => { event.stopPropagation(); setDraft(version.promptMarkdown); toast('Version loaded into the editor', 'info'); }}
                         onKeyDown={(event) => { if (event.key === 'Enter') { event.stopPropagation(); setDraft(version.promptMarkdown); } }}
-                        className="inline-block mt-1 text-[10px] font-bold text-[#49686C] hover:underline"
+                        className="inline-block mt-1 text-[10px] font-semibold text-[#49686C] hover:underline"
                       >Restore version</span>
                     )}
                   </button>

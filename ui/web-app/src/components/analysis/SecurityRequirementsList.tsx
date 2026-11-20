@@ -52,7 +52,7 @@ export const SecurityRequirementsList: React.FC<SecurityRequirementsListProps> =
       {/* Header and Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E5E2D8]">
         <div>
-          <h3 className="text-base font-bold text-[#283638]">
+          <h3 className="text-base font-semibold text-[#283638]">
             Security Requirements & Findings
           </h3>
           <p className="text-xs text-[#737A72]">
@@ -90,7 +90,7 @@ export const SecurityRequirementsList: React.FC<SecurityRequirementsListProps> =
           role="tab"
           aria-selected={activeSubTab === 'missing'}
           onClick={() => setActiveSubTab('missing')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-xs font-bold transition-all ${
+          className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-xs font-semibold transition-all ${
             activeSubTab === 'missing'
               ? 'bg-[#FFFFFF] text-[#283638] shadow-xs'
               : 'text-[#737A72] hover:text-[#283638]'
@@ -108,7 +108,7 @@ export const SecurityRequirementsList: React.FC<SecurityRequirementsListProps> =
           role="tab"
           aria-selected={activeSubTab === 'risky'}
           onClick={() => setActiveSubTab('risky')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-xs font-bold transition-all ${
+          className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-xs font-semibold transition-all ${
             activeSubTab === 'risky'
               ? 'bg-[#FFFFFF] text-[#283638] shadow-xs'
               : 'text-[#737A72] hover:text-[#283638]'
@@ -130,7 +130,7 @@ export const SecurityRequirementsList: React.FC<SecurityRequirementsListProps> =
           role="tab"
           aria-selected={activeSubTab === 'mentioned'}
           onClick={() => setActiveSubTab('mentioned')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-xs font-bold transition-all ${
+          className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-xs font-semibold transition-all ${
             activeSubTab === 'mentioned'
               ? 'bg-[#FFFFFF] text-[#283638] shadow-xs'
               : 'text-[#737A72] hover:text-[#283638]'
@@ -167,17 +167,17 @@ export const SecurityRequirementsList: React.FC<SecurityRequirementsListProps> =
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1.5 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="text-sm font-bold text-[#283638]">
+                        <h4 className="text-sm font-semibold text-[#283638]">
                           {finding.label}
                         </h4>
                         <SeverityBadge severity={finding.severity} />
                         {finding.source === 'ai' && (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#E4EBDD] text-[#30494B] border border-[#CFE2C8]">
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#E4EBDD] text-[#30494B] border border-[#CFE2C8]">
                             AI
                           </span>
                         )}
                         {finding.explicitlyRisky && (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#FDF2F0] text-[#B94D42] border border-[#F0C4BF]">
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#FDF2F0] text-[#B94D42] border border-[#F0C4BF]">
                             Explicitly risky
                           </span>
                         )}
@@ -287,17 +287,17 @@ export const SecurityRequirementsList: React.FC<SecurityRequirementsListProps> =
                         <span className="p-1 rounded bg-[#B94D42] text-white">
                           <ShieldAlert className="w-3.5 h-3.5" />
                         </span>
-                        <h4 className="text-sm font-bold text-[#B94D42]">
+                        <h4 className="text-sm font-semibold text-[#B94D42]">
                           {finding.label}
                         </h4>
                         <SeverityBadge severity={finding.severity} />
                         {finding.source === 'ai' && (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#E4EBDD] text-[#30494B] border border-[#CFE2C8]">
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#E4EBDD] text-[#30494B] border border-[#CFE2C8]">
                             AI
                           </span>
                         )}
                         {finding.explicitlyRisky && (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#FDF2F0] text-[#B94D42] border border-[#F0C4BF]">
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#FDF2F0] text-[#B94D42] border border-[#F0C4BF]">
                             Explicitly risky
                           </span>
                         )}
@@ -397,7 +397,7 @@ export const SecurityRequirementsList: React.FC<SecurityRequirementsListProps> =
               >
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-[#3E6B33] shrink-0" />
-                  <h4 className="text-sm font-bold text-[#2D5A27]">
+                  <h4 className="text-sm font-semibold text-[#2D5A27]">
                     {finding.label}
                   </h4>
                   {finding.dimension && (

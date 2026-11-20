@@ -24,7 +24,7 @@ export const SecurityOverviewCard: React.FC<SecurityOverviewCardProps> = ({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-[#E5E2D8]">
         <div className="space-y-1">
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h2 className="text-lg font-bold text-[#283638] tracking-tight">
+            <h2 className="text-lg font-semibold text-[#283638] tracking-tight">
               Security Evaluation Summary
             </h2>
             <RiskBadge level={result.riskLevel} size="md" />
@@ -83,7 +83,7 @@ export const SecurityOverviewCard: React.FC<SecurityOverviewCardProps> = ({
           <div>
             <div className="flex items-center justify-between text-xs text-[#737A72] mb-1">
               <span className="font-semibold text-[#283638]">Rule Confidence (heuristic)</span>
-              <span className="text-xs font-mono font-bold text-[#49686C] tabular-nums">
+              <span className="text-xs font-mono font-semibold text-[#49686C] tabular-nums">
                 {result.confidenceScore}%
               </span>
             </div>
@@ -104,13 +104,13 @@ export const SecurityOverviewCard: React.FC<SecurityOverviewCardProps> = ({
 
         {/* Findings Breakdown Mini Matrix */}
         <div className="p-4 rounded-xl bg-[#FAFAF8] border border-[#E5E2D8] flex flex-col justify-between h-full space-y-2">
-          <span className="text-xs font-bold text-[#283638]">Detected Findings</span>
+          <span className="text-xs font-semibold text-[#283638]">Detected Findings</span>
           <div className="space-y-1.5 text-xs">
             <div className="flex items-center justify-between p-1.5 rounded bg-white border border-[#E5E2D8]">
               <span className="text-[#737A72] flex items-center gap-1.5">
                 <Cpu className="w-3.5 h-3.5 text-[#49686C]" /> AWS Resources
               </span>
-              <span className="font-mono font-bold text-[#283638] tabular-nums">
+              <span className="font-mono font-semibold text-[#283638] tabular-nums">
                 {result.resources.length}
               </span>
             </div>
@@ -118,7 +118,7 @@ export const SecurityOverviewCard: React.FC<SecurityOverviewCardProps> = ({
               <span className="text-[#737A72] flex items-center gap-1.5">
                 <AlertTriangle className="w-3.5 h-3.5 text-[#D1B653]" /> Missing Controls
               </span>
-              <span className="font-mono font-bold text-[#283638] tabular-nums">
+              <span className="font-mono font-semibold text-[#283638] tabular-nums">
                 {result.missing.length}
               </span>
             </div>
@@ -126,7 +126,7 @@ export const SecurityOverviewCard: React.FC<SecurityOverviewCardProps> = ({
               <span className="text-[#737A72] flex items-center gap-1.5">
                 <ShieldAlert className="w-3.5 h-3.5 text-[#B94D42]" /> Risky Statements
               </span>
-              <span className="font-mono font-bold text-[#B94D42] tabular-nums">
+              <span className="font-mono font-semibold text-[#B94D42] tabular-nums">
                 {result.riskyFindings.length}
               </span>
             </div>
@@ -141,7 +141,7 @@ export const SecurityOverviewCard: React.FC<SecurityOverviewCardProps> = ({
             <Info className="w-4 h-4" />
           </div>
           <div className="space-y-1 text-xs text-[#283638] leading-relaxed">
-            <span className="font-bold block text-[#30494B]">Evaluation Assessment</span>
+            <span className="font-semibold block text-[#30494B]">Evaluation Assessment</span>
             {result.feedback.map((msg, idx) => (
               <p key={idx}>{msg}</p>
             ))}

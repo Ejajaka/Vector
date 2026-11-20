@@ -116,7 +116,7 @@ export const ConnectDialog: React.FC<ConnectDialogProps> = ({ open, onClose, pro
                 className="flex w-full items-center gap-3 rounded-lg border border-white/10 bg-[#333] p-2.5 text-left transition-colors hover:border-white/25"
               >
                 <span
-                  className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[11px] font-bold text-white"
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[11px] font-semibold text-white"
                   style={{ backgroundImage: `linear-gradient(140deg, ${generator.from}, ${generator.to})` }}
                 >
                   {generator.name.slice(0, 2).toUpperCase()}
@@ -126,7 +126,7 @@ export const ConnectDialog: React.FC<ConnectDialogProps> = ({ open, onClose, pro
                   <span className="flex items-center gap-1.5">
                     <span className="text-[12px] font-semibold text-white">{generator.name}</span>
                     {generator.tier === 'pro' && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-[#FFC53D]/15 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-[#FFC53D]">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[#FFC53D]/15 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wider text-[#FFC53D]">
                         <Crown className="h-2 w-2" /> Pro
                       </span>
                     )}

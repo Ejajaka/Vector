@@ -53,15 +53,15 @@ function RequirementCardNode({ data }: NodeProps) {
     >
       <Handle type="target" position={Position.Top} className="!h-1 !w-1 !border-0 !bg-transparent" />
       <div className="flex items-center gap-1.5 border-b border-[#EFECE3] bg-[#FAFAF8] px-2.5 py-1.5">
-        <span className="font-mono text-[10px] font-bold text-[#49686C]">{card.code}</span>
+        <span className="font-mono text-[10px] font-semibold text-[#49686C]">{card.code}</span>
         <div className="ml-auto flex items-center gap-1">
           {card.conflicts > 0 && (
-            <span className="rounded-md bg-[#FDF2F0] px-1.5 py-0.5 text-[8px] font-bold text-[#B94D42]">
+            <span className="rounded-md bg-[#FDF2F0] px-1.5 py-0.5 text-[8px] font-semibold text-[#B94D42]">
               {card.conflicts} conflict{card.conflicts === 1 ? '' : 's'}
             </span>
           )}
           {card.dependencies > 0 && (
-            <span className="rounded-md bg-[#F0F5F5] px-1.5 py-0.5 text-[8px] font-bold text-[#49686C]">
+            <span className="rounded-md bg-[#F0F5F5] px-1.5 py-0.5 text-[8px] font-semibold text-[#49686C]">
               {card.dependencies} need{card.dependencies === 1 ? '' : 's'}
             </span>
           )}
@@ -72,7 +72,7 @@ function RequirementCardNode({ data }: NodeProps) {
         {card.chips.map((group) => (
           <div key={group.kind} className="flex items-center gap-1.5">
             <span
-              className="w-[55px] shrink-0 text-[8px] font-bold uppercase tracking-wide"
+              className="w-[55px] shrink-0 text-[8px] font-semibold uppercase tracking-wide"
               style={{ color: CHIP_COLOR[group.kind] || '#737A72' }}
             >
               {group.label}
@@ -94,7 +94,7 @@ function RequirementCardNode({ data }: NodeProps) {
         ))}
         {card.dependsOn.length > 0 && (
           <div className="flex items-center gap-1.5">
-            <span className="w-[55px] shrink-0 text-[8px] font-bold uppercase tracking-wide text-[#49686C]">
+            <span className="w-[55px] shrink-0 text-[8px] font-semibold uppercase tracking-wide text-[#49686C]">
               Needs
             </span>
             <span className="truncate rounded border border-[#D6E2E2] bg-[#F0F5F5] px-1 py-0.5 text-[9px] font-mono text-[#49686C]">
@@ -153,15 +153,15 @@ function FindingCard({ finding, requirements }: { finding: RequirementFinding; r
   return (
     <article className="bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl p-4 shadow-xs">
       <div className="flex flex-wrap items-center gap-2">
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${severityBadge(finding.severity)}`}>
+        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${severityBadge(finding.severity)}`}>
           {finding.severity}
         </span>
-        <span className="text-[10px] font-bold uppercase tracking-wide text-[#737A72]">{finding.type}</span>
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-[#737A72]">{finding.type}</span>
         <span className="ml-auto text-[10px] font-mono text-[#49686C]">
           {finding.affectedRequirementIds.map((id) => byId.get(id)?.requirementCode || id.slice(0, 8)).join(' · ')}
         </span>
       </div>
-      <h3 className="text-sm font-bold text-[#283638] mt-2">{finding.title}</h3>
+      <h3 className="text-sm font-semibold text-[#283638] mt-2">{finding.title}</h3>
       <p className="text-xs text-[#283638] leading-relaxed mt-1">{finding.detail}</p>
       <p className="text-[11px] text-[#737A72] leading-relaxed mt-2">
         <b className="text-[#49686C]">Why it matters:</b> {finding.whyItMatters}
@@ -169,7 +169,7 @@ function FindingCard({ finding, requirements }: { finding: RequirementFinding; r
       <div className="mt-2.5 space-y-1.5">
         {finding.evidence.map((item) => (
           <div key={`${finding.id}-${item.requirementId}`} className="text-[11px] bg-[#FAFAF8] border border-[#E5E2D8] rounded-lg p-2">
-            <span className="font-mono font-bold text-[#49686C]">{item.requirementCode}</span>
+            <span className="font-mono font-semibold text-[#49686C]">{item.requirementCode}</span>
             {item.sourcePage ? <span className="text-[#737A72]"> · page {item.sourcePage}</span> : null}
             <p className="text-[#283638] mt-0.5">“{item.text}”</p>
           </div>
@@ -254,7 +254,7 @@ export const RequirementGraphPage: React.FC = () => {
     return (
       <div className="max-w-3xl mx-auto bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl p-10 text-center shadow-xs">
         <Network className="w-8 h-8 text-[#49686C] mx-auto mb-3" />
-        <h1 className="text-lg font-bold text-[#283638]">Choose a project first</h1>
+        <h1 className="text-lg font-semibold text-[#283638]">Choose a project first</h1>
         <p className="text-xs text-[#737A72] mt-1">The requirement graph is project-scoped.</p>
       </div>
     );
@@ -271,7 +271,7 @@ export const RequirementGraphPage: React.FC = () => {
     <div className="space-y-6 max-w-[1500px] mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-[#283638] tracking-tight">Requirement Intelligence</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold text-[#283638] tracking-tight">Requirement Intelligence</h1>
           <p className="text-xs sm:text-sm text-[#737A72] mt-1">
             Explore relationships, ambiguities, conflicts and implementation dependencies.
           </p>
@@ -281,7 +281,7 @@ export const RequirementGraphPage: React.FC = () => {
             type="button"
             onClick={() => void load()}
             disabled={loading}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[#E5E2D8] bg-white text-xs font-bold text-[#49686C] hover:bg-[#F6F4EC] disabled:opacity-60"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[#E5E2D8] bg-white text-xs font-semibold text-[#49686C] hover:bg-[#F6F4EC] disabled:opacity-60"
           >
             {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
             Refresh
@@ -290,7 +290,7 @@ export const RequirementGraphPage: React.FC = () => {
             type="button"
             onClick={() => void downloadGraph()}
             disabled={downloading || !requirements.length}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[#E5E2D8] bg-white text-xs font-bold text-[#49686C] hover:bg-[#F6F4EC] disabled:opacity-60"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[#E5E2D8] bg-white text-xs font-semibold text-[#49686C] hover:bg-[#F6F4EC] disabled:opacity-60"
             title="Download the requirement graph as a PNG"
           >
             {downloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
@@ -313,7 +313,7 @@ export const RequirementGraphPage: React.FC = () => {
               <Icon className="w-3.5 h-3.5" style={{ color }} />
               {label}
             </div>
-            <div className="text-2xl font-bold font-mono text-[#283638] mt-1 tabular-nums">{value}</div>
+            <div className="text-2xl font-semibold font-mono text-[#283638] mt-1 tabular-nums">{value}</div>
           </div>
         ))}
       </div>
@@ -328,7 +328,7 @@ export const RequirementGraphPage: React.FC = () => {
             <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-[#E5E2D8]">
               <div className="flex items-center gap-2">
                 <Network className="w-4 h-4 text-[#49686C]" />
-                <h2 className="text-sm font-bold text-[#283638]">Requirement graph</h2>
+                <h2 className="text-sm font-semibold text-[#283638]">Requirement graph</h2>
               </div>
               <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-[#737A72]">
                 <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-[2px] border border-[#49686C] bg-white" /> requirement card</span>
@@ -364,7 +364,7 @@ export const RequirementGraphPage: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-[#49686C]" />
-                <h2 className="text-sm font-bold text-[#283638]">Findings</h2>
+                <h2 className="text-sm font-semibold text-[#283638]">Findings</h2>
                 <span className="text-[10px] font-mono text-[#737A72]">{visibleFindings.length}/{findings.length}</span>
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -378,7 +378,7 @@ export const RequirementGraphPage: React.FC = () => {
                     key={id}
                     type="button"
                     onClick={() => setFindingTab(id)}
-                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-semibold border ${
                       findingTab === id
                         ? 'bg-[#49686C] border-[#49686C] text-white'
                         : 'bg-white border-[#E5E2D8] text-[#737A72] hover:border-[#49686C]'

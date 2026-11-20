@@ -37,7 +37,7 @@ export const CategoryCover: React.FC<{ group: string }> = ({ group }) => {
     case 'Text':
       return frame(
         <div className="w-full">
-          <p className="text-[22px] leading-none font-extrabold text-[#0B0E14] tracking-tight">Aa</p>
+          <p className="text-[22px] leading-none font-semibold text-[#0B0E14] tracking-tight">Aa</p>
           <div className="mt-1.5 space-y-1">
             <div className="h-1 w-full rounded-full bg-[#D9D6E4]" />
             <div className="h-1 w-3/4 rounded-full bg-[#EFEDF6]" />
@@ -69,9 +69,9 @@ export const CategoryCover: React.FC<{ group: string }> = ({ group }) => {
     case 'Badges':
       return frame(
         <div className="flex flex-wrap gap-1 justify-center">
-          <span className="px-1.5 py-0.5 rounded-full text-[6px] font-bold" style={{ background: '#EFE9FF', color: '#7C5CFF' }}>NEW</span>
-          <span className="px-1.5 py-0.5 rounded-full text-[6px] font-bold text-white" style={{ background: '#7C5CFF' }}>PRO</span>
-          <span className="px-1.5 py-0.5 rounded-full text-[6px] font-bold border border-[#E7E5F0] text-[#64626F]">• Live</span>
+          <span className="px-1.5 py-0.5 rounded-full text-[6px] font-semibold" style={{ background: '#EFE9FF', color: '#7C5CFF' }}>NEW</span>
+          <span className="px-1.5 py-0.5 rounded-full text-[6px] font-semibold text-white" style={{ background: '#7C5CFF' }}>PRO</span>
+          <span className="px-1.5 py-0.5 rounded-full text-[6px] font-semibold border border-[#E7E5F0] text-[#64626F]">• Live</span>
         </div>
       );
 

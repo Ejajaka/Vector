@@ -39,7 +39,7 @@ export const SpellingNotice: React.FC<SpellingNoticeProps> = ({ text, onFix, cla
           <button
             type="button"
             onClick={() => onFix(correctSpelling(text))}
-            className="ml-auto rounded-md border border-[#FEF08A] bg-white px-2 py-1 text-[10px] font-bold text-[#856C16] hover:bg-[#FFFDF0]"
+            className="ml-auto rounded-md border border-[#FEF08A] bg-white px-2 py-1 text-[10px] font-semibold text-[#856C16] hover:bg-[#FFFDF0]"
           >
             Fix all
           </button>

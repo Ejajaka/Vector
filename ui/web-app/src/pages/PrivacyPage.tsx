@@ -14,7 +14,7 @@ function Section({
     <div className="bg-[#FFFFFF] p-5 sm:p-6 rounded-xl border border-[#E5E2D8] shadow-xs">
       <div className="flex items-center gap-2 pb-3 border-b border-[#E5E2D8]">
         {icon}
-        <h2 className="text-base font-bold text-[#283638]">{title}</h2>
+        <h2 className="text-base font-semibold text-[#283638]">{title}</h2>
       </div>
       <div className="pt-3 text-sm text-[#283638] leading-relaxed space-y-2">{children}</div>
     </div>
@@ -25,7 +25,7 @@ export const PrivacyPage: React.FC = () => {
   return (
     <div className="mx-auto w-full max-w-3xl space-y-5 px-4 py-2 sm:px-6 lg:px-8">
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-[#283638] tracking-tight">Privacy Policy</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold text-[#283638] tracking-tight">Privacy Policy</h1>
         <p className="text-xs sm:text-sm text-[#737A72] mt-1">
           Last updated: November 19, 2026 · Applies to the Vector web app.
         </p>

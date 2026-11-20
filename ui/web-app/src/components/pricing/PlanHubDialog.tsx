@@ -89,7 +89,7 @@ export const PlanHubDialog: React.FC<PlanHubDialogProps> = ({ open, initialTab =
     <div className="fixed inset-0 z-[95] grid place-items-center p-3 sm:p-5" role="dialog" aria-modal="true" aria-label="Starter hub">
       <div className="absolute inset-0 bg-black/65 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
 
-      <div className="relative flex max-h-[90vh] w-full max-w-[900px] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#242424] text-white shadow-[0_40px_100px_-30px_rgba(0,0,0,.95)] md:flex-row">
+      <div className="relative flex max-h-[90vh] w-full max-w-[900px] flex-col overflow-hidden rounded-lg border border-white/10 bg-[#242424] text-white shadow-[0_40px_100px_-30px_rgba(0,0,0,.95)] md:flex-row">
         <aside className="shrink-0 border-b border-white/10 p-3 md:w-[200px] md:border-b-0 md:border-r">
           <div className="flex items-center justify-between gap-2">
             <p className="text-[13px] font-semibold">Starter hub</p>
@@ -115,11 +115,11 @@ export const PlanHubDialog: React.FC<PlanHubDialogProps> = ({ open, initialTab =
             ))}
           </div>
           <div className="mt-4 rounded-lg border border-white/10 bg-[#2B2B2B] p-2.5">
-            <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#B9A8FF]">{plan.name} plan</p>
+            <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[#B9A8FF]">{plan.name} plan</p>
             <p className="mt-1 text-[10px] leading-relaxed text-white/45">
               {paid ? 'Thank you for supporting Vector.' : `${remaining} of ${TRIAL_PROJECTS} free projects left.`}
             </p>
-            <button type="button" onClick={onSeePlans} className="mt-2 flex w-full items-center justify-center gap-1 rounded-md bg-white px-2 py-1.5 text-[10px] font-bold text-[#17171A]">
+            <button type="button" onClick={onSeePlans} className="mt-2 flex w-full items-center justify-center gap-1 rounded-md bg-white px-2 py-1.5 text-[10px] font-semibold text-[#17171A]">
               See plans <ArrowRight className="h-3 w-3" />
             </button>
           </div>
@@ -128,7 +128,7 @@ export const PlanHubDialog: React.FC<PlanHubDialogProps> = ({ open, initialTab =
         <div className="v-scroll min-w-0 flex-1 overflow-y-auto p-4 sm:p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/35">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
                 {tab === 'included' ? 'Included in your plan' : 'Usage this period'}
               </p>
               <h3 className="mt-1 text-[18px] font-semibold">

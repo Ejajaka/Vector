@@ -72,7 +72,7 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onStartTour })
     <div className="space-y-6 v-fade-up">
       <section className="v-mesh v-noise rounded-[32px] px-6 sm:px-10 py-9 text-white relative">
         <div className="relative z-10 max-w-xl">
-          <p className="text-[10.5px] uppercase tracking-[0.18em] font-bold text-white/70">Learn</p>
+          <p className="text-[10.5px] uppercase tracking-[0.18em] font-semibold text-white/70">Learn</p>
           <h1 className="v-display text-[30px] sm:text-[40px] mt-2">Short lessons, not a manual</h1>
           <p className="mt-2 text-[13px] text-white/75 max-w-md">
             Two to six minutes each, written for people who want to ship a better prompt today.
@@ -101,23 +101,23 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onStartTour })
         {lessons.map((lesson) => {
           const Icon = lesson.icon;
           return (
-            <article key={lesson.title} className="v-card v-card-lift rounded-[24px] p-4 cursor-pointer group">
+            <article key={lesson.title} className="v-card v-card-lift rounded-lg p-4 cursor-pointer group">
               <div className="flex items-start justify-between">
                 <span
-                  className="w-11 h-11 rounded-2xl grid place-items-center text-white"
+                  className="w-11 h-11 rounded-lg grid place-items-center text-white"
                   style={{ backgroundImage: `linear-gradient(140deg, ${lesson.from}, ${lesson.to})` }}
                 >
                   <Icon className="w-5 h-5" />
                 </span>
-                <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--v-faint)]">{lesson.level}</span>
+                <span className="text-[9px] font-semibold uppercase tracking-wider text-[var(--v-faint)]">{lesson.level}</span>
               </div>
-              <h3 className="mt-3 text-[13px] font-bold text-[var(--v-ink)] leading-snug">{lesson.title}</h3>
+              <h3 className="mt-3 text-[13px] font-semibold text-[var(--v-ink)] leading-snug">{lesson.title}</h3>
               <p className="mt-1 text-[11px] leading-relaxed text-[var(--v-muted)] line-clamp-2">{lesson.summary}</p>
               <div className="mt-3 flex items-center justify-between">
                 <span className="inline-flex items-center gap-1 text-[10px] text-[var(--v-faint)]">
                   <Clock3 className="w-3 h-3" /> {lesson.minutes} min
                 </span>
-                <span className="inline-flex items-center gap-1 text-[10.5px] font-bold text-[var(--v-violet)] opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-[var(--v-violet)] opacity-0 group-hover:opacity-100 transition-opacity">
                   Read <ArrowRight className="w-3 h-3" />
                 </span>
               </div>
@@ -134,11 +134,11 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onStartTour })
         ].map((card) => {
           const Icon = card.icon;
           return (
-            <div key={card.title} className="v-card rounded-[24px] p-4">
+            <div key={card.title} className="v-card rounded-lg p-4">
               <Icon className="w-4 h-4 text-[var(--v-violet)]" />
-              <p className="mt-2 text-[12.5px] font-bold text-[var(--v-ink)]">{card.title}</p>
+              <p className="mt-2 text-[12.5px] font-semibold text-[var(--v-ink)]">{card.title}</p>
               <p className="mt-0.5 text-[10.5px] text-[var(--v-muted)]">{card.body}</p>
-              <button type="button" onClick={() => onNavigate(card.tab)} className="mt-2 inline-flex items-center gap-1 text-[10.5px] font-bold text-[var(--v-violet)] hover:underline">
+              <button type="button" onClick={() => onNavigate(card.tab)} className="mt-2 inline-flex items-center gap-1 text-[10.5px] font-semibold text-[var(--v-violet)] hover:underline">
                 {card.cta} <ArrowRight className="w-3 h-3" />
               </button>
             </div>
@@ -146,12 +146,12 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onStartTour })
         })}
       </section>
 
-      <section className="v-card rounded-[24px] p-4 flex items-center gap-3">
+      <section className="v-card rounded-lg p-4 flex items-center gap-3">
         <CheckCircle2 className="w-4 h-4 text-[var(--v-teal)] shrink-0" />
         <p className="text-[11px] text-[var(--v-muted)]">
           Looking for the old step-by-step manual? It still exists, but this page is the faster path.
         </p>
-        <button type="button" onClick={() => onNavigate('manual')} className="ml-auto text-[10.5px] font-bold text-[var(--v-violet)] hover:underline shrink-0">
+        <button type="button" onClick={() => onNavigate('manual')} className="ml-auto text-[10.5px] font-semibold text-[var(--v-violet)] hover:underline shrink-0">
           Open manual
         </button>
       </section>

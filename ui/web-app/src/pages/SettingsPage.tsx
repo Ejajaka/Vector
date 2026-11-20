@@ -36,7 +36,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onRefreshData, onOpe
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-[#283638] dark:text-[#E7E4D9] tracking-tight">
+        <h1 className="text-xl sm:text-2xl font-semibold text-[#283638] dark:text-[#E7E4D9] tracking-tight">
           Settings
         </h1>
         <p className="text-xs sm:text-sm text-[#737A72] dark:text-[#8E9A93] mt-1">
@@ -48,11 +48,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onRefreshData, onOpe
       <div className="bg-[#FFFFFF] dark:bg-[#1B2426] p-5 sm:p-6 rounded-xl border border-[#E5E2D8] dark:border-[#29383A] shadow-xs space-y-4">
         <div className="flex items-center gap-2 pb-3 border-b border-[#E5E2D8] dark:border-[#29383A]">
           <Palette className="w-4 h-4 text-[#49686C]" />
-          <h2 className="text-base font-bold text-[#283638] dark:text-[#E7E4D9]">Appearance</h2>
+          <h2 className="text-base font-semibold text-[#283638] dark:text-[#E7E4D9]">Appearance</h2>
         </div>
 
         <p className="text-xs text-[#737A72] dark:text-[#8E9A93]">
-          Choose your interface theme. Both themes keep Vector&apos;s teal and mustard accents with
+          Choose your interface theme. Both themes use the same indigo accent and Inter type, with
           high-contrast readability.
         </p>
 
@@ -75,7 +75,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onRefreshData, onOpe
                 <Sun className="w-4 h-4" />
               </div>
               <div>
-                <span className="text-xs font-bold text-[#283638] dark:text-[#E7E4D9] block">Vector Classic</span>
+                <span className="text-xs font-semibold text-[#283638] dark:text-[#E7E4D9] block">Vector Classic</span>
                 <span className="text-[11px] text-[#737A72] dark:text-[#8E9A93]">Warm ivory canvas</span>
               </div>
             </div>
@@ -100,7 +100,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onRefreshData, onOpe
                 <Moon className="w-4 h-4" />
               </div>
               <div>
-                <span className="text-xs font-bold text-[#283638] dark:text-[#E7E4D9] block">Vector Obsidian</span>
+                <span className="text-xs font-semibold text-[#283638] dark:text-[#E7E4D9] block">Vector Obsidian</span>
                 <span className="text-[11px] text-[#737A72] dark:text-[#8E9A93]">Deep slate, high contrast</span>
               </div>
             </div>
@@ -120,7 +120,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onRefreshData, onOpe
             <BookOpen className="w-4 h-4" />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="text-base font-bold text-[#283638] dark:text-[#E7E4D9]">Vector manual</h2>
+            <h2 className="text-base font-semibold text-[#283638] dark:text-[#E7E4D9]">Vector manual</h2>
             <p className="text-xs text-[#737A72] dark:text-[#8E9A93] mt-1 leading-relaxed">
               Every workflow in one place: projects, requirement review, specifications, design
               systems, workspaces and analysis.
@@ -134,7 +134,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onRefreshData, onOpe
       <div className="bg-[#FFFFFF] dark:bg-[#1B2426] p-5 sm:p-6 rounded-xl border border-[#E5E2D8] dark:border-[#29383A] shadow-xs space-y-4">
         <div className="flex items-center gap-2 pb-3 border-b border-[#E5E2D8] dark:border-[#29383A]">
           <Database className="w-4 h-4 text-[#49686C]" />
-          <h2 className="text-base font-bold text-[#283638] dark:text-[#E7E4D9]">Local data</h2>
+          <h2 className="text-base font-semibold text-[#283638] dark:text-[#E7E4D9]">Local data</h2>
         </div>
 
         <p className="text-xs text-[#737A72] dark:text-[#8E9A93] leading-relaxed">
@@ -157,7 +157,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onRefreshData, onOpe
       <div className="bg-[#FFFFFF] dark:bg-[#1B2426] p-5 sm:p-6 rounded-xl border border-[#E5E2D8] dark:border-[#29383A] shadow-xs space-y-3">
         <div className="flex items-center gap-2 pb-3 border-b border-[#E5E2D8] dark:border-[#29383A]">
           <ShieldCheck className="w-4 h-4 text-[#49686C]" />
-          <h2 className="text-base font-bold text-[#283638] dark:text-[#E7E4D9]">Privacy</h2>
+          <h2 className="text-base font-semibold text-[#283638] dark:text-[#E7E4D9]">Privacy</h2>
         </div>
         <p className="text-xs text-[#737A72] dark:text-[#8E9A93] leading-relaxed">
           Your projects and documents are private to your account. Read the full data policy
@@ -178,16 +178,16 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onRefreshData, onOpe
       <div className="bg-[#FFFFFF] dark:bg-[#1B2426] p-5 sm:p-6 rounded-xl border border-[#E5E2D8] dark:border-[#29383A] shadow-xs space-y-3">
         <div className="flex items-center gap-2 pb-3 border-b border-[#E5E2D8] dark:border-[#29383A]">
           <Info className="w-4 h-4 text-[#49686C]" />
-          <h2 className="text-base font-bold text-[#283638] dark:text-[#E7E4D9]">About Vector</h2>
+          <h2 className="text-base font-semibold text-[#283638] dark:text-[#E7E4D9]">About Vector</h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
           <div>
             <span className="text-[#737A72] dark:text-[#8E9A93] block">Application</span>
-                <span className="font-bold text-[#283638] dark:text-[#E7E4D9]">Vector — Requirement engineering for UI teams</span>
+                <span className="font-semibold text-[#283638] dark:text-[#E7E4D9]">Vector — Requirement engineering for UI teams</span>
           </div>
           <div>
             <span className="text-[#737A72] dark:text-[#8E9A93] block">Version</span>
-            <span className="font-mono font-bold text-[#283638] dark:text-[#E7E4D9]">v2.0</span>
+            <span className="font-mono font-semibold text-[#283638] dark:text-[#E7E4D9]">v2.0</span>
           </div>
         </div>
       </div>

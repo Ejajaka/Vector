@@ -7,9 +7,9 @@
 :root {
   --v-grad: linear-gradient(135deg, #5e6ad2 0%, #7170ff 55%, #8b7bff 100%);
   --v-grad-warm: linear-gradient(135deg, #f2c94c 0%, #fc7840 55%, #eb5757 100%);
-  --v-radius: 12px;
+  --v-radius: 8px;
   --v-radius-sm: 6px;
-  --v-radius-lg: 16px;
+  --v-radius-lg: 12px;
   --v-shadow-sm: 0 1px 2px rgba(20, 22, 26, 0.06);
   --v-shadow-md: 0 4px 16px -8px rgba(20, 22, 26, 0.18);
   --v-shadow-lg: 0 24px 56px -28px rgba(20, 22, 26, 0.28);
@@ -18,7 +18,7 @@
 .dark,
 [data-theme="dark"] {
   --v-grad: linear-gradient(135deg, #5e6ad2 0%, #7170ff 55%, #8b7bff 100%);
-  --v-radius: 12px;
+  --v-radius: 8px;
   --v-shadow-sm: 0 0 0 1px rgba(0, 0, 0, 0.2);
   --v-shadow-md: 0 16px 40px -20px rgba(0, 0, 0, 0.8);
   --v-shadow-lg: 0 32px 80px -40px rgba(0, 0, 0, 0.95);
@@ -33,14 +33,11 @@ body {
 /* Page wash ------------------------------------------------------- */
 .v-bg {
   background-color: var(--v-bg);
-  background-image:
-    radial-gradient(760px 360px at 50% -12%, color-mix(in srgb, var(--v-accent) 10%, transparent), transparent 70%);
-  background-repeat: no-repeat;
+  background-image: none;
 }
 
 .dark .v-bg {
-  background-image:
-    radial-gradient(900px 420px at 50% -16%, rgba(94, 106, 210, 0.16), transparent 72%);
+  background-image: none;
 }
 
 /* Typography ------------------------------------------------------ */
@@ -114,9 +111,9 @@ body {
   align-items: center;
   justify-content: center;
   gap: .4rem;
-  height: 32px;
-  padding: 0 .75rem;
-  border-radius: 8px;
+  height: 34px;
+  padding: 0 .8rem;
+  border-radius: 6px;
   font-size: 13px;
   font-weight: 500;
   letter-spacing: -0.011em;
@@ -170,7 +167,7 @@ body {
   width: 100%;
   background: var(--v-surface);
   border: 1px solid var(--v-line);
-  border-radius: 8px;
+  border-radius: 6px;
   color: var(--v-ink);
   font-size: 13px;
   letter-spacing: -0.011em;
@@ -189,9 +186,9 @@ body {
   display: inline-flex;
   align-items: center;
   gap: .35rem;
-  height: 28px;
-  padding: 0 .7rem;
-  border-radius: 999px;
+  height: 26px;
+  padding: 0 .65rem;
+  border-radius: 6px;
   font-size: 12px;
   font-weight: 500;
   color: var(--v-muted);
@@ -212,11 +209,8 @@ body {
 .v-mesh {
   position: relative;
   overflow: hidden;
-  border-radius: 16px;
-  background:
-    radial-gradient(95% 130% at 14% 0%, rgba(94, 106, 210, .26) 0%, transparent 62%),
-    radial-gradient(80% 110% at 94% 0%, rgba(0, 184, 204, .08) 0%, transparent 60%),
-    linear-gradient(160deg, #0d0e12, #0a0b0e 55%, #08090a);
+  border-radius: 10px;
+  background: var(--v-surface);
   border: 1px solid var(--v-line);
 }
 
@@ -224,9 +218,7 @@ body {
 
 /* A soft spotlight used behind product previews. */
 .v-spotlight {
-  background:
-    radial-gradient(60% 50% at 50% 0%, rgba(113, 112, 255, .22), transparent 70%),
-    radial-gradient(50% 40% at 70% 10%, rgba(0, 184, 204, .10), transparent 70%);
+  background: none;
 }
 
 /* Motion ---------------------------------------------------------- */
@@ -389,3 +381,40 @@ body {
   .v-anim { animation: none !important; }
 }
 
+
+
+/* ------------------------------------------------------------------ */
+/* App shell polish                                                    */
+/* ------------------------------------------------------------------ */
+
+/* The marketing surface keeps Linear's white CTA; inside the product the
+   primary action is the indigo accent, matching the studio reference. */
+[data-app="true"] .v-btn-primary {
+  background: var(--v-accent);
+  border-color: var(--v-accent);
+  color: #fff;
+  box-shadow: none;
+}
+[data-app="true"] .v-btn-primary:hover {
+  background: var(--v-accent-hover);
+  border-color: var(--v-accent-hover);
+}
+
+/* Tighter app geometry. */
+[data-app="true"] .v-card,
+[data-app="true"] .v-mesh {
+  border-radius: 8px;
+}
+[data-app="true"] h1 {
+  letter-spacing: -0.025em;
+}
+
+/* Portfolio thumbnails are rendered dark so the gallery sits inside the
+   product rather than glowing like a separate light-mode artifact. */
+.template-art {
+  background-color: #0d0e10;
+}
+.template-art .shadow-sm,
+.template-art .shadow-md {
+  box-shadow: none;
+}

@@ -78,14 +78,14 @@ export const NotificationsMenu: React.FC<NotificationsMenuProps> = ({ open, onOp
       >
         <Bell className="w-4 h-4" />
         {unread > 0 && (
-          <span className="absolute top-1 right-1 min-w-[15px] h-[15px] px-1 rounded-full bg-[#B94D42] text-white text-[9px] font-bold grid place-items-center leading-none">
+          <span className="absolute top-1 right-1 min-w-[15px] h-[15px] px-1 rounded-full bg-[#B94D42] text-white text-[9px] font-semibold grid place-items-center leading-none">
             {unread}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-[360px] bg-[#FFFFFF] dark:bg-[#1B2426] border border-[#E5E2D8] dark:border-[#33403F] rounded-2xl shadow-[0_24px_60px_-24px_rgba(16,32,32,0.45)] z-50 overflow-hidden">
+        <div className="absolute right-0 top-full mt-2 w-[360px] bg-[#FFFFFF] dark:bg-[#1B2426] border border-[#E5E2D8] dark:border-[#33403F] rounded-lg shadow-[0_24px_60px_-24px_rgba(16,32,32,0.45)] z-50 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-[#E5E2D8] dark:border-[#29383A]">
             <div>
               <p className="text-[13px] font-semibold text-[#283638] dark:text-[#E7E4D9]">Notifications</p>

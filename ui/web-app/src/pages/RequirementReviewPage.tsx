@@ -177,7 +177,7 @@ export const RequirementReviewPage: React.FC = () => {
     return (
       <div className="max-w-3xl mx-auto bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl p-10 text-center shadow-xs">
         <ClipboardCheck className="w-8 h-8 text-[#49686C] mx-auto mb-3" />
-        <h1 className="text-lg font-bold text-[#283638]">Choose a project first</h1>
+        <h1 className="text-lg font-semibold text-[#283638]">Choose a project first</h1>
         <p className="text-xs text-[#737A72] mt-1">Suggestions and acceptance criteria are project-scoped.</p>
       </div>
     );
@@ -187,7 +187,7 @@ export const RequirementReviewPage: React.FC = () => {
     <div className="space-y-6 max-w-6xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-[#283638] tracking-tight">Review & Acceptance</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold text-[#283638] tracking-tight">Review & Acceptance</h1>
           <p className="text-xs sm:text-sm text-[#737A72] mt-1">
             AI-inferred behaviors stay suggestions until you accept them. Acceptance criteria remain linked to their source requirement.
           </p>
@@ -196,7 +196,7 @@ export const RequirementReviewPage: React.FC = () => {
           type="button"
           onClick={() => void load()}
           disabled={loading}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[#E5E2D8] bg-white text-xs font-bold text-[#49686C] hover:bg-[#F6F4EC] disabled:opacity-60"
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[#E5E2D8] bg-white text-xs font-semibold text-[#49686C] hover:bg-[#F6F4EC] disabled:opacity-60"
         >
           {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
           Refresh
@@ -213,11 +213,11 @@ export const RequirementReviewPage: React.FC = () => {
       <div className="grid grid-cols-2 gap-3 max-w-md">
         <div className="bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl p-4">
           <div className="text-[11px] font-semibold text-[#737A72]">Pending suggestions</div>
-          <div className="text-2xl font-bold font-mono text-[#283638] mt-1">{pendingSuggestions.length}</div>
+          <div className="text-2xl font-semibold font-mono text-[#283638] mt-1">{pendingSuggestions.length}</div>
         </div>
         <div className="bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl p-4">
           <div className="text-[11px] font-semibold text-[#737A72]">Pending criteria</div>
-          <div className="text-2xl font-bold font-mono text-[#283638] mt-1">{pendingCriteria.length}</div>
+          <div className="text-2xl font-semibold font-mono text-[#283638] mt-1">{pendingCriteria.length}</div>
         </div>
       </div>
 
@@ -230,7 +230,7 @@ export const RequirementReviewPage: React.FC = () => {
             key={id}
             type="button"
             onClick={() => setTab(id)}
-            className={`px-3 py-2 rounded-md text-xs font-bold transition-colors ${
+            className={`px-3 py-2 rounded-md text-xs font-semibold transition-colors ${
               tab === id ? 'bg-white text-[#283638] shadow-xs' : 'text-[#737A72] hover:text-[#283638]'
             }`}
           >
@@ -263,14 +263,14 @@ export const RequirementReviewPage: React.FC = () => {
 
           {(tab === 'suggestions' ? selectedSuggestions.size : selectedCriteria.size) > 0 && (
             <div className="ml-auto flex flex-wrap items-center gap-1.5 rounded-lg border border-[#CFDFE1] bg-[#F0F5F5] px-3 py-1.5">
-              <span className="text-[11px] font-bold text-[#49686C]">
+              <span className="text-[11px] font-semibold text-[#49686C]">
                 {tab === 'suggestions' ? selectedSuggestions.size : selectedCriteria.size} selected
               </span>
               <button
                 type="button"
                 disabled={bulkBusy}
                 onClick={() => void (tab === 'suggestions' ? applySuggestionBulk('accepted') : applyCriterionBulk('approved'))}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#F4F9F1] border border-[#CFE2C8] text-[10px] font-bold text-[#3E6B33] disabled:opacity-60"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#F4F9F1] border border-[#CFE2C8] text-[10px] font-semibold text-[#3E6B33] disabled:opacity-60"
               >
                 {bulkBusy ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCheck className="w-3 h-3" />}
                 {tab === 'suggestions' ? 'Accept selected' : 'Approve selected'}
@@ -279,7 +279,7 @@ export const RequirementReviewPage: React.FC = () => {
                 type="button"
                 disabled={bulkBusy}
                 onClick={() => setConfirmReject(tab === 'suggestions' ? 'suggestions' : 'criteria')}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#FDF2F0] border border-[#F0C4BF] text-[10px] font-bold text-[#B94D42] disabled:opacity-60"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#FDF2F0] border border-[#F0C4BF] text-[10px] font-semibold text-[#B94D42] disabled:opacity-60"
               >
                 <XCircle className="w-3 h-3" />
                 Reject selected
@@ -287,7 +287,7 @@ export const RequirementReviewPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => (tab === 'suggestions' ? setSelectedSuggestions(new Set()) : setSelectedCriteria(new Set()))}
-                className="px-2 py-1 rounded-md text-[10px] font-bold text-[#737A72] hover:text-[#283638]"
+                className="px-2 py-1 rounded-md text-[10px] font-semibold text-[#737A72] hover:text-[#283638]"
               >
                 Clear
               </button>
@@ -325,24 +325,24 @@ export const RequirementReviewPage: React.FC = () => {
                     onChange={() => toggleSet(setSelectedSuggestions, suggestion.id)}
                     aria-label={`Select ${suggestion.title}`}
                   />
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${statusClass(suggestion.status)}`}>
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${statusClass(suggestion.status)}`}>
                     {suggestion.status.replace(/_/g, ' ')}
                   </span>
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#737A72]">
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-[#737A72]">
                     {suggestion.type === 'edge_case' ? 'Edge case' : 'Implicit behavior'}
                   </span>
                   <span className="text-[10px] font-mono text-[#49686C]">{suggestion.requirementCode}</span>
                   <span className="ml-auto text-[10px] text-[#856C16]">AI-inferred</span>
                 </div>
-                <h3 className="text-sm font-bold text-[#283638] mt-2">{suggestion.title}</h3>
+                <h3 className="text-sm font-semibold text-[#283638] mt-2">{suggestion.title}</h3>
                 <p className="text-xs text-[#283638] leading-relaxed mt-1">{suggestion.detail}</p>
                 <p className="text-[11px] text-[#737A72] mt-2"><b className="text-[#49686C]">Clarify:</b> {suggestion.question}</p>
                 <p className="text-[11px] text-[#737A72] mt-1"><b className="text-[#49686C]">Recommendation:</b> {suggestion.recommendation}</p>
                 <div className="flex gap-2 mt-3">
-                  <button type="button" onClick={() => void setSuggestionStatus(suggestion, 'accepted')} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-[#F4F9F1] border border-[#CFE2C8] text-[11px] font-bold text-[#3E6B33]">
+                  <button type="button" onClick={() => void setSuggestionStatus(suggestion, 'accepted')} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-[#F4F9F1] border border-[#CFE2C8] text-[11px] font-semibold text-[#3E6B33]">
                     <Check className="w-3.5 h-3.5" /> Accept
                   </button>
-                  <button type="button" onClick={() => void setSuggestionStatus(suggestion, 'rejected')} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-[#FDF2F0] border border-[#F0C4BF] text-[11px] font-bold text-[#B94D42]">
+                  <button type="button" onClick={() => void setSuggestionStatus(suggestion, 'rejected')} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-[#FDF2F0] border border-[#F0C4BF] text-[11px] font-semibold text-[#B94D42]">
                     <X className="w-3.5 h-3.5" /> Reject
                   </button>
                 </div>
@@ -365,7 +365,7 @@ export const RequirementReviewPage: React.FC = () => {
                     onChange={() => toggleSet(setSelectedCriteria, criterion.id)}
                     aria-label={`Select criterion ${criterion.requirementCode}`}
                   />
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${statusClass(criterion.status)}`}>
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${statusClass(criterion.status)}`}>
                     {criterion.status.replace(/_/g, ' ')}
                   </span>
                   <span className="text-[10px] font-mono text-[#49686C]">{criterion.requirementCode}</span>
@@ -377,10 +377,10 @@ export const RequirementReviewPage: React.FC = () => {
                   <p><b className="text-[#49686C]">Then</b> {criterion.then.replace(/^then\s+/i, '')}</p>
                 </div>
                 <div className="flex gap-2 mt-3">
-                  <button type="button" onClick={() => void setCriterionStatus(criterion, 'approved')} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-[#F4F9F1] border border-[#CFE2C8] text-[11px] font-bold text-[#3E6B33]">
+                  <button type="button" onClick={() => void setCriterionStatus(criterion, 'approved')} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-[#F4F9F1] border border-[#CFE2C8] text-[11px] font-semibold text-[#3E6B33]">
                     <CheckCircle2 className="w-3.5 h-3.5" /> Approve
                   </button>
-                  <button type="button" onClick={() => void setCriterionStatus(criterion, 'rejected')} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-[#FDF2F0] border border-[#F0C4BF] text-[11px] font-bold text-[#B94D42]">
+                  <button type="button" onClick={() => void setCriterionStatus(criterion, 'rejected')} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-[#FDF2F0] border border-[#F0C4BF] text-[11px] font-semibold text-[#B94D42]">
                     <X className="w-3.5 h-3.5" /> Reject
                   </button>
                 </div>

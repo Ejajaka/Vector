@@ -40,20 +40,6 @@ interface ProjectsPageProps {
 
 type Tab = 'all' | 'recent' | 'shared' | 'trash';
 
-const TONES = [
-  ['#7170ff', '#00b8cc'],
-  ['#8b7bff', '#4ea7fc'],
-  ['#d46ec0', '#8b7bff'],
-  ['#f2c94c', '#fc7840'],
-  ['#4ea7fc', '#4cc38a'],
-  ['#00b8cc', '#7170ff'],
-];
-
-function toneFor(id: string): [string, string] {
-  const sum = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return TONES[sum % TONES.length] as [string, string];
-}
-
 export const ProjectsPage: React.FC<ProjectsPageProps> = ({
   onOpenProject,
   onOpenSettings,
@@ -306,7 +292,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
         {tab === 'shared' ? (
           <div className="mt-10 v-card rounded-xl p-10 text-center max-w-xl mx-auto">
             <Users className="w-7 h-7 mx-auto text-[var(--v-faint)]" />
-            <p className="mt-2 text-[14px] font-bold text-[var(--v-ink)]">Nothing shared with you yet</p>
+            <p className="mt-2 text-[14px] font-semibold text-[var(--v-ink)]">Nothing shared with you yet</p>
             <p className="mt-1 text-[12px] text-[var(--v-muted)]">
               When a teammate shares a project, it appears here with their permissions.
             </p>
@@ -337,7 +323,6 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
               )}
 
               {visible.map((project) => {
-                const [from, to] = toneFor(project.id);
                 const isCurrent = currentProject?.id === project.id;
                 const menuOpen = menuFor === project.id;
 
@@ -347,7 +332,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
                     className={`relative group ${
                       view === 'grid'
                         ? 'v-card v-card-lift rounded-xl'
-                        : 'v-card rounded-2xl p-3 flex items-center gap-3'
+                        : 'v-card flex items-center gap-3 rounded-lg p-3'
                     }`}
                   >
                     {view === 'grid' ? (
@@ -357,11 +342,8 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
                           onClick={() => (tab === 'trash' ? undefined : openProject(project))}
                           className="block w-full text-left"
                         >
-                          <div
-                            className="h-[112px] relative overflow-hidden rounded-t-[12px] border-b border-[var(--v-line)]"
-                            style={{ backgroundImage: `linear-gradient(140deg, ${from}26, ${to}12)` }}
-                          >
-                            <div className="absolute inset-0 bg-[var(--v-surface)]/25" />
+                          <div className="relative h-[112px] overflow-hidden rounded-t-lg border-b border-[var(--v-line)] bg-[var(--v-surface-2)]">
+                            <div className="absolute inset-0 bg-[radial-gradient(120%_100%_at_15%_0%,rgba(113,112,255,.14),transparent_60%)]" />
                             <span className="absolute bottom-2.5 left-3.5 text-[24px] font-semibold tracking-[-0.03em] text-[var(--v-ink)]">
                               {project.name.slice(0, 2).toUpperCase()}
                             </span>
@@ -375,7 +357,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
                             </span>
                           </div>
                           <div className="p-3.5">
-                            <p className="text-[12.5px] font-bold text-[var(--v-ink)] truncate">{project.name}</p>
+                            <p className="text-[12.5px] font-semibold text-[var(--v-ink)] truncate">{project.name}</p>
                             <p className="mt-0.5 text-[10.5px] text-[var(--v-faint)] truncate">
                               {project.description || 'No description'}
                             </p>
@@ -388,10 +370,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
                       </>
                     ) : (
                       <>
-                        <span
-                          className="w-10 h-10 rounded-lg shrink-0 grid place-items-center border border-[var(--v-line)] text-[12px] font-semibold text-[var(--v-ink)]"
-                          style={{ backgroundColor: `${from}1f` }}
-                        >
+                        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md border border-[var(--v-line)] bg-[var(--v-surface-2)] text-[12px] font-semibold text-[var(--v-ink)]">
                           {project.name.slice(0, 2).toUpperCase()}
                         </span>
                         <button
@@ -399,7 +378,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
                           onClick={() => (tab === 'trash' ? undefined : openProject(project))}
                           className="min-w-0 flex-1 text-left"
                         >
-                          <p className="text-[12.5px] font-bold text-[var(--v-ink)] truncate">{project.name}</p>
+                          <p className="text-[12.5px] font-semibold text-[var(--v-ink)] truncate">{project.name}</p>
                           <p className="text-[10.5px] text-[var(--v-faint)] truncate">
                             {project.description || 'No description'} Â· {new Date(project.updatedAt).toLocaleDateString()}
                           </p>
@@ -414,14 +393,14 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
                           <button
                             type="button"
                             onClick={() => void restore(project)}
-                            className="px-2.5 py-1.5 rounded-lg bg-[var(--v-surface)] border border-[var(--v-line)] text-[10.5px] font-bold text-[var(--v-ink)] hover:border-[var(--v-violet)]"
+                            className="px-2.5 py-1.5 rounded-lg bg-[var(--v-surface)] border border-[var(--v-line)] text-[10.5px] font-semibold text-[var(--v-ink)] hover:border-[var(--v-violet)]"
                           >
                             Restore
                           </button>
                           <button
                             type="button"
                             onClick={() => setDeleteTarget(project)}
-                            className="px-2.5 py-1.5 rounded-lg bg-[#FDF2F0] text-[10.5px] font-bold text-[#B94D42] hover:bg-[#FBEAE7]"
+                            className="px-2.5 py-1.5 rounded-lg bg-[#FDF2F0] text-[10.5px] font-semibold text-[#B94D42] hover:bg-[#FBEAE7]"
                           >
                             Delete
                           </button>
@@ -478,7 +457,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
             {!loading && visible.length === 0 && (
               <div className="mt-6 v-card rounded-xl p-10 text-center">
                 <Sparkles className="w-6 h-6 mx-auto text-[var(--v-faint)]" />
-                <p className="mt-2 text-[13.5px] font-bold text-[var(--v-ink)]">
+                <p className="mt-2 text-[13.5px] font-semibold text-[var(--v-ink)]">
                   {query ? `No projects match â€œ${query}â€` : tab === 'trash' ? 'Trash is empty' : 'No projects yet'}
                 </p>
                 <p className="mt-1 text-[11.5px] text-[var(--v-muted)]">
@@ -535,7 +514,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
             </div>
 
             <label className="block mt-4">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--v-muted)]">Name</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--v-muted)]">Name</span>
               <input
                 value={name}
                 onChange={(event) => setName(event.target.value)}
@@ -547,13 +526,13 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
             </label>
 
             <label className="block mt-3">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--v-muted)]">Description</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--v-muted)]">Description</span>
               <textarea
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
                 rows={3}
                 placeholder="What is being designed?"
-                className="mt-1.5 w-full rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] px-4 py-3 text-[13px] text-[var(--v-ink)] outline-none focus:border-[var(--v-violet)]"
+                className="mt-1.5 w-full rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] px-4 py-3 text-[13px] text-[var(--v-ink)] outline-none focus:border-[var(--v-violet)]"
               />
             </label>
 
@@ -587,16 +566,16 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
               </button>
             </div>
             <label className="block mt-4">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--v-muted)]">Name</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--v-muted)]">Name</span>
               <input value={editName} onChange={(event) => setEditName(event.target.value)} required maxLength={120} className="v-input mt-1.5 h-11 px-4 text-[13px]" />
             </label>
             <label className="block mt-3">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--v-muted)]">Description</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--v-muted)]">Description</span>
               <textarea
                 value={editDescription}
                 onChange={(event) => setEditDescription(event.target.value)}
                 rows={3}
-                className="mt-1.5 w-full rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] px-4 py-3 text-[13px] text-[var(--v-ink)] outline-none focus:border-[var(--v-violet)]"
+                className="mt-1.5 w-full rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] px-4 py-3 text-[13px] text-[var(--v-ink)] outline-none focus:border-[var(--v-violet)]"
               />
             </label>
             <div className="mt-5 flex justify-end gap-2">

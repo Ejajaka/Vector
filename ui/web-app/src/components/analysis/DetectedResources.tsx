@@ -33,7 +33,7 @@ export const DetectedResources: React.FC<DetectedResourcesProps> = ({ resources 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Layers className="w-4 h-4 text-[#49686C]" />
-          <h3 className="text-sm font-bold text-[#283638]">
+          <h3 className="text-sm font-semibold text-[#283638]">
             Identified AWS Resources ({resources.length})
           </h3>
         </div>

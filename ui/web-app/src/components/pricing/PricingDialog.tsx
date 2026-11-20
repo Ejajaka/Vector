@@ -25,10 +25,10 @@ export const PricingDialog: React.FC<PricingDialogProps> = ({ open, onClose, onL
     <div className="fixed inset-0 z-[95] grid place-items-center p-3 sm:p-5" role="dialog" aria-modal="true" aria-label="Plans and pricing">
       <div className="absolute inset-0 bg-black/65 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
 
-      <div className="v-scroll relative max-h-[90vh] w-full max-w-[1000px] overflow-y-auto rounded-2xl border border-white/10 bg-[#242424] p-4 text-white shadow-[0_40px_100px_-30px_rgba(0,0,0,.95)] sm:p-6">
+      <div className="v-scroll relative max-h-[90vh] w-full max-w-[1000px] overflow-y-auto rounded-lg border border-white/10 bg-[#242424] p-4 text-white shadow-[0_40px_100px_-30px_rgba(0,0,0,.95)] sm:p-6">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#B9A8FF]">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#B9A8FF]">
               {paid ? `${PLANS.find((plan) => plan.code === state.plan)?.name || 'Current'} plan` : 'Starter hub'}
             </p>
             <h2 className="mt-1 text-[20px] font-semibold sm:text-[24px]">Which plan and seats would you like?</h2>
@@ -47,12 +47,12 @@ export const PricingDialog: React.FC<PricingDialogProps> = ({ open, onClose, onL
               key={option}
               type="button"
               onClick={() => setBilling(option)}
-              className={`rounded-full px-3.5 py-1.5 text-[11.5px] font-bold capitalize ${
+              className={`rounded-full px-3.5 py-1.5 text-[11.5px] font-semibold capitalize ${
                 billing === option ? 'bg-white text-[#17171A]' : 'text-white/60'
               }`}
             >
               {option}
-              {option === 'annual' && <span className="ml-1 text-[9px] font-bold text-[#22C55E]">save 17%</span>}
+              {option === 'annual' && <span className="ml-1 text-[9px] font-semibold text-[#22C55E]">save 17%</span>}
             </button>
           ))}
         </div>
@@ -77,7 +77,7 @@ export const PricingDialog: React.FC<PricingDialogProps> = ({ open, onClose, onL
                     <p className="mt-0.5 text-[10px] leading-relaxed text-white/40">{plan.tagline}</p>
                   </div>
                   {popular && (
-                    <span className="shrink-0 rounded-full bg-[#7C5CFF]/20 px-2 py-0.5 text-[8.5px] font-bold uppercase tracking-wider text-[#B9A8FF]">
+                    <span className="shrink-0 rounded-full bg-[#7C5CFF]/20 px-2 py-0.5 text-[8.5px] font-semibold uppercase tracking-wider text-[#B9A8FF]">
                       Popular
                     </span>
                   )}
@@ -108,7 +108,7 @@ export const PricingDialog: React.FC<PricingDialogProps> = ({ open, onClose, onL
                   type="button"
                   onClick={onLearnMore}
                   disabled={current}
-                  className={`mt-3 h-8 w-full rounded-md text-[10.5px] font-bold ${
+                  className={`mt-3 h-8 w-full rounded-md text-[10.5px] font-semibold ${
                     current
                       ? 'cursor-default bg-white/8 text-white/40'
                       : popular

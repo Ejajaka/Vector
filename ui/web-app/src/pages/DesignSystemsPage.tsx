@@ -99,14 +99,14 @@ export const DesignSystemsPage: React.FC<DesignSystemsPageProps> = ({ onOpenEdit
   return (
     <div className="space-y-5 v-fade-up">
       {/* Private notice */}
-      <section className="rounded-xl border border-[#FED7AA] bg-[#FFF7ED] px-4 py-3 text-[11.5px] leading-relaxed text-[#9C4A28] dark:border-[#4E3A1F] dark:bg-[#2A2118] dark:text-[#F0B37E]">
-        <b>Private to this workspace.</b> Design systems here belong to your organisation. They are not published to
+      <section className="rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] px-4 py-3 text-[11.5px] leading-relaxed text-[var(--v-muted)]">
+        <b className="text-[var(--v-ink)]">Private to this workspace.</b> Design systems here belong to your organisation. They are not published to
         any public library, and only members of this workspace can open or attach them. There are no third-party brand
         presets.
       </section>
 
       {/* Header */}
-      <section className="flex flex-col gap-3 rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] p-5 sm:flex-row sm:items-end sm:justify-between">
+      <section className="flex flex-col gap-3 rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] p-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="v-eyebrow">Design system</p>
           <h1 className="v-display mt-1.5 text-[24px] text-[var(--v-ink)] sm:text-[28px]">Your tokens, your prompts</h1>
@@ -119,15 +119,14 @@ export const DesignSystemsPage: React.FC<DesignSystemsPageProps> = ({ onOpenEdit
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="h-9 rounded-lg border border-[var(--v-line)] px-3 text-[11.5px] font-bold text-[var(--v-ink)] hover:bg-[var(--v-surface-2)] inline-flex items-center gap-1.5"
+            className="h-9 rounded-lg border border-[var(--v-line)] px-3 text-[11.5px] font-semibold text-[var(--v-ink)] hover:bg-[var(--v-surface-2)] inline-flex items-center gap-1.5"
           >
             <Upload className="w-3.5 h-3.5" /> Import
           </button>
           <button
             type="button"
             onClick={startCreate}
-            className="h-9 rounded-lg px-3.5 text-[11.5px] font-bold text-white inline-flex items-center gap-1.5"
-            style={{ backgroundImage: 'linear-gradient(118deg,#7C5CFF,#4D7CFE 55%,#22D3EE)' }}
+            className="v-btn v-btn-primary h-9 px-3.5 text-[11.5px]"
           >
             <Plus className="w-3.5 h-3.5" /> New system
           </button>
@@ -138,12 +137,12 @@ export const DesignSystemsPage: React.FC<DesignSystemsPageProps> = ({ onOpenEdit
 
       {/* Active */}
       {active && (
-        <section className="rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] p-4">
+        <section className="rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] p-4">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F0FBF7] px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wider text-[#0C7A5B]">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F0FBF7] px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider text-[#0C7A5B]">
               <Check className="w-2.5 h-2.5" /> Attached to prompts
             </span>
-            <p className="text-[12.5px] font-bold text-[var(--v-ink)]">{active.name}</p>
+            <p className="text-[12.5px] font-semibold text-[var(--v-ink)]">{active.name}</p>
             <div className="flex gap-1">
               {[active.tokens.primary, active.tokens.accent, active.tokens.surface, active.tokens.ink].map((colour) => (
                 <span key={colour} className="h-4 w-4 rounded-full border border-[var(--v-line)]" style={{ background: colour }} />
@@ -155,7 +154,7 @@ export const DesignSystemsPage: React.FC<DesignSystemsPageProps> = ({ onOpenEdit
                 setActiveDesignSystem(null);
                 refresh();
               }}
-              className="ml-auto text-[10.5px] font-bold text-[var(--v-muted)] hover:text-[var(--v-ink)]"
+              className="ml-auto text-[10.5px] font-semibold text-[var(--v-muted)] hover:text-[var(--v-ink)]"
             >
               Detach
             </button>
@@ -168,9 +167,9 @@ export const DesignSystemsPage: React.FC<DesignSystemsPageProps> = ({ onOpenEdit
 
       {/* List */}
       {systems.length === 0 ? (
-        <section className="rounded-2xl border border-dashed border-[var(--v-line)] bg-[var(--v-surface-2)] p-10 text-center">
+        <section className="rounded-lg border border-dashed border-[var(--v-line)] bg-[var(--v-surface-2)] p-10 text-center">
           <Palette className="mx-auto h-6 w-6 text-[var(--v-faint)]" />
-          <p className="mt-2 text-[13.5px] font-bold text-[var(--v-ink)]">No design system yet</p>
+          <p className="mt-2 text-[13.5px] font-semibold text-[var(--v-ink)]">No design system yet</p>
           <p className="mx-auto mt-1 max-w-sm text-[11.5px] text-[var(--v-muted)]">
             Create one from your organisation's documented colours and type. It stays inside this workspace.
           </p>
@@ -185,7 +184,7 @@ export const DesignSystemsPage: React.FC<DesignSystemsPageProps> = ({ onOpenEdit
             return (
               <article
                 key={system.id}
-                className={`rounded-2xl border bg-[var(--v-surface)] p-4 ${
+                className={`rounded-lg border bg-[var(--v-surface)] p-4 ${
                   isActive ? 'border-[var(--v-violet)]' : 'border-[var(--v-line)]'
                 }`}
               >
@@ -193,14 +192,14 @@ export const DesignSystemsPage: React.FC<DesignSystemsPageProps> = ({ onOpenEdit
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
                       <Lock className="h-3 w-3 shrink-0 text-[var(--v-faint)]" />
-                      <p className="truncate text-[12.5px] font-bold text-[var(--v-ink)]">{system.name}</p>
+                      <p className="truncate text-[12.5px] font-semibold text-[var(--v-ink)]">{system.name}</p>
                     </div>
                     <p className="mt-0.5 text-[10px] text-[var(--v-faint)]">
                       {system.tokens.font} · {system.tokens.radius}px radius · {system.tokens.spacing}px grid
                     </p>
                   </div>
                   {isActive && (
-                    <span className="shrink-0 rounded-full bg-[#F0FBF7] px-1.5 py-0.5 text-[8.5px] font-bold uppercase tracking-wider text-[#0C7A5B]">
+                    <span className="shrink-0 rounded-full bg-[#F0FBF7] px-1.5 py-0.5 text-[8.5px] font-semibold uppercase tracking-wider text-[#0C7A5B]">
                       Active
                     </span>
                   )}
@@ -211,7 +210,7 @@ export const DesignSystemsPage: React.FC<DesignSystemsPageProps> = ({ onOpenEdit
                   <div className="flex items-center gap-1.5">
                     <span className="h-6 w-6 rounded-md" style={{ background: system.tokens.primary }} />
                     <span className="h-2 w-16 rounded-full" style={{ background: system.tokens.ink }} />
-                    <span className="ml-auto rounded px-2 py-1 text-[8px] font-bold text-white" style={{ background: system.tokens.primary }}>
+                    <span className="ml-auto rounded px-2 py-1 text-[8px] font-semibold text-white" style={{ background: system.tokens.primary }}>
                       Button
                     </span>
                   </div>
@@ -229,7 +228,7 @@ export const DesignSystemsPage: React.FC<DesignSystemsPageProps> = ({ onOpenEdit
                   <button
                     type="button"
                     onClick={() => useForPrompts(system)}
-                    className={`h-7 rounded-md px-2.5 text-[10px] font-bold ${
+                    className={`h-7 rounded-md px-2.5 text-[10px] font-semibold ${
                       isActive ? 'bg-[var(--v-surface-2)] text-[var(--v-muted)]' : 'bg-[var(--v-ink)] text-[var(--v-surface)]'
                     }`}
                   >
@@ -238,7 +237,7 @@ export const DesignSystemsPage: React.FC<DesignSystemsPageProps> = ({ onOpenEdit
                   <button
                     type="button"
                     onClick={() => createTemplate(system)}
-                    className="inline-flex h-7 items-center gap-1 rounded-md border border-[var(--v-line)] px-2.5 text-[10px] font-bold text-[var(--v-ink)] hover:bg-[var(--v-surface-2)]"
+                    className="inline-flex h-7 items-center gap-1 rounded-md border border-[var(--v-line)] px-2.5 text-[10px] font-semibold text-[var(--v-ink)] hover:bg-[var(--v-surface-2)]"
                   >
                     <Sparkles className="h-3 w-3" /> Create template
                   </button>
@@ -299,11 +298,11 @@ export const DesignSystemsPage: React.FC<DesignSystemsPageProps> = ({ onOpenEdit
       {form && (
         <div className="fixed inset-0 z-[70] grid place-items-center p-4">
           <div className="absolute inset-0 bg-[#06080C]/55 backdrop-blur-sm" onClick={() => setForm(null)} aria-hidden="true" />
-          <div className="relative w-full max-w-[520px] overflow-hidden rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] shadow-[var(--v-shadow-lg)]">
+          <div className="relative w-full max-w-[520px] overflow-hidden rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] shadow-[var(--v-shadow-lg)]">
             <div className="flex items-start justify-between border-b border-[var(--v-line)] px-5 py-3.5">
               <div>
                 <p className="v-eyebrow">{form.id ? 'Edit system' : 'New system'}</p>
-                <h2 className="mt-1 text-[16px] font-bold text-[var(--v-ink)]">Design tokens</h2>
+                <h2 className="mt-1 text-[16px] font-semibold text-[var(--v-ink)]">Design tokens</h2>
               </div>
               <button type="button" onClick={() => setForm(null)} className="v-icon-btn h-7 w-7" aria-label="Close">
                 <X className="w-4 h-4" />
@@ -312,7 +311,7 @@ export const DesignSystemsPage: React.FC<DesignSystemsPageProps> = ({ onOpenEdit
 
             <div className="max-h-[70vh] space-y-3 overflow-y-auto v-scroll px-5 py-4">
               <label className="block">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--v-muted)]">Name</span>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--v-muted)]">Name</span>
                 <input
                   value={form.name}
                   onChange={(event) => setForm({ ...form, name: event.target.value })}
@@ -322,7 +321,7 @@ export const DesignSystemsPage: React.FC<DesignSystemsPageProps> = ({ onOpenEdit
               </label>
 
               <label className="block">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--v-muted)]">Note for the prompt</span>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--v-muted)]">Note for the prompt</span>
                 <textarea
                   value={form.note}
                   onChange={(event) => setForm({ ...form, note: event.target.value })}
@@ -356,7 +355,7 @@ export const DesignSystemsPage: React.FC<DesignSystemsPageProps> = ({ onOpenEdit
               </div>
 
               <label className="block">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--v-muted)]">Typeface</span>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--v-muted)]">Typeface</span>
                 <select
                   value={form.tokens.font}
                   onChange={(event) =>
@@ -374,7 +373,7 @@ export const DesignSystemsPage: React.FC<DesignSystemsPageProps> = ({ onOpenEdit
 
               <div className="grid grid-cols-2 gap-3">
                 <label className="block">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--v-muted)]">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--v-muted)]">
                     Radius · {form.tokens.radius}px
                   </span>
                   <input
@@ -387,7 +386,7 @@ export const DesignSystemsPage: React.FC<DesignSystemsPageProps> = ({ onOpenEdit
                   />
                 </label>
                 <label className="block">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--v-muted)]">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--v-muted)]">
                     Spacing · {form.tokens.spacing}px
                   </span>
                   <input
@@ -404,11 +403,11 @@ export const DesignSystemsPage: React.FC<DesignSystemsPageProps> = ({ onOpenEdit
               <div className="rounded-xl border border-[var(--v-line)] p-3" style={{ background: form.tokens.surface }}>
                 <div className="flex items-center gap-2">
                   <span className="h-7 w-7 rounded-md" style={{ background: form.tokens.primary }} />
-                  <span className="text-[12px] font-bold" style={{ color: form.tokens.ink }}>
+                  <span className="text-[12px] font-semibold" style={{ color: form.tokens.ink }}>
                     {form.name || 'Preview'}
                   </span>
                   <span
-                    className="ml-auto px-2 py-1 text-[9px] font-bold text-white"
+                    className="ml-auto px-2 py-1 text-[9px] font-semibold text-white"
                     style={{ background: form.tokens.primary, borderRadius: form.tokens.radius }}
                   >
                     Button
@@ -425,7 +424,7 @@ export const DesignSystemsPage: React.FC<DesignSystemsPageProps> = ({ onOpenEdit
                 <button type="button" onClick={() => setForm(null)} className="h-8 rounded-lg border border-[var(--v-line)] px-3 text-[11px] font-semibold text-[var(--v-muted)]">
                   Cancel
                 </button>
-                <button type="button" onClick={commit} className="h-8 rounded-lg bg-[var(--v-ink)] px-3.5 text-[11px] font-bold text-[var(--v-surface)]">
+                <button type="button" onClick={commit} className="h-8 rounded-lg bg-[var(--v-ink)] px-3.5 text-[11px] font-semibold text-[var(--v-surface)]">
                   Save system
                 </button>
               </div>

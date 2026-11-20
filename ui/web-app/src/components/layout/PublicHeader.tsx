@@ -53,10 +53,10 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ activeTab, onNavigat
           : 'border-transparent bg-transparent'
       }`}
     >
-      <div className="mx-auto flex h-14 w-full max-w-[1200px] items-center gap-1 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-16 w-full max-w-[1200px] items-center gap-1 px-4 sm:px-6 lg:px-8">
         <button type="button" onClick={() => go('about')} className="flex shrink-0 items-center gap-2 pr-2" aria-label="Vector home">
           <Logo size={24} />
-          <span className="hidden text-[14px] font-semibold tracking-[-0.02em] text-[var(--v-ink)] sm:inline">Vector</span>
+          <span className="text-[15px] font-semibold tracking-[-0.02em] text-[var(--v-ink)]">Vector</span>
         </button>
 
         <nav className="ml-3 hidden items-center gap-0.5 lg:flex" aria-label="Main">
@@ -80,7 +80,7 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ activeTab, onNavigat
         </nav>
 
         <div className="ml-auto flex items-center gap-1.5">
-          <button type="button" onClick={toggleTheme} className="v-icon-btn" aria-label="Toggle theme">
+          <button type="button" onClick={toggleTheme} className="v-icon-btn hidden sm:inline-flex" aria-label="Toggle theme">
             {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
 
@@ -88,7 +88,7 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ activeTab, onNavigat
             <button
               type="button"
               onClick={onOpenApp}
-              className="hidden h-8 items-center gap-1.5 rounded-full bg-[#282a30] px-3.5 text-[12.5px] font-medium text-white transition-colors hover:bg-[#111214] dark:bg-[#e5e5e6] dark:text-[#08090a] dark:hover:bg-white sm:inline-flex"
+              className="hidden h-8 items-center gap-1.5 rounded-md bg-[#e8e8ea] px-3.5 text-[12.5px] font-medium text-[#08090a] transition-colors hover:bg-white sm:inline-flex"
               
             >
               Open workspace <ArrowRight className="h-3.5 w-3.5" />
@@ -98,15 +98,15 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ activeTab, onNavigat
               <button
                 type="button"
                 onClick={onRequestSignIn}
-                className="hidden h-8 items-center gap-1.5 rounded-full px-3 text-[12.5px] font-medium text-[var(--v-muted)] transition-colors hover:text-[var(--v-ink)] sm:inline-flex"
+                className="hidden h-8 items-center gap-1.5 rounded-md px-3 text-[12.5px] font-medium text-[var(--v-muted)] transition-colors hover:text-[var(--v-ink)] sm:inline-flex"
               >
-                <LogIn className="h-3.5 w-3.5" /> Sign in
+                <LogIn className="h-3.5 w-3.5" /> Log in
               </button>
 
               <button
                 type="button"
                 onClick={onRequestSignIn}
-                className="hidden h-8 items-center gap-1.5 rounded-full bg-[#282a30] px-3.5 text-[12.5px] font-medium text-white transition-colors hover:bg-[#111214] dark:bg-[#e5e5e6] dark:text-[#08090a] dark:hover:bg-white sm:inline-flex"
+                className="hidden h-8 items-center gap-1.5 rounded-md bg-[#e8e8ea] px-3.5 text-[12.5px] font-medium text-[#08090a] transition-colors hover:bg-white sm:inline-flex"
                 
               >
                 Start free <ArrowRight className="h-3.5 w-3.5" />
@@ -117,7 +117,7 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ activeTab, onNavigat
           <button
             type="button"
             onClick={() => setMobileOpen((open) => !open)}
-            className="v-icon-btn lg:hidden"
+            className="v-icon-btn lg:!hidden"
             aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={mobileOpen}
           >

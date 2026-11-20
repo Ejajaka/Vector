@@ -98,14 +98,14 @@ export const StyledElement: React.FC<StyledElementProps> = ({
     /* --------------------------------------------------------- buttons */
     case 'btn-solid':
       return (
-        <div className="w-full h-full grid place-items-center font-bold text-white" style={box(accent, 10, type(13))}>
+        <div className="w-full h-full grid place-items-center font-semibold text-white" style={box(accent, 10, type(13))}>
           {label}
         </div>
       );
     case 'btn-gradient':
       return (
         <div
-          className="w-full h-full grid place-items-center font-bold text-white"
+          className="w-full h-full grid place-items-center font-semibold text-white"
           style={box(accent, 10, {
             ...type(13),
             backgroundImage: fill ? 'none' : 'linear-gradient(118deg,#7C5CFF,#4D7CFE 55%,#22D3EE)',
@@ -118,7 +118,7 @@ export const StyledElement: React.FC<StyledElementProps> = ({
     case 'btn-outline':
       return (
         <div
-          className="w-full h-full grid place-items-center font-bold"
+          className="w-full h-full grid place-items-center font-semibold"
           style={box('transparent', 10, {
             ...type(13),
             borderStyle: 'solid',
@@ -133,7 +133,7 @@ export const StyledElement: React.FC<StyledElementProps> = ({
     case 'btn-pill':
       return (
         <div
-          className="w-full h-full rounded-full grid place-items-center font-bold"
+          className="w-full h-full rounded-full grid place-items-center font-semibold"
           style={box(`${accent}1F`, 999, { ...type(13), color: color && color !== accent ? color : accent })}
         >
           {label}
@@ -142,7 +142,7 @@ export const StyledElement: React.FC<StyledElementProps> = ({
     case 'btn-ghost':
       return (
         <div
-          className="w-full h-full grid place-items-center font-bold underline decoration-2 underline-offset-4"
+          className="w-full h-full grid place-items-center font-semibold underline decoration-2 underline-offset-4"
           style={box('transparent', 0, { ...type(13), color: accent })}
         >
           {label}
@@ -150,7 +150,7 @@ export const StyledElement: React.FC<StyledElementProps> = ({
       );
     case 'btn-dark':
       return (
-        <div className="w-full h-full grid place-items-center font-bold text-white" style={box('#0B0E14', 10, type(13))}>
+        <div className="w-full h-full grid place-items-center font-semibold text-white" style={box('#0B0E14', 10, type(13))}>
           {label}
         </div>
       );
@@ -165,7 +165,7 @@ export const StyledElement: React.FC<StyledElementProps> = ({
           <span className="w-8 h-8 rounded-lg grid place-items-center" style={{ background: `${accent}1F`, color: accent }}>
             <Star className="w-4 h-4" />
           </span>
-          <span className="mt-2.5 text-[13px] font-bold" style={text(13)}>{label}</span>
+          <span className="mt-2.5 text-[13px] font-semibold" style={text(13)}>{label}</span>
           <div className="mt-1.5 space-y-1">
             <div className="h-1.5 w-[82%] rounded-full bg-[#EFEDF6]" />
             <div className="h-1.5 w-[60%] rounded-full bg-[#EFEDF6]" />
@@ -178,7 +178,7 @@ export const StyledElement: React.FC<StyledElementProps> = ({
           className="w-full h-full p-4 flex flex-col"
           style={box('#FFFFFF', 12, { borderStyle: 'solid', borderWidth: `${strokeWidth || 1}px`, borderColor: strokeColor || '#E7E5F0' })}
         >
-          <span className="text-[13px] font-bold" style={text(13)}>{label}</span>
+          <span className="text-[13px] font-semibold" style={text(13)}>{label}</span>
           <div className="mt-2 space-y-1">
             <div className="h-1.5 w-[88%] rounded-full bg-[#F1EFF8]" />
             <div className="h-1.5 w-[70%] rounded-full bg-[#F1EFF8]" />
@@ -192,12 +192,12 @@ export const StyledElement: React.FC<StyledElementProps> = ({
           className="w-full h-full p-4 flex flex-col text-white"
           style={box(accent, 12, { backgroundImage: fill ? 'none' : 'linear-gradient(135deg,#7C5CFF,#4D7CFE 55%,#22D3EE)' })}
         >
-          <span className="font-bold" style={type(13)}>{label}</span>
+          <span className="font-semibold" style={type(13)}>{label}</span>
           <div className="mt-2 space-y-1">
             <div className="h-1.5 w-[80%] rounded-full bg-white/45" />
             <div className="h-1.5 w-[55%] rounded-full bg-white/30" />
           </div>
-          <span className="mt-auto self-start rounded-lg px-3 py-1.5 text-[10px] font-bold text-[#0B0E14]" style={{ backgroundColor: '#FFFFFF' }}>
+          <span className="mt-auto self-start rounded-lg px-3 py-1.5 text-[10px] font-semibold text-[#0B0E14]" style={{ backgroundColor: '#FFFFFF' }}>
             {copy('cta', 'Open')}
           </span>
         </div>
@@ -206,8 +206,8 @@ export const StyledElement: React.FC<StyledElementProps> = ({
       return (
         <div className="w-full h-full p-4 flex flex-col" style={box('#FFFFFF', 12, { borderStyle: 'solid', borderWidth: `${strokeWidth || 1}px`, borderColor: strokeColor || '#E7E5F0' })}>
           <span className="text-[10px] font-semibold uppercase tracking-wider text-[#9B99A6]">{label}</span>
-          <span className="mt-1 text-[26px] leading-none font-extrabold" style={text(26)}>{copy('value', '₹48,210')}</span>
-          <span className="mt-1.5 inline-flex w-fit items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold" style={{ background: '#22D3EE22', color: '#0E8A9A' }}>
+          <span className="mt-1 text-[26px] leading-none font-semibold" style={text(26)}>{copy('value', '₹48,210')}</span>
+          <span className="mt-1.5 inline-flex w-fit items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold" style={{ background: '#22D3EE22', color: '#0E8A9A' }}>
             {copy('delta', '▲ 12.4%')}
           </span>
           <div className="mt-auto flex items-end gap-1 h-8">
@@ -222,7 +222,7 @@ export const StyledElement: React.FC<StyledElementProps> = ({
         <div className="w-full h-full overflow-hidden flex flex-col" style={box('#FFFFFF', 12, { borderStyle: 'solid', borderWidth: `${strokeWidth || 1}px`, borderColor: strokeColor || '#E7E5F0' })}>
           <div className="h-[58%]" style={{ background: `linear-gradient(140deg, ${accent}88, ${accent}22)` }} />
           <div className="p-3">
-            <span className="text-[12px] font-bold" style={text(12)}>{label}</span>
+            <span className="text-[12px] font-semibold" style={text(12)}>{label}</span>
             <div className="mt-1 h-1.5 w-[70%] rounded-full bg-[#EFEDF6]" />
           </div>
         </div>
@@ -231,13 +231,13 @@ export const StyledElement: React.FC<StyledElementProps> = ({
     /* ------------------------------------------------------------- text */
     case 'text-display':
       return (
-        <div className="w-full h-full flex items-center leading-[0.95] font-extrabold" style={{ ...text(42), letterSpacing: tracking != null ? `${tracking}px` : '-1.6px' }}>
+        <div className="w-full h-full flex items-center leading-[0.95] font-semibold" style={{ ...text(42), letterSpacing: tracking != null ? `${tracking}px` : '-1.6px' }}>
           {label}
         </div>
       );
     case 'text-h2':
       return (
-        <div className="w-full h-full flex items-center leading-tight font-bold tracking-tight" style={text(28)}>
+        <div className="w-full h-full flex items-center leading-tight font-semibold tracking-tight" style={text(28)}>
           {label}
         </div>
       );
@@ -268,7 +268,7 @@ export const StyledElement: React.FC<StyledElementProps> = ({
     case 'text-checklist':
       return (
         <div className="w-full h-full flex flex-col justify-center gap-1.5">
-          <span className="text-[13px] font-bold" style={text(13)}>{label}</span>
+          <span className="text-[13px] font-semibold" style={text(13)}>{label}</span>
           {['On-device analysis', 'Reusable templates', 'Share and deploy'].map((item) => (
             <span key={item} className="flex items-center gap-2 text-[12px] text-[#64626F]">
               <span className="w-4 h-4 rounded-full grid place-items-center" style={{ background: '#22D3EE22', color: '#0E8A9A' }}>
@@ -316,7 +316,7 @@ export const StyledElement: React.FC<StyledElementProps> = ({
       return (
         <div className="w-full h-full flex items-center gap-3 px-5" style={box('#FFFFFF', 12, { borderStyle: 'solid', borderWidth: `${strokeWidth || 1}px`, borderColor: strokeColor || '#E7E5F0' })}>
           <span className="w-6 h-6 rounded-md" style={{ background: accent }} />
-          <span className="text-[13px] font-extrabold" style={text(13)}>{label}</span>
+          <span className="text-[13px] font-semibold" style={text(13)}>{label}</span>
           <div className="ml-auto flex items-center gap-4 text-[11.5px] text-[#64626F]">
             {copyList('links', 'Product,Pricing,Docs').map((link) => (
               <span key={link}>{link}</span>
@@ -329,7 +329,7 @@ export const StyledElement: React.FC<StyledElementProps> = ({
       return (
         <div className="w-full h-full flex items-center gap-3 px-5" style={box('#0B0E14', 12)}>
           <span className="w-6 h-6 rounded-md" style={{ background: accent }} />
-          <span className="font-extrabold text-white" style={type(13)}>{label}</span>
+          <span className="font-semibold text-white" style={type(13)}>{label}</span>
           <div className="ml-auto flex items-center gap-4 text-[11.5px] text-white/65">
             {copyList('links', 'Product,Pricing').map((link) => (
               <span key={link}>{link}</span>
@@ -342,13 +342,13 @@ export const StyledElement: React.FC<StyledElementProps> = ({
     /* ----------------------------------------------------------- badges */
     case 'badge-soft':
       return (
-        <div className="w-full h-full rounded-full grid place-items-center font-bold" style={box(`${accent}1F`, 999, { ...type(10.5), color: accent })}>
+        <div className="w-full h-full rounded-full grid place-items-center font-semibold" style={box(`${accent}1F`, 999, { ...type(10.5), color: accent })}>
           {label}
         </div>
       );
     case 'badge-solid':
       return (
-        <div className="w-full h-full rounded-full grid place-items-center font-bold text-white" style={box(accent, 999, type(10.5))}>
+        <div className="w-full h-full rounded-full grid place-items-center font-semibold text-white" style={box(accent, 999, type(10.5))}>
           {label}
         </div>
       );
@@ -383,7 +383,7 @@ export const StyledElement: React.FC<StyledElementProps> = ({
       return (
         <div className="w-full h-full relative overflow-hidden" style={box(accent, 8, { backgroundImage: fill ? 'none' : `linear-gradient(120deg, ${accent}66, #22D3EE33)` })}>
           <div className="absolute inset-0 bg-gradient-to-t from-[#0B0E14]/50 to-transparent" />
-          <span className="absolute bottom-3 left-4 font-bold text-white" style={type(12)}>{label}</span>
+          <span className="absolute bottom-3 left-4 font-semibold text-white" style={type(12)}>{label}</span>
         </div>
       );
 
@@ -392,7 +392,7 @@ export const StyledElement: React.FC<StyledElementProps> = ({
       return (
         <div className="w-full h-full p-3 flex flex-col" style={box('#FFFFFF', 12, { borderStyle: 'solid', borderWidth: `${strokeWidth || 1}px`, borderColor: strokeColor || '#E7E5F0' })}>
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold" style={text(11)}>{label}</span>
+            <span className="text-[11px] font-semibold" style={text(11)}>{label}</span>
             <span className="text-[9px] text-[#9B99A6]">{copy('caption', 'Last 9 months')}</span>
           </div>
           <div className="mt-2 flex-1 flex items-end gap-1.5">
@@ -405,7 +405,7 @@ export const StyledElement: React.FC<StyledElementProps> = ({
     case 'chart-line':
       return (
         <div className="w-full h-full p-3 flex flex-col" style={box('#FFFFFF', 12, { borderStyle: 'solid', borderWidth: `${strokeWidth || 1}px`, borderColor: strokeColor || '#E7E5F0' })}>
-          <span className="text-[11px] font-bold" style={text(11)}>{label}</span>
+          <span className="text-[11px] font-semibold" style={text(11)}>{label}</span>
           <svg viewBox="0 0 200 60" className="mt-2 flex-1 w-full" preserveAspectRatio="none">
             <defs>
               <linearGradient id="line-fill" x1="0" y1="0" x2="0" y2="1">
@@ -422,7 +422,7 @@ export const StyledElement: React.FC<StyledElementProps> = ({
       return (
         <div className="w-full h-full overflow-hidden" style={box('#FFFFFF', 12, { borderStyle: 'solid', borderWidth: `${strokeWidth || 1}px`, borderColor: strokeColor || '#E7E5F0' })}>
           <div className="h-8 px-3 flex items-center gap-3 bg-[#F7F7FB] border-b border-[#E7E5F0]">
-            <span className="font-bold text-[#64626F]" style={type(10)}>{label}</span>
+            <span className="font-semibold text-[#64626F]" style={type(10)}>{label}</span>
             <span className="ml-auto text-[9px] text-[#9B99A6]">{copy('search', 'Search · Filter')}</span>
           </div>
           {[0, 1, 2, 3].map((row) => (
@@ -440,7 +440,7 @@ export const StyledElement: React.FC<StyledElementProps> = ({
     case 'footer-default':
       return (
         <div className="w-full h-full px-5 py-3 flex items-start gap-8" style={box('#FFFFFF', 12, { borderStyle: 'solid', borderWidth: `${strokeWidth || 1}px`, borderColor: strokeColor || '#E7E5F0' })}>
-          <span className="text-[11px] font-bold" style={text(11)}>{label}</span>
+          <span className="text-[11px] font-semibold" style={text(11)}>{label}</span>
           <div className="flex gap-6 text-[10px] text-[#9B99A6]">
             {copyList('links', 'Product,Company,Legal').map((link) => (
               <span key={link}>{link}</span>
@@ -452,27 +452,27 @@ export const StyledElement: React.FC<StyledElementProps> = ({
     case 'modal-default':
       return (
         <div className="w-full h-full p-4 flex flex-col" style={box('#FFFFFF', 16, { boxShadow: '0 20px 40px -24px rgba(11,14,20,.4)', borderStyle: 'solid', borderWidth: `${strokeWidth || 1}px`, borderColor: strokeColor || '#E7E5F0' })}>
-          <span className="text-[13px] font-bold" style={text(13)}>{label}</span>
+          <span className="text-[13px] font-semibold" style={text(13)}>{label}</span>
           <div className="mt-2 space-y-1.5">
             <div className="h-1.5 w-[88%] rounded-full bg-[#EFEDF6]" />
             <div className="h-1.5 w-[66%] rounded-full bg-[#EFEDF6]" />
           </div>
           <div className="mt-auto flex gap-2">
             <span className="flex-1 h-8 rounded-lg border border-[#E7E5F0] grid place-items-center text-[10px] text-[#64626F]">{copy('cancel', 'Cancel')}</span>
-            <span className="flex-1 h-8 rounded-lg grid place-items-center text-[10px] font-bold text-white" style={{ background: accent }}>{copy('cta', 'Confirm')}</span>
+            <span className="flex-1 h-8 rounded-lg grid place-items-center text-[10px] font-semibold text-white" style={{ background: accent }}>{copy('cta', 'Confirm')}</span>
           </div>
         </div>
       );
     case 'avatar-initials':
       return (
-        <div className="w-full h-full rounded-full grid place-items-center text-white text-[15px] font-bold" style={box(accent, 999)}>
+        <div className="w-full h-full rounded-full grid place-items-center text-white text-[15px] font-semibold" style={box(accent, 999)}>
           {label.slice(0, 2).toUpperCase()}
         </div>
       );
     case 'avatar-ring':
       return (
         <div className="w-full h-full rounded-full p-[2px]" style={{ background: accent }}>
-          <div className="w-full h-full rounded-full grid place-items-center text-[13px] font-bold" style={box('#FFFFFF', 999)}>
+          <div className="w-full h-full rounded-full grid place-items-center text-[13px] font-semibold" style={box('#FFFFFF', 999)}>
             {label.slice(0, 2).toUpperCase()}
           </div>
         </div>

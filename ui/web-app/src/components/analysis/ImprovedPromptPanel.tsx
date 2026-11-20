@@ -89,7 +89,7 @@ export const ImprovedPromptPanel: React.FC<ImprovedPromptPanelProps> = ({
       <div className="flex items-center justify-between pb-3 border-b border-[#E5E2D8]">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-base font-bold text-[#283638]">
+            <h3 className="text-base font-semibold text-[#283638]">
               Improved Prompt
             </h3>
             <span className="px-2 py-0.5 rounded text-[11px] font-mono font-semibold bg-[#F0F5F5] text-[#49686C] border border-[#CFDFE1]">
@@ -166,7 +166,7 @@ export const ImprovedPromptPanel: React.FC<ImprovedPromptPanelProps> = ({
         <button
           type="button"
           onClick={handleCopy}
-          className="w-full sm:flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-[#E5E2D8] bg-[#FFFFFF] hover:bg-[#F6F4EC] text-xs font-bold text-[#283638] transition-colors shadow-xs"
+          className="w-full sm:flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-[#E5E2D8] bg-[#FFFFFF] hover:bg-[#F6F4EC] text-xs font-semibold text-[#283638] transition-colors shadow-xs"
         >
           {copied ? (
             <>
@@ -185,7 +185,7 @@ export const ImprovedPromptPanel: React.FC<ImprovedPromptPanelProps> = ({
           type="button"
           onClick={handleReanalyzeClick}
           disabled={isReanalyzing || selectedCount === 0}
-          className={`w-full sm:flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold text-white transition-all shadow-xs ${
+          className={`w-full sm:flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-semibold text-white transition-all shadow-xs ${
             isReanalyzing || selectedCount === 0
               ? 'bg-[#49686C]/50 cursor-not-allowed'
               : 'bg-[#49686C] hover:bg-[#30494B] active:scale-[0.99]'

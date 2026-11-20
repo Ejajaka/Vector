@@ -52,7 +52,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         <div className="flex items-center justify-between pb-3 border-b border-[#E5E2D8] dark:border-[#33403F]">
           <div className="flex items-center gap-2">
             <AlertTriangle className={`w-4 h-4 ${tone === 'danger' ? 'text-[#B94D42]' : 'text-[#49686C]'}`} />
-            <h3 id="confirm-dialog-title" className="text-sm font-bold text-[#283638] dark:text-[#E7E4D9]">
+            <h3 id="confirm-dialog-title" className="text-sm font-semibold text-[#283638] dark:text-[#E7E4D9]">
               {title}
             </h3>
           </div>

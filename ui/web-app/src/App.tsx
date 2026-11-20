@@ -583,7 +583,7 @@ function AppShell() {
   // temporarily hidden and return automatically when the user exits.
   if (activeTab === 'project' && activeProject) {
     return (
-      <div className="flex h-screen flex-col overflow-hidden v-bg">
+      <div className="flex h-screen flex-col overflow-hidden v-bg" data-app="true">
         <div className="min-h-0 flex-1 overflow-y-auto p-2 sm:p-3">
           {projectView === 'prompt' ? (
             <PromptModePage
@@ -640,7 +640,7 @@ function AppShell() {
   }
 
   return (
-    <div className="min-h-screen v-bg text-[var(--v-ink)] flex flex-col antialiased" style={{ paddingRight: assistantInset, transition: 'padding-right 200ms ease' }}>
+    <div className="min-h-screen v-bg text-[var(--v-ink)] flex flex-col antialiased" data-app={showMarketingChrome ? 'false' : 'true'} style={{ paddingRight: assistantInset, transition: 'padding-right 200ms ease' }}>
       {!showMarketingChrome && (
         <Sidebar
           activeTab={activeTab}
@@ -656,7 +656,7 @@ function AppShell() {
 
       <div
         className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${
-          showMarketingChrome ? '' : 'lg:pl-[76px]'
+          showMarketingChrome ? '' : 'lg:pl-[232px]'
         }`}
       >
         {!showMarketingChrome && (
@@ -683,7 +683,7 @@ function AppShell() {
         <main
           id="main-content"
           className={`mx-auto w-full flex-1 ${
-            showMarketingChrome ? '' : 'max-w-[1680px] px-4 sm:px-6 lg:px-8 py-4 sm:py-6'
+            showMarketingChrome ? '' : 'max-w-[1480px] px-4 sm:px-6 lg:px-8 py-5 sm:py-7'
           }`}
           role="main"
         >

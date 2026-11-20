@@ -389,7 +389,7 @@ const FolderItem: React.FC<{
     <span className="min-w-0 flex-1">
       <span className="flex items-center gap-1">
         <span className="block truncate text-[10.5px] font-semibold text-[var(--v-ink)]">{title}</span>
-        {badge && <span className="shrink-0 rounded bg-[var(--v-surface-2)] px-1 py-0.5 text-[7.5px] font-bold uppercase tracking-wider text-[var(--v-faint)]">{badge}</span>}
+        {badge && <span className="shrink-0 rounded bg-[var(--v-surface-2)] px-1 py-0.5 text-[7.5px] font-semibold uppercase tracking-wider text-[var(--v-faint)]">{badge}</span>}
       </span>
       {meta && <span className="block truncate text-[8.5px] text-[var(--v-faint)]">{meta}</span>}
     </span>
@@ -407,7 +407,7 @@ const FolderGroup: React.FC<{
   <div className="mt-2">
     <button type="button" onClick={onToggle} className="flex w-full items-center gap-1.5 px-1 py-1 text-left">
       {open ? <ChevronDown className="h-3 w-3 text-[var(--v-faint)]" /> : <ChevronRight className="h-3 w-3 text-[var(--v-faint)]" />}
-      <span className="text-[8.5px] font-bold uppercase tracking-[0.14em] text-[var(--v-faint)]">{title}</span>
+      <span className="text-[8.5px] font-semibold uppercase tracking-[0.14em] text-[var(--v-faint)]">{title}</span>
       <span className="ml-auto text-[8px] text-[var(--v-faint)]">{count}</span>
     </button>
     {open && <div className="space-y-0.5">{children}</div>}
@@ -420,13 +420,13 @@ const ArtifactModal: React.FC<{
 }> = ({ artifact, onClose }) => (
   <div className="fixed inset-0 z-[96] grid place-items-center p-3" role="dialog" aria-modal="true" aria-label={artifact.label}>
     <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
-    <div className="relative flex max-h-[92vh] w-full max-w-[1040px] flex-col overflow-hidden rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] shadow-[0_30px_80px_-30px_rgba(20,18,31,.5)]">
+    <div className="relative flex max-h-[92vh] w-full max-w-[1040px] flex-col overflow-hidden rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] shadow-[0_30px_80px_-30px_rgba(20,18,31,.5)]">
       <div className="flex shrink-0 items-center gap-2 border-b border-[var(--v-line)] px-4 py-3">
         <span className="grid h-8 w-8 place-items-center rounded-lg bg-[var(--v-violet)]/10 text-[var(--v-violet)]">
           <FileJson className="h-4 w-4" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[13px] font-bold text-[var(--v-ink)]">{artifact.label}</p>
+          <p className="truncate text-[13px] font-semibold text-[var(--v-ink)]">{artifact.label}</p>
           <p className="truncate text-[9.5px] text-[var(--v-faint)]">{artifact.summary}</p>
         </div>
         <button type="button" onClick={onClose} className="v-icon-btn" aria-label="Close analysis">
@@ -1015,15 +1015,15 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   return (
     <div className="mx-auto flex h-full min-h-0 w-full max-w-[1680px] flex-col gap-3">
       {/* Header */}
-      <header className="flex shrink-0 flex-wrap items-center gap-2 rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] px-3 py-2.5">
+      <header className="flex shrink-0 flex-wrap items-center gap-2 rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] px-3 py-2.5">
         <button type="button" onClick={onBack} className="v-icon-btn -ml-1" aria-label="Back to projects">
           <ArrowLeft className="h-4 w-4" />
         </button>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h1 className="truncate text-[16px] font-bold text-[var(--v-ink)]">{project.name}</h1>
+            <h1 className="truncate text-[16px] font-semibold text-[var(--v-ink)]">{project.name}</h1>
             {typeof setup?.start === 'string' && (
-              <span className="rounded-full bg-[var(--v-surface-2)] px-2 py-0.5 text-[8.5px] font-bold uppercase tracking-wider text-[var(--v-muted)]">
+              <span className="rounded-full bg-[var(--v-surface-2)] px-2 py-0.5 text-[8.5px] font-semibold uppercase tracking-wider text-[var(--v-muted)]">
                 {setup.start}
               </span>
             )}
@@ -1045,7 +1045,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
       <div className="flex min-h-0 flex-1 gap-3">
         {/* Folder */}
         <aside
-          className={`flex min-h-0 shrink-0 flex-col overflow-hidden rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] transition-[width] duration-200 ${
+          className={`flex min-h-0 shrink-0 flex-col overflow-hidden rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] transition-[width] duration-200 ${
             folderOpen ? 'w-[286px]' : 'w-[58px]'
           }`}
         >
@@ -1053,7 +1053,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
             {folderOpen ? (
               <>
                 <FolderOpen className="h-4 w-4 text-[var(--v-violet)]" />
-                <span className="min-w-0 flex-1 truncate text-[11px] font-bold text-[var(--v-ink)]">Project folder</span>
+                <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-[var(--v-ink)]">Project folder</span>
                 <button type="button" onClick={() => setFolderOpen(false)} className="v-icon-btn h-6 w-6" aria-label="Collapse project folder">
                   <PanelLeftClose className="h-3.5 w-3.5" />
                 </button>
@@ -1235,14 +1235,14 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
             <button
               type="button"
               onClick={doc ? onOpenCanvas : onBlankCanvas}
-              className="group rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] p-3 text-left transition-colors hover:border-[var(--v-violet)]"
+              className="group rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] p-3 text-left transition-colors hover:border-[var(--v-violet)]"
             >
               <div className="flex items-center gap-2">
                 <span className="grid h-8 w-8 place-items-center rounded-lg bg-[var(--v-violet)]/10 text-[var(--v-violet)]">
                   <Layers className="h-4 w-4" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[12px] font-bold text-[var(--v-ink)]">Canvas</p>
+                  <p className="text-[12px] font-semibold text-[var(--v-ink)]">Canvas</p>
                   <p className="text-[9px] text-[var(--v-faint)]">
                     {doc ? `${doc.pages.length} pages · ${relativeTime(doc.updatedAt)}` : 'Start from a blank page'}
                   </p>
@@ -1257,14 +1257,14 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
             <button
               type="button"
               onClick={onOptimizePrompt}
-              className="group rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] p-3 text-left transition-colors hover:border-[var(--v-violet)]"
+              className="group rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] p-3 text-left transition-colors hover:border-[var(--v-violet)]"
             >
               <div className="flex items-center gap-2">
                 <span className="grid h-8 w-8 place-items-center rounded-lg bg-[var(--v-teal)]/10 text-[var(--v-teal)]">
                   <Sparkles className="h-4 w-4" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[12px] font-bold text-[var(--v-ink)]">Prompt mode</p>
+                  <p className="text-[12px] font-semibold text-[var(--v-ink)]">Prompt mode</p>
                   <p className="text-[9px] text-[var(--v-faint)]">
                     {revised ? `risk ${revised.risk} · ${relativeTime(revised.updatedAt)}` : 'Write, analyse and clarify'}
                   </p>
@@ -1297,19 +1297,19 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
           </div>
 
           {/* Base44 */}
-          <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)]">
+          <div className="flex min-h-0 flex-1 flex-col rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)]">
             <div className="flex flex-wrap items-center gap-2 border-b border-[var(--v-line)] px-3 py-2">
               <span className="grid h-7 w-7 place-items-center rounded-lg bg-[#7C5CFF]/10 text-[#7C5CFF]">
                 <Rocket className="h-3.5 w-3.5" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-[11.5px] font-bold text-[var(--v-ink)]">Generate with Base44</p>
+                <p className="text-[11.5px] font-semibold text-[var(--v-ink)]">Generate with Base44</p>
                 <p className="text-[9px] text-[var(--v-faint)]">
                   Drag a prompt version from the folder, or use the active one.
                 </p>
               </div>
               {base44App && (
-                <span className={`rounded-full px-2 py-0.5 text-[8.5px] font-bold uppercase tracking-wider ${
+                <span className={`rounded-full px-2 py-0.5 text-[8.5px] font-semibold uppercase tracking-wider ${
                   base44App.status === 'ready'
                     ? 'bg-[#E8F7F0] text-[#0C7A5B]'
                     : base44App.status === 'error'
@@ -1342,7 +1342,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                   }}
                   className="rounded-xl border border-dashed border-[var(--v-violet)]/50 bg-[var(--v-violet)]/5 p-2.5"
                 >
-                  <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--v-violet)]">Drop a prompt version</p>
+                  <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--v-violet)]">Drop a prompt version</p>
                   <p className="mt-0.5 text-[9px] leading-relaxed text-[var(--v-muted)]">
                     Drag from Prompt versions in the folder. The selected version is sent to Base44 automatically — no copy/paste.
                   </p>
@@ -1367,7 +1367,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                 </div>
 
                 <details className="rounded-xl border border-[var(--v-line)] bg-[var(--v-surface-2)] p-2">
-                  <summary className="cursor-pointer text-[9.5px] font-bold text-[var(--v-muted)]">View prompt</summary>
+                  <summary className="cursor-pointer text-[9.5px] font-semibold text-[var(--v-muted)]">View prompt</summary>
                   <pre className="v-scroll mt-1 max-h-[160px] overflow-auto whitespace-pre-wrap text-[9px] leading-relaxed text-[var(--v-ink)]">
                     {base44Version?.prompt || 'No prompt yet.'}
                   </pre>
@@ -1428,10 +1428,10 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                 ) : (
                   <div className="grid h-full place-items-center p-6 text-center">
                     <div>
-                      <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[#7C5CFF]/10 text-[#7C5CFF]">
+                      <span className="mx-auto grid h-12 w-12 place-items-center rounded-lg bg-[#7C5CFF]/10 text-[#7C5CFF]">
                         <Rocket className="h-6 w-6" />
                       </span>
-                      <p className="mt-3 text-[12px] font-bold text-[var(--v-ink)]">Base44 builds from the prompt you send</p>
+                      <p className="mt-3 text-[12px] font-semibold text-[var(--v-ink)]">Base44 builds from the prompt you send</p>
                       <p className="mx-auto mt-1 max-w-[340px] text-[10px] leading-relaxed text-[var(--v-muted)]">
                         Drag a Canvas or Analysis prompt version on the left, then Generate. Vector sends it to your Base44 workspace automatically.
                       </p>
@@ -1450,11 +1450,11 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
       {promptModal && (
         <div className="fixed inset-0 z-[96] grid place-items-center p-3" role="dialog" aria-modal="true" aria-label={promptModal.label}>
           <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" onClick={() => setPromptModal(null)} aria-hidden="true" />
-          <div className="relative flex max-h-[90vh] w-full max-w-[820px] flex-col overflow-hidden rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)]">
+          <div className="relative flex max-h-[90vh] w-full max-w-[820px] flex-col overflow-hidden rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)]">
             <div className="flex items-center gap-2 border-b border-[var(--v-line)] px-4 py-3">
               <FileText className="h-4 w-4 text-[var(--v-violet)]" />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-bold text-[var(--v-ink)]">{promptModal.label}</p>
+                <p className="truncate text-[13px] font-semibold text-[var(--v-ink)]">{promptModal.label}</p>
                 <p className="text-[9px] text-[var(--v-faint)]">{relativeTime(promptModal.updatedAt)} · {promptModal.pages} pages · {promptModal.elements} elements</p>
               </div>
               <button type="button" onClick={() => setPromptModal(null)} className="v-icon-btn" aria-label="Close prompt">
@@ -1490,11 +1490,11 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
       {connectOpen && (
         <div className="fixed inset-0 z-[97] grid place-items-center p-3" role="dialog" aria-modal="true" aria-label="Connect Base44">
           <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" onClick={() => setConnectOpen(false)} aria-hidden="true" />
-          <div className="relative w-full max-w-[460px] rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] p-4">
+          <div className="relative w-full max-w-[460px] rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] p-4">
             <div className="flex items-start gap-2">
               <div className="min-w-0 flex-1">
                 <p className="v-eyebrow">Connection</p>
-                <h2 className="mt-0.5 text-[17px] font-bold text-[var(--v-ink)]">Connect Base44</h2>
+                <h2 className="mt-0.5 text-[17px] font-semibold text-[var(--v-ink)]">Connect Base44</h2>
                 <p className="mt-1 text-[10px] leading-relaxed text-[var(--v-muted)]">
                   Use a Base44 workspace token with app-create permission. Stored only on this device. For commercial use, deploy the server proxy so tokens never reach the browser.
                 </p>
@@ -1544,11 +1544,11 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
       {shareOpen && (
         <div className="fixed inset-0 z-[94] grid place-items-center p-3" role="dialog" aria-modal="true" aria-label="Share project">
           <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" onClick={() => setShareOpen(false)} aria-hidden="true" />
-          <div className="relative w-full max-w-[480px] rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] p-4">
+          <div className="relative w-full max-w-[480px] rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] p-4">
             <div className="flex items-start gap-2">
               <div className="min-w-0 flex-1">
                 <p className="v-eyebrow">Share</p>
-                <h2 className="mt-0.5 text-[17px] font-bold text-[var(--v-ink)]">Share this project</h2>
+                <h2 className="mt-0.5 text-[17px] font-semibold text-[var(--v-ink)]">Share this project</h2>
                 <p className="mt-1 text-[10px] leading-relaxed text-[var(--v-muted)]">
                   The link opens this project folder. In local mode the data stays in this browser; connect Supabase for multi-user access.
                 </p>
@@ -1578,11 +1578,11 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
       {importOpen && (
         <div className="fixed inset-0 z-[93] grid place-items-center p-3" role="dialog" aria-modal="true" aria-label="Import into project">
           <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" onClick={() => setImportOpen(false)} aria-hidden="true" />
-          <div className="relative w-full max-w-[500px] rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] p-4">
+          <div className="relative w-full max-w-[500px] rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] p-4">
             <div className="flex items-start gap-2">
               <div className="min-w-0 flex-1">
                 <p className="v-eyebrow">Import</p>
-                <h2 className="mt-0.5 text-[17px] font-bold text-[var(--v-ink)]">Bring existing work into this project</h2>
+                <h2 className="mt-0.5 text-[17px] font-semibold text-[var(--v-ink)]">Bring existing work into this project</h2>
               </div>
               <button type="button" onClick={() => setImportOpen(false)} className="v-icon-btn" aria-label="Close import">
                 <X className="h-4 w-4" />
@@ -1590,11 +1590,11 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
             </div>
             <button type="button" onClick={() => figmaRef.current?.click()} className="mt-3 flex w-full items-center gap-2.5 rounded-xl border border-[var(--v-line)] bg-[var(--v-surface-2)] p-3 text-left hover:border-[var(--v-violet)]">
               <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--v-surface)] text-[var(--v-violet)]"><Upload className="h-4 w-4" /></span>
-              <span><span className="block text-[11.5px] font-bold text-[var(--v-ink)]">Import a Figma JSON export</span><span className="block text-[9.5px] text-[var(--v-muted)]">Pages and elements become editable canvas pages.</span></span>
+              <span><span className="block text-[11.5px] font-semibold text-[var(--v-ink)]">Import a Figma JSON export</span><span className="block text-[9.5px] text-[var(--v-muted)]">Pages and elements become editable canvas pages.</span></span>
             </button>
             <button type="button" onClick={() => fileRef.current?.click()} className="mt-2 flex w-full items-center gap-2.5 rounded-xl border border-[var(--v-line)] bg-[var(--v-surface-2)] p-3 text-left hover:border-[var(--v-violet)]">
               <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--v-surface)] text-[var(--v-coral)]"><Paperclip className="h-4 w-4" /></span>
-              <span><span className="block text-[11.5px] font-bold text-[var(--v-ink)]">Attach reference files</span><span className="block text-[9.5px] text-[var(--v-muted)]">Briefs, screenshots or brand files kept with this project.</span></span>
+              <span><span className="block text-[11.5px] font-semibold text-[var(--v-ink)]">Attach reference files</span><span className="block text-[9.5px] text-[var(--v-muted)]">Briefs, screenshots or brand files kept with this project.</span></span>
             </button>
             {importError && <p className="mt-2 text-[10px] text-[#B94D42]">{importError}</p>}
           </div>

@@ -57,7 +57,7 @@ function Rich({ text }: { text: string }) {
           <p key={index} className="text-[12.5px] leading-relaxed text-[var(--v-ink)] py-0.5">
             {parts.map((part, i) =>
               i % 2 === 1 ? (
-                <strong key={i} className="font-bold">
+                <strong key={i} className="font-semibold">
                   {part}
                 </strong>
               ) : (
@@ -194,9 +194,9 @@ export const AssistantPanel: React.FC<AssistantPanelProps> = ({ open, onClose, c
         <header className="h-12 shrink-0 flex items-center justify-between px-4 border-b border-[var(--v-line)]">
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="text-[12px] font-bold uppercase tracking-[0.14em] text-[var(--v-faint)]">Vector AI</span>
+              <span className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--v-faint)]">Vector AI</span>
               <span
-                className={`rounded-full px-1.5 py-0.5 text-[8.5px] font-bold uppercase tracking-wider ${
+                className={`rounded-full px-1.5 py-0.5 text-[8.5px] font-semibold uppercase tracking-wider ${
                   modelLive ? 'bg-[var(--v-surface-2)] text-[var(--v-violet)]' : 'bg-[var(--v-surface-2)] text-[var(--v-faint)]'
                 }`}
               >
@@ -218,12 +218,12 @@ export const AssistantPanel: React.FC<AssistantPanelProps> = ({ open, onClose, c
         {/* Model source */}
         <div className="mx-3 mt-3 rounded-xl border border-[var(--v-line)] bg-[var(--v-surface-2)] p-2.5">
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--v-faint)]">Model</span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--v-faint)]">Model</span>
             <div className="ml-auto flex rounded-full bg-[var(--v-surface)] p-0.5">
               <button
                 type="button"
                 onClick={() => setMode('byo')}
-                className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-colors ${
+                className={`px-2.5 py-1 rounded-full text-[10px] font-semibold transition-colors ${
                   mode === 'byo' ? 'bg-[var(--v-ink)] text-[var(--v-surface)]' : 'text-[var(--v-muted)]'
                 }`}
               >
@@ -232,7 +232,7 @@ export const AssistantPanel: React.FC<AssistantPanelProps> = ({ open, onClose, c
               <button
                 type="button"
                 onClick={() => setMode('hosted')}
-                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold transition-colors ${
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold transition-colors ${
                   mode === 'hosted' ? 'bg-[var(--v-ink)] text-[var(--v-surface)]' : 'text-[var(--v-muted)]'
                 }`}
               >
@@ -246,7 +246,7 @@ export const AssistantPanel: React.FC<AssistantPanelProps> = ({ open, onClose, c
               {modelReady ? (
                 <p className="flex items-center gap-1.5 text-[10.5px] text-[var(--v-muted)]">
                   <Check className="w-3 h-3 text-[var(--v-teal)]" /> Connected to {loadSettings().model}
-                  <button type="button" onClick={() => setShowKeyForm(true)} className="ml-auto font-bold text-[var(--v-violet)] hover:underline">
+                  <button type="button" onClick={() => setShowKeyForm(true)} className="ml-auto font-semibold text-[var(--v-violet)] hover:underline">
                     Change
                   </button>
                 </p>
@@ -272,7 +272,7 @@ export const AssistantPanel: React.FC<AssistantPanelProps> = ({ open, onClose, c
                     className="v-input h-8 px-2.5 text-[11px]"
                   />
                   <div className="flex gap-1.5">
-                    <button type="button" onClick={saveModel} className="h-8 flex-1 rounded-lg bg-[var(--v-ink)] text-[11px] font-bold text-[var(--v-surface)]">
+                    <button type="button" onClick={saveModel} className="h-8 flex-1 rounded-lg bg-[var(--v-ink)] text-[11px] font-semibold text-[var(--v-surface)]">
                       Save and connect
                     </button>
                     <button type="button" onClick={() => setShowKeyForm(false)} className="h-8 px-3 rounded-lg border border-[var(--v-line)] text-[11px] font-semibold text-[var(--v-muted)]">
@@ -288,7 +288,7 @@ export const AssistantPanel: React.FC<AssistantPanelProps> = ({ open, onClose, c
                   <button
                     type="button"
                     onClick={() => setShowKeyForm(true)}
-                    className="mt-1.5 inline-flex h-7 items-center gap-1.5 rounded-lg border border-[var(--v-line)] px-2.5 text-[10.5px] font-bold text-[var(--v-ink)] hover:bg-[var(--v-surface)]"
+                    className="mt-1.5 inline-flex h-7 items-center gap-1.5 rounded-lg border border-[var(--v-line)] px-2.5 text-[10.5px] font-semibold text-[var(--v-ink)] hover:bg-[var(--v-surface)]"
                   >
                     <KeyRound className="w-3 h-3" /> Add your API key
                   </button>
@@ -310,8 +310,8 @@ export const AssistantPanel: React.FC<AssistantPanelProps> = ({ open, onClose, c
                       onRequireUpgrade?.();
                       onClose();
                     }}
-                    className="mt-1.5 h-8 w-full rounded-lg text-[11px] font-bold text-white"
-                    style={{ backgroundImage: 'linear-gradient(118deg,#7C5CFF,#4D7CFE 55%,#22D3EE)' }}
+                    className="mt-1.5 h-8 w-full rounded-lg text-[11px] font-semibold text-white"
+                    style={{ backgroundColor: 'var(--v-accent)' }}
                   >
                     Upgrade to Pro
                   </button>
@@ -329,7 +329,7 @@ export const AssistantPanel: React.FC<AssistantPanelProps> = ({ open, onClose, c
                   <button
                     type="button"
                     onClick={() => setMode('byo')}
-                    className="mt-1.5 inline-flex h-7 items-center gap-1.5 rounded-lg border border-[var(--v-line)] px-2.5 text-[10.5px] font-bold text-[var(--v-ink)] hover:bg-[var(--v-surface)]"
+                    className="mt-1.5 inline-flex h-7 items-center gap-1.5 rounded-lg border border-[var(--v-line)] px-2.5 text-[10.5px] font-semibold text-[var(--v-ink)] hover:bg-[var(--v-surface)]"
                   >
                     <KeyRound className="w-3 h-3" /> Use my key instead
                   </button>
@@ -342,7 +342,7 @@ export const AssistantPanel: React.FC<AssistantPanelProps> = ({ open, onClose, c
         <div ref={listRef} className="flex-1 overflow-y-auto v-scroll px-5 py-4">
           {messages.length === 0 ? (
             <div className="h-full flex flex-col justify-center text-center">
-              <span className="w-11 h-11 rounded-2xl v-grad text-white grid place-items-center mx-auto">
+              <span className="w-11 h-11 rounded-lg v-grad text-white grid place-items-center mx-auto">
                 <Sparkles className="w-5 h-5" />
               </span>
               <h2 className="v-display text-[26px] leading-tight mt-4 text-[var(--v-ink)]">
@@ -372,7 +372,7 @@ export const AssistantPanel: React.FC<AssistantPanelProps> = ({ open, onClose, c
               {messages.map((message) =>
                 message.role === 'user' ? (
                   <div key={message.id} className="flex justify-end">
-                    <div className="max-w-[85%] rounded-2xl rounded-br-md bg-[var(--v-ink)] px-3.5 py-2.5 text-[12.5px] leading-relaxed text-[var(--v-surface)]">
+                    <div className="max-w-[85%] rounded-lg rounded-br-md bg-[var(--v-ink)] px-3.5 py-2.5 text-[12.5px] leading-relaxed text-[var(--v-surface)]">
                       {message.text}
                     </div>
                   </div>
@@ -382,7 +382,7 @@ export const AssistantPanel: React.FC<AssistantPanelProps> = ({ open, onClose, c
                       <Sparkles className="w-3 h-3" />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <div className="rounded-2xl rounded-tl-md bg-[var(--v-surface-2)] px-3.5 py-2.5">
+                      <div className="rounded-lg rounded-tl-md bg-[var(--v-surface-2)] px-3.5 py-2.5">
                         {message.text ? <Rich text={message.text} /> : <span className="text-[12px] text-[var(--v-faint)]">Thinking…</span>}
                         {message.streaming && (
                           <span className="ml-0.5 inline-block h-3 w-[2px] animate-pulse bg-[var(--v-violet)] align-middle" />
@@ -413,7 +413,7 @@ export const AssistantPanel: React.FC<AssistantPanelProps> = ({ open, onClose, c
               event.preventDefault();
               void send(input);
             }}
-            className="rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] p-2 transition-colors focus-within:border-[var(--v-violet)]"
+            className="rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] p-2 transition-colors focus-within:border-[var(--v-violet)]"
           >
             <div className="flex items-center gap-1.5">
               <button type="button" className="v-icon-btn h-7 w-7" aria-label="Add context">

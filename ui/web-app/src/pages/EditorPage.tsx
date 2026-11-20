@@ -1764,7 +1764,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
               .map((peer) => (
                 <span
                   key={peer!.id}
-                  className="w-6 h-6 rounded-full border-2 border-[#0F1011] grid place-items-center text-[9px] font-bold text-white"
+                  className="w-6 h-6 rounded-full border-2 border-[#0F1011] grid place-items-center text-[9px] font-semibold text-white"
                   style={{ background: peer!.colour }}
                   title={`${peer!.name}${peer!.id === me?.id ? ' (you)' : ''}`}
                 >
@@ -1772,7 +1772,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                 </span>
               ))}
             {peers.length > 3 && (
-              <span className="w-6 h-6 rounded-full border-2 border-[#0F1011] bg-[#383838] grid place-items-center text-[8.5px] font-bold text-white/70">
+              <span className="w-6 h-6 rounded-full border-2 border-[#0F1011] bg-[#383838] grid place-items-center text-[8.5px] font-semibold text-white/70">
                 +{peers.length - 3}
               </span>
             )}
@@ -1852,7 +1852,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                 />
                 <div className="absolute right-0 top-9 z-50 w-60 rounded-xl border border-white/10 bg-[#0F1011] p-3 shadow-2xl">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-white/45">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-white/45">
                       Canvas size
                     </span>
                     <span className="text-[10px] tabular-nums text-white/55">
@@ -2162,7 +2162,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                       <span className="mt-1 flex items-center gap-1.5">
                         <span className="text-[10.5px] text-white/70">{preset.name}</span>
                         {preset.premium && (
-                          <span className="rounded bg-[#FFC53D]/20 px-1 py-0.5 text-[8.5px] font-bold uppercase tracking-wider text-[#FFC53D]">
+                          <span className="rounded bg-[#FFC53D]/20 px-1 py-0.5 text-[8.5px] font-semibold uppercase tracking-wider text-[#FFC53D]">
                             Pro
                           </span>
                         )}
@@ -2214,7 +2214,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                     className="flex w-full items-center gap-3 rounded-lg py-2.5 text-left transition-colors hover:bg-white/5"
                   >
                     <span
-                      className="grid h-[64px] w-[64px] shrink-0 place-items-center rounded-lg text-[18px] font-bold text-white ring-1 ring-white/10"
+                      className="grid h-[64px] w-[64px] shrink-0 place-items-center rounded-lg text-[18px] font-semibold text-white ring-1 ring-white/10"
                       style={{ backgroundImage: 'linear-gradient(140deg,#5E6AD2,#828FFF)' }}
                     >
                       {item.name[0]}
@@ -2242,7 +2242,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                   <button
                     type="button"
                     onClick={() => setPagePickerOpen(true)}
-                    className="flex h-6 items-center gap-1 rounded-lg border border-white/15 px-2 text-[9.5px] font-bold text-white/70 hover:bg-white/10"
+                    className="flex h-6 items-center gap-1 rounded-lg border border-white/15 px-2 text-[9.5px] font-semibold text-white/70 hover:bg-white/10"
                   >
                     <Plus className="h-3 w-3" /> Add
                   </button>
@@ -2409,7 +2409,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                   event.stopPropagation();
                   setPreview(false);
                 }}
-                className="ml-1 rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-[#17171A] hover:bg-white/90"
+                className="ml-1 rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold text-[#17171A] hover:bg-white/90"
               >
                 Back to edit
               </button>
@@ -3461,7 +3461,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                       key={weight}
                       type="button"
                       onClick={() => update(selected.id, { fontWeight: weight })}
-                      className={`h-7 flex-1 rounded text-[9.5px] font-bold ${
+                      className={`h-7 flex-1 rounded text-[9.5px] font-semibold ${
                         (selected.fontWeight ?? DEFAULT_FONT_WEIGHT[selected.type]) === weight
                           ? 'bg-[#0D99FF] text-white'
                           : 'bg-[#383838] text-white/60'
@@ -3904,10 +3904,10 @@ export const EditorPage: React.FC<EditorPageProps> = ({
         return (
           <div className="fixed inset-0 z-[92] grid place-items-center p-4" role="dialog" aria-modal="true" aria-label={`Preview ${previewVariant.name}`}>
             <div className="absolute inset-0 bg-black/65 backdrop-blur-sm" onClick={() => setPreviewVariant(null)} aria-hidden="true" />
-            <div className="relative w-full max-w-[620px] rounded-2xl border border-white/10 bg-[#0F1011] p-4 text-white shadow-[0_40px_90px_-30px_rgba(0,0,0,.95)]">
+            <div className="relative w-full max-w-[620px] rounded-lg border border-white/10 bg-[#0F1011] p-4 text-white shadow-[0_40px_90px_-30px_rgba(0,0,0,.95)]">
               <div className="flex items-start gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="text-[9.5px] font-bold uppercase tracking-[0.14em] text-[#B9A8FF]">{previewVariant.group}</p>
+                  <p className="text-[9.5px] font-semibold uppercase tracking-[0.14em] text-[#B9A8FF]">{previewVariant.group}</p>
                   <h2 className="mt-0.5 text-[16px] font-semibold">{previewVariant.name}</h2>
                 </div>
                 <button

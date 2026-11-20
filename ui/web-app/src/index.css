@@ -76,43 +76,43 @@
   color-scheme: dark;
 
   --bg-page: #08090a;
-  --bg-card: #0f1011;
-  --bg-subtle: #141516;
-  --bg-hover: #191a1b;
+  --bg-card: #101113;
+  --bg-subtle: #161719;
+  --bg-hover: #1c1d20;
   --primary-teal: #7170ff;
   --dark-teal: #828fff;
   --accent-mustard: #f2c94c;
   --accent-mustard-hover: #e0b341;
-  --soft-green: #10231a;
-  --soft-green-text: #4cc38a;
+  --soft-green: #101a2b;
+  --soft-green-text: #6ea8fe;
   --text-main: #f7f8f8;
   --text-secondary: #8a8f98;
-  --border-subtle: #23252a;
-  --border-strong: #34343a;
+  --border-subtle: #1e1f22;
+  --border-strong: #2a2b2f;
   --risk-critical: #eb5757;
   --risk-high: #fc7840;
   --risk-medium: #f2c94c;
-  --risk-low: #4cc38a;
+  --risk-low: #6ea8fe;
   --risk-minimal: #7170ff;
 
   --v-bg: #08090a;
-  --v-surface: #0f1011;
-  --v-surface-2: #141516;
+  --v-surface: #101113;
+  --v-surface-2: #161719;
   --v-ink: #f7f8f8;
   --v-muted: #8a8f98;
   --v-faint: #62666d;
-  --v-line: #23252a;
-  --v-line-strong: #34343a;
+  --v-line: #1e1f22;
+  --v-line-strong: #2a2b2f;
   --v-accent: #7170ff;
   --v-accent-hover: #828fff;
-  --v-accent-soft: #18182f;
+  --v-accent-soft: #17172b;
   --v-violet: #7170ff;
   --v-blue: #4ea7fc;
-  --v-teal: #00b8cc;
+  --v-teal: #6ea8fe;
   --v-coral: #fc7840;
   --v-sun: #f2c94c;
-  --v-success: #4cc38a;
-  --v-success-soft: #0f2418;
+  --v-success: #6ea8fe;
+  --v-success-soft: #101a2b;
   --v-warning: #f2c94c;
   --v-warning-soft: #241f10;
   --v-danger: #eb5757;
@@ -221,6 +221,51 @@ code, kbd, samp, pre {
 
 .dark .text-\[\#B94D42\] {
   color: var(--v-danger) !important;
+}
+
+/* Legacy emerald utilities are neutralised in the Linear dark theme. */
+.dark .bg-\[\#F0FBF7\] {
+  background-color: var(--v-accent-soft) !important;
+}
+
+.dark .text-\[\#0C7A5B\] {
+  color: var(--v-accent-hover) !important;
+}
+
+.dark .border-\[\#BFE9DA\] {
+  border-color: var(--v-line-strong) !important;
+}
+
+.dark .bg-\[\#49686C\] {
+  background-color: var(--v-accent) !important;
+}
+
+.dark [class*="bg-[#49686C]/"] {
+  background-color: color-mix(in srgb, var(--v-accent) 18%, transparent) !important;
+}
+
+.dark .hover\:bg-\[\#30494B\]:hover {
+  background-color: var(--v-accent-hover) !important;
+}
+
+.dark .bg-\[\#FFF7ED\] {
+  background-color: var(--v-warning-soft) !important;
+}
+
+.dark .border-\[\#FED7AA\] {
+  border-color: color-mix(in srgb, var(--v-warning) 35%, transparent) !important;
+}
+
+.dark .text-\[\#9C4A28\] {
+  color: var(--v-warning) !important;
+}
+
+.dark .text-\[\#22C55E\] {
+  color: var(--v-accent-hover) !important;
+}
+
+.dark .bg-\[\#22C55E\] {
+  background-color: var(--v-accent) !important;
 }
 
 .dark .border-\[\#E5E2D8\],
