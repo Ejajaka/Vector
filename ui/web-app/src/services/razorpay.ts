@@ -1,50 +1,35 @@
 /**
- * Razorpay Standard Checkout.
+ * Razorpay subscriptions (server-created, signature-verified).
  *
- * Test-mode behaviour: if a `rzp_test_...` key is present (Settings → Payments,
- * or VITE_RAZORPAY_KEY_ID at build time) the real Razorpay modal opens.
- *
- * Live-mode rules (implement before charging real money):
- *   1. Create the order server-side (`/api/razorpay/order`) — never trust the
- *      amount from the browser.
- *   2. Verify `razorpay_signature` with the key secret in a webhook or an edge
- *      function, then write the subscription row.
- *   3. Entitlements must be read from the server, not localStorage.
+ * The browser sends only the plan code and billing cycle. `/api/razorpay/subscribe`
+ * looks up the Razorpay plan id and price, creates the subscription with the
+ * secret key, and returns the public key id. The checkout handler is then
+ * verified against `/api/razorpay/verify` before the plan is activated.
  */
 
+import { supabase } from './supabase/client.ts';
+
+export type CheckoutPlan = 'pro' | 'team' | 'business';
+export type CheckoutBilling = 'monthly' | 'annual';
+
 export interface CheckoutOptions {
+  plan: CheckoutPlan;
+  billing: CheckoutBilling;
   planName: string;
   amountInr: number;
   email?: string;
   name?: string;
-  onSuccess: (paymentId: string) => void;
+  onSuccess: (paymentId: string, subscriptionId: string) => void;
   onDismiss?: () => void;
   onError?: (message: string) => void;
 }
 
-const KEY_STORAGE = 'vector_razorpay_key';
-
 declare global {
   interface Window {
-    Razorpay?: new (options: Record<string, unknown>) => { open: () => void; on: (event: string, cb: () => void) => void };
-  }
-}
-
-export function getRazorpayKey(): string {
-  try {
-    const stored = localStorage.getItem(KEY_STORAGE);
-    if (stored) return stored;
-  } catch {
-    // ignore
-  }
-  return (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_RAZORPAY_KEY_ID || '';
-}
-
-export function setRazorpayKey(key: string): void {
-  try {
-    localStorage.setItem(KEY_STORAGE, key.trim());
-  } catch {
-    // ignore
+    Razorpay?: new (options: Record<string, unknown>) => {
+      open: () => void;
+      on: (event: string, cb: () => void) => void;
+    };
   }
 }
 
@@ -60,16 +45,41 @@ function loadScript(): Promise<boolean> {
   });
 }
 
-export async function startCheckout(options: CheckoutOptions): Promise<void> {
-  const key = getRazorpayKey();
+async function accessToken(): Promise<string | null> {
+  if (!supabase) return null;
+  const { data } = await supabase.auth.getSession();
+  return data.session?.access_token || null;
+}
 
-  // No key configured: simulate so the funnel can be tested end to end.
-  if (!key) {
-    const proceed = window.confirm(
-      `Razorpay is not configured yet.\n\nSimulate a successful payment for ${options.planName} (₹${options.amountInr})?\n\nAdd a key in Settings → Payments to open the real checkout.`
-    );
-    if (proceed) options.onSuccess(`sim_${Date.now()}`);
-    else options.onDismiss?.();
+export async function startCheckout(options: CheckoutOptions): Promise<void> {
+  const token = await accessToken();
+  if (!token) {
+    options.onError?.('Sign in to your workspace before upgrading.');
+    return;
+  }
+
+  let order: {
+    keyId?: string;
+    subscriptionId?: string;
+    shortUrl?: string;
+    error?: string;
+  };
+  try {
+    const response = await fetch('/api/razorpay/subscribe', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ plan: options.plan, billing: options.billing }),
+    });
+    order = (await response.json()) as typeof order;
+    if (!response.ok || !order.keyId || !order.subscriptionId) {
+      options.onError?.(order.error || 'Could not start the Razorpay subscription.');
+      return;
+    }
+  } catch {
+    options.onError?.('Could not reach the payment service.');
     return;
   }
 
@@ -80,26 +90,56 @@ export async function startCheckout(options: CheckoutOptions): Promise<void> {
   }
 
   const checkout = new window.Razorpay({
-    key,
-    amount: options.amountInr * 100,
-    currency: 'INR',
+    key: order.keyId,
+    subscription_id: order.subscriptionId,
     name: 'Vector',
-    description: options.planName,
+    description: `${options.planName} · ${options.billing}`,
     image: `${window.location.origin}/favicon-512.png`,
     prefill: {
       name: options.name || '',
       email: options.email || '',
     },
-    notes: { product: 'vector', plan: options.planName },
-    theme: { color: '#49686C' },
+    notes: { product: 'vector', plan: options.plan, billing: options.billing },
+    theme: { color: '#7170FF' },
     modal: { ondismiss: () => options.onDismiss?.() },
-    handler: (response: { razorpay_payment_id?: string }) => {
-      options.onSuccess(response.razorpay_payment_id || `pay_${Date.now()}`);
+    handler: async (response: {
+      razorpay_payment_id?: string;
+      razorpay_subscription_id?: string;
+      razorpay_signature?: string;
+    }) => {
+      const paymentId = response.razorpay_payment_id || '';
+      const subscriptionId = response.razorpay_subscription_id || order.subscriptionId || '';
+      if (!paymentId || !subscriptionId) {
+        options.onError?.('Razorpay returned an incomplete payment.');
+        return;
+      }
+      try {
+        const verified = await fetch('/api/razorpay/verify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            razorpay_payment_id: paymentId,
+            razorpay_subscription_id: subscriptionId,
+            razorpay_signature: response.razorpay_signature || '',
+          }),
+        });
+        const result = (await verified.json()) as { valid?: boolean; error?: string };
+        if (!verified.ok || !result.valid) {
+          options.onError?.(result.error || 'Could not verify the payment.');
+          return;
+        }
+        options.onSuccess(paymentId, subscriptionId);
+      } catch {
+        options.onError?.('Payment was received but verification could not complete.');
+      }
     },
   });
 
   checkout.on('payment.failed', () => {
-    options.onError?.('Payment failed. Nothing was charged — try again or use a different method.');
+    options.onError?.('Payment failed. Nothing was charged — try another method.');
   });
 
   checkout.open();

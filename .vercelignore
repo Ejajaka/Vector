@@ -6,3 +6,5 @@ demo
 template-library
 results
 router_data
+desktop/node_modules
+desktop/release

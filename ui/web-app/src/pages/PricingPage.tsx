@@ -11,7 +11,7 @@ import {
   type EntitlementState,
   type PlanCode,
 } from '../services/entitlements.ts';
-import { getRazorpayKey, setRazorpayKey, startCheckout } from '../services/razorpay.ts';
+import { startCheckout } from '../services/razorpay.ts';
 import { notificationService } from '../services/notifications.ts';
 import { useAuth } from '../context/AuthContext.tsx';
 
@@ -38,8 +38,6 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
   const [selected, setSelected] = useState<PlanCode>('pro');
   const [busy, setBusy] = useState(false);
   const [flash, setFlash] = useState<{ tone: 'ok' | 'err'; text: string } | null>(null);
-  const [keyDraft, setKeyDraft] = useState(getRazorpayKey());
-  const [showKey, setShowKey] = useState(false);
 
   useEffect(() => {
     const sync = () => setState(readEntitlements());
@@ -61,16 +59,18 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
     setBusy(true);
     setFlash(null);
     await startCheckout({
+      plan: selected,
+      billing,
       planName: `${plan.name} · ${billing}`,
       amountInr: price,
       email: user?.email || undefined,
       name: (user?.user_metadata?.display_name as string | undefined) || undefined,
-      onSuccess: (paymentId) => {
+      onSuccess: (paymentId, subscriptionId) => {
         upgradePlan(selected, paymentId);
         notificationService.push({
           kind: 'billing',
           title: `${plan.name} plan activated`,
-          body: `Payment ${paymentId.slice(0, 14)}… confirmed. Unlimited projects and generators are unlocked.`,
+          body: `Payment ${paymentId.slice(0, 14)}… confirmed. Subscription ${subscriptionId.slice(0, 14)}… is active.`,
           action: { label: 'Go home', tab: 'dashboard' },
         });
         setFlash({ tone: 'ok', text: `${plan.name} is active. Receipt saved to purchase history.` });
@@ -278,42 +278,22 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
         <div className="v-card rounded-lg p-5">
           <div className="flex items-center justify-between">
             <h2 className="text-[13px] font-semibold text-[var(--v-ink)] flex items-center gap-2">
-              <Wallet className="w-4 h-4 text-[var(--v-muted)]" /> Razorpay checkout
+              <Wallet className="w-4 h-4 text-[var(--v-muted)]" /> Razorpay subscriptions
             </h2>
-            <span
-              className={`text-[9.5px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                getRazorpayKey() ? 'bg-[#F0FBF7] text-[#0C7A5B]' : 'bg-[var(--v-surface-2)] text-[var(--v-muted)]'
-              }`}
-            >
-              {getRazorpayKey() ? 'Test key set' : 'Simulated'}
+            <span className="rounded-full bg-[var(--v-accent-soft)] px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider text-[var(--v-accent-hover)]">
+              Secure
             </span>
           </div>
           <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--v-muted)]">
-            Paste a <code className="text-[10px]">rzp_test_…</code> key to open the real modal. The key <em>secret</em> never
-            goes in the browser — order creation and signature verification run server-side.
+            Subscriptions are created server-side and signed with your Razorpay secret. The browser only
+            receives the public key and the subscription id; every payment is verified before the plan
+            changes.
           </p>
-          <div className="mt-3 flex gap-2">
-            <input
-              type={showKey ? 'text' : 'password'}
-              value={keyDraft}
-              onChange={(event) => setKeyDraft(event.target.value)}
-              placeholder="rzp_test_xxxxxxxxxxxx"
-              className="v-input h-10 px-4 text-[12px]"
-            />
-            <button type="button" onClick={() => setShowKey((value) => !value)} className="v-btn v-btn-ghost h-10 px-3 text-[11px] rounded-lg">
-              {showKey ? 'Hide' : 'Show'}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setRazorpayKey(keyDraft);
-                setFlash({ tone: 'ok', text: 'Razorpay key saved for this browser.' });
-              }}
-              className="v-btn v-btn-dark h-10 px-3.5 text-[11px] rounded-lg"
-            >
-              Save
-            </button>
-          </div>
+          <ul className="mt-3 space-y-1.5 text-[11px] text-[var(--v-muted)]">
+            <li className="flex gap-2"><Check className="mt-0.5 h-3 w-3 shrink-0 text-[var(--v-accent-hover)]" /> UPI, cards, netbanking and wallets</li>
+            <li className="flex gap-2"><Check className="mt-0.5 h-3 w-3 shrink-0 text-[var(--v-accent-hover)]" /> Automatic renewal, cancel any time</li>
+            <li className="flex gap-2"><Check className="mt-0.5 h-3 w-3 shrink-0 text-[var(--v-accent-hover)]" /> GST invoice emailed by Razorpay</li>
+          </ul>
         </div>
 
         <div className="v-card rounded-lg p-5">

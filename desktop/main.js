@@ -20,7 +20,7 @@ function createWindow() {
     height: 960,
     minWidth: 1024,
     minHeight: 700,
-    backgroundColor: '#F6F4EC',
+    backgroundColor: '#08090A',
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     show: false,
     webPreferences: {

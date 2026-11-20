@@ -2,7 +2,7 @@
   "name": "vector-desktop",
   "productName": "Vector",
   "version": "2.0.0",
-  "description": "Vector desktop — UI prompt engineering for Windows, macOS and Linux",
+  "description": "Vector desktop \u2014 UI prompt engineering for Windows, macOS and Linux",
   "main": "main.js",
   "author": "Vector",
   "license": "UNLICENSED",
@@ -22,18 +22,46 @@
   "build": {
     "appId": "dev.vector.desktop",
     "productName": "Vector",
-    "directories": { "output": "release" },
-    "files": ["main.js", "preload.js", "package.json"],
-    "extraResources": [{ "from": "../ui/web-app/dist", "to": "app" }],
-    "win": { "target": ["nsis"], "artifactName": "Vector-Setup-${version}.${ext}" },
-    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true },
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "package.json",
+      "build/icon.ico"
+    ],
+    "extraResources": [
+      {
+        "from": "../ui/web-app/dist",
+        "to": "app"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "artifactName": "Vector-Setup-${version}.${ext}",
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
     "mac": {
-      "target": ["dmg"],
+      "target": [
+        "dmg"
+      ],
       "category": "public.app-category.developer-tools",
       "artifactName": "Vector-${version}-${arch}.${ext}",
       "hardenedRuntime": false,
       "gatekeeperAssess": false
     },
-    "linux": { "target": ["AppImage"], "category": "Development" }
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Development"
+    }
   }
 }

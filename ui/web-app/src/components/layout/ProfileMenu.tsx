@@ -3,6 +3,7 @@ import {
   Bell,
   ChevronRight,
   CircleHelp,
+  Download,
   Laptop,
   Lightbulb,
   LogOut,
@@ -13,6 +14,7 @@ import {
 import type { ActiveTab } from '../../types/analysis.ts';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { planFor, readEntitlements } from '../../services/entitlements.ts';
+import { WINDOWS_INSTALLER_URL } from '../../data/downloads.ts';
 
 interface ProfileMenuProps {
   activeTab: ActiveTab;
@@ -165,6 +167,13 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
             <Row icon={CircleHelp} label="Help and feedback" onClick={() => go('learn')} />
             <Row icon={ShieldCheck} label="Privacy" onClick={() => go('privacy')} />
             <Row icon={Settings} label="Settings" onClick={() => go('settings')} />
+            <a
+              href={WINDOWS_INSTALLER_URL}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-[13px] text-[#283638] transition-colors hover:bg-[#F6F4EC] dark:text-[#E7E4D9] dark:hover:bg-[#222E30]"
+            >
+              <Download className="h-4 w-4 shrink-0 text-[#737A72] dark:text-[#8E9A93]" />
+              <span className="flex-1 truncate">Download for Windows</span>
+            </a>
           </div>
 
           <div className="h-px bg-[#E5E2D8] dark:bg-[#29383A] mx-2" />

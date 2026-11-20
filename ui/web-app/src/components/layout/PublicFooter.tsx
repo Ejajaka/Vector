@@ -1,7 +1,8 @@
 ﻿import React from 'react';
-import { ArrowUp, Mail } from 'lucide-react';
+import { ArrowUp, Download, Mail } from 'lucide-react';
 import type { ActiveTab } from '../../types/analysis.ts';
 import { Logo } from '../ui/Logo.tsx';
+import { WINDOWS_INSTALLER_URL } from '../../data/downloads.ts';
 
 interface PublicFooterProps {
   activeTab: ActiveTab;
@@ -58,6 +59,12 @@ export const PublicFooter: React.FC<PublicFooterProps> = ({ activeTab, onNavigat
               className="mt-3 inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-[var(--v-violet)] hover:underline"
             >
               <Mail className="h-3 w-3" /> hello@vector.is-a.dev
+            </a>
+            <a
+              href={WINDOWS_INSTALLER_URL}
+              className="mt-2 flex items-center gap-1.5 text-[11.5px] font-medium text-[var(--v-muted)] transition-colors hover:text-[var(--v-ink)]"
+            >
+              <Download className="h-3 w-3" /> Download for Windows
             </a>
           </div>
 

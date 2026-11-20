@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import type { ActiveTab } from '../../types/analysis.ts';
 import { useAuth } from '../../context/AuthContext.tsx';
+import { Logo } from '../ui/Logo.tsx';
 import { useProject } from '../../context/ProjectContext.tsx';
 import { useProjectVocabulary } from '../../hooks/useProjectVocabulary.ts';
 import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
@@ -183,9 +184,9 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab(publicMode ? 'about' : 'dashboard')}
-              className="hidden shrink-0 text-[var(--v-muted)] transition-colors hover:text-[var(--v-ink)] sm:inline"
+              className="hidden shrink-0 items-center gap-1.5 text-[var(--v-muted)] transition-colors hover:text-[var(--v-ink)] sm:inline-flex"
             >
-              Vector
+              <Logo size={16} /> Vector
             </button>
             <span className="hidden text-[var(--v-faint)] sm:inline">/</span>
             <span className="truncate text-[13px] font-medium tracking-[-0.01em] text-[var(--v-ink)]">

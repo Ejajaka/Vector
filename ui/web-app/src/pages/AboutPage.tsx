@@ -6,6 +6,7 @@ import {
   Check,
   ChevronRight,
   CircleDot,
+  Download,
   GripVertical,
   Layers,
   LogIn,
@@ -16,6 +17,7 @@ import {
   UserPlus,
   Wand2,
 } from 'lucide-react';
+import { WINDOWS_INSTALLER_URL } from '../data/downloads.ts';
 
 interface AboutPageProps {
   onStartAnalysis: () => void;
@@ -589,6 +591,12 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis, onOpenTem
                   >
                     <UserPlus className="h-3.5 w-3.5" /> Create an account
                   </button>
+                  <a
+                    href={WINDOWS_INSTALLER_URL}
+                    className="v-btn h-9 rounded-full border border-white/15 bg-white/[0.04] px-4 text-[13px] text-white hover:bg-white/[0.08]"
+                  >
+                    <Download className="h-3.5 w-3.5" /> Download for Windows
+                  </a>
                 </>
               ) : (
                 <>
