@@ -3,18 +3,14 @@ import {
   Bell,
   ChevronRight,
   CircleHelp,
-  Flag,
   History,
   Info,
   Laptop,
   LayoutGrid,
   Lightbulb,
   LogOut,
-  MessageSquareWarning,
   Settings,
   ShieldCheck,
-  Sparkles,
-  UserRound,
   Wallet,
 } from 'lucide-react';
 import type { ActiveTab } from '../../types/analysis.ts';
@@ -47,7 +43,6 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
 }) => {
   const { user, localMode } = useAuth();
   const [open, setOpen] = useState(false);
-  const [helpOpen, setHelpOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   const plan = planFor(readEntitlements().plan);
@@ -63,13 +58,11 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
     const onDown = (event: MouseEvent) => {
       if (!ref.current?.contains(event.target as Node)) {
         setOpen(false);
-        setHelpOpen(false);
       }
     };
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setOpen(false);
-        setHelpOpen(false);
       }
     };
     window.addEventListener('mousedown', onDown);
@@ -83,13 +76,11 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
   const go = (tab: ActiveTab) => {
     onNavigate(tab);
     setOpen(false);
-    setHelpOpen(false);
   };
 
   const openHub = (tab: 'included' | 'usage') => {
     window.dispatchEvent(new CustomEvent('vector:open-plan-hub', { detail: tab }));
     setOpen(false);
-    setHelpOpen(false);
   };
 
   const Row: React.FC<{
@@ -102,7 +93,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
     <button
       type="button"
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-[13px] transition-colors ${
+      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-[13px] transition-colors ${
         danger
           ? 'text-[#B94D42] hover:bg-[#FDF2F0] dark:hover:bg-[#2F1B1A]'
           : 'text-[#283638] dark:text-[#E7E4D9] hover:bg-[#F6F4EC] dark:hover:bg-[#222E30]'
@@ -136,7 +127,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
       {open && (
         <div
           role="menu"
-          className="v-scroll absolute right-0 top-full z-50 mt-2 max-h-[calc(100vh-6rem)] w-[320px] overflow-y-auto overflow-x-hidden rounded-lg border border-[#E5E2D8] bg-[#FFFFFF] shadow-[0_24px_60px_-24px_rgba(16,32,32,0.45)] dark:border-[#33403F] dark:bg-[#1B2426]"
+          className="v-scroll absolute right-0 top-full z-50 mt-2 max-h-[calc(100vh-4rem)] w-[320px] overflow-y-auto overflow-x-hidden rounded-lg border border-[#E5E2D8] bg-[#FFFFFF] shadow-[0_24px_60px_-24px_rgba(16,32,32,0.45)] dark:border-[#33403F] dark:bg-[#1B2426]"
         >
           {/* Account header */}
           <button
@@ -159,32 +150,8 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
             <ChevronRight className="w-4 h-4 text-[#737A72] shrink-0" />
           </button>
 
-          {/* Plan / workspace */}
-          <div className="px-4 py-3 border-b border-[#E5E2D8] dark:border-[#29383A]">
-            <p className="text-[10px] uppercase tracking-[0.14em] font-semibold text-[#737A72] mb-2">Workspace</p>
-            <button
-              type="button"
-              onClick={() => go('pricing')}
-              className="w-full flex items-center gap-3 text-left rounded-lg hover:bg-[#F6F4EC] dark:hover:bg-[#222E30] transition-colors p-1 -m-1"
-            >
-              <span className="w-9 h-9 rounded-full bg-[#D1B653]/25 text-[#856C16] dark:text-[#E2C768] grid place-items-center text-[11px] font-semibold shrink-0">
-                {initials(displayName)}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[13px] font-semibold text-[#283638] dark:text-[#E7E4D9] truncate">
-                  {displayName.split(' ')[0]}’s workspace
-                </span>
-                <span className="block text-[11px] text-[#737A72] dark:text-[#8E9A93]">
-                  {plan.name} {plan.code === 'free' ? '· 2 free projects' : '· active'}
-                </span>
-              </span>
-              <ChevronRight className="w-4 h-4 text-[#737A72] shrink-0" />
-            </button>
-          </div>
-
           {/* Menu */}
           <div className="p-2">
-            <Row icon={UserRound} label="Your account" onClick={() => go('settings')} />
             <Row
               icon={LayoutGrid}
               label="Dashboard"
@@ -193,9 +160,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
             />
             <Row icon={History} label="Analysis history" onClick={() => go('history')} />
             <Row icon={Wallet} label="Plans and pricing" onClick={() => go('pricing')} />
-            <Row icon={Sparkles} label="See what's included" onClick={() => openHub('included')} />
             <Row icon={Lightbulb} label="Your plan and usage" onClick={() => openHub('usage')} />
-            <Row icon={History} label="Purchase history" onClick={() => go('pricing')} />
             <Row icon={Bell} label="Notifications" onClick={onOpenNotifications} trailing={
               unreadCount > 0 ? (
                 <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#49686C] text-white">{unreadCount}</span>
@@ -205,73 +170,10 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
 
           <div className="h-px bg-[#E5E2D8] dark:bg-[#29383A] mx-2" />
 
-          {/* Help & feedback with flyout */}
+          {/* Help and account links */}
           <div className="p-2 space-y-1">
-            <div className="relative">
-              <button
-                type="button"
-                onMouseEnter={() => setHelpOpen(true)}
-                onClick={() => setHelpOpen((value) => !value)}
-                aria-expanded={helpOpen}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-[13px] transition-colors ${
-                  helpOpen
-                    ? 'bg-[#F6F4EC] dark:bg-[#222E30] text-[#283638] dark:text-[#E7E4D9]'
-                    : 'text-[#283638] dark:text-[#E7E4D9] hover:bg-[#F6F4EC] dark:hover:bg-[#222E30]'
-                }`}
-              >
-                <CircleHelp className="w-4 h-4 text-[#737A72] dark:text-[#8E9A93] shrink-0" />
-                <span className="flex-1 truncate">Help and feedback</span>
-                <ChevronRight className={`w-4 h-4 text-[#737A72] transition-transform ${helpOpen ? 'rotate-90' : ''}`} />
-              </button>
-
-              {helpOpen && (
-                <div className="mt-1 ml-3 pl-3 border-l border-[#E5E2D8] dark:border-[#33403F] space-y-0.5">
-                  <button
-                    type="button"
-                    onClick={() => go('learn')}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[12.5px] text-[#283638] dark:text-[#E7E4D9] hover:bg-[#F6F4EC] dark:hover:bg-[#222E30]"
-                  >
-                    <CircleHelp className="w-3.5 h-3.5 text-[#737A72]" /> Get help
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      window.location.href = 'mailto:hello@vector.is-a.dev?subject=Vector%20suggestion';
-                    }}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[12.5px] text-[#283638] dark:text-[#E7E4D9] hover:bg-[#F6F4EC] dark:hover:bg-[#222E30]"
-                  >
-                    <Lightbulb className="w-3.5 h-3.5 text-[#737A72]" /> Suggest improvement
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => go('learn')}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[12.5px] text-[#283638] dark:text-[#E7E4D9] hover:bg-[#F6F4EC] dark:hover:bg-[#222E30]"
-                  >
-                    <Flag className="w-3.5 h-3.5 text-[#737A72]" /> Report content
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => go('privacy')}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[12.5px] text-[#283638] dark:text-[#E7E4D9] hover:bg-[#F6F4EC] dark:hover:bg-[#222E30]"
-                  >
-                    <ShieldCheck className="w-3.5 h-3.5 text-[#737A72]" /> Privacy policy
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onReplayTour();
-                      setOpen(false);
-                      setHelpOpen(false);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[12.5px] text-[#283638] dark:text-[#E7E4D9] hover:bg-[#F6F4EC] dark:hover:bg-[#222E30]"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-[#737A72]" /> Replay product tour
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <Row icon={MessageSquareWarning} label="Send feedback" onClick={() => go('learn')} />
+            <Row icon={CircleHelp} label="Help and feedback" onClick={() => go('learn')} />
+            <Row icon={ShieldCheck} label="Privacy" onClick={() => go('privacy')} />
             <Row icon={Info} label="Product page" onClick={() => go('about')} />
             <Row icon={Settings} label="Settings" onClick={() => go('settings')} />
           </div>
