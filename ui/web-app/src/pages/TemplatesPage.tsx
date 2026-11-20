@@ -114,14 +114,6 @@ export const TemplatesPage: React.FC<TemplatesPageProps> = ({
           >
             Import design JSON
           </button>
-          <a
-            href="/template-library/index.html"
-            target="_blank"
-            rel="noreferrer"
-            className="h-7 rounded-lg border border-[var(--v-line)] px-2.5 text-[10.5px] font-semibold text-[var(--v-ink)] hover:bg-[var(--v-surface-2)] inline-flex items-center"
-          >
-            Asset library
-          </a>
         </div>
         <p className="mt-1 text-[11px] text-[var(--v-muted)]">
           Your organisation's own documented formats. Only this workspace can see or open them — they never enter the public library.
