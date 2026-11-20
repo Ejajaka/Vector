@@ -133,7 +133,7 @@
       <h1>Everything you need to start.</h1>
       <p class="sub">
         A local, license-safe collection of original UI blocks, Figma Community references,
-        placeholder imagery, illustrations, icons and type. Figma files are linked at source; they are not copied or redistributed.
+        icons and type. Figma files are linked at source; they are not copied or redistributed.
       </p>
       <div class="stats" id="stats"></div>
     </header>
@@ -142,8 +142,6 @@
       <div class="tabs" id="tabs">
         <button class="tab on" data-tab="figma">Figma links</button>
         <button class="tab" data-tab="blocks">UI blocks</button>
-        <button class="tab" data-tab="images">Images</button>
-        <button class="tab" data-tab="illustrations">Illustrations</button>
         <button class="tab" data-tab="icons">Icons</button>
         <button class="tab" data-tab="type">Type</button>
       </div>
@@ -166,22 +164,6 @@
       </div>
       <div class="grid-blocks" id="block-grid"></div>
       <div class="empty hidden" id="block-empty">Nothing matches that search.</div>
-    </section>
-
-    <section class="section hidden" data-section="images" id="assets">
-      <div class="section-head">
-        <h2>Placeholder imagery</h2>
-        <p>Lorem Picsum / Unsplash License</p>
-      </div>
-      <div class="grid-images" id="image-grid"></div>
-    </section>
-
-    <section class="section hidden" data-section="illustrations" id="illustrations">
-      <div class="section-head">
-        <h2>Illustrations</h2>
-        <p>unDraw &middot; unDraw License</p>
-      </div>
-      <div class="grid-illustrations" id="illustration-grid"></div>
     </section>
 
     <section class="section hidden" data-section="icons" id="icons">
@@ -212,9 +194,8 @@
 
     <div class="notice" id="licenses">
       <b>Licenses and attribution.</b> Figma Community entries are links to the original files.
-      Each file has its own license and terms; review the file page before using it. The UI blocks are original Vector work. The
-      imagery comes from Lorem Picsum (Unsplash License), illustrations from unDraw (unDraw
-      License), icons from Lucide (ISC), and type from Google Fonts (SIL Open Font License 1.1). No paid or proprietary template files are bundled.
+      Each file has its own license and terms; review the file page before using it. The UI blocks are original Vector work. Icons come from Lucide (ISC) and type from
+      Google Fonts (SIL Open Font License 1.1). Archived reference assets live in `_archive/`. No paid or proprietary template files are bundled.
     </div>
 
     <footer>
@@ -238,9 +219,7 @@
       const stats = [
         [state.data.figma.length, 'Figma references'],
         [state.data.blocks.length, 'UI blocks'],
-        [state.data.images.length, 'Images'],
         [state.data.icons.length, 'Icons'],
-        [state.data.illustrations.length, 'Illustrations'],
         [state.data.fonts.length, 'Typefaces'],
       ];
       root.innerHTML = '';
@@ -380,8 +359,6 @@
       renderStats();
       renderFigma();
       renderBlocks();
-      renderImages();
-      renderIllustrations();
       renderIcons();
       document.querySelectorAll('.tab').forEach((button) => {
         button.addEventListener('click', () => setTab(button.dataset.tab));

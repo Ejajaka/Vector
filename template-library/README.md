@@ -18,11 +18,10 @@ The library is standalone and is not linked from the app UI.
 
 | Folder | Contents | License |
 | --- | --- | --- |
-| `links.md` | 56 curated Figma Community links across dashboards, landing pages, commerce, auth, data tables, collaboration, mobile, portfolio and components. | Links only. Each file has its own license. |
+| `links.md` | 16 focused Figma Community references for the app template categories. | Links only. Each file has its own license. |
 | `blocks/` | 17 original, self-contained UI screens: dashboard, analytics, projects, requirements, review, prompt studio, settings, billing, auth, landing, commerce, chat, onboarding, empty state, 404 and mobile. | Original Vector work. |
-| `images/` | 24 placeholder images from Lorem Picsum. | Unsplash License via Lorem Picsum. |
-| `illustrations/` | 12 unDraw illustrations. | unDraw License. |
-| `icons/` | 217 SVG icons across Lucide (ISC), Tabler (MIT) and Heroicons (MIT). | ISC / MIT. |
+| `icons/` | 85 Lucide SVG icons used by the product UI. | ISC. |
+| `_archive/` | Extra images, illustrations and duplicate icon sets kept for reference only. | Mixed; see LICENSES. |
 | `fonts/` | Inter and JetBrains Mono WOFF2 files plus the generated `fonts.css`. | SIL Open Font License 1.1. |
 | `manifest.json` | Machine-readable index used by the catalog page and the app. | Metadata. |
 
@@ -33,8 +32,8 @@ The library is standalone and is not linked from the app UI.
 - **Check each Figma file's license before commercial use.** Some Community files are
   free, some require attribution, and some have restrictions. The catalog labels them
   as references, not as bundled templates.
-- **Images are placeholders.** Use your own product screenshots or licensed art for
-  production.
+- **The active catalog is UI-focused.** Random stock photos, illustrations and duplicate
+  icon sets are archived in `_archive/`, not shown in the catalog.
 - **Fonts are OFL.** Keep the license links in `LICENSES.md` with the files.
 
 ## Building the pack again
@@ -50,10 +49,11 @@ It downloads only the image, icon and font assets from their public sources. Edi
 
 ## Using the assets in the app
 
-- Add real template previews under `public/templates/<slug>/preview.png`.
-- Add the matching block map under `public/templates/<slug>/template.json`.
-- The gallery can then show the real thumbnail and the canvas can instantiate the
-  actual blocks instead of the generated wireframe.
+Not wired in. The app still uses the original generated wireframes. If you approve a
+specific block, the next step is:
 
-The current app templates are still generated. Real Figma/PPTX blocks require the
-source files or a Figma token and frame export.
+- Add a template preview under the app's template assets.
+- Add the matching block map for the canvas.
+- Replace only the approved wireframe thumbnail.
+
+No gallery or canvas change happens until that approval.
