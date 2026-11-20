@@ -262,14 +262,18 @@ export function buildBundleMarkdown(options: {
   lines.push('---', '', '## 1. Revised prompt', '', '```text', prompt, '```', '');
 
   lines.push('## 2. Element manifest', '');
-  lines.push('| # | Page | Type | Label | X | Y | W | H | Fill | Border |');
-  lines.push('|---|------|------|-------|---|---|---|---|------|--------|');
+  lines.push('| # | Page | Type | Label | X | Y | W | H | Fill | Border | Motion |');
+  lines.push('|---|------|------|-------|---|---|---|---|------|--------|--------|');
   let index = 1;
   pages.forEach((page) => {
     page.items.forEach((item) => {
       lines.push(
         `| ${index++} | ${escapePipes(page.name)} | ${item.type} | ${escapePipes(item.label)} | ${item.x} | ${item.y} | ${item.w} | ${item.h} | ${item.fill || item.color || '—'} | ${
           item.strokeWidth ? `${item.strokeWidth}px ${item.strokeColor || '#000000'}` : '—'
+        } | ${
+          item.animation
+            ? `${item.animation.kind} / ${item.animation.trigger} / ${item.animation.duration}ms`
+            : '—'
         } |`
       );
     });
@@ -278,9 +282,39 @@ export function buildBundleMarkdown(options: {
 
   lines.push('## 3. Page frames', '');
   pages.forEach((page) => {
-    lines.push(`- **${page.name}** — ${page.width || 1200}×${page.height || 800}, background ${page.background || '#FFFFFF'}, ${page.items.length} elements`);
+    const transition =
+      page.transition && page.transition !== 'none'
+        ? `, transition ${page.transition} ${page.transitionDuration ?? 350}ms`
+        : '';
+    lines.push(
+      `- **${page.name}** — ${page.width || 1200}×${page.height || 800}, background ${page.background || '#FFFFFF'}, ${page.items.length} elements${transition}`
+    );
   });
   lines.push('');
+
+  lines.push('## 3b. Motion', '');
+  const animated = allItems.filter((item) => item.animation);
+  if (animated.length) {
+    animated.forEach((item) => {
+      const animation = item.animation!;
+      lines.push(
+        `- **${escapePipes(item.label)}** — ${animation.kind} on ${animation.trigger}, ${animation.duration}ms${
+          animation.delay ? `, ${animation.delay}ms delay` : ''
+        }, ${animation.easing}${animation.repeat !== 'once' ? `, ${animation.repeat}` : ''}.`
+      );
+    });
+  } else {
+    lines.push('- No element animations specified.');
+  }
+  pages
+    .filter((page) => page.transition && page.transition !== 'none')
+    .forEach((page) =>
+      lines.push(
+        `- **Page ${escapePipes(page.name)}** — ${page.transition}, ${page.transitionDuration ?? 350}ms.`
+      )
+    );
+  lines.push('- Respect prefers-reduced-motion.', '');
+
 
   if (images.length) {
     lines.push('## 4. Images (embedded)', '');

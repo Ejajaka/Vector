@@ -44,8 +44,10 @@ import {
   X,
 } from 'lucide-react';
 import {
+  ANIMATION_PRESETS,
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
+  DEFAULT_ANIMATION,
   buildPagesPrompt,
   emptyCanvas,
   itemsFromTemplate,
@@ -55,6 +57,7 @@ import {
   FONT_STACKS,
   type CanvasItem,
   type CanvasPage,
+  type ElementAnimation,
 } from '../data/canvas.ts';
 import { VARIANTS, variantById, type StyleVariant } from '../data/styles.ts';
 import { DEVICE_GROUPS, describeSize } from '../data/devices.ts';
@@ -167,6 +170,22 @@ const Tile: React.FC<{ variant: StyleVariant; size?: number }> = ({ variant }) =
   </div>
 );
 
+const ANIMATION_EASING: Record<ElementAnimation['easing'], string> = {
+  ease: 'ease',
+  'ease-in': 'ease-in',
+  'ease-out': 'ease-out',
+  'ease-in-out': 'ease-in-out',
+  linear: 'linear',
+  spring: 'cubic-bezier(.34, 1.56, .64, 1)',
+};
+
+const ANIMATION_TRIGGERS: Array<{ id: ElementAnimation['trigger']; label: string }> = [
+  { id: 'load', label: 'On load' },
+  { id: 'hover', label: 'On hover' },
+  { id: 'click', label: 'On click' },
+  { id: 'in-view', label: 'In view' },
+];
+
 const Section: React.FC<{ title: string; children?: React.ReactNode; action?: React.ReactNode; defaultOpen?: boolean }> = ({
   title,
   children,
@@ -256,6 +275,9 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   const [query, setQuery] = useState('');
   const [zoom, setZoom] = useState(0.72);
   const [preview, setPreview] = useState(false);
+  const [previewTick, setPreviewTick] = useState(0);
+  const [playAllTick, setPlayAllTick] = useState(0);
+  const [itemTicks, setItemTicks] = useState<Record<string, number>>({});
   const [base44, setBase44] = useState(false);
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -304,6 +326,22 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   const pageWidth = activePage?.width || CANVAS_WIDTH;
   const pageHeight = activePage?.height || CANVAS_HEIGHT;
   const pageIsDark = isDarkColour(pageBg);
+
+  const playItem = (id: string) =>
+    setItemTicks((previous) => ({ ...previous, [id]: (previous[id] || 0) + 1 }));
+  const playAll = () => setPlayAllTick((value) => value + 1);
+
+  useEffect(() => {
+    setPreviewTick(0);
+    setPlayAllTick(0);
+    setItemTicks({});
+  }, [preview, activePageId]);
+
+  useEffect(() => {
+    if (!preview) return;
+    const timer = window.setTimeout(() => setPreviewTick((value) => value + 1), 80);
+    return () => window.clearTimeout(timer);
+  }, [preview, activePageId]);
 
   useEffect(() => {
     if (!activePageId && pages[0]) setActivePageId(pages[0].id);
@@ -1327,6 +1365,10 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                 transform: `scale(${zoom})`,
                 transformOrigin: 'top left',
                 backgroundColor: pageBg,
+                animationDuration:
+                  preview && activePage.transition && activePage.transition !== 'none'
+                    ? `${activePage.transitionDuration ?? 350}ms`
+                    : undefined,
               }}
               className={`relative shadow-[0_0_0_1px_rgba(255,255,255,.08),0_24px_60px_-20px_rgba(0,0,0,.8)] ${
                 preview ? `v-page-${activePage.transition || 'none'}` : ''
@@ -1353,12 +1395,37 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                 const variant = variantById(item.variant || '') || VARIANTS[0];
                 const editing = editingId === item.id;
                 const isSelected = selectedId === item.id && !preview;
+
+                const animation = item.animation;
+                const autoPlay =
+                  preview && (animation?.trigger === 'load' || animation?.trigger === 'in-view');
+                const tick =
+                  (autoPlay ? previewTick : 0) + (itemTicks[item.id] || 0) + playAllTick;
+                const shouldAnimate = Boolean(animation && tick > 0 && !editing);
+                const animationClass = shouldAnimate ? `v-anim v-anim-${animation!.kind}` : '';
+                const animationStyle = shouldAnimate
+                  ? ({
+                      '--v-anim-duration': `${animation!.duration}ms`,
+                      '--v-anim-delay': `${animation!.delay}ms`,
+                      '--v-anim-ease': ANIMATION_EASING[animation!.easing],
+                      '--v-anim-distance': `${animation!.distance}px`,
+                      animationIterationCount: animation!.repeat === 'once' ? 1 : 'infinite',
+                      animationDirection:
+                        animation!.repeat === 'ping-pong' ? 'alternate' : 'normal',
+                    } as React.CSSProperties)
+                  : undefined;
+                const animationKey = `${item.id}-${tick}-${animation?.kind || 'none'}`;
+
                 return (
                   <div
                     key={item.id}
                     onMouseDown={(event) => startDrag(event, item, 'move')}
+                    onMouseEnter={() => {
+                      if (preview && item.animation?.trigger === 'hover') playItem(item.id);
+                    }}
                     onClick={(event) => {
                       event.stopPropagation();
+                      if (preview && item.animation?.trigger === 'click') playItem(item.id);
                       if (preview && item.linkToPageId) {
                         setActivePageId(item.linkToPageId);
                         return;
@@ -1411,23 +1478,29 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                         className="w-full h-full block"
                       />
                     ) : (
-                      <StyledElement
-                        style={variant.style}
-                        label={item.label}
-                        color={item.color}
-                        src={item.src}
-                        fontSize={item.fontSize}
-                        fontWeight={item.fontWeight}
-                        align={item.align}
-                        fill={item.fill}
-                        strokeColor={item.strokeColor}
-                        strokeWidth={item.strokeWidth}
-                        radius={item.radius}
-                        fontFamily={item.fontFamily}
-                        italic={item.italic}
-                        underline={item.underline}
-                        tracking={item.tracking}
-                      />
+                      <div
+                        key={animationKey}
+                        className={`h-full w-full ${animationClass}`}
+                        style={animationStyle}
+                      >
+                        <StyledElement
+                          style={variant.style}
+                          label={item.label}
+                          color={item.color}
+                          src={item.src}
+                          fontSize={item.fontSize}
+                          fontWeight={item.fontWeight}
+                          align={item.align}
+                          fill={item.fill}
+                          strokeColor={item.strokeColor}
+                          strokeWidth={item.strokeWidth}
+                          radius={item.radius}
+                          fontFamily={item.fontFamily}
+                          italic={item.italic}
+                          underline={item.underline}
+                          tracking={item.tracking}
+                        />
+                      </div>
                     )}
 
                     {isSelected && !editing && (
@@ -1608,6 +1681,31 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                     </button>
                   ))}
                 </div>
+                {(activePage.transition || 'none') !== 'none' && (
+                  <label className="flex items-center gap-2">
+                    <span className="w-14 text-[10.5px] text-white/45">Duration</span>
+                    <input
+                      type="range"
+                      min={150}
+                      max={1200}
+                      step={50}
+                      value={activePage.transitionDuration ?? 350}
+                      onChange={(event) =>
+                        setPages((prev) =>
+                          prev.map((page) =>
+                            page.id === activePage.id
+                              ? { ...page, transitionDuration: Number(event.target.value) }
+                              : page
+                          )
+                        )
+                      }
+                      className="flex-1 accent-[#0D99FF]"
+                    />
+                    <span className="w-10 text-right text-[10px] text-white/55">
+                      {activePage.transitionDuration ?? 350}ms
+                    </span>
+                  </label>
+                )}
                 <p className="text-[9.5px] leading-relaxed text-white/35">
                   Applied when a click lands on this page in Preview. Press ▶ in the top bar to try it.
                 </p>
@@ -1640,6 +1738,237 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                 ) : (
                   <p className="text-[10.5px] leading-relaxed text-white/45">
                     Select an element on the canvas to give it a click target.
+                  </p>
+                )}
+              </Section>
+
+              <Section
+                title="Animation"
+                action={
+                  <button
+                    type="button"
+                    onClick={playAll}
+                    className="flex h-6 items-center gap-1 rounded bg-[#383838] px-2 text-[9.5px] font-semibold text-white/70 hover:bg-white/15"
+                  >
+                    <Play className="w-2.5 h-2.5" /> Play all
+                  </button>
+                }
+              >
+                {selected ? (
+                  <>
+                    <div className="grid grid-cols-3 gap-1">
+                      <button
+                        type="button"
+                        onClick={() => update(selected.id, { animation: undefined })}
+                        className={`h-7 rounded text-[10px] font-semibold ${
+                          !selected.animation
+                            ? 'bg-[#0D99FF] text-white'
+                            : 'bg-[#383838] text-white/65'
+                        }`}
+                      >
+                        None
+                      </button>
+                      {ANIMATION_PRESETS.map((preset) => (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          title={preset.hint}
+                          onClick={() => {
+                            const current = selected.animation;
+                            update(selected.id, {
+                              animation: current
+                                ? { ...current, kind: preset.id }
+                                : DEFAULT_ANIMATION(preset.id),
+                            });
+                            playItem(selected.id);
+                          }}
+                          className={`h-7 rounded text-[10px] font-semibold ${
+                            selected.animation?.kind === preset.id
+                              ? 'bg-[#0D99FF] text-white'
+                              : 'bg-[#383838] text-white/65'
+                          }`}
+                        >
+                          {preset.name}
+                        </button>
+                      ))}
+                    </div>
+
+                    {selected.animation && (
+                      <>
+                        <div>
+                          <p className="mb-1 text-[10px] text-white/45">Trigger</p>
+                          <div className="grid grid-cols-2 gap-1">
+                            {ANIMATION_TRIGGERS.map((trigger) => (
+                              <button
+                                key={trigger.id}
+                                type="button"
+                                onClick={() =>
+                                  update(selected.id, {
+                                    animation: {
+                                      ...selected.animation!,
+                                      trigger: trigger.id,
+                                    },
+                                  })
+                                }
+                                className={`h-7 rounded text-[10px] font-semibold ${
+                                  selected.animation!.trigger === trigger.id
+                                    ? 'bg-[#0D99FF] text-white'
+                                    : 'bg-[#383838] text-white/65'
+                                }`}
+                              >
+                                {trigger.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <label className="flex items-center gap-2">
+                          <span className="w-14 text-[10.5px] text-white/45">Duration</span>
+                          <input
+                            type="range"
+                            min={100}
+                            max={2000}
+                            step={50}
+                            value={selected.animation.duration}
+                            onChange={(event) =>
+                              update(selected.id, {
+                                animation: {
+                                  ...selected.animation!,
+                                  duration: Number(event.target.value),
+                                },
+                              })
+                            }
+                            className="flex-1 accent-[#0D99FF]"
+                          />
+                          <span className="w-10 text-right text-[10px] text-white/55">
+                            {selected.animation.duration}ms
+                          </span>
+                        </label>
+
+                        <label className="flex items-center gap-2">
+                          <span className="w-14 text-[10.5px] text-white/45">Delay</span>
+                          <input
+                            type="range"
+                            min={0}
+                            max={2000}
+                            step={50}
+                            value={selected.animation.delay}
+                            onChange={(event) =>
+                              update(selected.id, {
+                                animation: {
+                                  ...selected.animation!,
+                                  delay: Number(event.target.value),
+                                },
+                              })
+                            }
+                            className="flex-1 accent-[#0D99FF]"
+                          />
+                          <span className="w-10 text-right text-[10px] text-white/55">
+                            {selected.animation.delay}ms
+                          </span>
+                        </label>
+
+                        <label className="flex items-center gap-2">
+                          <span className="w-14 text-[10.5px] text-white/45">Easing</span>
+                          <select
+                            value={selected.animation.easing}
+                            onChange={(event) =>
+                              update(selected.id, {
+                                animation: {
+                                  ...selected.animation!,
+                                  easing: event.target.value as ElementAnimation['easing'],
+                                },
+                              })
+                            }
+                            className="h-7 flex-1 rounded bg-[#383838] px-2 text-[10.5px] text-white outline-none"
+                          >
+                            <option value="ease-out">Ease out</option>
+                            <option value="ease">Ease</option>
+                            <option value="ease-in">Ease in</option>
+                            <option value="ease-in-out">Ease in out</option>
+                            <option value="linear">Linear</option>
+                            <option value="spring">Spring</option>
+                          </select>
+                        </label>
+
+                        {[
+                          'slide-up',
+                          'slide-down',
+                          'slide-left',
+                          'slide-right',
+                          'bounce',
+                          'float',
+                        ].includes(selected.animation.kind) && (
+                          <label className="flex items-center gap-2">
+                            <span className="w-14 text-[10.5px] text-white/45">Distance</span>
+                            <input
+                              type="range"
+                              min={8}
+                              max={160}
+                              step={4}
+                              value={selected.animation.distance}
+                              onChange={(event) =>
+                                update(selected.id, {
+                                  animation: {
+                                    ...selected.animation!,
+                                    distance: Number(event.target.value),
+                                  },
+                                })
+                              }
+                              className="flex-1 accent-[#0D99FF]"
+                            />
+                            <span className="w-10 text-right text-[10px] text-white/55">
+                              {selected.animation.distance}px
+                            </span>
+                          </label>
+                        )}
+
+                        <label className="flex items-center gap-2">
+                          <span className="w-14 text-[10.5px] text-white/45">Repeat</span>
+                          <select
+                            value={selected.animation.repeat}
+                            onChange={(event) =>
+                              update(selected.id, {
+                                animation: {
+                                  ...selected.animation!,
+                                  repeat: event.target.value as ElementAnimation['repeat'],
+                                },
+                              })
+                            }
+                            className="h-7 flex-1 rounded bg-[#383838] px-2 text-[10.5px] text-white outline-none"
+                          >
+                            <option value="once">Once</option>
+                            <option value="loop">Loop</option>
+                            <option value="ping-pong">Ping-pong</option>
+                          </select>
+                        </label>
+
+                        <div className="flex gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => playItem(selected.id)}
+                            className="flex h-7 flex-1 items-center justify-center gap-1 rounded bg-[#0D99FF] text-[10.5px] font-semibold text-white"
+                          >
+                            <Play className="w-3 h-3" /> Play
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => update(selected.id, { animation: undefined })}
+                            className="h-7 px-2 rounded border border-white/10 text-[10.5px] text-white/60 hover:bg-white/10"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                        <p className="text-[9.5px] leading-relaxed text-white/35">
+                          Hover/click triggers replay in Preview. “In view” plays when the page
+                          appears. Reduced-motion is respected.
+                        </p>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-[10.5px] leading-relaxed text-white/45">
+                    Select an element to add an entrance or attention animation.
                   </p>
                 )}
               </Section>

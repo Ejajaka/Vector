@@ -293,3 +293,100 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .v-page-fade, .v-page-dissolve, .v-page-slide, .v-page-push { animation: none !important; }
 }
+
+/* Prototype element animations */
+.v-anim {
+  animation-duration: var(--v-anim-duration, 600ms);
+  animation-delay: var(--v-anim-delay, 0ms);
+  animation-timing-function: var(--v-anim-ease, ease-out);
+  animation-fill-mode: both;
+  will-change: opacity, transform, filter, clip-path;
+}
+
+.v-anim-fade { animation-name: v-el-fade; }
+.v-anim-slide-up { animation-name: v-el-slide-up; }
+.v-anim-slide-down { animation-name: v-el-slide-down; }
+.v-anim-slide-left { animation-name: v-el-slide-left; }
+.v-anim-slide-right { animation-name: v-el-slide-right; }
+.v-anim-zoom-in { animation-name: v-el-zoom-in; }
+.v-anim-zoom-out { animation-name: v-el-zoom-out; }
+.v-anim-rotate { animation-name: v-el-rotate; }
+.v-anim-blur { animation-name: v-el-blur; }
+.v-anim-bounce { animation-name: v-el-bounce; }
+.v-anim-pulse { animation-name: v-el-pulse; }
+.v-anim-float { animation-name: v-el-float; }
+.v-anim-wipe { animation-name: v-el-wipe; }
+
+@keyframes v-el-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes v-el-slide-up {
+  from { opacity: 0; transform: translateY(var(--v-anim-distance, 24px)); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes v-el-slide-down {
+  from { opacity: 0; transform: translateY(calc(var(--v-anim-distance, 24px) * -1)); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes v-el-slide-left {
+  from { opacity: 0; transform: translateX(var(--v-anim-distance, 24px)); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes v-el-slide-right {
+  from { opacity: 0; transform: translateX(calc(var(--v-anim-distance, 24px) * -1)); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes v-el-zoom-in {
+  from { opacity: 0; transform: scale(.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes v-el-zoom-out {
+  from { opacity: 0; transform: scale(1.08); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes v-el-rotate {
+  from { opacity: 0; transform: rotate(-8deg) scale(.98); }
+  to { opacity: 1; transform: rotate(0) scale(1); }
+}
+
+@keyframes v-el-blur {
+  from { opacity: 0; filter: blur(10px); }
+  to { opacity: 1; filter: blur(0); }
+}
+
+@keyframes v-el-bounce {
+  0% { opacity: 0; transform: translateY(calc(var(--v-anim-distance, 24px) * -1)); }
+  40% { opacity: 1; transform: translateY(0); }
+  60% { transform: translateY(calc(var(--v-anim-distance, 24px) * -.35)); }
+  80% { transform: translateY(0); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes v-el-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+@keyframes v-el-float {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(calc(var(--v-anim-distance, 24px) * -.35)); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes v-el-wipe {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v-anim { animation: none !important; }
+}

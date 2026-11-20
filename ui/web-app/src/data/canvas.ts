@@ -16,6 +16,73 @@ export type CanvasItemType =
   | 'footer'
   | 'modal';
 
+export type AnimationTrigger = 'load' | 'hover' | 'click' | 'in-view';
+
+export type AnimationKind =
+  | 'fade'
+  | 'slide-up'
+  | 'slide-down'
+  | 'slide-left'
+  | 'slide-right'
+  | 'zoom-in'
+  | 'zoom-out'
+  | 'rotate'
+  | 'blur'
+  | 'bounce'
+  | 'pulse'
+  | 'float'
+  | 'wipe';
+
+export type AnimationEasing =
+  | 'ease'
+  | 'ease-in'
+  | 'ease-out'
+  | 'ease-in-out'
+  | 'linear'
+  | 'spring';
+
+export type AnimationRepeat = 'once' | 'loop' | 'ping-pong';
+
+export interface ElementAnimation {
+  kind: AnimationKind;
+  trigger: AnimationTrigger;
+  duration: number;
+  delay: number;
+  easing: AnimationEasing;
+  distance: number;
+  repeat: AnimationRepeat;
+}
+
+export const DEFAULT_ANIMATION = (kind: AnimationKind = 'fade'): ElementAnimation => ({
+  kind,
+  trigger: 'load',
+  duration: 600,
+  delay: 0,
+  easing: 'ease-out',
+  distance: 24,
+  repeat: 'once',
+});
+
+export const ANIMATION_PRESETS: Array<{
+  id: AnimationKind;
+  name: string;
+  hint: string;
+}> = [
+  { id: 'fade', name: 'Fade', hint: 'Soft appear' },
+  { id: 'slide-up', name: 'Rise', hint: 'Slide up' },
+  { id: 'slide-down', name: 'Drop', hint: 'Slide down' },
+  { id: 'slide-left', name: 'Left', hint: 'Slide left' },
+  { id: 'slide-right', name: 'Right', hint: 'Slide right' },
+  { id: 'zoom-in', name: 'Zoom', hint: 'Scale in' },
+  { id: 'zoom-out', name: 'Shrink', hint: 'Scale out' },
+  { id: 'rotate', name: 'Tilt', hint: 'Rotate in' },
+  { id: 'blur', name: 'Focus', hint: 'Blur in' },
+  { id: 'bounce', name: 'Bounce', hint: 'Drop bounce' },
+  { id: 'pulse', name: 'Pulse', hint: 'Attention' },
+  { id: 'float', name: 'Float', hint: 'Idle drift' },
+  { id: 'wipe', name: 'Wipe', hint: 'Reveal' },
+];
+
 export interface CanvasItem {
   id: string;
   type: CanvasItemType;
@@ -54,6 +121,8 @@ export interface CanvasItem {
   tracking?: number;
   /** Prototype: jump to this page when clicked in preview. */
   linkToPageId?: string;
+  /** Prototype: entrance/attention animation. */
+  animation?: ElementAnimation;
 }
 
 export interface CanvasPage {
@@ -67,6 +136,8 @@ export interface CanvasPage {
   height?: number;
   /** Transition used when a prototype link lands on this page. */
   transition?: 'none' | 'fade' | 'slide' | 'push' | 'dissolve';
+  /** Page-transition duration in ms. Defaults to 350. */
+  transitionDuration?: number;
 }
 
 export const FONT_STACKS: Record<string, string> = {
@@ -355,6 +426,14 @@ export function buildPagesPrompt(name: string, pages: CanvasPage[]): string {
     if (item.type === 'text' && item.fontSize) bits.push(`font size ${item.fontSize}px`);
     if (item.type === 'text' && item.align) bits.push(`${item.align}-aligned`);
     if (item.src) bits.push('using the supplied image');
+    if (item.animation) {
+      const motion = item.animation;
+      bits.push(
+        `animated with ${motion.kind} on ${motion.trigger}, ${motion.duration}ms${
+          motion.delay ? ` after ${motion.delay}ms` : ''
+        }, ${motion.easing}${motion.repeat !== 'once' ? `, ${motion.repeat}` : ''}`
+      );
+    }
     return bits.join(', ') + '.';
   };
 
@@ -363,9 +442,31 @@ export function buildPagesPrompt(name: string, pages: CanvasPage[]): string {
       if (page.items.length === 0) return '';
       const lines = page.items.map((item, index) => `  ${index + 1}. ${describe(item)}`);
       const background = page.background || '#FFFFFF';
-      return [`PAGE ${pageIndex + 1} — “${page.name}” (background ${background})`, ...lines].join('\n');
+      const transition =
+        page.transition && page.transition !== 'none'
+          ? `, transition ${page.transition} ${page.transitionDuration ?? 350}ms`
+          : '';
+      return [
+        `PAGE ${pageIndex + 1} - "${page.name}" (background ${background}${transition})`,
+        ...lines,
+      ].join('\n');
     })
     .filter(Boolean);
+
+  const motion = allItems
+    .filter((item) => item.animation)
+    .map((item) => {
+      const animation = item.animation!;
+      return `- "${item.label}": ${animation.kind} on ${animation.trigger}, ${animation.duration}ms${
+        animation.delay ? ` delay ${animation.delay}ms` : ''
+      }, ${animation.easing}${animation.repeat !== 'once' ? `, ${animation.repeat}` : ''}.`;
+    });
+  const pageTransitions = pages
+    .filter((page) => page.transition && page.transition !== 'none')
+    .map(
+      (page) =>
+        `- ${page.name}: ${page.transition} over ${page.transitionDuration ?? 350}ms.`
+    );
 
   return [
     `Build a “${name}” product as a responsive web application with ${pages.length} page${pages.length === 1 ? '' : 's'}.`,
@@ -377,6 +478,12 @@ export function buildPagesPrompt(name: string, pages: CanvasPage[]): string {
     pages.length > 1
       ? `Link the pages in this order: ${pages.map((page) => page.name).join(' → ')}. The active page is highlighted in the navigation.`
       : 'Single page — the primary call to action is the only navigation target.',
+    '',
+    'MOTION',
+    ...(motion.length ? motion : ['- No element animations specified.']),
+    ...(pageTransitions.length ? pageTransitions : ['- No page transitions specified.']),
+    '- Respect prefers-reduced-motion: disable non-essential motion for those users.',
+    '- Use only the motion described above; do not add extra loops or attention effects.',
     '',
     'DESIGN SYSTEM',
     `- Accent colours in use: ${colours.length ? colours.join(', ') : 'violet #7C5CFF with a neutral grey scale'}.`,
