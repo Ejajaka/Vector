@@ -1,0 +1,8 @@
+.git
+ui/web-app/node_modules
+ui/web-app/dist
+ui/web-app/public/models
+demo
+template-library
+results
+router_data

@@ -6,15 +6,23 @@ import {
   ChevronRight,
   CircleDot,
   Layers,
+  LogIn,
   MessageSquareText,
   ScanSearch,
   Sparkles,
+  UserPlus,
   Wand2,
 } from 'lucide-react';
 
 interface AboutPageProps {
   onStartAnalysis: () => void;
   onOpenTemplates?: () => void;
+  auth?: {
+    configured: boolean;
+    onLogin: () => void;
+    onRegister: () => void;
+    onContinueLocal?: () => void;
+  };
 }
 
 const STEPS = [
@@ -59,7 +67,7 @@ const FINDINGS = [
   ['Unlinked state', 'The password field has no error or disabled state.', 'Low'],
 ];
 
-export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis, onOpenTemplates }) => {
+export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis, onOpenTemplates, auth }) => {
   const scrollToWorkflow = () => {
     document.getElementById('workflow-section')?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -94,26 +102,67 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis, onOpenTem
           </p>
 
           <div className="mt-7 flex flex-wrap items-center justify-start gap-2">
-            <button
-              type="button"
-              onClick={onStartAnalysis}
-              className="v-btn v-btn-primary h-9 rounded-full px-4 text-[13px]"
-            >
-              Analyse a prompt <ArrowRight className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={onOpenTemplates ?? scrollToWorkflow}
-              className="v-btn v-btn-ghost h-9 rounded-full px-4 text-[13px]"
-            >
-              Browse templates <ChevronRight className="h-3.5 w-3.5" />
-            </button>
+            {auth ? (
+              <>
+                <button
+                  type="button"
+                  onClick={auth.onLogin}
+                  className="v-btn v-btn-primary h-10 rounded-full px-5 text-[13px]"
+                >
+                  <LogIn className="h-3.5 w-3.5" /> Log in
+                </button>
+                <button
+                  type="button"
+                  onClick={auth.onRegister}
+                  className="v-btn v-btn-ghost h-10 rounded-full px-5 text-[13px]"
+                >
+                  <UserPlus className="h-3.5 w-3.5" /> Create an account
+                </button>
+                <button
+                  type="button"
+                  onClick={scrollToWorkflow}
+                  className="inline-flex h-10 items-center gap-1 px-2 text-[12px] font-medium text-[var(--v-muted)] transition-colors hover:text-[var(--v-ink)]"
+                >
+                  See how it works <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={onStartAnalysis}
+                  className="v-btn v-btn-primary h-9 rounded-full px-4 text-[13px]"
+                >
+                  Analyse a prompt <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={onOpenTemplates ?? scrollToWorkflow}
+                  className="v-btn v-btn-ghost h-9 rounded-full px-4 text-[13px]"
+                >
+                  Browse templates <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+              </>
+            )}
           </div>
 
+          {auth && !auth.configured && auth.onContinueLocal && (
+            <button
+              type="button"
+              onClick={auth.onContinueLocal}
+              className="mt-3 inline-flex items-center gap-1 text-[12px] font-medium text-[var(--v-muted)] transition-colors hover:text-[var(--v-ink)]"
+            >
+              Continue in local mode without an account <ArrowRight className="h-3 w-3" />
+            </button>
+          )}
+
           <div className="mt-5 flex flex-wrap items-center justify-start gap-x-4 gap-y-2 text-[11.5px] text-[var(--v-faint)]">
-            {['Runs in your browser', 'No account needed to try', 'Grounded in your wording'].map((item) => (
+            {(auth
+              ? ['Two projects free, no card required', 'Requirements, review and prompts in one place', 'Runs in your browser']
+              : ['Runs in your browser', 'No account needed to try', 'Grounded in your wording']
+            ).map((item) => (
               <span key={item} className="inline-flex items-center gap-1.5">
-                <Check className="h-3 w-3 text-[var(--v-success)]" />
+                <Check className="h-3 w-3 text-[var(--v-accent-hover)]" />
                 {item}
               </span>
             ))}
@@ -137,7 +186,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis, onOpenTem
                 vector — checkout-review
               </span>
               <span className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-[var(--v-line)] px-2 py-0.5 text-[10px] text-[var(--v-muted)]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[var(--v-success)]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--v-accent-hover)]" />
                 Local
               </span>
             </div>
@@ -223,8 +272,8 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis, onOpenTem
                   </div>
                 </div>
 
-                <div className="mt-3 rounded-lg border border-[var(--v-success)]/25 bg-[var(--v-success-soft)] p-2.5">
-                  <p className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--v-success)]">
+                <div className="mt-3 rounded-lg border border-[var(--v-accent-hover)]/25 bg-[var(--v-accent-soft)] p-2.5">
+                  <p className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--v-accent-hover)]">
                     Improved prompt
                   </p>
                   <p className="mt-1 font-mono text-[10.5px] leading-relaxed text-[var(--v-ink)]">
@@ -342,8 +391,8 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis, onOpenTem
                     ))}
                   </ul>
                 </div>
-                <div className="rounded-lg border border-[var(--v-success)]/25 bg-[var(--v-success-soft)] p-3">
-                  <p className="text-[10px] uppercase tracking-[0.06em] text-[var(--v-success)]">Output</p>
+                <div className="rounded-lg border border-[var(--v-accent-hover)]/25 bg-[var(--v-accent-soft)] p-3">
+                  <p className="text-[10px] uppercase tracking-[0.06em] text-[var(--v-accent-hover)]">Output</p>
                   <p className="mt-1.5 font-mono text-[11px] leading-relaxed text-[var(--v-ink)]">
                     Add a red button in the &lt;location&gt; labelled “Sign Up” that &lt;what it does&gt;.
                   </p>
@@ -380,20 +429,41 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis, onOpenTem
               guesses left in it.
             </p>
             <div className="mt-7 flex flex-wrap items-center justify-start gap-2">
-              <button
-                type="button"
-                onClick={onStartAnalysis}
-                className="v-btn h-9 rounded-full border-transparent bg-[#e5e5e6] px-4 text-[13px] font-medium text-[#08090a] hover:bg-[#ffffff]"
-              >
-                Analyse a prompt <ArrowRight className="h-3.5 w-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={onOpenTemplates ?? scrollToWorkflow}
-                className="v-btn h-9 rounded-full border border-white/15 bg-white/[0.04] px-4 text-[13px] text-white hover:bg-white/[0.08]"
-              >
-                <Layers className="h-3.5 w-3.5" /> Start from a template
-              </button>
+              {auth ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={auth.onLogin}
+                    className="v-btn h-9 rounded-full border-transparent bg-[#e5e5e6] px-4 text-[13px] font-medium text-[#08090a] hover:bg-[#ffffff]"
+                  >
+                    <LogIn className="h-3.5 w-3.5" /> Log in
+                  </button>
+                  <button
+                    type="button"
+                    onClick={auth.onRegister}
+                    className="v-btn h-9 rounded-full border border-white/15 bg-white/[0.04] px-4 text-[13px] text-white hover:bg-white/[0.08]"
+                  >
+                    <UserPlus className="h-3.5 w-3.5" /> Create an account
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={onStartAnalysis}
+                    className="v-btn h-9 rounded-full border-transparent bg-[#e5e5e6] px-4 text-[13px] font-medium text-[#08090a] hover:bg-[#ffffff]"
+                  >
+                    Analyse a prompt <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onOpenTemplates ?? scrollToWorkflow}
+                    className="v-btn h-9 rounded-full border border-white/15 bg-white/[0.04] px-4 text-[13px] text-white hover:bg-white/[0.08]"
+                  >
+                    <Layers className="h-3.5 w-3.5" /> Start from a template
+                  </button>
+                </>
+              )}
             </div>
           </div>
           <div className="v-orb -bottom-28 -right-10 h-[300px] w-[300px] bg-[#7170ff]/40" aria-hidden="true" />
