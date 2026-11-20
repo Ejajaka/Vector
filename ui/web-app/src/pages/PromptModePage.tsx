@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
-  AlertCircle, ArrowLeft, ArrowRight, Check, Copy, Cpu, Layers, Loader2, Sparkles, Undo2,
+  AlertCircle, ArrowLeft, ArrowRight, Check, Copy, Cpu, Layers, Loader2, Plus, Sparkles, Undo2,
 } from 'lucide-react';
 import {
   REQUIRED_ATTRS,
@@ -125,6 +125,7 @@ function placementOf(element: CompiledElement, boardWidth: number): string {
 }
 
 export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCanvas, onGenerate }) => {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [text, setText] = useState('');
   const [submitted, setSubmitted] = useState('');
   const [activeId, setActiveId] = useState('screen_1');
@@ -307,6 +308,26 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
     return found.slice(0, 4);
   }, [submitted, merged, compiled.meta, issues, screens.length, totalOpen]);
 
+  /**
+   * Append a new screen block. The marker keeps the source readable and gives
+   * the page a name; the user only has to write the components underneath.
+   */
+  const addScreen = () => {
+    const separators = (text.match(/^-{3,}\s*$/gm) || []).length;
+    const named = (text.match(/^(?:#{1,6}\s*)?(?:screen|page|view|step)\s*\d*/gim) || []).length;
+    const hasContent = text.trim().length > 0;
+    const existingPages = Math.max(separators, named) || (hasContent ? 1 : 0);
+    const next = existingPages + 1;
+    const prefix = hasContent ? `${text.trimEnd()}\n\n` : '';
+    setText(`${prefix}---\nScreen ${next}: `);
+    requestAnimationFrame(() => {
+      const field = textareaRef.current;
+      if (!field) return;
+      field.focus();
+      field.setSelectionRange(field.value.length, field.value.length);
+    });
+  };
+
   const analyse = () => {
     const next = compilePromptScreens(text);
     const baselines: Record<string, number> = {};
@@ -424,16 +445,28 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
           <label className="block">
             <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--v-muted)]">Describe the screen</span>
             <textarea
+              ref={textareaRef}
               value={text}
               onChange={(event) => setText(event.target.value)}
               rows={6}
               placeholder={'Login page with a blue button saying "Continue", email and password fields, and a logo at the top.'}
               className="mt-1.5 w-full resize-none rounded-xl border border-[var(--v-line)] bg-[var(--v-surface)] px-3 py-2.5 text-[12.5px] leading-relaxed text-[var(--v-ink)] outline-none focus:border-[var(--v-violet)]"
             />
-            <span className="mt-1 block text-[9.5px] text-[var(--v-faint)]">
-              Add pages with <code className="font-semibold">---</code> or <code className="font-semibold">Screen 2: Dashboard</code>. Ordinary headings like “Hero” stay sections of one page.
-            </span>
           </label>
+
+          <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+            <span className="text-[9.5px] text-[var(--v-faint)]">
+              Pages split on <code className="font-semibold">---</code> or{' '}
+              <code className="font-semibold">Screen 2: Dashboard</code>. Name the screen, press Enter, then describe it.
+            </span>
+            <button
+              type="button"
+              onClick={addScreen}
+              className="flex h-6 items-center gap-1 rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] px-2 text-[9.5px] font-bold text-[var(--v-muted)] hover:border-[var(--v-violet)] hover:text-[var(--v-violet)]"
+            >
+              <Plus className="h-3 w-3" /> Add screen
+            </button>
+          </div>
 
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <button type="button" onClick={analyse} className="v-btn v-btn-primary h-9 px-4 text-[11.5px]">

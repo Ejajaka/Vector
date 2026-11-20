@@ -1405,7 +1405,9 @@ export function compilePromptScreens(prompt: string): PromptScreen[] {
   const lines = prompt.split(/\r?\n/);
   const markers = lines.filter((line) => isScreenMarker(line)).length;
 
-  if (markers < 2) {
+  // One separator is enough: "page one --- page two" is two pages. A single
+  // marker at the top is just a page title and yields one page after filtering.
+  if (markers === 0) {
     const compiled = compilePrompt(prompt);
     const name = blockName(prompt, compiled.archetype) || 'Screen 1';
     return [{ ...compiled, id: 'screen_1', name }];
