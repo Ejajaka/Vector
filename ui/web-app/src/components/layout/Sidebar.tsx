@@ -389,7 +389,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
             })}
           </div>
 
-          <button type="button" onClick={() => go('pricing')} className="mt-4 w-full v-btn v-btn-primary">
+          <div className="mt-3 rounded-xl border border-[var(--v-line)] bg-[var(--v-surface-2)] p-2.5">
+            <p className="px-1 text-[9.5px] font-bold uppercase tracking-[0.14em] text-[var(--v-muted)]">
+              Starter hub
+            </p>
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent('vector:open-plan-hub', { detail: 'included' }))}
+              className="mt-1 w-full rounded-lg px-1.5 py-1.5 text-left text-[11px] font-semibold text-[var(--v-muted)] hover:bg-[var(--v-surface)] hover:text-[var(--v-ink)]"
+            >
+              See what's included
+            </button>
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent('vector:open-plan-hub', { detail: 'usage' }))}
+              className="w-full rounded-lg px-1.5 py-1.5 text-left text-[11px] font-semibold text-[var(--v-muted)] hover:bg-[var(--v-surface)] hover:text-[var(--v-ink)]"
+            >
+              Your plan and usage
+            </button>
+          </div>
+
+          <button type="button" onClick={() => go('pricing')} className="mt-3 w-full v-btn v-btn-primary">
             <Bell className="w-4 h-4" /> {paid ? 'Manage plan' : 'Upgrade'}
           </button>
         </div>

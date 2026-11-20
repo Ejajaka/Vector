@@ -91,6 +91,12 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
     setHelpOpen(false);
   };
 
+  const openHub = (tab: 'included' | 'usage') => {
+    window.dispatchEvent(new CustomEvent('vector:open-plan-hub', { detail: tab }));
+    setOpen(false);
+    setHelpOpen(false);
+  };
+
   const Row: React.FC<{
     icon: React.ElementType;
     label: string;
@@ -191,6 +197,8 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
               trailing={activeTab === 'dashboard' ? <span className="w-1.5 h-1.5 rounded-full bg-[#49686C]" /> : null}
             />
             <Row icon={Wallet} label="Plans and pricing" onClick={() => go('pricing')} />
+            <Row icon={Sparkles} label="See what's included" onClick={() => openHub('included')} />
+            <Row icon={Lightbulb} label="Your plan and usage" onClick={() => openHub('usage')} />
             <Row icon={History} label="Purchase history" onClick={() => go('pricing')} />
             <Row
               icon={theme === 'dark' ? Globe : Palette}

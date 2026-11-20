@@ -35,6 +35,7 @@ interface ProjectsPageProps {
   onOpenIntegrations?: () => void;
   onOpenEditor?: () => void;
   onCreated?: (project: Project) => void;
+  onOpenPricing?: () => void;
 }
 
 type Tab = 'all' | 'recent' | 'shared' | 'trash';
@@ -60,6 +61,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
   onOpenIntegrations,
   onOpenEditor,
   onCreated,
+  onOpenPricing,
 }) => {
   const { localMode } = useAuth();
   const { projects, currentProject, loading, error, createProject, updateProject, deleteProject, selectProject, refresh } =
@@ -234,7 +236,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
             </p>
             <button
               type="button"
-              onClick={() => setTab('all')}
+              onClick={() => onOpenPricing?.()}
               className="mt-2 text-[10.5px] font-bold text-[var(--v-violet)] hover:underline"
             >
               {paid ? 'Manage plan' : 'See plans'}

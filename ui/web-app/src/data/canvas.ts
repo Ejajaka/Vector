@@ -98,6 +98,8 @@ export interface CanvasItem {
   color?: string;
   /** Extra prompt detail, e.g. "opens the signup modal". */
   action?: string;
+  /** Interaction comments captured from the inspector and carried into the prompt. */
+  notes?: string[];
   /** Uploaded or pasted image as a data URL. */
   src?: string;
   /** Text-only overrides. */
@@ -429,6 +431,10 @@ export function buildPagesPrompt(name: string, pages: CanvasPage[]): string {
     if (item.align) bits.push(`${item.align}-aligned`);
     if (item.italic) bits.push('italic');
     if (item.underline) bits.push('underlined');
+    if (item.action) bits.push(`on click: ${item.action.replace(/[.]+$/, '')}`);
+    if (item.notes?.length) {
+      bits.push(`comments: ${item.notes.map((note) => note.trim().replace(/[.]+$/, '')).join('; ')}`);
+    }
     if (item.src) bits.push('using the supplied image');
     if (item.animation) {
       const motion = item.animation;
@@ -471,6 +477,18 @@ export function buildPagesPrompt(name: string, pages: CanvasPage[]): string {
       (page) =>
         `- ${page.name}: ${page.transition} over ${page.transitionDuration ?? 350}ms.`
     );
+  const interactions = pages.flatMap((page) =>
+    page.items
+      .filter((item) => item.action || item.notes?.length)
+      .map((item) => {
+        const parts: string[] = [`- On "${page.name}", "${item.label || item.type}" (${item.type} at ${Math.round(item.x)},${Math.round(item.y)})`];
+        if (item.action) parts.push(`click → ${item.action.replace(/[.]+$/, '')}`);
+        if (item.notes?.length) {
+          parts.push(`notes: ${item.notes.map((note) => note.trim().replace(/[.]+$/, '')).join('; ')}`);
+        }
+        return `${parts.join('; ')}.`;
+      })
+  );
 
   return [
     `Build a “${name}” product as a responsive web application with ${pages.length} page${pages.length === 1 ? '' : 's'}.`,
@@ -482,6 +500,10 @@ export function buildPagesPrompt(name: string, pages: CanvasPage[]): string {
     pages.length > 1
       ? `Link the pages in this order: ${pages.map((page) => page.name).join(' → ')}. The active page is highlighted in the navigation.`
       : 'Single page — the primary call to action is the only navigation target.',
+    '',
+    'INTERACTIONS',
+    ...(interactions.length ? interactions : ['- No extra interactions specified.']),
+    '- Preserve the element order and placement above when writing the interaction copy.',
     '',
     'MOTION',
     ...(motion.length ? motion : ['- No element animations specified.']),

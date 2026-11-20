@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import type { ActiveTab, AnalysisResult } from './types/analysis.ts';
 import { ToastProvider } from './components/ui/Toast.tsx';
 import { ThemeProvider } from './context/ThemeContext.tsx';
@@ -36,6 +36,8 @@ import { PromptStudioPage } from './pages/PromptStudioPage.tsx';
 import { WorkspacePage } from './pages/WorkspacePage.tsx';
 import { EditorPage } from './pages/EditorPage.tsx';
 import { AssistantPanel } from './components/ai/AssistantPanel.tsx';
+import { PricingDialog } from './components/pricing/PricingDialog.tsx';
+import { PlanHubDialog, type PlanHubTab } from './components/pricing/PlanHubDialog.tsx';
 import { getAdvisorContext, setAdvisorContext } from './services/aiAdvisor.ts';
 import type { TemplateDefinition } from './data/templates.ts';
 import { canCreateProject, readEntitlements } from './services/entitlements.ts';
@@ -108,7 +110,17 @@ function writeStored(key: string, value: unknown): void {
 function AppShell() {
   const { configured, loading, user, passwordRecovery } = useAuth();
   const { projects, currentProject, selectProject, createProject, loading: projectLoading } = useProject();
+  const openPricing = useCallback(() => setPricingOpen(true), []);
+  const navigate = useCallback((tab: ActiveTab) => {
+    if (tab === 'pricing') {
+      setPricingOpen(true);
+      return;
+    }
+    setActiveTab(tab);
+  }, []);
   const [activeTab, setActiveTab] = useState<ActiveTab>('about');
+  const [pricingOpen, setPricingOpen] = useState(false);
+  const [planHubTab, setPlanHubTab] = useState<PlanHubTab | null>(null);
   const [showAuth, setShowAuth] = useState(false);
   const [pendingTab, setPendingTab] = useState<ActiveTab | null>(null);
   const [tabHydrated, setTabHydrated] = useState(false);
@@ -117,6 +129,20 @@ function AppShell() {
   const [analysisToInspect, setAnalysisToInspect] = useState<AnalysisResult | null>(null);
   const [analysisPromptSeed, setAnalysisPromptSeed] = useState<string | null>(null);
   const [tourOpen, setTourOpen] = useState(false);
+  useEffect(() => {
+    const onOpenPricing = () => setPricingOpen(true);
+    const onOpenHub = (event: Event) => {
+      const detail = (event as CustomEvent<string>).detail;
+      setPlanHubTab(detail === 'usage' ? 'usage' : 'included');
+    };
+    window.addEventListener('vector:open-pricing', onOpenPricing);
+    window.addEventListener('vector:open-plan-hub', onOpenHub);
+    return () => {
+      window.removeEventListener('vector:open-pricing', onOpenPricing);
+      window.removeEventListener('vector:open-plan-hub', onOpenHub);
+    };
+  }, []);
+
   const [editorTemplate, setEditorTemplate] = useState<TemplateDefinition | null>(
     () => readStored(EDITOR_TEMPLATE_KEY)
   );
@@ -385,7 +411,7 @@ function AppShell() {
         body: 'Pick a plan to keep creating projects. Existing work stays accessible.',
         action: { label: 'See plans', tab: 'pricing' },
       });
-      setActiveTab('pricing');
+      openPricing();
       return;
     }
 
@@ -452,14 +478,31 @@ function AppShell() {
           rightOffset={assistantInset}
           onExit={() => setActiveTab(editorOrigin)}
           onOpenAssistant={() => setAssistantOpen(true)}
-          onRequireUpgrade={() => setActiveTab('pricing')}
-          onNavigate={(tab) => setActiveTab(tab)}
+          onRequireUpgrade={openPricing}
+          onNavigate={navigate}
         />
         <AssistantPanel
           open={assistantOpen}
           onClose={() => setAssistantOpen(false)}
           context={getAdvisorContext()}
-          onRequireUpgrade={() => setActiveTab('pricing')}
+          onRequireUpgrade={openPricing}
+        />
+        <PricingDialog
+          open={pricingOpen}
+          onClose={() => setPricingOpen(false)}
+          onLearnMore={() => {
+            setPricingOpen(false);
+            setActiveTab('pricing');
+          }}
+        />
+        <PlanHubDialog
+          open={planHubTab !== null}
+          initialTab={planHubTab ?? 'included'}
+          onClose={() => setPlanHubTab(null)}
+          onSeePlans={() => {
+            setPlanHubTab(null);
+            setPricingOpen(true);
+          }}
         />
       </div>
     );
@@ -470,7 +513,7 @@ function AppShell() {
       {!showMarketingChrome && (
         <Sidebar
           activeTab={activeTab}
-          setActiveTab={setActiveTab}
+          setActiveTab={navigate}
           isCollapsed={isSidebarCollapsed}
           setIsCollapsed={setIsSidebarCollapsed}
           isMobileOpen={isMobileNavOpen}
@@ -488,7 +531,7 @@ function AppShell() {
         {!showMarketingChrome && (
           <Header
             activeTab={activeTab}
-            setActiveTab={setActiveTab}
+            setActiveTab={navigate}
             onOpenMobileMenu={() => setIsMobileNavOpen(true)}
             publicMode={publicMode}
             onRequestSignIn={() => requestAuth()}
@@ -500,7 +543,7 @@ function AppShell() {
         {showMarketingChrome && (
           <PublicHeader
             activeTab={activeTab}
-            onNavigate={setActiveTab}
+            onNavigate={navigate}
             onRequestSignIn={handleRequestSignIn}
             onOpenApp={signedIn ? () => setActiveTab('dashboard') : undefined}
           />
@@ -517,7 +560,7 @@ function AppShell() {
 
           {activeTab === 'dashboard' && (
             <DashboardPage
-              onNavigate={setActiveTab}
+              onNavigate={navigate}
               onStartNewAnalysis={handleStartNewAnalysis}
               onStartTour={handleReplayTour}
               onOpenProject={(id, name) => openProjectWorkspace(id, name)}
@@ -543,14 +586,14 @@ function AppShell() {
                 setEditorFresh(false);
                 setActiveTab('editor');
               }}
-              onNavigatePricing={() => setActiveTab('pricing')}
+              onNavigatePricing={openPricing}
             />
           )}
 
           {activeTab === 'library' && <LibraryPage />}
 
           {activeTab === 'learn' && (
-            <LearnPage onNavigate={setActiveTab} onStartTour={handleReplayTour} />
+            <LearnPage onNavigate={navigate} onStartTour={handleReplayTour} />
           )}
 
           {activeTab === 'pricing' && (
@@ -558,7 +601,7 @@ function AppShell() {
           )}
 
           {activeTab === 'integrations' && (
-            <IntegrationsPage onNavigate={setActiveTab} />
+            <IntegrationsPage onNavigate={navigate} />
           )}
 
           {activeTab === 'overview' && (
@@ -580,13 +623,14 @@ function AppShell() {
               onBack={() => setActiveTab('projects')}
               onOpenCanvas={() => enterProjectCanvas({ fresh: false })}
               onOpenAssistant={() => setAssistantOpen(true)}
-              onRequireUpgrade={() => setActiveTab('pricing')}
+              onRequireUpgrade={openPricing}
             />
           )}
 
           {activeTab === 'projects' && (
             <ProjectsPage
               onOpenProject={(project) => openProjectWorkspace(project.id, project.name, project.description)}
+              onOpenPricing={openPricing}
               onOpenSettings={() => setActiveTab('settings')}
               onBrowseTemplates={() => setActiveTab('templates')}
               onOpenIntegrations={() => setActiveTab('integrations')}
@@ -646,14 +690,14 @@ function AppShell() {
             <SettingsPage onOpenManual={() => setActiveTab('manual')} />
           )}
           {activeTab === 'privacy' && <PrivacyPage />}
-          {activeTab === 'terms' && <TermsPage onNavigate={setActiveTab} />}
-          {activeTab === 'contact' && <ContactPage onNavigate={setActiveTab} />}
+          {activeTab === 'terms' && <TermsPage onNavigate={navigate} />}
+          {activeTab === 'contact' && <ContactPage onNavigate={navigate} />}
         </main>
 
         {showMarketingChrome && (
           <PublicFooter
             activeTab={activeTab}
-            onNavigate={setActiveTab}
+            onNavigate={navigate}
           />
         )}
       </div>
@@ -663,7 +707,24 @@ function AppShell() {
         open={assistantOpen}
         onClose={() => setAssistantOpen(false)}
         context={getAdvisorContext()}
-        onRequireUpgrade={() => setActiveTab('pricing')}
+        onRequireUpgrade={openPricing}
+      />
+      <PricingDialog
+        open={pricingOpen}
+        onClose={() => setPricingOpen(false)}
+        onLearnMore={() => {
+          setPricingOpen(false);
+          setActiveTab('pricing');
+        }}
+      />
+      <PlanHubDialog
+        open={planHubTab !== null}
+        initialTab={planHubTab ?? 'included'}
+        onClose={() => setPlanHubTab(null)}
+        onSeePlans={() => {
+          setPlanHubTab(null);
+          setPricingOpen(true);
+        }}
       />
     </div>
   );

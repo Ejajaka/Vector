@@ -4,6 +4,7 @@ import {
   AlignLeft,
   AlignRight,
   ArrowLeft,
+  BarChart3,
   BookOpen,
   Check,
   ChevronDown,
@@ -36,6 +37,7 @@ import {
   Smartphone,
   Sparkles,
   Square,
+  Table2,
   Tablet,
   Trash2,
   Type,
@@ -388,6 +390,9 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   const [base44, setBase44] = useState(false);
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [noteDraft, setNoteDraft] = useState('');
+  const [previewVariant, setPreviewVariant] = useState<StyleVariant | null>(null);
+  const [reducedMotion, setReducedMotion] = useState(false);
   const [openFrameGroup, setOpenFrameGroup] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(() => {
     if (typeof window !== 'undefined' && window.innerWidth < 1000) return false;
@@ -405,6 +410,8 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   const inspectorRef = useRef<HTMLElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const replaceImageRef = useRef<HTMLInputElement>(null);
+  const insertImageRef = useRef<HTMLInputElement>(null);
+  const insertTargetRef = useRef<string | null>(null);
   const figmaRef = useRef<HTMLInputElement>(null);
   const attachRef = useRef<HTMLInputElement>(null);
   const editRef = useRef<HTMLTextAreaElement | null>(null);
@@ -433,6 +440,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   const dragRef = useRef<{
     id: string;
     mode: 'move' | 'resize';
+    handle: 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | '';
     startX: number;
     startY: number;
     origin: CanvasItem;
@@ -451,7 +459,10 @@ export const EditorPage: React.FC<EditorPageProps> = ({
 
   const playItem = (id: string) =>
     setItemTicks((previous) => ({ ...previous, [id]: (previous[id] || 0) + 1 }));
-  const playAll = () => setPlayAllTick((value) => value + 1);
+  const playAll = () => {
+    setEditingId(null);
+    setPlayAllTick((value) => value + 1);
+  };
 
   useEffect(() => {
     setPreviewTick(0);
@@ -486,6 +497,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   // controls for the newly selected object are visible.
   useEffect(() => {
     inspectorRef.current?.scrollTo({ top: 0 });
+    setNoteDraft('');
   }, [selectedId, activePageId, inspectorTab, inspectorOpen]);
   // Autosave into the project document (or a source-keyed draft for template
   // editors) so leaving and returning keeps everything.
@@ -799,6 +811,57 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     reader.readAsDataURL(file);
   };
 
+  /** Turn a blank rectangle into the element chosen from the quick-insert grid. */
+  const convertBox = (
+    item: CanvasItem,
+    type: CanvasItemType,
+    variant: string,
+    label: string
+  ) => {
+    commit(
+      items.map((entry) =>
+        entry.id === item.id
+          ? {
+              ...entry,
+              type,
+              variant,
+              label,
+              fill: type === 'image' || type === 'chart' || type === 'table' ? undefined : entry.fill,
+            }
+          : entry
+      )
+    );
+    setSelectedId(item.id);
+    if (type === 'text' || type === 'heading') setEditingId(item.id);
+  };
+
+  const insertImageIntoBox = (file: File) => {
+    const targetId = insertTargetRef.current;
+    if (!targetId) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const src = String(reader.result || '');
+      if (!src) return;
+      void addAsset({
+        name: file.name || 'Image',
+        kind: 'image',
+        mime: file.type || 'image/png',
+        size: file.size,
+        dataUrl: src,
+        source: 'canvas',
+      });
+      commit(
+        items.map((entry) =>
+          entry.id === targetId
+            ? { ...entry, type: 'image' as const, variant: 'image-rounded', src, label: entry.label === 'Box' ? 'Image' : entry.label }
+            : entry
+        )
+      );
+      insertTargetRef.current = null;
+    };
+    reader.readAsDataURL(file);
+  };
+
   useEffect(() => {
     const onPaste = (event: ClipboardEvent) => {
       const target = event.target as HTMLElement;
@@ -862,10 +925,39 @@ export const EditorPage: React.FC<EditorPageProps> = ({
           y: clamp(Math.round(origin.y + dy), 0, Math.max(0, pageHeight - origin.h)),
         });
       } else {
-        update(drag.id, {
-          w: clamp(Math.round(origin.w + dx), 40, pageWidth - origin.x),
-          h: clamp(Math.round(origin.h + dy), 20, pageHeight - origin.y),
-        });
+        const dir = drag.handle || 'se';
+        let x = origin.x;
+        let y = origin.y;
+        let w = origin.w;
+        let h = origin.h;
+
+        if (dir.includes('e')) w = clamp(Math.round(origin.w + dx), 24, pageWidth - origin.x);
+        if (dir.includes('w')) {
+          w = clamp(Math.round(origin.w - dx), 24, origin.x + origin.w);
+          x = origin.x + (origin.w - w);
+        }
+        if (dir.includes('s')) h = clamp(Math.round(origin.h + dy), 16, pageHeight - origin.y);
+        if (dir.includes('n')) {
+          h = clamp(Math.round(origin.h - dy), 16, origin.y + origin.h);
+          y = origin.y + (origin.h - h);
+        }
+
+        const patch: Partial<CanvasItem> = { x, y, w, h };
+        // Component labels scale with the box so resizing a picture or card
+        // keeps its caption in proportion. Paragraph and heading boxes keep
+        // their type size so body copy is not distorted.
+        if (
+          (w !== origin.w || h !== origin.h) &&
+          origin.type !== 'text' &&
+          origin.type !== 'heading' &&
+          origin.w > 0 &&
+          origin.h > 0
+        ) {
+          const base = origin.fontSize ?? DEFAULT_FONT_SIZE[origin.type];
+          const ratio = Math.max(w / origin.w, h / origin.h);
+          patch.fontSize = clamp(Math.round(base * ratio), 8, 200);
+        }
+        update(drag.id, patch);
       }
     };
     const onUp = () => {
@@ -884,13 +976,19 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     };
   }, [zoom, pageWidth, pageHeight]);
 
-  const startDrag = (event: React.MouseEvent, item: CanvasItem, mode: 'move' | 'resize') => {
+  const startDrag = (
+    event: React.MouseEvent,
+    item: CanvasItem,
+    mode: 'move' | 'resize',
+    handle: 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | '' = ''
+  ) => {
     if (preview || editingId === item.id || event.button !== 0 || spaceHeldRef.current) return;
     event.stopPropagation();
     setSelectedId(item.id);
     dragRef.current = {
       id: item.id,
       mode,
+      handle,
       startX: event.clientX,
       startY: event.clientY,
       origin: { ...item },
@@ -1127,6 +1225,14 @@ export const EditorPage: React.FC<EditorPageProps> = ({
       // ignore
     }
   }, [zoom]);
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const sync = () => setReducedMotion(media.matches);
+    sync();
+    media.addEventListener('change', sync);
+    return () => media.removeEventListener('change', sync);
+  }, []);
 
   useEffect(() => {
     const el = viewportRef.current;
@@ -1591,6 +1697,18 @@ export const EditorPage: React.FC<EditorPageProps> = ({
       />
 
       <input
+        ref={insertImageRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) insertImageIntoBox(file);
+          event.target.value = '';
+        }}
+      />
+
+      <input
         ref={figmaRef}
         type="file"
         accept="application/json,.json,.fig"
@@ -1749,7 +1867,18 @@ export const EditorPage: React.FC<EditorPageProps> = ({
             {/* Templates tab: content categories */}
             {!showingSearch && !category && panel === 'templates' && (
               <div className="pt-1">
-                <p className="mb-1 text-[10.5px] font-medium text-white/45">Categories</p>
+                <button
+                  type="button"
+                  onClick={() => onNavigate?.('templates')}
+                  className="mb-3 flex w-full items-center justify-between rounded-lg border border-[#7C5CFF]/40 bg-[#7C5CFF]/10 px-2.5 py-2 text-left hover:bg-[#7C5CFF]/20"
+                >
+                  <span>
+                    <span className="block text-[10.5px] font-semibold text-white/85">Browse the full library</span>
+                    <span className="block text-[9px] text-white/40">Large previews, pages and exact filled attributes</span>
+                  </span>
+                  <ChevronRight className="h-3.5 w-3.5 text-[#B9A8FF]" />
+                </button>
+                <p className="mb-1 text-[10.5px] font-medium text-white/45">Start from a size</p>
                 {CONTENT_CATEGORIES.map((item) => (
                   <button
                     key={item.id}
@@ -1778,8 +1907,80 @@ export const EditorPage: React.FC<EditorPageProps> = ({
               </div>
             )}
 
+            {/* Pages: real thumbnails of each canvas page */}
+            {!showingSearch && !category && panel === 'pages' && (
+              <div className="pt-1">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-[10.5px] font-medium text-white/45">Pages</p>
+                  <button
+                    type="button"
+                    onClick={() => setPagePickerOpen(true)}
+                    className="flex h-6 items-center gap-1 rounded-lg border border-white/15 px-2 text-[9.5px] font-bold text-white/70 hover:bg-white/10"
+                  >
+                    <Plus className="h-3 w-3" /> Add
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {pages.map((page, index) => {
+                    const pageW = page.width || CANVAS_WIDTH;
+                    const pageH = page.height || CANVAS_HEIGHT;
+                    const scale = Math.min(104 / pageW, 68 / pageH);
+                    return (
+                      <button
+                        key={page.id}
+                        type="button"
+                        onClick={() => {
+                          setActivePageId(page.id);
+                          setSelectedId(null);
+                        }}
+                        className={`flex w-full items-center gap-2 rounded-lg border p-1.5 text-left ${
+                          page.id === activePage.id
+                            ? 'border-[#0D99FF] bg-[#0D99FF]/10'
+                            : 'border-white/10 bg-[#333] hover:bg-white/5'
+                        }`}
+                      >
+                        <div
+                          className="relative shrink-0 overflow-hidden rounded border border-white/15"
+                          style={{ width: pageW * scale, height: pageH * scale, background: page.background || '#FFFFFF' }}
+                        >
+                          {page.items.slice(0, 18).map((item) => (
+                            <span
+                              key={item.id}
+                              className="absolute"
+                              style={{
+                                left: item.x * scale,
+                                top: item.y * scale,
+                                width: Math.max(2, item.w * scale),
+                                height: Math.max(2, item.h * scale),
+                                background:
+                                  item.type === 'text' || item.type === 'heading'
+                                    ? item.color || '#0B0E14'
+                                    : item.type === 'image'
+                                      ? '#C9C4DA'
+                                      : item.color || '#7C5CFF',
+                                opacity: item.type === 'text' || item.type === 'heading' ? 0.55 : 0.82,
+                                borderRadius: item.type === 'button' ? 2 : 1,
+                              }}
+                            />
+                          ))}
+                        </div>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[10.5px] font-semibold text-white/80">
+                            {index + 1}. {page.name}
+                          </span>
+                          <span className="block text-[9px] text-white/35">
+                            {pageW}×{pageH} · {page.items.length} element{page.items.length === 1 ? '' : 's'}
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Category list (Figma-style) */}
-            {!showingSearch && !category && panel !== 'text' && panel !== 'templates' &&
+            {!showingSearch && !category && panel !== 'text' && panel !== 'templates' && panel !== 'pages' &&
               groups.map((group) => {
                 return (
                   <button
@@ -1801,25 +2002,38 @@ export const EditorPage: React.FC<EditorPageProps> = ({
             {(showingSearch || category) && (
               <div className="grid grid-cols-2 gap-2 pt-1">
                 {(showingSearch ? searchResults : allVariants.filter((variant) => variant.group === category)).map((variant) => (
-                  <button
-                    key={variant.id}
-                    type="button"
-                    draggable
-                    onDragStart={(event) => {
-                      event.dataTransfer.setData('application/x-vector-variant', variant.id);
-                      event.dataTransfer.effectAllowed = 'copy';
-                    }}
-                    onClick={() => addVariant(variant)}
-                    className="group text-left cursor-grab active:cursor-grabbing"
-                    title={`${variant.name} — drag onto the canvas`}
-                  >
-                    <div className="rounded-lg overflow-hidden ring-1 ring-white/10 group-hover:ring-[#0D99FF] p-1.5" style={{ background: '#383838' }}>
-                      <div className="h-[86px]">
-                        <Tile variant={variant} />
+                  <div key={variant.id} className="group relative">
+                    <button
+                      type="button"
+                      draggable
+                      onDragStart={(event) => {
+                        event.dataTransfer.setData('application/x-vector-variant', variant.id);
+                        event.dataTransfer.effectAllowed = 'copy';
+                      }}
+                      onClick={() => addVariant(variant)}
+                      className="w-full cursor-grab text-left active:cursor-grabbing"
+                      title={`${variant.name} — drag onto the canvas`}
+                    >
+                      <div className="rounded-lg overflow-hidden ring-1 ring-white/10 group-hover:ring-[#0D99FF] p-1.5" style={{ background: '#383838' }}>
+                        <div className="h-[86px]">
+                          <Tile variant={variant} />
+                        </div>
                       </div>
-                    </div>
-                    <span className="mt-1 block text-[10.5px] text-white/80 truncate">{variant.name}</span>
-                  </button>
+                      <span className="mt-1 block text-[10.5px] text-white/80 truncate">{variant.name}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setPreviewVariant(variant);
+                      }}
+                      className="absolute right-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-md bg-[#1E1E1E]/85 text-white/70 opacity-70 transition-opacity hover:bg-[#0D99FF] hover:text-white hover:opacity-100"
+                      title={`Preview ${variant.name}`}
+                      aria-label={`Preview ${variant.name}`}
+                    >
+                      <Maximize2 className="h-3 w-3" />
+                    </button>
+                  </div>
                 ))}
               </div>
             )}
@@ -2006,26 +2220,81 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                       </div>
                     )}
 
+                    {item.variant === 'shape-rect' && !preview && (
+                      <div className="absolute inset-0 overflow-hidden">
+                        <span className="pointer-events-none absolute inset-2 rounded border border-dashed border-black/20" />
+                        <button
+                          type="button"
+                          onMouseDown={(event) => event.stopPropagation()}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            convertBox(item, 'text', 'text-body', 'Add text');
+                          }}
+                          className="absolute left-3 top-2 text-left text-[12px] font-medium text-black/45 hover:text-black/70"
+                        >
+                          • Click to add text
+                        </button>
+
+                        {isSelected && (
+                          <div className="absolute inset-0 grid place-items-center" onMouseDown={(event) => event.stopPropagation()}>
+                            <div className="grid grid-cols-3 gap-1.5 rounded-xl bg-white/95 p-2 shadow-[0_10px_30px_-10px_rgba(0,0,0,.45)] ring-1 ring-black/5">
+                              {[
+                                { icon: ImageIcon, label: 'Insert image', action: () => { insertTargetRef.current = item.id; insertImageRef.current?.click(); } },
+                                { icon: Type, label: 'Insert text', action: () => convertBox(item, 'text', 'text-body', 'Add text') },
+                                { icon: MousePointer2, label: 'Insert button', action: () => convertBox(item, 'button', 'btn-solid', 'Action') },
+                                { icon: Square, label: 'Insert card', action: () => convertBox(item, 'card', 'card-elevated', 'Card title') },
+                                { icon: Table2, label: 'Insert table', action: () => convertBox(item, 'table', 'table-default', 'Orders') },
+                                { icon: BarChart3, label: 'Insert chart', action: () => convertBox(item, 'chart', 'chart-bars', 'Revenue') },
+                              ].map((tool) => {
+                                const Icon = tool.icon;
+                                return (
+                                  <button
+                                    key={tool.label}
+                                    type="button"
+                                    title={tool.label}
+                                    aria-label={tool.label}
+                                    onMouseDown={(event) => event.stopPropagation()}
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      tool.action();
+                                    }}
+                                    className="grid h-8 w-8 place-items-center rounded-md bg-[#F4F3F8] text-[#4D7CFE] hover:bg-[#E8E6F5]"
+                                  >
+                                    <Icon className="h-4 w-4" />
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {isSelected && !editing && (
                       <>
                         <span className="absolute inset-0 ring-[1.5px] ring-[#0D99FF] pointer-events-none" />
                         <span className="absolute -top-5 left-0 px-1 py-0.5 rounded-sm bg-[#0D99FF] text-white text-[9px] font-medium whitespace-nowrap">
                           {item.w} × {item.h}
                         </span>
-                        {[
-                          'left-0 top-0 -translate-x-1/2 -translate-y-1/2',
-                          'right-0 top-0 translate-x-1/2 -translate-y-1/2',
-                          'left-0 bottom-0 -translate-x-1/2 translate-y-1/2',
-                          'right-0 bottom-0 translate-x-1/2 translate-y-1/2 cursor-nwse-resize',
-                        ].map((position, index) => (
+                        {([
+                          { handle: 'nw' as const, position: 'left-0 top-0 -translate-x-1/2 -translate-y-1/2 cursor-nwse-resize' },
+                          { handle: 'n' as const, position: 'left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 cursor-ns-resize' },
+                          { handle: 'ne' as const, position: 'right-0 top-0 translate-x-1/2 -translate-y-1/2 cursor-nesw-resize' },
+                          { handle: 'e' as const, position: 'right-0 top-1/2 translate-x-1/2 -translate-y-1/2 cursor-ew-resize' },
+                          { handle: 'se' as const, position: 'right-0 bottom-0 translate-x-1/2 translate-y-1/2 cursor-nwse-resize' },
+                          { handle: 's' as const, position: 'left-1/2 bottom-0 -translate-x-1/2 translate-y-1/2 cursor-ns-resize' },
+                          { handle: 'sw' as const, position: 'left-0 bottom-0 -translate-x-1/2 translate-y-1/2 cursor-nesw-resize' },
+                          { handle: 'w' as const, position: 'left-0 top-1/2 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize' },
+                        ]).map((entry) => (
                           <span
-                            key={position}
-                            onMouseDown={(event) => {
-                              if (index !== 3) return;
-                              event.stopPropagation();
-                              startDrag(event, item, 'resize');
+                            key={entry.handle}
+                            onMouseDown={(event) => startDrag(event, item, 'resize', entry.handle)}
+                            style={{
+                              width: `${8 / zoom}px`,
+                              height: `${8 / zoom}px`,
+                              borderWidth: `${1 / zoom}px`,
                             }}
-                            className={`absolute w-2 h-2 bg-white border border-[#0D99FF] rounded-[1px] ${position}`}
+                            className={`absolute z-20 rounded-[1px] border border-[#0D99FF] bg-white ${entry.position}`}
                           />
                         ))}
                         <button
@@ -2060,8 +2329,9 @@ export const EditorPage: React.FC<EditorPageProps> = ({
           </div>
           </div>
 
-          {/* Pages strip */}
-          <div data-spot="editor-pages" className="absolute bottom-4 left-4 flex items-center gap-1 px-1.5 py-1.5 rounded-lg bg-[#2C2C2C] border border-white/10 shadow-lg">
+          {/* Bottom dock: pages and tools wrap instead of overlapping. */}
+          <div className="pointer-events-none absolute bottom-4 left-1/2 z-20 flex w-max max-w-[calc(100%-2rem)] -translate-x-1/2 flex-wrap items-end justify-center gap-2">
+          <div data-spot="editor-pages" className="pointer-events-auto flex shrink-0 items-center gap-1 rounded-lg border border-white/10 bg-[#2C2C2C] px-1.5 py-1.5 shadow-lg">
             {pages.map((page, index) => (
               <button
                 key={page.id}
@@ -2088,7 +2358,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
           </div>
 
           {/* Floating toolbar */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-0.5 px-1.5 py-1.5 rounded-xl bg-[#2C2C2C] border border-white/10 shadow-[0_16px_40px_-12px_rgba(0,0,0,.8)]">
+          <div className="pointer-events-auto flex shrink-0 items-center gap-0.5 rounded-xl border border-white/10 bg-[#2C2C2C] px-1.5 py-1.5 shadow-[0_16px_40px_-12px_rgba(0,0,0,.8)]">
             {[
               { icon: MousePointer2, label: 'Select', action: () => setSelectedId(null) },
               { icon: Frame, label: 'Card', action: () => addVariant(VARIANTS.find((v) => v.id === 'card-outline')!) },
@@ -2149,6 +2419,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
               </>
             ) : null}
           </div>
+          </div>
 
           <button
             type="button"
@@ -2173,7 +2444,10 @@ export const EditorPage: React.FC<EditorPageProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => setInspectorTab('prototype')}
+              onClick={() => {
+                setEditingId(null);
+                setInspectorTab('prototype');
+              }}
               className={`h-7 px-2 rounded text-[11.5px] font-semibold ${inspectorTab === 'prototype' ? 'bg-white/10 text-white' : 'text-white/50 hover:bg-white/5'}`}
             >
               Prototype
@@ -2253,6 +2527,9 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                         Links to {pages.find((page) => page.id === selected.linkToPageId)?.name}.
                       </p>
                     )}
+                    <p className="text-[9.5px] leading-relaxed text-white/35">
+                      For click copy and a list of behaviour comments, use Design → Behaviour.
+                    </p>
                   </>
                 ) : (
                   <p className="text-[10.5px] leading-relaxed text-white/45">
@@ -2264,17 +2541,32 @@ export const EditorPage: React.FC<EditorPageProps> = ({
               <Section
                 title="Animation"
                 action={
-                  <button
-                    type="button"
-                    onClick={playAll}
-                    className="flex h-6 items-center gap-1 rounded bg-[#383838] px-2 text-[9.5px] font-semibold text-white/70 hover:bg-white/15"
-                  >
-                    <Play className="w-2.5 h-2.5" /> Play all
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setPreview(true)}
+                      className="flex h-6 items-center gap-1 rounded bg-[#0D99FF] px-2 text-[9.5px] font-semibold text-white hover:bg-[#0b8ae6]"
+                      title="Open preview and play the animations"
+                    >
+                      <Play className="w-2.5 h-2.5" /> Preview
+                    </button>
+                    <button
+                      type="button"
+                      onClick={playAll}
+                      className="flex h-6 items-center gap-1 rounded bg-[#383838] px-2 text-[9.5px] font-semibold text-white/70 hover:bg-white/15"
+                    >
+                      Play all
+                    </button>
+                  </>
                 }
               >
                 {selected ? (
                   <>
+                    {reducedMotion && (
+                      <p className="rounded-md bg-[#FFC53D]/10 px-2 py-1.5 text-[9.5px] leading-relaxed text-[#FFC53D]">
+                        Reduced motion is enabled in this browser or operating system, so previews are suppressed. Turn it off to see the animation.
+                      </p>
+                    )}
                     <div className="grid grid-cols-3 gap-1">
                       <button
                         type="button"
@@ -2294,6 +2586,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                           title={preset.hint}
                           onClick={() => {
                             const current = selected.animation;
+                            setEditingId(null);
                             update(selected.id, {
                               animation: current
                                 ? { ...current, kind: preset.id }
@@ -2465,7 +2758,10 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                         <div className="flex gap-1.5">
                           <button
                             type="button"
-                            onClick={() => playItem(selected.id)}
+                            onClick={() => {
+                              setEditingId(null);
+                              playItem(selected.id);
+                            }}
                             className="flex h-7 flex-1 items-center justify-center gap-1 rounded bg-[#0D99FF] text-[10.5px] font-semibold text-white"
                           >
                             <Play className="w-3 h-3" /> Play
@@ -2479,8 +2775,8 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                           </button>
                         </div>
                         <p className="text-[9.5px] leading-relaxed text-white/35">
-                          Hover/click triggers replay in Preview. “In view” plays when the page
-                          appears. Reduced-motion is respected.
+                          Click Preview to play in the full canvas. Hover/click triggers replay there,
+                          “In view” plays when the page appears, and reduced-motion is respected.
                         </p>
                       </>
                     )}
@@ -2915,19 +3211,76 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                 </Section>
               )}
 
-              {selected.type === 'button' && (
-                <Section title="Action">
+              <Section title="Behaviour">
+                <label className="block text-[10px] font-semibold text-white/45" htmlFor="vector-on-click">
+                  What happens on click
+                </label>
+                <input
+                  id="vector-on-click"
+                  value={selected.action || ''}
+                  onChange={(event) => update(selected.id, { action: event.target.value })}
+                  placeholder="e.g. opens the dashboard, filters the table, opens a modal"
+                  className="mt-1 h-8 w-full rounded-md bg-[#383838] px-2 text-[11px] outline-none placeholder:text-white/25 focus:ring-1 focus:ring-[#0D99FF]"
+                />
+
+                <p className="mt-2 text-[10px] font-semibold text-white/45">Comments and behaviour notes</p>
+                <div className="mt-1 flex items-center gap-1">
                   <input
-                    value={selected.action || ''}
-                    onChange={(event) => update(selected.id, { action: event.target.value })}
-                    placeholder="What happens on click?"
-                    className="h-7 w-full rounded-md bg-[#383838] px-2 text-[11px] outline-none placeholder:text-white/25 focus:ring-1 focus:ring-[#0D99FF]"
+                    value={noteDraft}
+                    onChange={(event) => setNoteDraft(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key !== 'Enter') return;
+                      event.preventDefault();
+                      const next = noteDraft.trim();
+                      if (!next) return;
+                      update(selected.id, { notes: [...(selected.notes || []), next] });
+                      setNoteDraft('');
+                    }}
+                    placeholder="Add a note for the final prompt…"
+                    className="h-7 min-w-0 flex-1 rounded-md bg-[#383838] px-2 text-[10.5px] outline-none placeholder:text-white/25 focus:ring-1 focus:ring-[#0D99FF]"
                   />
-                  <p className="text-[9.5px] leading-relaxed text-white/30">
-                    This is copied into the prompt and the exported manifest.
-                  </p>
-                </Section>
-              )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = noteDraft.trim();
+                      if (!next) return;
+                      update(selected.id, { notes: [...(selected.notes || []), next] });
+                      setNoteDraft('');
+                    }}
+                    disabled={!noteDraft.trim()}
+                    className="grid h-7 w-7 place-items-center rounded bg-[#0D99FF] text-white disabled:opacity-30"
+                    aria-label="Add note"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                {(selected.notes || []).length > 0 && (
+                  <ul className="mt-2 space-y-1">
+                    {(selected.notes || []).map((note, index) => (
+                      <li key={`${note}-${index}`} className="flex items-start gap-1 rounded-md bg-[#383838] px-2 py-1.5">
+                        <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#7C5CFF]" />
+                        <span className="min-w-0 flex-1 text-[10px] leading-relaxed text-white/70">{note}</span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            update(selected.id, {
+                              notes: (selected.notes || []).filter((_, entryIndex) => entryIndex !== index),
+                            })
+                          }
+                          className="grid h-4 w-4 place-items-center rounded text-white/35 hover:text-white"
+                          aria-label={`Remove note ${index + 1}`}
+                        >
+                          <X className="h-2.5 w-2.5" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <p className="text-[9.5px] leading-relaxed text-white/30">
+                  Click behaviour and every note are written into the INTERACTIONS section of the generated prompt under this page and element.
+                </p>
+              </Section>
             </>
           )}
 
@@ -3034,6 +3387,71 @@ export const EditorPage: React.FC<EditorPageProps> = ({
       </div>
 
       <SpotlightHost page="editor" onLearnMore={() => onOpenAssistant?.()} />
+
+      {previewVariant && (() => {
+        const scale = Math.min(1, 520 / previewVariant.w, 320 / previewVariant.h);
+        return (
+          <div className="fixed inset-0 z-[92] grid place-items-center p-4" role="dialog" aria-modal="true" aria-label={`Preview ${previewVariant.name}`}>
+            <div className="absolute inset-0 bg-black/65 backdrop-blur-sm" onClick={() => setPreviewVariant(null)} aria-hidden="true" />
+            <div className="relative w-full max-w-[620px] rounded-2xl border border-white/10 bg-[#2C2C2C] p-4 text-white shadow-[0_40px_90px_-30px_rgba(0,0,0,.95)]">
+              <div className="flex items-start gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[9.5px] font-bold uppercase tracking-[0.14em] text-[#B9A8FF]">{previewVariant.group}</p>
+                  <h2 className="mt-0.5 text-[16px] font-semibold">{previewVariant.name}</h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPreviewVariant(null)}
+                  className="grid h-7 w-7 place-items-center rounded-md text-white/50 hover:bg-white/10"
+                  aria-label="Close preview"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="mt-3 grid min-h-[180px] place-items-center overflow-hidden rounded-xl bg-[#F6F5FA] p-4">
+                <div style={{ width: previewVariant.w * scale, height: previewVariant.h * scale }}>
+                  <div
+                    style={{
+                      width: previewVariant.w,
+                      height: previewVariant.h,
+                      transform: `scale(${scale})`,
+                      transformOrigin: 'top left',
+                    }}
+                  >
+                    <StyledElement
+                      style={previewVariant.style}
+                      label={previewVariant.label}
+                      color={previewVariant.color}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <p className="mt-3 text-[11px] leading-relaxed text-white/55">{previewVariant.prompt}</p>
+              <div className="mt-3 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    addVariant(previewVariant);
+                    setPreviewVariant(null);
+                  }}
+                  className="h-9 flex-1 rounded-md bg-[#0D99FF] text-[11.5px] font-semibold text-white hover:bg-[#0b8ae6]"
+                >
+                  Add to canvas
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewVariant(null)}
+                  className="h-9 rounded-md border border-white/15 px-4 text-[11.5px] font-semibold text-white/75 hover:bg-white/5"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       <ShareDialog
         open={shareOpen}
