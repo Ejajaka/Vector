@@ -1884,13 +1884,10 @@ export function compilePrompt(
     });
   }
 
-  if (!raw.length && clarifications.length === 0 && !ignoredOnly) {
-    raw.push(
-      { id: '', kind: 'heading', label: '', preset: 'text-display', confidence: 0.2, radius: tokens.radius, fontFamily: tokens.font, x: 0, y: 0, w: 0, h: 0 },
-      { id: '', kind: 'text', label: '', preset: 'text-body', confidence: 0.2, fontFamily: tokens.font, x: 0, y: 0, w: 0, h: 0 },
-      { id: '', kind: 'button', label: '', preset: 'btn-solid', confidence: 0.2, radius: tokens.radius, fontFamily: tokens.font, action: undefined, x: 0, y: 0, w: 0, h: 0 }
-    );
-  }
+  // Do not invent a hero when the prompt contains no UI language. Returning an
+  // empty page plus a clear warning is more honest than three placeholder
+  // components the user never asked for.
+  const noComponents = !raw.length && clarifications.length === 0 && !ignoredOnly;
 
   const before = countKinds(raw);
   const deduped = dedupe(raw);
@@ -1915,6 +1912,13 @@ export function compilePrompt(
   const skippedLines = Math.max(0, parsed.units.length - usedLines);
   const signals: Signal[] = [];
 
+  if (noComponents) {
+    signals.push({
+      tone: 'warn',
+      text: 'No UI components were recognised. Add a heading, button, input, card or image so there is something to draw.',
+    });
+  }
+
   if (parsed.structured) {
     signals.push({
       tone: 'info',
@@ -1932,7 +1936,7 @@ export function compilePrompt(
   if (skippedLines > 0) {
     signals.push({
       tone: 'info',
-      text: `${skippedLines} line${skippedLines === 1 ? '' : 's'} contained no UI component and were ignored.`,
+      text: `${skippedLines} line${skippedLines === 1 ? '' : 's'} contained no UI component and ${skippedLines === 1 ? 'was' : 'were'} ignored.`,
     });
   }
 

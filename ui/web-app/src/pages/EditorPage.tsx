@@ -176,6 +176,191 @@ function variantFor(item: CanvasItem): StyleVariant {
   );
 }
 
+/**
+ * Deterministic layout suggestions used by the Design button. The user can
+ * cycle through four arrangements; each one starts from the layout they saved
+ * before the first suggestion.
+ */
+function aiArrange(items: CanvasItem[], W: number, H: number, variant: number): CanvasItem[] {
+  const groups = {
+    nav: [] as CanvasItem[],
+    footer: [] as CanvasItem[],
+    heading: [] as CanvasItem[],
+    text: [] as CanvasItem[],
+    form: [] as CanvasItem[],
+    button: [] as CanvasItem[],
+    media: [] as CanvasItem[],
+    card: [] as CanvasItem[],
+    badge: [] as CanvasItem[],
+    other: [] as CanvasItem[],
+  };
+
+  items.forEach((item) => {
+    if (item.type === 'navbar') groups.nav.push(item);
+    else if (item.type === 'footer') groups.footer.push(item);
+    else if (item.type === 'heading') groups.heading.push(item);
+    else if (item.type === 'text') groups.text.push(item);
+    else if (item.type === 'input') groups.form.push(item);
+    else if (item.type === 'button') groups.button.push(item);
+    else if (item.type === 'image' || item.type === 'chart' || item.type === 'table') groups.media.push(item);
+    else if (item.type === 'card' || item.type === 'modal') groups.card.push(item);
+    else if (item.type === 'badge' || item.type === 'avatar') groups.badge.push(item);
+    else groups.other.push(item);
+  });
+
+  const margin = Math.max(28, Math.round(Math.min(W, H) * 0.055));
+  const gap = Math.max(12, Math.round(margin * 0.3));
+  const contentW = W - margin * 2;
+  let y = margin;
+  const positions = new Map<string, { x: number; y: number; w: number; h: number }>();
+
+  const put = (item: CanvasItem, x: number, top: number, w: number, h: number, minH = 32) => {
+    positions.set(item.id, {
+      x: Math.round(x),
+      y: Math.round(top),
+      w: Math.round(Math.max(40, w)),
+      h: Math.round(Math.max(minH, h)),
+    });
+  };
+
+  const headingH = (item: CanvasItem) => Math.max(48, Math.round((item.fontSize ?? 28) * 1.55));
+  const textH = (item: CanvasItem) =>
+    Math.max(44, Math.min(150, Math.ceil((item.label || 'Copy').length / 58) * (item.fontSize ?? 14) * 1.8));
+  const formH = (item: CanvasItem) => Math.max(56, item.h || 56);
+  const buttonH = (item: CanvasItem) => Math.max(44, item.h || 48);
+  const badgeH = (item: CanvasItem) => Math.max(28, item.h || 32);
+  const mediaH = (item: CanvasItem) => Math.max(150, Math.min(240, item.h || 190));
+
+  groups.nav.forEach((item) => put(item, margin, 20, contentW, 64));
+  if (groups.nav.length) y = 20 + 64 + gap;
+
+  const colW = Math.min(760, contentW);
+
+  if (variant === 1 && (groups.media.length || groups.card.length) && contentW >= 720) {
+    // Split: copy and controls on the left, visual content on the right.
+    const leftW = Math.round(contentW * 0.46);
+    const rightX = margin + leftW + gap;
+    const rightW = contentW - leftW - gap;
+    let ly = y;
+    groups.heading.forEach((item) => {
+      const h = headingH(item);
+      put(item, margin, ly, leftW, h);
+      ly += h + gap;
+    });
+    groups.text.forEach((item) => {
+      const h = textH(item);
+      put(item, margin, ly, Math.min(leftW, 640), h);
+      ly += h + gap;
+    });
+    groups.badge.forEach((item) => {
+      const h = badgeH(item);
+      put(item, margin, ly, Math.min(220, leftW), h);
+      ly += h + gap;
+    });
+    groups.form.forEach((item) => {
+      const h = formH(item);
+      put(item, margin, ly, Math.min(leftW, 440), h);
+      ly += h + gap;
+    });
+    groups.button.forEach((item) => {
+      const h = buttonH(item);
+      put(item, margin, ly, Math.min(Math.max(200, item.w), leftW), h);
+      ly += h + gap;
+    });
+
+    const right = [...groups.card, ...groups.media];
+    const rowH = Math.max(120, Math.min(230, Math.floor((H - margin - y - gap * Math.max(0, right.length - 1)) / Math.max(1, right.length))));
+    let ry = y;
+    right.forEach((item) => {
+      put(item, rightX, ry, rightW, rowH, 110);
+      ry += rowH + gap;
+    });
+    groups.other.forEach((item) => {
+      const h = 150;
+      put(item, margin, Math.max(ly, ry), contentW, h);
+      ry += h + gap;
+    });
+  } else if (variant === 2) {
+    // Grid: heading first, then everything in two balanced columns.
+    let gy = y;
+    groups.heading.forEach((item) => {
+      const h = headingH(item);
+      put(item, margin, gy, Math.min(contentW, 900), h);
+      gy += h + gap;
+    });
+    groups.text.forEach((item) => {
+      const h = textH(item);
+      put(item, margin, gy, Math.min(contentW, 760), h);
+      gy += h + gap;
+    });
+
+    const grid = [...groups.card, ...groups.media, ...groups.form, ...groups.button, ...groups.badge, ...groups.other];
+    const cols = contentW >= 760 ? 2 : 1;
+    const cellW = (contentW - gap * (cols - 1)) / cols;
+    for (let index = 0; index < grid.length; index += cols) {
+      const row = grid.slice(index, index + cols);
+      const rowH = Math.max(
+        ...row.map((item) =>
+          item.type === 'button'
+            ? buttonH(item)
+            : item.type === 'input'
+              ? formH(item)
+              : item.type === 'badge' || item.type === 'avatar'
+                ? badgeH(item)
+                : item.type === 'card' || item.type === 'image' || item.type === 'chart' || item.type === 'table'
+                  ? mediaH(item)
+                  : 130
+        ),
+        32
+      );
+      row.forEach((item, column) => {
+        put(item, margin + column * (cellW + gap), gy, cellW, rowH, 32);
+      });
+      gy += rowH + gap;
+    }
+  } else {
+    // Centred stack (0) or left-aligned editorial (3).
+    const centre = variant === 0;
+    let sy = y;
+    const setRow = (item: CanvasItem, w: number, h: number) => {
+      const x = centre ? (W - w) / 2 : margin;
+      put(item, x, sy, w, h);
+      sy += h + gap;
+    };
+
+    groups.heading.forEach((item) => setRow(item, Math.min(centre ? 760 : 900, contentW), headingH(item)));
+    groups.text.forEach((item) => setRow(item, Math.min(centre ? 640 : 760, contentW), textH(item)));
+    groups.badge.forEach((item) => setRow(item, Math.min(220, contentW), badgeH(item)));
+    groups.form.forEach((item) => setRow(item, Math.min(colW, contentW), formH(item)));
+    groups.button.forEach((item) => setRow(item, Math.min(Math.max(200, item.w), contentW), buttonH(item)));
+
+    const visual = [...groups.card, ...groups.media];
+    const visualW = Math.min(contentW, 1000);
+    visual.forEach((item) => {
+      const h = mediaH(item);
+      put(item, centre ? (W - visualW) / 2 : margin, sy, visualW, h, 120);
+      sy += h + gap;
+    });
+    groups.other.forEach((item) => setRow(item, contentW, 150));
+  }
+
+  groups.footer.forEach((item) => put(item, margin, H - margin - 88, contentW, 88));
+
+  // Anything unclassified still gets a safe place instead of staying at 0,0.
+  let fallbackY = y;
+  items.forEach((item) => {
+    if (positions.has(item.id)) return;
+    const h = Math.max(40, item.h || 60);
+    put(item, margin, fallbackY, contentW, h);
+    fallbackY += h + gap;
+  });
+
+  return items.map((item) => {
+    const next = positions.get(item.id);
+    return next ? { ...item, ...next } : item;
+  });
+}
+
 /** Render a variant scaled into a fixed thumbnail tile. */
 const Tile: React.FC<{ variant: StyleVariant }> = ({ variant }) => (
   <div className="h-full w-full overflow-hidden rounded-md" style={{ background: '#F6F5FA' }}>
@@ -383,6 +568,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   const [panning, setPanning] = useState(false);
   const panRef = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
   const suppressCanvasClick = useRef(false);
+  const draggedRef = useRef(false);
   const [preview, setPreview] = useState(false);
   const [previewTick, setPreviewTick] = useState(0);
   const [playAllTick, setPlayAllTick] = useState(0);
@@ -393,6 +579,8 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   const [noteDraft, setNoteDraft] = useState('');
   const [previewVariant, setPreviewVariant] = useState<StyleVariant | null>(null);
   const [reducedMotion, setReducedMotion] = useState(false);
+  const designOriginals = useRef<Record<string, CanvasItem[]>>({});
+  const [designCycle, setDesignCycle] = useState<Record<string, number>>({});
   const [openFrameGroup, setOpenFrameGroup] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(() => {
     if (typeof window !== 'undefined' && window.innerWidth < 1000) return false;
@@ -615,6 +803,25 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   const update = (id: string, patch: Partial<CanvasItem>) =>
     setPageItems(activePage.id, (prev) => prev.map((item) => (item.id === id ? { ...item, ...patch } : item)), false);
 
+  /** Grow the box with the type so large labels never clip or spill. */
+  const changeFontSize = (size: number) => {
+    if (!selected) return;
+    const next = clamp(Math.round(size), 6, 200);
+    const patch: Partial<CanvasItem> = { fontSize: next };
+    if (selectedIsText) {
+      patch.h = Math.max(selected.h, Math.round(next * 1.8));
+    } else {
+      patch.h = Math.max(selected.h, Math.round(next * 1.6));
+      if (selected.type === 'button' || selected.type === 'badge' || selected.type === 'input') {
+        patch.w = Math.min(
+          pageWidth,
+          Math.max(selected.w, Math.round(Math.max(selected.label.length, 6) * next * 0.68))
+        );
+      }
+    }
+    update(selected.id, patch);
+  };
+
   const undo = () => {
     const previous = history.current.pop();
     if (!previous) return;
@@ -737,6 +944,38 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     const copy: CanvasItem = { ...selected, id: newId(), x: selected.x + 24, y: selected.y + 24 };
     commit([...items, copy]);
     setSelectedId(copy.id);
+  };
+
+  const aiCycle = designCycle[activePage.id];
+  const hasAiDesign = aiCycle !== undefined;
+
+  const applyAiDesign = () => {
+    if (!items.length) return;
+    const pageId = activePage.id;
+    if (!designOriginals.current[pageId]) {
+      designOriginals.current[pageId] = items.map((item) => ({ ...item }));
+    }
+    const next = ((designCycle[pageId] ?? -1) + 1) % 4;
+    const original = designOriginals.current[pageId];
+    commit(aiArrange(original, pageWidth, pageHeight, next));
+    setDesignCycle((prev) => ({ ...prev, [pageId]: next }));
+    setSelectedId(null);
+    setEditingId(null);
+  };
+
+  const revertAiDesign = () => {
+    const pageId = activePage.id;
+    const original = designOriginals.current[pageId];
+    if (!original) return;
+    commit(original.map((item) => ({ ...item })));
+    delete designOriginals.current[pageId];
+    setDesignCycle((prev) => {
+      const next = { ...prev };
+      delete next[pageId];
+      return next;
+    });
+    setSelectedId(null);
+    setEditingId(null);
   };
 
   const addImageFromFile = (file: File) => {
@@ -887,7 +1126,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
       }
       if (event.key === 'Enter' && selectedId) {
         const target = items.find((item) => item.id === selectedId);
-        if (target?.type === 'text') {
+        if (target) {
           event.preventDefault();
           setEditingId(selectedId);
         }
@@ -918,7 +1157,10 @@ export const EditorPage: React.FC<EditorPageProps> = ({
       const dx = (event.clientX - drag.startX) / zoom;
       const dy = (event.clientY - drag.startY) / zoom;
       const origin = drag.origin;
-      if (dx !== 0 || dy !== 0) drag.moved = true;
+      if (dx !== 0 || dy !== 0) {
+        drag.moved = true;
+        draggedRef.current = true;
+      }
       if (drag.mode === 'move') {
         update(drag.id, {
           x: clamp(Math.round(origin.x + dx), 0, Math.max(0, pageWidth - origin.w)),
@@ -931,14 +1173,16 @@ export const EditorPage: React.FC<EditorPageProps> = ({
         let w = origin.w;
         let h = origin.h;
 
+        const baseSize = origin.fontSize ?? DEFAULT_FONT_SIZE[origin.type];
+        const minHeight = Math.max(16, Math.round(baseSize * 1.15));
         if (dir.includes('e')) w = clamp(Math.round(origin.w + dx), 24, pageWidth - origin.x);
         if (dir.includes('w')) {
           w = clamp(Math.round(origin.w - dx), 24, origin.x + origin.w);
           x = origin.x + (origin.w - w);
         }
-        if (dir.includes('s')) h = clamp(Math.round(origin.h + dy), 16, pageHeight - origin.y);
+        if (dir.includes('s')) h = clamp(Math.round(origin.h + dy), minHeight, pageHeight - origin.y);
         if (dir.includes('n')) {
-          h = clamp(Math.round(origin.h - dy), 16, origin.y + origin.h);
+          h = clamp(Math.round(origin.h - dy), minHeight, origin.y + origin.h);
           y = origin.y + (origin.h - h);
         }
 
@@ -984,6 +1228,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   ) => {
     if (preview || editingId === item.id || event.button !== 0 || spaceHeldRef.current) return;
     event.stopPropagation();
+    draggedRef.current = false;
     setSelectedId(item.id);
     dragRef.current = {
       id: item.id,
@@ -1166,6 +1411,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
 
       const artRect = art.getBoundingClientRect();
       const viewRect = el.getBoundingClientRect();
+      const center = clientX == null || clientY == null;
       const cx = clientX ?? viewRect.left + el.clientWidth / 2;
       const cy = clientY ?? viewRect.top + el.clientHeight / 2;
       const px = artRect.width ? (cx - artRect.left) / artRect.width : 0.5;
@@ -1176,6 +1422,13 @@ export const EditorPage: React.FC<EditorPageProps> = ({
         requestAnimationFrame(() => {
           const nextArt = artboardRef.current;
           if (!nextArt) return;
+          if (center) {
+            // Button/zoom-menu changes should always bring the whole page back
+            // into view instead of preserving an off-screen scrolled point.
+            el.scrollLeft = Math.max(0, (el.scrollWidth - el.clientWidth) / 2);
+            el.scrollTop = Math.max(0, (el.scrollHeight - el.clientHeight) / 2);
+            return;
+          }
           const nextRect = nextArt.getBoundingClientRect();
           el.scrollLeft += nextRect.left + px * nextRect.width - cx;
           el.scrollTop += nextRect.top + py * nextRect.height - cy;
@@ -1201,6 +1454,27 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   };
 
   const minimiseCanvas = () => applyZoom(0.15);
+
+  // Preview should always open on a fully visible page, independent of the
+  // zoom/scroll the user left the editor in.
+  useEffect(() => {
+    if (!preview) return;
+    const timer = window.setTimeout(() => fitToScreen(), 60);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preview, activePageId]);
+
+  // Keep the current page in the middle of the viewport after a reload or a
+  // page switch, even when the user left a large frame at a small zoom.
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+    const timer = window.setTimeout(() => {
+      el.scrollLeft = Math.max(0, (el.scrollWidth - el.clientWidth) / 2);
+      el.scrollTop = Math.max(0, (el.scrollHeight - el.clientHeight) / 2);
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [activePageId]);
 
   const startPan = (event: React.MouseEvent) => {
     const el = viewportRef.current;
@@ -1733,6 +2007,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
 
       <div className="flex-1 flex min-h-0">
         {/* Rail */}
+        {!preview && (
         <nav className="w-[64px] shrink-0 border-r border-white/10 bg-[#2C2C2C] flex flex-col items-center pt-2 gap-0.5">
           {PANEL_TABS.map((tab) => {
             const Icon = tab.icon;
@@ -1764,8 +2039,10 @@ export const EditorPage: React.FC<EditorPageProps> = ({
             </button>
           </div>
         </nav>
+        )}
 
         {/* Assets panel */}
+        {!preview && (
         <aside
           className={`shrink-0 border-r border-white/10 bg-[#2C2C2C] flex flex-col min-h-0 overflow-hidden transition-[width] duration-200 ${
             panelOpen ? 'w-[300px]' : 'w-0 border-r-0'
@@ -2053,6 +2330,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
             </button>
           </div>
         </aside>
+        )}
 
         {/* Canvas */}
         <main
@@ -2069,6 +2347,24 @@ export const EditorPage: React.FC<EditorPageProps> = ({
             setSelectedId(null);
           }}
         >
+          {preview && (
+            <div className="pointer-events-auto absolute left-1/2 top-3 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/15 bg-[#252525]/95 px-3 py-1.5 text-[11px] text-white/80 shadow-[0_12px_30px_-12px_rgba(0,0,0,.8)]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#22D3EE]" />
+              <span className="font-semibold">Preview</span>
+              <span className="text-white/35">·</span>
+              <span className="max-w-[180px] truncate">{activePage.name}</span>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setPreview(false);
+                }}
+                className="ml-1 rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-[#17171A] hover:bg-white/90"
+              >
+                Back to edit
+              </button>
+            </div>
+          )}
           <div className="flex min-h-full min-w-full items-center justify-center p-12">
           <div className="relative" style={{ width: pageWidth * zoom, height: pageHeight * zoom }}>
             <div
@@ -2147,11 +2443,19 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                         setActivePageId(item.linkToPageId);
                         return;
                       }
+                      // A second click on the selected element puts the caret on
+                      // the canvas, the same way a design tool does.
+                      if (!preview && selectedId === item.id && editingId !== item.id) {
+                        if (!draggedRef.current) setEditingId(item.id);
+                        draggedRef.current = false;
+                        return;
+                      }
                       setSelectedId(item.id);
+                      draggedRef.current = false;
                     }}
                     onDoubleClick={(event) => {
                       event.stopPropagation();
-                      if (item.type === 'text') setEditingId(item.id);
+                      if (!preview) setEditingId(item.id);
                     }}
                     style={{ left: item.x, top: item.y, width: item.w, height: item.h }}
                     className={`absolute select-none ${preview ? '' : editing ? 'cursor-text' : 'cursor-move'}`}
@@ -2174,14 +2478,29 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                         style={{
                           fontSize: item.fontSize ?? DEFAULT_FONT_SIZE[item.type],
                           color: item.color || '#0B0E14',
-                          fontWeight: item.fontWeight ?? 700,
-                          textAlign: item.align || 'left',
+                          fontWeight: item.fontWeight ?? DEFAULT_FONT_WEIGHT[item.type],
+                          textAlign:
+                            item.align ||
+                            (item.type === 'button' || item.type === 'badge' || item.type === 'navbar'
+                              ? 'center'
+                              : 'left'),
+                          paddingTop:
+                            item.type === 'button' || item.type === 'badge' || item.type === 'navbar' || item.type === 'input'
+                              ? Math.max(
+                                  0,
+                                  Math.round(
+                                    (item.h - (item.fontSize ?? DEFAULT_FONT_SIZE[item.type]) * 1.2) / 2
+                                  )
+                                )
+                              : 0,
                           fontFamily: item.fontFamily ? FONT_STACKS[item.fontFamily] : undefined,
                           fontStyle: item.italic ? 'italic' : undefined,
                           textDecoration: item.underline ? 'underline' : undefined,
                           letterSpacing: item.tracking != null ? `${item.tracking}px` : undefined,
                           lineHeight: 1.15,
-                          padding: 0,
+                          paddingLeft: 0,
+                          paddingRight: 0,
+                          paddingBottom: 0,
                           margin: 0,
                           border: 'none',
                           outline: 'none',
@@ -2289,6 +2608,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                           <span
                             key={entry.handle}
                             onMouseDown={(event) => startDrag(event, item, 'resize', entry.handle)}
+                            onClick={(event) => event.stopPropagation()}
                             style={{
                               width: `${8 / zoom}px`,
                               height: `${8 / zoom}px`,
@@ -2358,6 +2678,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
           </div>
 
           {/* Floating toolbar */}
+          {!preview && (
           <div className="pointer-events-auto flex shrink-0 items-center gap-0.5 rounded-xl border border-white/10 bg-[#2C2C2C] px-1.5 py-1.5 shadow-[0_16px_40px_-12px_rgba(0,0,0,.8)]">
             {[
               { icon: MousePointer2, label: 'Select', action: () => setSelectedId(null) },
@@ -2379,6 +2700,26 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                 </button>
               );
             })}
+
+            <span className="w-px h-5 bg-white/10 mx-1" />
+            <button
+              type="button"
+              onClick={(event) => { event.stopPropagation(); applyAiDesign(); }}
+              title="AI design: arrange this page"
+              className="flex h-8 items-center gap-1 rounded-md px-2 text-[10.5px] font-semibold text-[#C9BDFF] hover:bg-white/10"
+            >
+              <Sparkles className="h-3.5 w-3.5" /> Design
+            </button>
+            {hasAiDesign && (
+              <button
+                type="button"
+                onClick={(event) => { event.stopPropagation(); revertAiDesign(); }}
+                title="Revert to the layout you made"
+                className="flex h-8 items-center gap-1 rounded-md border border-white/15 px-2 text-[10.5px] font-semibold text-white/70 hover:bg-white/10"
+              >
+                <Undo2 className="h-3.5 w-3.5" /> Revert
+              </button>
+            )}
 
             <span className="w-px h-5 bg-white/10 mx-1" />
 
@@ -2419,8 +2760,10 @@ export const EditorPage: React.FC<EditorPageProps> = ({
               </>
             ) : null}
           </div>
+          )}
           </div>
 
+          {!preview && (
           <button
             type="button"
             onClick={(event) => { event.stopPropagation(); onOpenAssistant?.(); }}
@@ -2429,10 +2772,11 @@ export const EditorPage: React.FC<EditorPageProps> = ({
           >
             <CircleHelp className="w-4 h-4" />
           </button>
+          )}
         </main>
 
         {/* Inspector */}
-        {inspectorOpen && (
+        {inspectorOpen && !preview && (
         <aside ref={inspectorRef} data-spot="editor-inspector" className="w-[286px] shrink-0 border-l border-white/10 bg-[#2C2C2C] flex flex-col min-h-0 overflow-y-auto v-scroll">
           <div className="h-11 shrink-0 flex items-center gap-1 px-3 border-b border-white/10">
             <button
@@ -2794,6 +3138,36 @@ export const EditorPage: React.FC<EditorPageProps> = ({
             <>
           {!selected && (
             <>
+          <Section title="AI layout">
+            <p className="text-[10px] leading-relaxed text-white/40">
+              Let Vector arrange this page. Click Design again for a different arrangement.
+            </p>
+            <div className="mt-2 flex gap-1.5">
+              <button
+                type="button"
+                onClick={applyAiDesign}
+                disabled={!items.length}
+                className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md bg-[#7C5CFF] text-[11px] font-semibold text-white hover:bg-[#6a4de8] disabled:opacity-30"
+              >
+                <Sparkles className="h-3.5 w-3.5" /> Design
+              </button>
+              {hasAiDesign && (
+                <button
+                  type="button"
+                  onClick={revertAiDesign}
+                  className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-white/15 px-3 text-[11px] font-semibold text-white/75 hover:bg-white/10"
+                >
+                  <Undo2 className="h-3.5 w-3.5" /> Revert
+                </button>
+              )}
+            </div>
+            {hasAiDesign && (
+              <p className="mt-1.5 text-[9.5px] text-[#B9A8FF]">
+                Layout {(aiCycle ?? 0) + 1} of 4 · your original layout is saved.
+              </p>
+            )}
+          </Section>
+
           <Section title="Frame">
             <div className="flex items-center gap-1.5">
               <span className="text-[10.5px] text-white/45 w-14">Size</span>
@@ -2818,6 +3192,14 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                 title="Swap orientation"
               >
                 ⟳
+              </button>
+              <button
+                type="button"
+                onClick={fitToScreen}
+                className="h-7 rounded bg-[#0D99FF] px-2 text-[10px] font-semibold text-white hover:bg-[#0b8ae6]"
+                title="Fit this page to the viewport"
+              >
+                Fit
               </button>
             </div>
 
@@ -2939,7 +3321,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                   <span className="w-12 text-[10.5px] text-white/45">Size</span>
                   <button
                     type="button"
-                    onClick={() => update(selected.id, { fontSize: Math.max(6, Math.round(currentFontSize - 1)) })}
+                    onClick={() => changeFontSize(currentFontSize - 1)}
                     className="grid h-7 w-7 place-items-center rounded bg-[#383838] text-white/70 hover:bg-white/15"
                     aria-label="Decrease text size"
                   >
@@ -2950,17 +3332,13 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                     min={6}
                     max={200}
                     value={currentFontSize}
-                    onChange={(event) =>
-                      update(selected.id, {
-                        fontSize: Math.max(6, Math.min(200, Number(event.target.value) || currentFontSize)),
-                      })
-                    }
+                    onChange={(event) => changeFontSize(Number(event.target.value) || currentFontSize)}
                     className="h-7 w-14 rounded bg-[#383838] px-1.5 text-center text-[11px] tabular-nums outline-none focus:ring-1 focus:ring-[#0D99FF]"
                     aria-label="Text size"
                   />
                   <button
                     type="button"
-                    onClick={() => update(selected.id, { fontSize: Math.min(200, Math.round(currentFontSize + 1)) })}
+                    onClick={() => changeFontSize(currentFontSize + 1)}
                     className="grid h-7 w-7 place-items-center rounded bg-[#383838] text-white/70 hover:bg-white/15"
                     aria-label="Increase text size"
                   >
@@ -2974,7 +3352,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                     <button
                       key={size}
                       type="button"
-                      onClick={() => update(selected.id, { fontSize: size })}
+                      onClick={() => changeFontSize(size)}
                       className={`h-6 rounded text-[10px] font-semibold tabular-nums ${
                         Math.round(currentFontSize) === size
                           ? 'bg-[#0D99FF] text-white'
@@ -3062,30 +3440,32 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                 </div>
 
                 {selectedIsText && (
-                  <>
-                    <div className="mt-1 flex items-center gap-1.5">
-                      <span className="w-12 shrink-0 text-[10.5px] text-white/45">Tracking</span>
-                      <input
-                        type="range"
-                        min={-2}
-                        max={8}
-                        step={0.5}
-                        value={selected.tracking ?? 0}
-                        onChange={(event) => update(selected.id, { tracking: Number(event.target.value) })}
-                        className="flex-1 accent-[#0D99FF]"
-                      />
-                      <span className="w-9 text-right text-[10.5px] text-white/70">{selected.tracking ?? 0}px</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setEditingId(selected.id)}
-                      className="mt-1 h-7 w-full rounded text-[10.5px] font-semibold text-white"
-                      style={{ background: '#0D99FF' }}
-                    >
-                      Edit text on canvas
-                    </button>
-                  </>
+                  <div className="mt-1 flex items-center gap-1.5">
+                    <span className="w-12 shrink-0 text-[10.5px] text-white/45">Tracking</span>
+                    <input
+                      type="range"
+                      min={-2}
+                      max={8}
+                      step={0.5}
+                      value={selected.tracking ?? 0}
+                      onChange={(event) => update(selected.id, { tracking: Number(event.target.value) })}
+                      className="flex-1 accent-[#0D99FF]"
+                    />
+                    <span className="w-9 text-right text-[10.5px] text-white/70">{selected.tracking ?? 0}px</span>
+                  </div>
                 )}
+
+                <button
+                  type="button"
+                  onClick={() => setEditingId(selected.id)}
+                  className="mt-1 h-7 w-full rounded text-[10.5px] font-semibold text-white"
+                  style={{ background: '#0D99FF' }}
+                >
+                  Type directly on canvas
+                </button>
+                <p className="text-[9.5px] leading-relaxed text-white/30">
+                  Click the element twice, double-click it, or press Enter to put the caret on the canvas.
+                </p>
               </Section>
 
               <Section title="Layout">
@@ -3118,7 +3498,11 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                   <input
                     type="number"
                     value={selected.h}
-                    onChange={(event) => update(selected.id, { h: Math.max(16, Number(event.target.value) || 24) })}
+                    onChange={(event) =>
+                      update(selected.id, {
+                        h: Math.max(Math.round(currentFontSize * 1.15), Number(event.target.value) || 24),
+                      })
+                    }
                     className="h-7 w-[58px] rounded bg-[#383838] px-1.5 text-[10.5px] tabular-nums outline-none"
                     aria-label="Height"
                   />

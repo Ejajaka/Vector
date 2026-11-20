@@ -1275,8 +1275,8 @@ export const PromptModePage: React.FC<Props> = ({
                           No UI components on this page
                         </p>
                         <p className={`mt-1 text-[10px] leading-relaxed ${compiled.meta.dark ? 'text-white/70' : 'text-[#64626F]'}`}>
-                          This reads like a drawing or visual instruction. Describe components — heading, card,
-                          button — to draw a wireframe.
+                          Describe the screen in UI terms — a heading, button, input, card or image — and the
+                          wireframe will draw itself.
                         </p>
                       </div>
                     ) : (
@@ -1323,7 +1323,7 @@ export const PromptModePage: React.FC<Props> = ({
           <button
             type="button"
             onClick={() => setGenerateOpen(true)}
-            disabled={!submitted}
+            disabled={!submitted || elements.length === 0}
             className="mt-2 v-btn v-btn-primary h-9 w-full text-[11.5px] disabled:opacity-40"
           >
             Generate {screens.length > 1 ? `${screens.length} screens` : 'with this prompt'}
