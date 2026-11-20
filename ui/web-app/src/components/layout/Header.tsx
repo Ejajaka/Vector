@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -20,6 +20,7 @@ import {
 import type { ActiveTab } from '../../types/analysis.ts';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { useProject } from '../../context/ProjectContext.tsx';
+import { useProjectVocabulary } from '../../hooks/useProjectVocabulary.ts';
 import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
 import { ProfileMenu } from './ProfileMenu.tsx';
 import { NotificationsMenu } from './NotificationsMenu.tsx';
@@ -90,6 +91,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const { signOut } = useAuth();
   const { selectProject, projects } = useProject();
+  const vocabulary = useProjectVocabulary();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [confirmingLogout, setConfirmingLogout] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -125,6 +127,19 @@ export const Header: React.FC<HeaderProps> = ({
       command.label.toLowerCase().includes(query.toLowerCase()) ||
       command.hint.toLowerCase().includes(query.toLowerCase())
   );
+
+  const vocabularyMatches = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    if (term.length < 2) return [];
+    return vocabulary
+      .filter((item) => item.value.toLowerCase().includes(term))
+      .sort((a, b) => {
+        const aStarts = a.value.toLowerCase().startsWith(term) ? 0 : 1;
+        const bStarts = b.value.toLowerCase().startsWith(term) ? 0 : 1;
+        return aStarts - bStarts;
+      })
+      .slice(0, 6);
+  }, [query, vocabulary]);
 
   const handleSignOut = async () => {
     setSigningOut(true);
@@ -227,6 +242,33 @@ export const Header: React.FC<HeaderProps> = ({
                       </button>
                     );
                   })}
+
+                  {vocabularyMatches.length > 0 && (
+                    <>
+                      <div className="my-1.5 h-px bg-[var(--v-line)]" />
+                      <p className="px-2 py-1.5 v-eyebrow">Project vocabulary</p>
+                      {vocabularyMatches.map((item) => (
+                        <button
+                          key={`${item.kind}:${item.value}`}
+                          type="button"
+                          onClick={() => {
+                            setQuery(item.value);
+                            setSearchOpen(false);
+                            if (item.tab && item.tab !== 'editor') setActiveTab(item.tab);
+                          }}
+                          className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors hover:bg-[var(--v-surface-2)]"
+                        >
+                          <span className="w-[72px] shrink-0 truncate rounded border border-[var(--v-line)] bg-[var(--v-surface-2)] px-1 py-0.5 text-center text-[8.5px] font-medium uppercase tracking-[0.04em] text-[var(--v-faint)]">
+                            {item.kind}
+                          </span>
+                          <span className="min-w-0 flex-1 truncate text-[12px] text-[var(--v-ink-2)]">{item.value}</span>
+                          {item.detail && (
+                            <span className="hidden shrink-0 text-[10px] text-[var(--v-faint)] sm:block">{item.detail}</span>
+                          )}
+                        </button>
+                      ))}
+                    </>
+                  )}
 
                   {projects.length > 0 && !query && (
                     <>

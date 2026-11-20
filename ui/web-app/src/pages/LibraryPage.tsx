@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Copy, Download, FileText, Image as ImageIcon, Loader2, Search, Trash2, Upload, X } from 'lucide-react';
 import {
   addAsset,
@@ -10,6 +10,8 @@ import {
   type AssetKind,
   type LibraryAsset,
 } from '../services/library.ts';
+import { useSearchAutocomplete } from '../hooks/useSearchAutocomplete.ts';
+import { SearchSuggestions } from '../components/ui/SearchSuggestions.tsx';
 
 const FILTERS: Array<{ id: 'all' | AssetKind; label: string }> = [
   { id: 'all', label: 'Everything' },
@@ -23,6 +25,8 @@ export const LibraryPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | AssetKind>('all');
   const [query, setQuery] = useState('');
+  const libraryVocab = useMemo(() => assets.map((asset) => ({ value: asset.name, kind: 'file' as const, detail: asset.kind, tab: 'library' as const })).filter((item) => item.value.trim().length > 1), [assets]);
+  const autocomplete = useSearchAutocomplete(libraryVocab, query, setQuery);
   const [copied, setCopied] = useState<string | null>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
@@ -97,10 +101,20 @@ export const LibraryPage: React.FC = () => {
           <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--v-faint)]" />
           <input
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              autocomplete.setOpen(true);
+            }}
+            onFocus={() => autocomplete.setOpen(query.length > 0)}
+            onBlur={() => window.setTimeout(() => autocomplete.setOpen(false), 120)}
+            onKeyDown={autocomplete.onKeyDown}
             placeholder="Search the library"
             className="v-input h-9 pl-9 pr-3 text-[12px]"
+            autoComplete="off"
           />
+          {autocomplete.open && (
+            <SearchSuggestions items={autocomplete.suggestions} active={autocomplete.active} onPick={autocomplete.pick} />
+          )}
         </div>
         <span className="text-[10.5px] text-[var(--v-faint)]">
           {assets.length} item{assets.length === 1 ? '' : 's'} · {formatBytes(totalSize)}

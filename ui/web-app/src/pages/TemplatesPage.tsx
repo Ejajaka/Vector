@@ -16,6 +16,9 @@ import {
   pagesFromPrivate,
   type PrivateTemplate,
 } from '../services/privateTemplates.ts';
+import { useProjectVocabulary } from '../hooks/useProjectVocabulary.ts';
+import { useSearchAutocomplete } from '../hooks/useSearchAutocomplete.ts';
+import { SearchSuggestions } from '../components/ui/SearchSuggestions.tsx';
 
 interface TemplatesPageProps {
   onUseTemplate: (template: TemplateDefinition) => void;
@@ -37,6 +40,9 @@ export const TemplatesPage: React.FC<TemplatesPageProps> = ({
   onNavigatePricing,
 }) => {
   const [query, setQuery] = useState('');
+  const vocabulary = useProjectVocabulary();
+  const templateVocab = useMemo(() => vocabulary.filter((item) => item.kind === 'template'), [vocabulary]);
+  const autocomplete = useSearchAutocomplete(templateVocab, query, setQuery);
   const [category, setCategory] = useState<TemplateCategory | 'All'>('All');
   const [preview, setPreview] = useState<TemplateDefinition | null>(null);
   const [previewPage, setPreviewPage] = useState(0);
@@ -85,10 +91,24 @@ export const TemplatesPage: React.FC<TemplatesPageProps> = ({
           <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--v-faint)]" />
           <input
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              autocomplete.setOpen(true);
+            }}
+            onFocus={() => autocomplete.setOpen(query.length > 0)}
+            onBlur={() => window.setTimeout(() => autocomplete.setOpen(false), 120)}
+            onKeyDown={autocomplete.onKeyDown}
             placeholder="Search templates..."
             className="v-input h-[30px] pl-8 pr-3 text-[12px]"
+            autoComplete="off"
           />
+          {autocomplete.open && (
+            <SearchSuggestions
+              items={autocomplete.suggestions}
+              active={autocomplete.active}
+              onPick={autocomplete.pick}
+            />
+          )}
         </div>
       </section>
 

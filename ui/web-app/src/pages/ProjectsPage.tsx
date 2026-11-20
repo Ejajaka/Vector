@@ -27,6 +27,8 @@ import { SpotlightHost } from '../components/onboarding/SpotlightHost.tsx';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog.tsx';
 import type { Project } from '../types/projects.ts';
 import { isPaid, readEntitlements, trialRemaining } from '../services/entitlements.ts';
+import { useSearchAutocomplete } from '../hooks/useSearchAutocomplete.ts';
+import { SearchSuggestions } from '../components/ui/SearchSuggestions.tsx';
 
 interface ProjectsPageProps {
   onOpenProject: (project: Project) => void;
@@ -55,6 +57,11 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
   const [tab, setTab] = useState<Tab>('all');
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [query, setQuery] = useState('');
+  const projectVocab = useMemo(() => projects.flatMap((project) => [
+    { value: project.name, kind: 'project' as const, detail: 'Project', tab: 'projects' as const },
+    ...(project.description ? [{ value: project.description, kind: 'project' as const, detail: 'Description', tab: 'projects' as const }] : []),
+  ]).filter((item) => item.value.trim().length > 1), [projects]);
+  const autocomplete = useSearchAutocomplete(projectVocab, query, setQuery);
   const [sort, setSort] = useState<'updated' | 'name'>('updated');
   const [createOpen, setCreateOpen] = useState(false);
   const [name, setName] = useState('');
@@ -199,12 +206,22 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
               <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--v-faint)]" />
               <input
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  autocomplete.setOpen(true);
+                }}
+                onFocus={() => autocomplete.setOpen(query.length > 0)}
+                onBlur={() => window.setTimeout(() => autocomplete.setOpen(false), 120)}
+                onKeyDown={autocomplete.onKeyDown}
                 placeholder="Search projects"
                 className="v-input h-8 w-[230px] pl-8 pr-3 text-[12.5px]"
                 disabled={tab === 'shared'}
                 aria-label="Search projects"
+                autoComplete="off"
               />
+              {autocomplete.open && (
+                <SearchSuggestions items={autocomplete.suggestions} active={autocomplete.active} onPick={autocomplete.pick} />
+              )}
             </div>
             <button
               type="button"
@@ -279,12 +296,22 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
           <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--v-faint)]" />
           <input
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              autocomplete.setOpen(true);
+            }}
+            onFocus={() => autocomplete.setOpen(query.length > 0)}
+            onBlur={() => window.setTimeout(() => autocomplete.setOpen(false), 120)}
+            onKeyDown={autocomplete.onKeyDown}
             placeholder="Search projects"
             className="v-input h-8 w-full pl-8 pr-3 text-[12.5px]"
             disabled={tab === 'shared'}
             aria-label="Search projects"
+            autoComplete="off"
           />
+          {autocomplete.open && (
+            <SearchSuggestions items={autocomplete.suggestions} active={autocomplete.active} onPick={autocomplete.pick} />
+          )}
         </div>
 
         {tab === 'shared' ? (

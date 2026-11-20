@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import type { AnalysisResult, RiskLevel } from '../types/analysis.ts';
 import { historyStorage } from '../services/historyStorage.ts';
 import { RiskBadge } from '../components/ui/RiskBadge.tsx';
@@ -14,6 +14,8 @@ import {
   AlertTriangle,
   FolderKanban
 } from 'lucide-react';
+import { useSearchAutocomplete } from '../hooks/useSearchAutocomplete.ts';
+import { SearchSuggestions } from '../components/ui/SearchSuggestions.tsx';
 
 interface HistoryPageProps {
   onOpenAnalysis: (item: AnalysisResult) => void;
@@ -33,6 +35,11 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
   const [sortBy, setSortBy] = useState<'date_desc' | 'risk_desc' | 'coverage_asc'>('date_desc');
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const historyVocab = useMemo(() => currentProject ? historyStorage.getAll(currentProject.id).flatMap((item) => [
+    { value: item.prompt, kind: 'history' as const, detail: 'Analysis prompt', tab: 'history' as const },
+    ...item.resources.map((resource) => ({ value: resource.label, kind: 'history' as const, detail: 'Analysis resource', tab: 'history' as const })),
+  ]) : [], [currentProject, refreshKey]);
+  const autocomplete = useSearchAutocomplete(historyVocab, search, setSearch);
 
   const items = currentProject
     ? historyStorage.filterAndSort({
@@ -104,9 +111,19 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
             type="text"
             placeholder="Search prompt text, elements (e.g. button, navbar)..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              autocomplete.setOpen(true);
+            }}
+            onFocus={() => autocomplete.setOpen(search.length > 0)}
+            onBlur={() => window.setTimeout(() => autocomplete.setOpen(false), 120)}
+            onKeyDown={autocomplete.onKeyDown}
             className="w-full pl-9 pr-3 py-2 text-xs bg-[#FAFAF8] border border-[#E5E2D8] rounded-lg text-[#283638] focus:bg-white focus:outline-none focus:border-[#49686C]"
+            autoComplete="off"
           />
+          {autocomplete.open && (
+            <SearchSuggestions items={autocomplete.suggestions} active={autocomplete.active} onPick={autocomplete.pick} />
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

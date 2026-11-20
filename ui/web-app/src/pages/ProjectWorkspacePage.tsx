@@ -73,6 +73,8 @@ import {
 } from '../services/base44.ts';
 import { currentRoom, shareLink } from '../services/collab.ts';
 import type { ActiveTab } from '../types/analysis.ts';
+import { useSearchAutocomplete } from '../hooks/useSearchAutocomplete.ts';
+import { SearchSuggestions } from '../components/ui/SearchSuggestions.tsx';
 
 interface ProjectRef {
   id: string;
@@ -1013,6 +1015,17 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   const filteredArtifacts = artifacts.filter((entry) => filtered(entry.label));
   const sourceMatches = !search.trim() || filtered('design system') || filtered('import');
 
+  const projectSearchVocab = useMemo(() => [
+    ...(doc?.pages || []).flatMap((page) => [
+      { value: page.name, kind: 'page' as const, detail: 'Canvas page', tab: 'project' as const },
+      ...(page.items || []).map((item) => ({ value: item.label, kind: 'element' as const, detail: 'Canvas element', tab: 'project' as const })),
+    ]),
+    ...versions.map((version) => ({ value: version.label, kind: 'prompt' as const, detail: 'Prompt version', tab: 'project' as const })),
+    ...files.map((file) => ({ value: file.name, kind: 'file' as const, detail: 'Project file', tab: 'project' as const })),
+    ...artifacts.map((entry) => ({ value: entry.label, kind: 'element' as const, detail: 'Generated item', tab: 'project' as const })),
+  ].filter((item) => item.value && item.value.trim().length > 1), [doc, versions, files, artifacts]);
+  const autocomplete = useSearchAutocomplete(projectSearchVocab, search, setSearch);
+
   const toggleGroup = (key: string) => setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
 
   return (
@@ -1100,10 +1113,20 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                   <Search className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-[var(--v-faint)]" />
                   <input
                     value={search}
-                    onChange={(event) => setSearch(event.target.value)}
+                    onChange={(event) => {
+                      setSearch(event.target.value);
+                      autocomplete.setOpen(true);
+                    }}
+                    onFocus={() => autocomplete.setOpen(search.length > 0)}
+                    onBlur={() => window.setTimeout(() => autocomplete.setOpen(false), 120)}
+                    onKeyDown={autocomplete.onKeyDown}
                     placeholder="Search this project"
                     className="h-7 w-full rounded-md border border-[var(--v-line)] bg-[var(--v-surface-2)] pl-7 pr-2 text-[10px] text-[var(--v-ink)] outline-none focus:border-[var(--v-violet)]"
+                    autoComplete="off"
                   />
+                  {autocomplete.open && (
+                    <SearchSuggestions items={autocomplete.suggestions} active={autocomplete.active} onPick={autocomplete.pick} />
+                  )}
                 </div>
               </div>
               <div className="v-scroll min-h-0 flex-1 overflow-y-auto px-2 pb-2">

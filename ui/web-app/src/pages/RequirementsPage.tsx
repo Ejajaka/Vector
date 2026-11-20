@@ -31,6 +31,8 @@ import {
   recordRequirementDecision,
   recordRequirementDecisions,
 } from '../services/requirements/approvals.ts';
+import { useSearchAutocomplete } from '../hooks/useSearchAutocomplete.ts';
+import { SearchSuggestions } from '../components/ui/SearchSuggestions.tsx';
 
 type KindFilter = 'all' | 'functional' | 'non_functional';
 
@@ -46,6 +48,15 @@ export const RequirementsPage: React.FC = () => {
   const [progress, setProgress] = useState('');
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const requirementVocab = useMemo(() => [
+    ...requirements.flatMap((item) => [
+      { value: item.requirementCode, kind: 'requirement' as const, detail: 'Requirement code', tab: 'requirements' as const },
+      { value: item.originalText, kind: 'requirement' as const, detail: 'Source text', tab: 'requirements' as const },
+      { value: item.normalizedText, kind: 'requirement' as const, detail: 'Normalized text', tab: 'requirements' as const },
+    ]),
+    ...documents.map((doc) => ({ value: doc.fileName, kind: 'file' as const, detail: 'Requirement document', tab: 'requirements' as const })),
+  ].filter((item) => item.value && item.value.trim().length > 1), [requirements, documents]);
+  const autocomplete = useSearchAutocomplete(requirementVocab, search, setSearch);
   const [kindFilter, setKindFilter] = useState<KindFilter>('all');
   const [prioritizing, setPrioritizing] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -369,10 +380,20 @@ export const RequirementsPage: React.FC = () => {
               <Search className="w-3.5 h-3.5 text-[#737A72] absolute left-2.5 top-2.5" />
               <input
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  autocomplete.setOpen(true);
+                }}
+                onFocus={() => autocomplete.setOpen(search.length > 0)}
+                onBlur={() => window.setTimeout(() => autocomplete.setOpen(false), 120)}
+                onKeyDown={autocomplete.onKeyDown}
                 placeholder="Search requirements, codes or roles"
                 className="w-full pl-8 pr-3 py-2 rounded-lg border border-[#E5E2D8] bg-[#FAFAF8] text-xs text-[#283638] focus:bg-white focus:outline-none focus:border-[#49686C]"
+                autoComplete="off"
               />
+              {autocomplete.open && (
+                <SearchSuggestions items={autocomplete.suggestions} active={autocomplete.active} onPick={autocomplete.pick} />
+              )}
             </div>
 
             {selectedIds.size > 0 && (
