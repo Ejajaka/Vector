@@ -21,6 +21,7 @@
 /* ------------------------------------------------------------------ */
 
 export type ElementKind =
+  | 'background'
   | 'navbar' | 'heading' | 'text' | 'button' | 'input' | 'link'
   | 'card' | 'image' | 'avatar' | 'badge' | 'tabs' | 'progress'
   | 'table' | 'chart' | 'modal' | 'checkbox' | 'footer';
@@ -30,6 +31,8 @@ export interface CompiledElement {
   kind: ElementKind;
   label: string;
   colour?: string;
+  /** Second colour for split backdrops. */
+  colour2?: string;
   /** True when the colour came from the prompt's design tokens, not this element. */
   colourInferred?: boolean;
   action?: string;
@@ -160,6 +163,7 @@ const KIND_DEFS: KindDef[] = [
 
 /** Ties at the same span resolve toward the more specific component. */
 const KIND_PRIORITY: Record<ElementKind, number> = {
+  background: 0,
   avatar: 1, badge: 2, link: 2, tabs: 2, progress: 2,
   input: 3, button: 3, card: 4,
   image: 5, table: 5, chart: 5, modal: 5, checkbox: 5,
@@ -167,6 +171,7 @@ const KIND_PRIORITY: Record<ElementKind, number> = {
 };
 
 const CAPS: Record<ElementKind, number> = {
+  background: 1,
   navbar: 1, footer: 1, image: 4, card: 4, avatar: 2, badge: 3,
   tabs: 2, progress: 2, input: 3, button: 3, link: 3,
   heading: 3, text: 3, table: 2, chart: 2, modal: 2, checkbox: 2,
@@ -186,7 +191,7 @@ const COLOURS: Record<string, string> = {
 const ACCENT_KINDS: ElementKind[] = ['button', 'badge', 'avatar', 'link', 'chart', 'progress', 'navbar', 'checkbox'];
 
 export const REQUIRED_ATTRS: Record<ElementKind, Array<Question['attribute']>> = {
-  navbar: [], footer: [], text: [], tabs: [], progress: [],
+  background: [], navbar: [], footer: [], text: [], tabs: [], progress: [],
   heading: ['label'], card: ['label'], image: ['label'], avatar: ['label'],
   badge: ['label'], link: ['label'], input: ['label'],
   button: ['label', 'action'], table: ['label'], chart: ['label'],
@@ -279,6 +284,76 @@ function findColour(text: string): string | undefined {
     }
   }
   return best?.value;
+}
+
+/**
+ * Pick the colour closest to a component's keyword, not the first colour in
+ * the line. "yellow background with a green button" must colour the button
+ * green, not yellow.
+ */
+function findNearestColour(text: string, keyword: string): string | undefined {
+  const masked = maskQuoted(text);
+  const matches: Array<{ value: string; index: number }> = [];
+  const hex = /#[0-9a-f]{6}\b/gi;
+  let match: RegExpExecArray | null;
+  while ((match = hex.exec(masked)) !== null) {
+    matches.push({ value: match[0].toUpperCase(), index: match.index });
+  }
+  for (const [name, value] of Object.entries(COLOURS)) {
+    const regex = new RegExp(`\\b${name}\\b`, 'gi');
+    while ((match = regex.exec(masked)) !== null) {
+      matches.push({ value, index: match.index });
+    }
+  }
+  if (!matches.length) return undefined;
+
+  // A colour inside a background phrase belongs to the page, not the control.
+  const candidates = matches.filter((entry) => {
+    const context = masked.slice(
+      Math.max(0, entry.index - 24),
+      Math.min(masked.length, entry.index + 32)
+    );
+    return !/\b(?:background|backdrop|canvas|fill|paint|screen|page)\b|\b(?:upper|lower)\s+half\b/i.test(
+      context
+    );
+  });
+  const pool = candidates.length ? candidates : matches;
+
+  const anchor =
+    new RegExp(`\\b${escapeRe(keyword)}s?\\b`, 'i').exec(masked)?.index ?? pool[0].index;
+  let best: { value: string; distance: number } | undefined;
+  pool.forEach((entry) => {
+    const distance = Math.abs(entry.index - anchor);
+    if (!best || distance < best.distance) best = { value: entry.value, distance };
+  });
+
+  // A colour far from the keyword belongs to another component.
+  return best && best.distance <= 32 ? best.value : undefined;
+}
+
+function findColours(text: string): string[] {
+  const masked = maskQuoted(text);
+  const found: Array<{ value: string; index: number }> = [];
+  const hex = /#[0-9a-f]{6}\b/gi;
+  let match: RegExpExecArray | null;
+  while ((match = hex.exec(masked)) !== null) {
+    found.push({ value: match[0].toUpperCase(), index: match.index });
+  }
+  for (const [name, value] of Object.entries(COLOURS)) {
+    const regex = new RegExp(`\\b${name}\\b`, 'gi');
+    while ((match = regex.exec(masked)) !== null) {
+      found.push({ value, index: match.index });
+    }
+  }
+  const seen = new Set<string>();
+  return found
+    .sort((a, b) => a.index - b.index)
+    .map((entry) => entry.value)
+    .filter((value) => {
+      if (seen.has(value)) return false;
+      seen.add(value);
+      return true;
+    });
 }
 
 const WORD_NUMBERS: Record<string, number> = {
@@ -586,6 +661,50 @@ function inferScreenTitle(text: string, archetype: Archetype): string | undefine
   return titleCase(word.toLowerCase());
 }
 
+/**
+ * A split/diagonal/colour-half instruction is a backdrop, not a component.
+ * It can still be drawn, but it never counts as a UI control.
+ */
+function detectBackdrop(text: string): CompiledElement | undefined {
+  const masked = maskQuoted(text);
+  const lower = masked.toLowerCase();
+  const diagonal = /\b(?:diagonal(?:ly)?|from\s+top[- ]right|top[- ]right)\b/.test(lower);
+  const split =
+    /\b(?:split|halves?|half|two[- ]tone|gradient)\b/.test(lower) ||
+    /\b(?:upper|lower|top|bottom)\s+half\b/.test(lower);
+  if (!diagonal && !split) return undefined;
+
+  const mentionsSurface =
+    /\b(?:background|backdrop|canvas|fill|paint|page|screen)\b/.test(lower) ||
+    /\b(?:upper|lower|top|bottom)\s+half\b/.test(lower);
+  if (!mentionsSurface) return undefined;
+
+  const colours = findColours(text);
+  if (colours.length < 2) return undefined;
+
+  const gradient = /\bgradient\b/.test(lower);
+
+  return {
+    id: '',
+    kind: 'background',
+    label: gradient
+      ? 'Gradient background'
+      : diagonal
+        ? 'Diagonal split background'
+        : 'Split background',
+    colour: colours[0],
+    colour2: colours[1],
+    preset: gradient ? 'gradient' : diagonal ? 'split-diagonal' : 'split-horizontal',
+    confidence: 0.8,
+    sourceLine: text,
+    parentLine: text,
+    x: 0,
+    y: 0,
+    w: 0,
+    h: 0,
+  };
+}
+
 function parseTokens(text: string, base: DesignTokens = DEFAULT_TOKENS): DesignTokens {
   const lower = text.toLowerCase();
   const near = lower.match(/\b(?:primary|accent|brand|main|cta)\s*(?:colou?r)?\s*(?:is|:)?\s*(#[0-9a-f]{6}|[a-z]+)/i);
@@ -732,7 +851,7 @@ export function elementFromText(
   const hit = findAllKinds(text)[0];
   if (!hit) return undefined;
   const unit: Unit = { text, section: '', line: text };
-  return buildElement(hit, text, unit, findColour(text), findAction(text), undefined, archetype, DEFAULT_TOKENS);
+  return buildElement(hit, text, unit, findAction(text), undefined, archetype, DEFAULT_TOKENS);
 }
 
 interface Unit {
@@ -930,7 +1049,6 @@ function buildElement(
   hit: KindMatch,
   windowText: string,
   unit: Unit,
-  unitColour: string | undefined,
   unitAction: string | undefined,
   brand: string | undefined,
   archetype: Archetype,
@@ -940,7 +1058,7 @@ function buildElement(
   const interactive = ['button', 'modal', 'checkbox'].includes(hit.kind);
   const placement = findPlacement(windowText);
   const label = inferLabel(windowText, hit.kind, unit.section, brand);
-  const colour = findColour(windowText) || unitColour;
+  const colour = findNearestColour(windowText, hit.word);
   // "Book a table" / "Order now" already state their action in the label.
   const derivedAction =
     hit.kind === 'button' && label && isActionPhrase(label) ? label.toLowerCase() : undefined;
@@ -988,13 +1106,12 @@ function extractElements(
 ): CompiledElement[] {
   const hits = findAllKinds(unit.text);
   if (!hits.length) return [];
-  const unitColour = findColour(unit.text);
   const windows = windowsFor(unit.text, hits);
   // A unit-level action is only safe when the line produced one element.
   const unitAction = windows.length === 1 ? findAction(unit.text) : undefined;
 
   return windows.map(({ text, hit }) =>
-    buildElement(hit, text, unit, unitColour, unitAction, brand, archetype, tokens)
+    buildElement(hit, text, unit, unitAction, brand, archetype, tokens)
   );
 }
 
@@ -1060,11 +1177,11 @@ function applyCaps(elements: CompiledElement[]): CompiledElement[] {
 }
 
 const SEMANTIC_ORDER: Record<Archetype, ElementKind[]> = {
-  auth: ['navbar', 'image', 'avatar', 'heading', 'text', 'input', 'checkbox', 'button', 'link', 'badge', 'tabs', 'progress', 'card', 'table', 'chart', 'modal', 'footer'],
-  commerce: ['navbar', 'image', 'avatar', 'heading', 'text', 'badge', 'card', 'tabs', 'input', 'button', 'link', 'progress', 'table', 'chart', 'checkbox', 'modal', 'footer'],
-  dashboard: ['navbar', 'card', 'chart', 'progress', 'table', 'tabs', 'heading', 'text', 'input', 'button', 'link', 'badge', 'image', 'avatar', 'checkbox', 'modal', 'footer'],
-  landing: ['navbar', 'image', 'avatar', 'heading', 'text', 'badge', 'button', 'link', 'card', 'tabs', 'input', 'progress', 'table', 'chart', 'checkbox', 'modal', 'footer'],
-  generic: ['navbar', 'image', 'avatar', 'heading', 'text', 'badge', 'tabs', 'card', 'progress', 'input', 'button', 'link', 'table', 'chart', 'modal', 'checkbox', 'footer'],
+  auth: ['background', 'navbar', 'image', 'avatar', 'heading', 'text', 'input', 'checkbox', 'button', 'link', 'badge', 'tabs', 'progress', 'card', 'table', 'chart', 'modal', 'footer'],
+  commerce: ['background', 'navbar', 'image', 'avatar', 'heading', 'text', 'badge', 'card', 'tabs', 'input', 'button', 'link', 'progress', 'table', 'chart', 'checkbox', 'modal', 'footer'],
+  dashboard: ['background', 'navbar', 'card', 'chart', 'progress', 'table', 'tabs', 'heading', 'text', 'input', 'button', 'link', 'badge', 'image', 'avatar', 'checkbox', 'modal', 'footer'],
+  landing: ['background', 'navbar', 'image', 'avatar', 'heading', 'text', 'badge', 'button', 'link', 'card', 'tabs', 'input', 'progress', 'table', 'chart', 'checkbox', 'modal', 'footer'],
+  generic: ['background', 'navbar', 'image', 'avatar', 'heading', 'text', 'badge', 'tabs', 'card', 'progress', 'input', 'button', 'link', 'table', 'chart', 'modal', 'checkbox', 'footer'],
 };
 
 function sortSemantic(elements: CompiledElement[], archetype: Archetype): CompiledElement[] {
@@ -1073,7 +1190,9 @@ function sortSemantic(elements: CompiledElement[], archetype: Archetype): Compil
     (element) => element.location && LOCATION_RANK[element.location] !== undefined
   );
   const structural = (element: CompiledElement) =>
-    element.kind === 'navbar' ? -2 : element.kind === 'footer' ? 2 : 0;
+    element.kind === 'background' ? -3
+      : element.kind === 'navbar' ? -2
+        : element.kind === 'footer' ? 2 : 0;
 
   return elements
     .map((element, index) => ({ element, index }))
@@ -1301,8 +1420,9 @@ export function compilePrompt(prompt: string, tokenBase?: DesignTokens): Compile
     };
   }
 
-  let raw: CompiledElement[] = [];
-  let usedLines = 0;
+  const backdrop = detectBackdrop(prompt);
+  let raw: CompiledElement[] = backdrop ? [backdrop] : [];
+  let usedLines = backdrop ? 1 : 0;
 
   parsed.units.forEach((unit) => {
     const extracted = extractElements(unit, brand, archetype, tokens);
@@ -1467,6 +1587,18 @@ export function compilePrompt(prompt: string, tokenBase?: DesignTokens): Compile
     signals.push({ tone: 'info', text: 'No primary colour stated — accents use the house violet.' });
   }
 
+  if (backdrop) {
+    signals.push({
+      tone: 'infer',
+      text: `Backdrop: ${
+        backdrop.preset === 'split-diagonal'
+          ? 'diagonal split'
+          : backdrop.preset === 'gradient'
+            ? 'gradient'
+            : 'split fill'
+      } ${backdrop.colour} / ${backdrop.colour2}.`,
+    });
+  }
   if (dark) signals.push({ tone: 'info', text: 'Dark theme detected — navigation and buttons use dark variants.' });
   if (tokens.density !== 'comfortable') signals.push({ tone: 'info', text: `${titleCase(tokens.density)} density inferred from the wording.` });
 
@@ -1556,23 +1688,31 @@ export function compilePromptScreens(prompt: string): PromptScreen[] {
     return [{ ...compiled, id: 'screen_1', name }];
   }
 
-  const globalTokens = parseTokens(prompt);
-  const blocks: Array<{ name: string; text: string }> = [];
-  let current: { name: string; lines: string[] } = { name: '', lines: [] };
+  const blocks: Array<{ name: string; text: string; fromMarker: boolean }> = [];
+  let current: { name: string; lines: string[]; fromMarker: boolean } = {
+    name: '',
+    lines: [],
+    fromMarker: false,
+  };
 
   lines.forEach((line) => {
     if (isScreenMarker(line)) {
       if (current.lines.some((entry) => entry.trim())) {
-        blocks.push({ name: current.name, text: current.lines.join('\n') });
+        blocks.push({ name: current.name, text: current.lines.join('\n'), fromMarker: current.fromMarker });
       }
-      current = { name: screenMarkerName(line) || '', lines: [] };
+      current = { name: screenMarkerName(line) || '', lines: [], fromMarker: true };
     } else {
       current.lines.push(line);
     }
   });
   if (current.lines.some((entry) => entry.trim())) {
-    blocks.push({ name: current.name, text: current.lines.join('\n') });
+    blocks.push({ name: current.name, text: current.lines.join('\n'), fromMarker: current.fromMarker });
   }
+
+  // Tokens are global only when the user wrote them in the preamble. A colour
+  // mentioned inside one screen must not tint the other screens.
+  const preamble = blocks.find((block) => !block.fromMarker)?.text || '';
+  const globalTokens = parseTokens(preamble);
 
   const candidates = blocks
     .map((block) => {
@@ -1580,23 +1720,44 @@ export function compilePromptScreens(prompt: string): PromptScreen[] {
       return {
         compiled,
         name: block.name || blockName(block.text, compiled.archetype) || '',
+        fromMarker: block.fromMarker,
       };
     })
     // A preamble such as "Dark theme, emerald primary colour" is not a page.
-    .filter((entry) => entry.compiled.meta.usedLines > 0);
+    // A screen the user explicitly named stays even when no component was
+    // recognised — dropping it silently is worse than explaining the gap.
+    .filter((entry) => entry.compiled.meta.usedLines > 0 || entry.fromMarker);
 
   const screens: PromptScreen[] = candidates.map((entry, index) => {
     const id = `screen_${index + 1}`;
-    const elements = entry.compiled.elements.map((element) => ({
-      ...element,
-      id: `${id}_${element.id}`,
-    }));
+    const recognised = entry.compiled.meta.usedLines > 0;
+    const elements = recognised
+      ? entry.compiled.elements.map((element) => ({ ...element, id: `${id}_${element.id}` }))
+      : [];
+    const signals: Signal[] = recognised
+      ? entry.compiled.meta.signals
+      : [
+          {
+            tone: 'info',
+            text: `${entry.compiled.meta.structured ? 'Structured' : 'Prose'} prompt: ${entry.compiled.meta.specLines} line${entry.compiled.meta.specLines === 1 ? '' : 's'} read on this screen.`,
+          },
+          {
+            tone: 'warn',
+            text: 'No UI components were recognised on this screen. It reads like a visual or drawing instruction; describe components (heading, card, button…) to draw a wireframe.',
+          },
+        ];
     return {
       ...entry.compiled,
       id,
       name: entry.name || `Screen ${index + 1}`,
       elements,
-      questions: auditElements(elements),
+      questions: elements.length ? auditElements(elements) : [],
+      meta: {
+        ...entry.compiled.meta,
+        tokens: recognised ? entry.compiled.meta.tokens : globalTokens,
+        dark: recognised ? entry.compiled.meta.dark : globalTokens.theme === 'dark',
+        signals,
+      },
     };
   });
 
@@ -1921,10 +2082,17 @@ export function layoutElements(
 ): CompiledElement[] {
   const frame = FRAMES[viewport];
   const density = DENSITY_SCALE[tokens?.density || 'comfortable'];
+  const background = elements.filter((element) => element.kind === 'background');
   const nav = elements.filter((element) => element.kind === 'navbar');
   const footer = elements.filter((element) => element.kind === 'footer');
-  const body = elements.filter((element) => element.kind !== 'navbar' && element.kind !== 'footer');
+  const body = elements.filter(
+    (element) => element.kind !== 'navbar' && element.kind !== 'footer' && element.kind !== 'background'
+  );
   const out: CompiledElement[] = [];
+
+  background.slice(0, 1).forEach((element) => {
+    out.push({ ...element, x: 0, y: 0, w: frame.w, h: frame.h });
+  });
 
   const navH = frame.navH;
   nav.forEach((element) =>

@@ -16,6 +16,7 @@ interface Props {
 
 /** Placeholder copy so a wireframe never renders as a blank rectangle. */
 const SAMPLE: Record<string, string> = {
+  background: 'Backdrop',
   navbar: 'Brand',
   heading: 'Your headline',
   text: 'Supporting copy that explains the value in one or two lines.',
@@ -55,6 +56,36 @@ function styleFor(element: CompiledElement): StyleKey {
     default: return 'rect';
   }
 }
+
+const BackdropBlock: React.FC<{ element: CompiledElement }> = ({ element }) => {
+  const first = element.colour || '#FFC53D';
+  const second = element.colour2 || '#28C76F';
+  const diagonal = element.preset === 'split-diagonal';
+  const gradient = element.preset === 'gradient';
+
+  return (
+    <div
+      className="relative h-full w-full overflow-hidden"
+      style={{
+        background: gradient
+          ? `linear-gradient(135deg, ${first}, ${second})`
+          : diagonal
+            ? `linear-gradient(135deg, ${first} 0 49.6%, ${second} 50.4% 100%)`
+            : `linear-gradient(180deg, ${first} 0 50%, ${second} 50% 100%)`,
+      }}
+    >
+      {diagonal && (
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'linear-gradient(135deg, transparent calc(50% - 1px), rgba(11,14,20,.55) calc(50% - 1px), rgba(11,14,20,.55) calc(50% + 1px), transparent calc(50% + 1px))',
+          }}
+        />
+      )}
+    </div>
+  );
+};
 
 const CheckboxRow: React.FC<{ element: CompiledElement; dark: boolean }> = ({ element, dark }) => (
   <div className="flex h-full w-full items-center gap-2">
@@ -189,7 +220,9 @@ export const WireframePreview: React.FC<Props> = ({
                   height: element.h,
                 }}
               >
-                {element.kind === 'checkbox' ? (
+                {element.kind === 'background' ? (
+                  <BackdropBlock element={element} />
+                ) : element.kind === 'checkbox' ? (
                   <CheckboxRow element={element} dark={dark} />
                 ) : element.kind === 'tabs' ? (
                   <TabsRow element={element} dark={dark} />

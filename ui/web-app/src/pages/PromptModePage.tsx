@@ -103,6 +103,7 @@ function applyAnswers(
 function placementOf(element: CompiledElement, boardWidth: number): string {
   const wide = element.w >= boardWidth * 0.6;
   switch (element.kind) {
+    case 'background': return 'full-board backdrop';
     case 'navbar': return 'full width, top';
     case 'footer': return 'full width, bottom';
     case 'modal': return 'centred overlay';
@@ -188,8 +189,11 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
 
   const totalOpen = allScreens.reduce((sum, page) => sum + page.open.length, 0);
   const overallRisk = allScreens.reduce((max, page) => Math.max(max, page.risk), 0);
-  const ready = submitted.trim().length > 0 && totalOpen === 0;
-  const pageReady = submitted.trim().length > 0 && open.length === 0;
+  const unrecognised = allScreens.filter(
+    (page) => page.screen.meta.usedLines === 0 && page.screen.meta.specLines > 0
+  );
+  const ready = submitted.trim().length > 0 && totalOpen === 0 && unrecognised.length === 0;
+  const pageReady = submitted.trim().length > 0 && open.length === 0 && elements.length > 0;
 
   const confidence = elements.length
     ? Math.round(
@@ -233,11 +237,18 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
     ];
 
     const writePage = (page: ScreenView) => {
+      if (!page.elements.length) {
+        lines.push('(no recognised components — this page reads as a drawing or visual instruction, not UI)');
+        lines.push('');
+        return;
+      }
+
       page.elements.forEach((element, index) => {
         const attrs = [
           element.label ? `label “${element.label}”` : 'label UNRESOLVED',
           element.count && element.count > 1 ? `×${element.count}` : '',
           element.colour ? `colour ${element.colour}${element.colourInferred ? ' (derived)' : ''}` : '',
+          element.colour2 ? `second colour ${element.colour2}` : '',
           element.action ? `action ${element.action}` : '',
           element.section ? `section “${element.section}”` : '',
           `place ${placementOf(element, boardWidth)}`,
@@ -285,6 +296,9 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
       (element) => !element.label && (REQUIRED_ATTRS[element.kind] || []).includes('label')
     ).length;
 
+    if (compiled.meta.usedLines === 0 && compiled.meta.specLines > 0) {
+      found.push('This page has no screenshot-able components — describe UI elements, not a drawing.');
+    }
     if (unlabelled > 0) {
       found.push(
         `${unlabelled} element${unlabelled === 1 ? '' : 's'} still need${unlabelled === 1 ? 's' : ''} real copy.`
@@ -528,7 +542,7 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
                   <button
                     type="button"
                     onClick={runDeepPass}
-                    disabled={deep.running}
+                    disabled={deep.running || elements.length === 0}
                     className="flex h-7 items-center gap-1.5 rounded-lg bg-[var(--v-ink)] px-2.5 text-[10px] font-bold text-[var(--v-surface)] disabled:opacity-50"
                   >
                     {deep.running ? <Loader2 className="h-3 w-3 animate-spin" /> : <Cpu className="h-3 w-3" />}
@@ -618,6 +632,14 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
                           {element.colourInferred ? ' ·' : ''}
                         </span>
                       )}
+                      {element.colour2 && (
+                        <span
+                          className="rounded px-1 py-0.5 text-[9px]"
+                          style={{ background: `${element.colour2}22`, color: element.colour2 }}
+                        >
+                          {element.colour2}
+                        </span>
+                      )}
                       {element.action && (
                         <span className="text-[9px] text-[var(--v-muted)]">→ {element.action}</span>
                       )}
@@ -645,11 +667,18 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
                 </div>
               )}
 
-              <p className="mt-2 text-[9.5px] leading-relaxed text-[var(--v-faint)]">
-                Risk {risk}: {missingCount} unresolved attribute{missingCount === 1 ? '' : 's'} of {requiredCount}{' '}
-                required, plus {issues.length} design issue{issues.length === 1 ? '' : 's'}. Dashed red boxes are the
-                same gaps. Geometry is a schematic default, not a measurement of your request.
-              </p>
+              {elements.length === 0 ? (
+                <p className="mt-2 text-[9.5px] leading-relaxed text-[var(--v-faint)]">
+                  No components to score on this page. {compiled.meta.specLines} line
+                  {compiled.meta.specLines === 1 ? '' : 's'} were read, but none described a UI component.
+                </p>
+              ) : (
+                <p className="mt-2 text-[9.5px] leading-relaxed text-[var(--v-faint)]">
+                  Risk {risk}: {missingCount} unresolved attribute{missingCount === 1 ? '' : 's'} of {requiredCount}{' '}
+                  required, plus {issues.length} design issue{issues.length === 1 ? '' : 's'}. Dashed red boxes are the
+                  same gaps. Geometry is a schematic default, not a measurement of your request.
+                </p>
+              )}
             </div>
           )}
 
@@ -755,6 +784,15 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
               {totalOpen === 1 ? '' : 's'} remain on other pages.
             </p>
           )}
+
+          {submitted && unrecognised.length > 0 && (
+            <p className="mt-3 flex gap-1.5 text-[10.5px] font-semibold leading-relaxed text-[#B45309]">
+              <AlertCircle className="mt-[1px] h-3.5 w-3.5 shrink-0" />
+              {unrecognised.length === 1
+                ? `“${unrecognised[0].screen.name}” has no recognised UI components — it reads like a drawing, not a screen spec.`
+                : `${unrecognised.length} pages have no recognised UI components.`}
+            </p>
+          )}
         </section>
 
         {/* ------------------------------------------------ artifact preview */}
@@ -822,6 +860,17 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
                         {pageView.open.length}
                       </span>
                     )}
+                    {pageView &&
+                      pageView.screen.meta.usedLines === 0 &&
+                      pageView.screen.meta.specLines > 0 && (
+                        <span
+                          className={`rounded-full px-1 text-[8px] font-bold ${
+                            active ? 'bg-white/20' : 'bg-[#B45309]/10 text-[#B45309]'
+                          }`}
+                        >
+                          !
+                        </span>
+                      )}
                   </button>
                 );
               })}
@@ -837,13 +886,25 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
                   width={boardWidth}
                   height={boardHeight}
                   empty={
-                    <div className="text-center">
-                      <Layers className="mx-auto h-5 w-5 text-[#C3C1CE]" />
-                      <p className="mt-2 text-[11px] font-bold text-[#0B0E14]">Nothing to preview</p>
-                      <p className="mt-0.5 text-[10px] text-[#64626F]">
-                        Write a prompt and press Analyse.
-                      </p>
-                    </div>
+                    submitted && compiled.meta.usedLines === 0 && compiled.meta.specLines > 0 ? (
+                      <div className="px-4 text-center">
+                        <p className={`text-[11px] font-bold ${compiled.meta.dark ? 'text-white' : 'text-[#0B0E14]'}`}>
+                          No UI components on this page
+                        </p>
+                        <p className={`mt-1 text-[10px] leading-relaxed ${compiled.meta.dark ? 'text-white/70' : 'text-[#64626F]'}`}>
+                          This reads like a drawing or visual instruction. Describe components — heading, card,
+                          button — to draw a wireframe.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <Layers className="mx-auto h-5 w-5 text-[#C3C1CE]" />
+                        <p className="mt-2 text-[11px] font-bold text-[#0B0E14]">Nothing to preview</p>
+                        <p className="mt-0.5 text-[10px] text-[#64626F]">
+                          Write a prompt and press Analyse.
+                        </p>
+                      </div>
+                    )
                   }
                 />
               </div>
