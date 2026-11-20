@@ -1,147 +1,259 @@
 import React from 'react';
-import { ShieldCheck, Lock, Cpu, Clipboard, Users, Mail, Database, Trash2 } from 'lucide-react';
+import { Mail, ShieldCheck } from 'lucide-react';
 
-function Section({
-  icon,
-  title,
-  children,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="bg-[#FFFFFF] p-5 sm:p-6 rounded-xl border border-[#E5E2D8] shadow-xs">
-      <div className="flex items-center gap-2 pb-3 border-b border-[#E5E2D8]">
-        {icon}
-        <h2 className="text-base font-semibold text-[#283638]">{title}</h2>
-      </div>
-      <div className="pt-3 text-sm text-[#283638] leading-relaxed space-y-2">{children}</div>
-    </div>
-  );
-}
+const SECTIONS = [
+  ['overview', 'Overview'],
+  ['collect', 'Information we collect'],
+  ['use', 'How we use information'],
+  ['legal-bases', 'Legal bases'],
+  ['sharing', 'Sharing and processors'],
+  ['retention', 'Data retention'],
+  ['security', 'Security'],
+  ['rights', 'Your rights'],
+  ['cookies', 'Cookies and local storage'],
+  ['transfers', 'International transfers'],
+  ['children', 'Children'],
+  ['changes', 'Changes to this policy'],
+  ['contact', 'Contact'],
+] as const;
 
 export const PrivacyPage: React.FC = () => {
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-5 px-4 py-2 sm:px-6 lg:px-8">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-semibold text-[#283638] tracking-tight">Privacy Policy</h1>
-        <p className="text-xs sm:text-sm text-[#737A72] mt-1">
-          Last updated: November 19, 2026 · Applies to the Vector web app.
+    <div className="mx-auto w-full max-w-[1100px] px-4 pb-16 pt-10 sm:px-6 lg:px-8 lg:pt-14">
+      <header className="border-b border-[var(--v-line)] pb-8">
+        <div className="flex items-center gap-2 text-[var(--v-accent-hover)]">
+          <ShieldCheck className="h-4 w-4" />
+          <span className="text-[10.5px] font-medium uppercase tracking-[0.06em]">Legal</span>
+        </div>
+        <h1 className="v-display mt-2 text-[36px] text-[var(--v-ink)] sm:text-[42px]">Privacy Policy</h1>
+        <p className="mt-2 max-w-[640px] text-[13px] leading-relaxed text-[var(--v-muted)]">
+          This policy explains what Vector collects, why we collect it, how it is stored and the
+          choices you have. It applies to the Vector web application and the workspace behind it.
         </p>
-      </div>
+        <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1 text-[11.5px] text-[var(--v-faint)]">
+          <span>Effective: 20 November 2026</span>
+          <span>Last updated: 20 November 2026</span>
+          <span>Version 2.0</span>
+        </div>
+      </header>
 
-      <Section icon={<ShieldCheck className="w-4 h-4 text-[#49686C]" />} title="What Vector stores">
-        <p>
-          You can browse the public site without an account. To create projects and save requirement work, you
-          sign in with an email address and password.
-        </p>
-        <ul className="list-disc pl-5 space-y-1">
-          <li>
-            <strong>Account:</strong> your email address and authentication records. Passwords are handled and
-            hashed by Supabase Auth; Vector never receives your password.
-          </li>
-          <li>
-            <strong>Project data:</strong> project names and descriptions, uploaded requirement documents,
-            extracted requirements, approvals, acceptance criteria, design systems and generated prompts.
-          </li>
-          <li>
-            <strong>Files:</strong> uploaded PDF, DOCX, TXT and Markdown documents are stored in a private Supabase
-            Storage bucket.
-          </li>
-        </ul>
-        <p>
-          Project data is visible only to your account. Row-level security and private storage policies keep one
-          account's projects separate from another's.
-        </p>
-      </Section>
+      <div className="mt-8 grid gap-8 lg:grid-cols-[220px_minmax(0,1fr)]">
+        <aside className="lg:sticky lg:top-24 lg:self-start">
+          <p className="text-[10.5px] font-medium uppercase tracking-[0.06em] text-[var(--v-faint)]">On this page</p>
+          <nav className="mt-3 space-y-1.5">
+            {SECTIONS.map(([id, label]) => (
+              <a
+                key={id}
+                href={`#${id}`}
+                className="block text-[12px] leading-snug text-[var(--v-muted)] transition-colors hover:text-[var(--v-ink)]"
+              >
+                {label}
+              </a>
+            ))}
+          </nav>
+        </aside>
 
-      <Section icon={<Cpu className="w-4 h-4 text-[#49686C]" />} title="How analysis works">
-        <p>
-          Prompt review runs in your browser. The BERT model is served from this site, and the prompt you type is
-          not sent to an analysis server. Vector uses a local rule helper (Pyodide, downloaded from jsDelivr) to
-          assemble the structured result.
-        </p>
-        <p>
-          Prompt evaluation history is stored in your browser's local storage, scoped to the project you selected.
-          It is not uploaded to Supabase. Clearing local history in Settings removes it from this browser.
-        </p>
-        <p>
-          Requirement Intelligence and Review &amp; Acceptance read project records from Supabase so the same
-          project appears on every device you sign in to.
-        </p>
-      </Section>
+        <article className="min-w-0 rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] px-5 py-6 sm:px-7 sm:py-8">
+          <div className="space-y-8 text-[12.5px] leading-[1.75] text-[var(--v-muted)]">
+            <section id="overview" className="scroll-mt-24">
+              <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-[var(--v-ink)]">1. Overview</h2>
+              <p className="mt-2">
+                Vector is a requirement-to-interface workspace. You can use parts of the public site
+                without an account. An account is required to create and save projects, upload
+                documents, review requirements and generate prompts.
+              </p>
+              <p className="mt-2">
+                We collect the minimum information needed to operate the workspace. We do not sell
+                personal information, and we do not use advertising trackers.
+              </p>
+            </section>
 
-      <Section icon={<Users className="w-4 h-4 text-[#49686C]" />} title="Third parties">
-        <p>Vector uses a small number of service providers to run the app:</p>
-        <ul className="list-disc pl-5 space-y-1">
-          <li>
-            <strong>Supabase</strong> — authentication, Postgres database and private file storage.
-          </li>
-          <li>
-            <strong>Vercel</strong> — hosting and delivery of the web app and BERT model files.
-          </li>
-          <li>
-            <strong>Google Fonts</strong> — the Plus Jakarta Sans and JetBrains Mono typefaces.
-          </li>
-          <li>
-            <strong>jsDelivr</strong> — the Pyodide runtime used by the local rule helper.
-          </li>
-          <li>
-            <strong>Base44</strong> — only when you open the Base44 Workspace. The builder is embedded from
-            app.base44.com and is governed by Base44's own terms and privacy policy.
-          </li>
-        </ul>
-        <p>
-          Vector does not sell data, run advertising trackers, or use analytics cookies. An optional
-          AI-provider integration is not enabled in this deployment; if it is enabled later, only the requirement
-          text you choose to review would be sent to that provider.
-        </p>
-      </Section>
+            <section id="collect" className="scroll-mt-24">
+              <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-[var(--v-ink)]">2. Information we collect</h2>
+              <h3 className="mt-3 text-[13px] font-semibold text-[var(--v-ink)]">Account information</h3>
+              <p className="mt-1">
+                When you create an account we collect your email address, display name and the
+                authentication records needed to keep you signed in. Passwords are handled and hashed
+                by Supabase Auth. Vector does not receive your plain-text password.
+              </p>
+              <h3 className="mt-3 text-[13px] font-semibold text-[var(--v-ink)]">Project content</h3>
+              <p className="mt-1">
+                Projects you create, including names and descriptions, uploaded documents, extracted
+                requirements, approvals, acceptance criteria, design systems, templates, prompts and
+                generated outputs. This content is stored in your workspace so it is available when
+                you sign in on another device.
+              </p>
+              <h3 className="mt-3 text-[13px] font-semibold text-[var(--v-ink)]">Payments</h3>
+              <p className="mt-1">
+                Paid plans are processed by Razorpay. We receive confirmation that a payment
+                succeeded, the plan purchased and a payment identifier. We do not store full card,
+                UPI or bank details on Vector servers.
+              </p>
+              <h3 className="mt-3 text-[13px] font-semibold text-[var(--v-ink)]">Technical information</h3>
+              <p className="mt-1">
+                Our hosting provider records standard request metadata such as IP address, browser
+                type, requested URL, timestamp and error status for security and reliability. We do
+                not run advertising or behavioural analytics.
+              </p>
+              <h3 className="mt-3 text-[13px] font-semibold text-[var(--v-ink)]">Local browser data</h3>
+              <p className="mt-1">
+                Some features keep data in your browser: the Supabase session token, interface
+                preferences, onboarding state and prompt-analysis history. This data stays on the
+                device unless a feature explicitly uploads it.
+              </p>
+            </section>
 
-      <Section icon={<Clipboard className="w-4 h-4 text-[#49686C]" />} title="Cookies and local storage">
-        <p>
-          Vector does not set advertising or analytics cookies. The browser stores your Supabase session token,
-          theme preference and local analysis history in <code className="font-mono text-xs">localStorage</code> so
-          you stay signed in and keep your preferences. Signing out removes the session token.
-        </p>
-      </Section>
+            <section id="use" className="scroll-mt-24">
+              <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-[var(--v-ink)]">3. How we use information</h2>
+              <ul className="mt-2 list-disc space-y-1 pl-5">
+                <li>Create and secure your account and keep you signed in.</li>
+                <li>Store, sync and display your projects, documents and prompt history.</li>
+                <li>Compile requirements, acceptance criteria and prompts from the content you provide.</li>
+                <li>Process plan purchases and maintain entitlement records.</li>
+                <li>Protect the service against abuse, debug failures and meet legal obligations.</li>
+                <li>Respond to support, privacy and security requests.</li>
+              </ul>
+              <p className="mt-2">
+                We do not use your project content to train a public model, and we do not sell it to
+                third parties.
+              </p>
+            </section>
 
-      <Section icon={<Database className="w-4 h-4 text-[#49686C]" />} title="Your controls">
-        <p>
-          You can delete projects, design systems and uploaded documents from inside the app. You can clear local
-          analysis history in Settings. To delete your account and all associated project data, contact us through
-          the repository below.
-        </p>
-      </Section>
+            <section id="legal-bases" className="scroll-mt-24">
+              <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-[var(--v-ink)]">4. Legal bases</h2>
+              <p className="mt-2">
+                Where data-protection law requires a legal basis, we rely on one or more of the
+                following: performance of a contract with you (providing the workspace), your consent
+                (optional features and communications), our legitimate interests (security,
+                reliability and product improvement) and compliance with legal obligations.
+              </p>
+            </section>
 
-      <Section icon={<Lock className="w-4 h-4 text-[#49686C]" />} title="Security">
-        <p>
-          The browser receives only Supabase's publishable key. Service-role keys and database credentials stay on
-          the server and are never included in the client bundle. Data in transit uses HTTPS.
-        </p>
-      </Section>
+            <section id="sharing" className="scroll-mt-24">
+              <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-[var(--v-ink)]">5. Sharing and processors</h2>
+              <p className="mt-2">We share information only with service providers that help operate the product:</p>
+              <ul className="mt-2 list-disc space-y-1 pl-5">
+                <li><strong className="text-[var(--v-ink)]">Supabase</strong> — authentication, Postgres database and private file storage.</li>
+                <li><strong className="text-[var(--v-ink)]">Vercel</strong> — hosting, delivery and serverless functions.</li>
+                <li><strong className="text-[var(--v-ink)]">Razorpay</strong> — payment processing for paid plans.</li>
+                <li><strong className="text-[var(--v-ink)]">Base44</strong> — only when you choose to open the Base44 builder; the embedded page is governed by Base44&rsquo;s own terms.</li>
+                <li><strong className="text-[var(--v-ink)]">AI providers</strong> — only if an AI-provider integration is enabled and you choose to send content for analysis.</li>
+                <li><strong className="text-[var(--v-ink)]">Google Fonts and jsDelivr</strong> — static assets used to render the interface and the local analysis helper.</li>
+              </ul>
+              <p className="mt-2">
+                We may disclose information if required by law, to protect the service or its users,
+                or as part of a merger or acquisition. We do not sell personal information.
+              </p>
+            </section>
 
-      <Section icon={<Mail className="w-4 h-4 text-[#49686C]" />} title="Contact">
-        <p>
-          For privacy questions, account deletion or security reports, open an issue on the project repository:{' '}
-          <a
-            className="text-[#49686C] underline"
-            href="https://github.com/Ejajaka/Vector"
-            target="_blank"
-            rel="noreferrer"
-          >
-            github.com/Ejajaka/Vector
-          </a>
-          .
-        </p>
-      </Section>
+            <section id="retention" className="scroll-mt-24">
+              <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-[var(--v-ink)]">6. Data retention</h2>
+              <p className="mt-2">
+                Account and project data are kept while your account is active. If you delete a
+                project, its documents and related records are removed from the active workspace.
+                Backups and security logs may retain copies for a limited period before they are
+                overwritten. Local browser history remains until you clear it or clear your browser
+                storage.
+              </p>
+            </section>
 
-      <div className="flex items-start gap-2.5 bg-[#F6F4EC] border border-[#E5E2D8] rounded-xl p-4">
-        <Trash2 className="w-4 h-4 text-[#49686C] shrink-0 mt-0.5" />
-        <p className="text-xs text-[#737A72] leading-relaxed">
-          This policy describes the hosted Vector web app at vector-tau-five.vercel.app.
-        </p>
+            <section id="security" className="scroll-mt-24">
+              <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-[var(--v-ink)]">7. Security</h2>
+              <p className="mt-2">
+                Data is transmitted over HTTPS. Supabase row-level security keeps one account&rsquo;s
+                projects separate from another&rsquo;s. The browser receives only the Supabase
+                publishable key; service-role keys, payment secrets and signing secrets stay on the
+                server and are never included in the client bundle.
+              </p>
+              <p className="mt-2">
+                No method of storage or transmission is completely secure. If you believe your
+                account has been compromised, contact us immediately.
+              </p>
+            </section>
+
+            <section id="rights" className="scroll-mt-24">
+              <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-[var(--v-ink)]">8. Your rights</h2>
+              <p className="mt-2">
+                Depending on where you live, you may have the right to access, correct, export or
+                delete your personal information, object to or restrict certain processing, or
+                withdraw consent. You can delete projects and documents inside the app and clear
+                local history from Settings. For account-level requests, contact us using the details
+                below.
+              </p>
+              <p className="mt-2">
+                You may also complain to your local data-protection authority.
+              </p>
+            </section>
+
+            <section id="cookies" className="scroll-mt-24">
+              <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-[var(--v-ink)]">9. Cookies and local storage</h2>
+              <p className="mt-2">
+                Vector does not set advertising or analytics cookies. We use browser storage for the
+                authenticated session, interface preferences, onboarding state and local analysis
+                history. Signing out removes the session token; clearing site data removes the rest.
+              </p>
+            </section>
+
+            <section id="transfers" className="scroll-mt-24">
+              <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-[var(--v-ink)]">10. International transfers</h2>
+              <p className="mt-2">
+                Our providers may process data in countries other than yours. Where required, we rely
+                on appropriate safeguards such as standard contractual clauses offered by those
+                providers.
+              </p>
+            </section>
+
+            <section id="children" className="scroll-mt-24">
+              <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-[var(--v-ink)]">11. Children</h2>
+              <p className="mt-2">
+                Vector is a professional product and is not directed at children under 16. We do not
+                knowingly collect personal information from children. If you believe a child has
+                provided information, contact us and we will remove it.
+              </p>
+            </section>
+
+            <section id="changes" className="scroll-mt-24">
+              <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-[var(--v-ink)]">12. Changes to this policy</h2>
+              <p className="mt-2">
+                We may update this policy as the product changes. The effective date at the top of
+                the page shows the current version. Material changes will be announced in the app or
+                by email where appropriate.
+              </p>
+            </section>
+
+            <section id="contact" className="scroll-mt-24">
+              <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-[var(--v-ink)]">13. Contact</h2>
+              <p className="mt-2">
+                For privacy questions, account deletion, data export or security reports, email us at{' '}
+                <a href="mailto:hello@vector.is-a.dev" className="font-medium text-[var(--v-accent-hover)] hover:underline">
+                  hello@vector.is-a.dev
+                </a>
+                . We aim to respond within a reasonable period.
+              </p>
+              <p className="mt-2">
+                You can also open an issue on the project repository:{' '}
+                <a
+                  href="https://github.com/Ejajaka/Vector"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium text-[var(--v-accent-hover)] hover:underline"
+                >
+                  github.com/Ejajaka/Vector
+                </a>
+                .
+              </p>
+            </section>
+          </div>
+
+          <div className="mt-8 flex items-start gap-2.5 rounded-lg border border-[var(--v-line)] bg-[var(--v-surface-2)] p-4">
+            <Mail className="mt-0.5 h-4 w-4 shrink-0 text-[var(--v-accent-hover)]" />
+            <p className="text-[11.5px] leading-relaxed text-[var(--v-muted)]">
+              This policy applies to the hosted Vector web app. If you run Vector in a local or
+              self-hosted environment, the operator of that environment is responsible for the data
+              it stores.
+            </p>
+          </div>
+        </article>
       </div>
     </div>
   );

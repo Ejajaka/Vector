@@ -3,10 +3,7 @@ import {
   Bell,
   ChevronRight,
   CircleHelp,
-  History,
-  Info,
   Laptop,
-  LayoutGrid,
   Lightbulb,
   LogOut,
   Settings,
@@ -152,13 +149,6 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
 
           {/* Menu */}
           <div className="p-2">
-            <Row
-              icon={LayoutGrid}
-              label="Dashboard"
-              onClick={() => go('dashboard')}
-              trailing={activeTab === 'dashboard' ? <span className="w-1.5 h-1.5 rounded-full bg-[#49686C]" /> : null}
-            />
-            <Row icon={History} label="Analysis history" onClick={() => go('history')} />
             <Row icon={Wallet} label="Plans and pricing" onClick={() => go('pricing')} />
             <Row icon={Lightbulb} label="Your plan and usage" onClick={() => openHub('usage')} />
             <Row icon={Bell} label="Notifications" onClick={onOpenNotifications} trailing={
@@ -174,7 +164,6 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
           <div className="p-2 space-y-1">
             <Row icon={CircleHelp} label="Help and feedback" onClick={() => go('learn')} />
             <Row icon={ShieldCheck} label="Privacy" onClick={() => go('privacy')} />
-            <Row icon={Info} label="Product page" onClick={() => go('about')} />
             <Row icon={Settings} label="Settings" onClick={() => go('settings')} />
           </div>
 

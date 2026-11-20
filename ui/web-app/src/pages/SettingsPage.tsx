@@ -7,20 +7,41 @@ import {
   ShieldCheck,
   Trash2,
   Moon,
-  ExternalLink,
   BookOpen,
   ChevronRight,
+  UserRound,
+  Wallet,
 } from 'lucide-react';
 import { historyStorage } from '../services/historyStorage.ts';
 import { useToast } from '../components/ui/Toast.tsx';
+import { useAuth } from '../context/AuthContext.tsx';
+import { planFor, readEntitlements } from '../services/entitlements.ts';
 
 interface SettingsPageProps {
   onRefreshData?: () => void;
   onOpenManual?: () => void;
+  onOpenPrivacy?: () => void;
 }
 
-export const SettingsPage: React.FC<SettingsPageProps> = ({ onRefreshData, onOpenManual }) => {
+function initials(value: string): string {
+  return value
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || '')
+    .join('') || 'V';
+}
+
+export const SettingsPage: React.FC<SettingsPageProps> = ({ onRefreshData, onOpenManual, onOpenPrivacy }) => {
   const { toast } = useToast();
+  const { user, localMode } = useAuth();
+  const plan = planFor(readEntitlements().plan);
+  const displayName =
+    (user?.user_metadata?.display_name as string | undefined) ||
+    (user?.user_metadata?.full_name as string | undefined) ||
+    (localMode ? 'Local workspace' : user?.email?.split('@')[0]) ||
+    'Vector user';
+  const email = user?.email || (localMode ? 'Saved in this browser only' : 'Not signed in');
 
   const handleClearData = () => {
     if (window.confirm('Clear the prompt-analysis history stored in this browser? Cloud projects are not affected.')) {
@@ -39,6 +60,49 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onRefreshData, onOpe
         <p className="text-xs sm:text-sm text-[#737A72] dark:text-[#8E9A93] mt-1">
           Appearance, help and local data for Vector.
         </p>
+      </div>
+
+      {/* Profile */}
+      <div className="v-card p-5 sm:p-6">
+        <div className="flex items-center gap-2 border-b border-[var(--v-line)] pb-3">
+          <UserRound className="h-4 w-4 text-[var(--v-accent-hover)]" />
+          <h2 className="text-base font-semibold text-[var(--v-ink)]">Profile</h2>
+        </div>
+
+        <div className="mt-4 flex items-center gap-3">
+          <span
+            className="grid h-12 w-12 shrink-0 place-items-center rounded-full text-[13px] font-semibold text-white"
+            style={{ background: 'linear-gradient(135deg, #5e6ad2, #7170ff)' }}
+          >
+            {initials(displayName)}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[14px] font-semibold text-[var(--v-ink)]">{displayName}</p>
+            <p className="truncate text-[11.5px] text-[var(--v-muted)]">{email}</p>
+          </div>
+          <span className="shrink-0 rounded-full border border-[var(--v-line)] bg-[var(--v-surface-2)] px-2 py-0.5 text-[10px] font-medium text-[var(--v-muted)]">
+            {plan.name} plan
+          </span>
+        </div>
+
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          <div className="rounded-md border border-[var(--v-line)] bg-[var(--v-surface-2)] p-3">
+            <p className="text-[10px] font-medium uppercase tracking-[0.05em] text-[var(--v-faint)]">Account type</p>
+            <p className="mt-0.5 text-[12px] text-[var(--v-ink)]">{localMode ? 'Local workspace' : 'Vector account'}</p>
+          </div>
+          <div className="rounded-md border border-[var(--v-line)] bg-[var(--v-surface-2)] p-3">
+            <p className="text-[10px] font-medium uppercase tracking-[0.05em] text-[var(--v-faint)]">Projects</p>
+            <p className="mt-0.5 text-[12px] text-[var(--v-ink)]">{plan.name === 'Free' ? '2 included' : 'Unlimited'}</p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent('vector:open-pricing'))}
+          className="v-btn mt-3 h-8 px-3 text-[11.5px]"
+        >
+          <Wallet className="h-3.5 w-3.5" /> Manage plan
+        </button>
       </div>
 
       {/* Appearance */}
@@ -119,15 +183,14 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onRefreshData, onOpe
           Your projects and documents are private to your account. Read the full data policy
           for details.
         </p>
-        <a
-          href="./privacy-policy.html"
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#49686C] hover:text-[#30494B]"
+        <button
+          type="button"
+          onClick={onOpenPrivacy}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--v-accent-hover)] hover:text-[var(--v-ink)]"
         >
-          <ExternalLink className="w-3.5 h-3.5" />
+          <ChevronRight className="h-3.5 w-3.5" />
           Privacy policy
-        </a>
+        </button>
       </div>
 
       {/* About */}

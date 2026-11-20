@@ -885,7 +885,10 @@ function AppShell() {
           )}
 
           {activeTab === 'settings' && (
-            <SettingsPage onOpenManual={() => setActiveTab('manual')} />
+            <SettingsPage
+              onOpenManual={() => setActiveTab('manual')}
+              onOpenPrivacy={() => setActiveTab('privacy')}
+            />
           )}
           {activeTab === 'privacy' && <PrivacyPage />}
           {activeTab === 'terms' && <TermsPage onNavigate={navigate} />}
