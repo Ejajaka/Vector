@@ -212,7 +212,10 @@ function cleanLabel(raw: string): string {
   value = value.replace(/^["“”'‘’]+|["“”'‘’]+$/g, '');
   value = value.replace(/^(?:a|an|the)\s+/i, '');
   value = value.replace(/^\d+\s+/, '');
-  value = value.replace(/\s+(?:in|at|on|with|that|which|using|colou?red|sized)\s+.*$/i, '');
+  value = value.replace(
+    /\s+(?:in|at|on|with|that|which|using|colou?red|sized|below|above|under|after|before|next\s+to|beside|inside|outside|near)\s+.*$/i,
+    ''
+  );
   value = value.replace(/[.,;:]+$/, '');
   value = value.replace(/\s+/g, ' ').trim();
   return value.length > 48 ? `${value.slice(0, 45).trim()}…` : value;
@@ -290,9 +293,22 @@ function findAction(text: string): string | undefined {
 }
 
 function findLocation(text: string): string | undefined {
-  const match = maskQuoted(text).match(/\b(top|bottom|left|right|centre|center|middle|sidebar)\b/i);
+  const match = maskQuoted(text).match(
+    /\b(top|bottom|left|right|centre|center|middle|sidebar|above|below|under|after|before|first|last)\b/i
+  );
   return match ? match[1].toLowerCase() : undefined;
 }
+
+/**
+ * Explicit positional wording outranks the archetype's default skeleton:
+ * "search at the top, cards below it" must be two ordered rows, not the
+ * canonical card-then-input order.
+ */
+const LOCATION_RANK: Record<string, number> = {
+  top: 0, above: 0, before: 0, first: 0,
+  left: 1, right: 1, centre: 1, center: 1, middle: 1, sidebar: 1,
+  bottom: 2, below: 2, under: 2, after: 2, last: 2,
+};
 
 function findBrand(text: string): string | undefined {
   const named = text.match(
@@ -941,9 +957,24 @@ const SEMANTIC_ORDER: Record<Archetype, ElementKind[]> = {
 
 function sortSemantic(elements: CompiledElement[], archetype: Archetype): CompiledElement[] {
   const order = SEMANTIC_ORDER[archetype];
+  const hasExplicitLocation = elements.some(
+    (element) => element.location && LOCATION_RANK[element.location] !== undefined
+  );
+  const structural = (element: CompiledElement) =>
+    element.kind === 'navbar' ? -2 : element.kind === 'footer' ? 2 : 0;
+
   return elements
     .map((element, index) => ({ element, index }))
     .sort((a, b) => {
+      const structure = structural(a.element) - structural(b.element);
+      if (structure !== 0) return structure;
+
+      if (hasExplicitLocation) {
+        const rankA = a.element.location ? LOCATION_RANK[a.element.location] ?? 1 : 1;
+        const rankB = b.element.location ? LOCATION_RANK[b.element.location] ?? 1 : 1;
+        if (rankA !== rankB) return rankA - rankB;
+      }
+
       const diff = order.indexOf(a.element.kind) - order.indexOf(b.element.kind);
       return diff !== 0 ? diff : a.index - b.index;
     })
