@@ -164,14 +164,15 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
             </p>
           </div>
           <div className="flex shrink-0 gap-1.5">
-            {doc && (
-              <button type="button" onClick={onOpenCanvas} className="v-btn v-btn-ghost h-9 px-3 text-[11.5px]">
-                Open canvas
+            {doc ? (
+              <button type="button" onClick={onOpenCanvas} className="v-btn v-btn-primary h-9 px-3.5 text-[11.5px]">
+                Open canvas <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            ) : (
+              <button type="button" onClick={onBlankCanvas} className="v-btn v-btn-primary h-9 px-3.5 text-[11.5px]">
+                <Plus className="w-3.5 h-3.5" /> New canvas
               </button>
             )}
-            <button type="button" onClick={onBlankCanvas} className="v-btn v-btn-primary h-9 px-3.5 text-[11.5px]">
-              <Plus className="w-3.5 h-3.5" /> New canvas
-            </button>
           </div>
         </div>
 
