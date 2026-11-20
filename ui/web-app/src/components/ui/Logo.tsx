@@ -30,7 +30,7 @@ export const Logo: React.FC<LogoProps> = ({ size = 20, className = '', inverted 
   <svg
     width={size}
     height={size}
-    viewBox="0 0 48 48"
+    viewBox="12 14 24 24"
     className={className}
     role="img"
     aria-label="Vector"
