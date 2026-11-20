@@ -13,13 +13,13 @@ import {
   Clock3,
   Copy,
   Download,
+  ExternalLink,
   FileJson,
   FileText,
   Folder,
   FolderOpen,
   GitBranch,
   Image as ImageIcon,
-  KeyRound,
   Layers,
   Link2,
   Loader2,
@@ -60,17 +60,6 @@ import { WireframePreview } from '../components/editor/WireframePreview.tsx';
 import { parseFigmaJson } from '../services/figma.ts';
 import { getActiveDesignSystem } from '../services/designSystems.ts';
 import { readProjectSetup } from '../services/projectSeed.ts';
-import {
-  base44Configured,
-  createBase44App,
-  getBase44App,
-  readBase44Config,
-  readProjectBase44,
-  saveBase44Config,
-  saveProjectBase44,
-  type Base44App,
-  type Base44Config,
-} from '../services/base44.ts';
 import { currentRoom, shareLink } from '../services/collab.ts';
 import type { ActiveTab } from '../types/analysis.ts';
 import { useSearchAutocomplete } from '../hooks/useSearchAutocomplete.ts';
@@ -497,18 +486,12 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   const [zipBusy, setZipBusy] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
-  const [base44Config, setBase44Config] = useState<Base44Config>(() => readBase44Config());
-  const [base44App, setBase44App] = useState<Base44App | null>(() => readProjectBase44(project.id));
-  const [base44Running, setBase44Running] = useState(false);
-  const [base44Error, setBase44Error] = useState<string | null>(null);
-  const [connectOpen, setConnectOpen] = useState(false);
-  const [tokenDraft, setTokenDraft] = useState(base44Config.token);
-  const [orgDraft, setOrgDraft] = useState(base44Config.organizationId || '');
-  const [proxyDraft, setProxyDraft] = useState(base44Config.proxyUrl || '');
+  const [base44Copied, setBase44Copied] = useState(false);
+  const [base44Key, setBase44Key] = useState(0);
+  const [base44Loaded, setBase44Loaded] = useState(false);
   const [generatedAt, setGeneratedAt] = useState(new Date().toISOString());
   const fileRef = useRef<HTMLInputElement>(null);
   const figmaRef = useRef<HTMLInputElement>(null);
-  const pollRef = useRef<number | null>(null);
 
   const setup = useMemo(() => readProjectSetup(project.id), [project.id]);
   const designSystem = useMemo(() => getActiveDesignSystem(), []);
@@ -519,7 +502,6 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     setDraft(readJson<PromptDraft>(`vector_project_prompt_${project.id}`) || {});
     setRevised(readJson<RevisedPrompt>(`vector_project_revised_prompt_${project.id}`));
     setFiles(readJson<ProjectFile[]>(`vector_project_files_${project.id}`) || []);
-    setBase44App(readProjectBase44(project.id));
   }, [project.id]);
 
   useEffect(() => {
@@ -542,19 +524,6 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
-
-  useEffect(() => {
-    setTokenDraft(base44Config.token);
-    setOrgDraft(base44Config.organizationId || '');
-    setProxyDraft(base44Config.proxyUrl || '');
-  }, [base44Config]);
-
-  useEffect(
-    () => () => {
-      if (pollRef.current) window.clearTimeout(pollRef.current);
-    },
-    []
-  );
 
   const analysis = useMemo(() => {
     const submitted = (draft.submitted || '').trim();
@@ -925,7 +894,6 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
         if (bytes) zip.file(`sources/files/${file.name}`, bytes);
       });
       if (designSystem) zip.file('sources/design-system.json', JSON.stringify(designSystem, null, 2));
-      if (base44App) zip.file('builder/base44.json', JSON.stringify(base44App, null, 2));
       artifacts.forEach((entry) => {
         zip.file(`generated/${entry.id}.json`, JSON.stringify(entry.json, null, 2));
         zip.file(`generated/${entry.id}.html`, openHtmlDocument(entry.label, entry.graphSvg || entry.bodyHtml));
@@ -937,71 +905,21 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     }
   };
 
-  const connectBase44 = () => {
-    const next = {
-      token: tokenDraft.trim(),
-      organizationId: orgDraft.trim() || undefined,
-      proxyUrl: proxyDraft.trim() || undefined,
-    };
-    saveBase44Config(next);
-    setBase44Config(next);
-    setConnectOpen(false);
-  };
-
-  const pollBase44 = useCallback(
-    (id: string, versionLabel?: string) => {
-      if (pollRef.current) window.clearTimeout(pollRef.current);
-      let attempts = 0;
-      const tick = async () => {
-        attempts += 1;
-        try {
-          const next = await getBase44App({ id, config: base44Config, sourceVersion: versionLabel });
-          setBase44App(next);
-          saveProjectBase44(project.id, next);
-          if (next.status === 'processing' && attempts < 50) {
-            pollRef.current = window.setTimeout(tick, 3000);
-          }
-        } catch (error) {
-          setBase44Error(error instanceof Error ? error.message : 'Could not read the Base44 app status.');
-        }
-      };
-      pollRef.current = window.setTimeout(tick, 1800);
-    },
-    [base44Config, project.id]
-  );
-
-  const generateBase44 = async () => {
-    setBase44Error(null);
-    if (!base44Version) {
-      setBase44Error('Create a canvas or analyse a prompt first.');
-      return;
-    }
-    if (!base44Configured(base44Config)) {
-      setConnectOpen(true);
-      return;
-    }
-    setBase44Running(true);
+  const copyBase44Prompt = async () => {
+    if (!base44Version) return;
     try {
-      const app = await createBase44App({
-        prompt: base44Version.prompt,
-        name: project.name,
-        config: base44Config,
-        sourceVersion: base44Version.label,
-      });
-      setBase44App(app);
-      saveProjectBase44(project.id, app);
-      if (app.status === 'processing') pollBase44(app.id, base44Version.label);
-    } catch (error) {
-      setBase44Error(error instanceof Error ? error.message : 'Base44 could not create the app.');
-    } finally {
-      setBase44Running(false);
+      await navigator.clipboard.writeText(base44Version.prompt);
+      setBase44Copied(true);
+      window.setTimeout(() => setBase44Copied(false), 1800);
+    } catch {
+      setBase44Copied(false);
     }
   };
 
-  useEffect(() => {
-    if (base44App?.status === 'processing') pollBase44(base44App.id, base44App.sourceVersion);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const reloadBase44 = () => {
+    setBase44Loaded(false);
+    setBase44Key((value) => value + 1);
+  };
 
   const activePromptLabel = activeVersion?.label || 'No prompt yet';
   const activeMeta = activeVersion
@@ -1281,7 +1199,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
         </aside>
 
         {/* Workspace */}
-        <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
+        <section className="v-scroll flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto pr-1">
           <div className="grid gap-3 sm:grid-cols-2">
             <button
               type="button"
@@ -1348,45 +1266,34 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
           </div>
 
           {/* Base44 */}
-          <div className="flex min-h-0 flex-1 flex-col rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)]">
+          <div className="flex flex-col rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)]">
             <div className="flex flex-wrap items-center gap-2 border-b border-[var(--v-line)] px-3 py-2">
               <span className="grid h-7 w-7 place-items-center rounded-lg bg-[#7C5CFF]/10 text-[#7C5CFF]">
                 <Rocket className="h-3.5 w-3.5" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-[11.5px] font-semibold text-[var(--v-ink)]">Generate with Base44</p>
+                <p className="text-[11.5px] font-semibold text-[var(--v-ink)]">Base44 builder</p>
                 <p className="text-[9px] text-[var(--v-faint)]">
-                  Drag a prompt version from the folder, or use the active one.
+                  Embedded at app.base44.com. Sign in inside the frame, then paste the prompt.
                 </p>
               </div>
-              {base44App && (
-                <span className={`rounded-full px-2 py-0.5 text-[8.5px] font-semibold uppercase tracking-wider ${
-                  base44App.status === 'ready'
-                    ? 'bg-[#E8F7F0] text-[#0C7A5B]'
-                    : base44App.status === 'error'
-                      ? 'bg-[#FDF2F0] text-[#B94D42]'
-                      : 'bg-[#FFF7E6] text-[#9A6700]'
-                }`}>
-                  {base44App.status || 'linked'}
-                </span>
-              )}
-              <button type="button" onClick={() => setConnectOpen(true)} className="v-btn v-btn-ghost h-7 px-2 text-[9.5px]">
-                <KeyRound className="h-3 w-3" /> {base44Configured(base44Config) ? 'Base44 key' : 'Connect Base44'}
+              <button type="button" onClick={reloadBase44} className="v-btn v-btn-ghost h-7 px-2 text-[9.5px]">
+                <RefreshCw className="h-3 w-3" /> Reload
               </button>
+              <a href="https://app.base44.com" target="_blank" rel="noreferrer" className="v-btn v-btn-ghost h-7 px-2 text-[9.5px]">
+                <ExternalLink className="h-3 w-3" /> Open in new tab
+              </a>
             </div>
 
-            <div className="grid min-h-0 flex-1 gap-3 p-3 lg:grid-cols-[minmax(220px,34%)_1fr]">
-              <div className="flex min-h-0 flex-col gap-2">
+            <div className="grid gap-3 p-3 lg:grid-cols-[minmax(220px,32%)_1fr]">
+              <div className="flex flex-col gap-2">
                 <div
                   onDragOver={(event) => event.preventDefault()}
                   onDrop={(event) => {
                     event.preventDefault();
                     try {
                       const version = JSON.parse(event.dataTransfer.getData('application/x-vector-prompt')) as PromptVersion;
-                      if (version?.id) {
-                        setBase44VersionId(version.id);
-                        setBase44Error(null);
-                      }
+                      if (version?.id) setBase44VersionId(version.id);
                     } catch {
                       // ignore malformed drops
                     }
@@ -1395,14 +1302,11 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                 >
                   <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--v-violet)]">Drop a prompt version</p>
                   <p className="mt-0.5 text-[9px] leading-relaxed text-[var(--v-muted)]">
-                    Drag from Prompt versions in the folder. The selected version is sent to Base44 automatically — no copy/paste.
+                    Drag from Prompt versions in the folder, or pick one here. Copy it, then paste it into a new Base44 app.
                   </p>
                   <select
                     value={base44Version?.id || ''}
-                    onChange={(event) => {
-                      setBase44VersionId(event.target.value);
-                      setBase44Error(null);
-                    }}
+                    onChange={(event) => setBase44VersionId(event.target.value)}
                     className="mt-2 h-7 w-full rounded-md border border-[var(--v-line)] bg-[var(--v-surface)] px-2 text-[10px] text-[var(--v-ink)] outline-none"
                   >
                     {versions.map((version) => (
@@ -1426,77 +1330,36 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
 
                 <button
                   type="button"
-                  onClick={() => void generateBase44()}
-                  disabled={!base44Version || base44Running}
+                  onClick={() => void copyBase44Prompt()}
+                  disabled={!base44Version}
                   className="v-btn v-btn-primary h-9 text-[11px] disabled:opacity-40"
                 >
-                  {base44Running ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Rocket className="h-3.5 w-3.5" />}
-                  {base44App ? 'Generate again' : 'Generate app'}
+                  {base44Copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                  {base44Copied ? 'Copied — paste in Base44' : 'Copy prompt for Base44'}
                 </button>
-                {base44Error && <p className="text-[9px] leading-relaxed text-[#B94D42]">{base44Error}</p>}
+                <p className="text-[9px] leading-relaxed text-[var(--v-faint)]">
+                  No API key needed. Base44 keeps its own sign-in; if the panel stays blank, the host is blocking embedding — use Open in new tab.
+                </p>
               </div>
 
-              <div className="flex min-h-[260px] flex-col overflow-hidden rounded-xl border border-[var(--v-line)] bg-[var(--v-surface-2)]">
-                {base44App ? (
-                  <>
-                    <div className="flex flex-wrap items-center gap-2 border-b border-[var(--v-line)] px-3 py-1.5">
-                      <span className="min-w-0 flex-1 truncate text-[10px] font-semibold text-[var(--v-ink)]">
-                        {base44App.name || project.name}
-                      </span>
-                      <span className="text-[8.5px] text-[var(--v-faint)]">{base44App.sourceVersion || ''}</span>
-                      <a href={base44App.url || 'https://app.base44.com'} target="_blank" rel="noreferrer" className="v-btn v-btn-ghost h-7 px-2 text-[9px]">
-                        Open Base44
-                      </a>
-                    </div>
-                    <div className="relative min-h-0 flex-1">
-                      {base44App.url && base44App.status !== 'processing' ? (
-                        <iframe
-                          src={base44App.url}
-                          title="Base44 app preview"
-                          className="h-full min-h-[260px] w-full border-0 bg-white"
-                          loading="lazy"
-                          allow="clipboard-read; clipboard-write"
-                        />
-                      ) : base44App.screenshotUrl || base44App.previewScreenshotUrl ? (
-                        <img
-                          src={base44App.screenshotUrl || base44App.previewScreenshotUrl || ''}
-                          alt="Base44 app"
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="grid h-full place-items-center p-6 text-center">
-                          <div>
-                            <Rocket className="mx-auto h-7 w-7 text-[#7C5CFF]" />
-                            <p className="mt-2 text-[11px] font-semibold text-[var(--v-ink)]">
-                              {base44App.status === 'processing' ? 'Base44 is building your app…' : `App ${base44App.status || 'created'}`}
-                            </p>
-                            <p className="mt-1 text-[9.5px] leading-relaxed text-[var(--v-muted)]">
-                              {base44App.statusDetail || 'The generated app lives in your Base44 workspace.'}
-                            </p>
-                            {base44App.status === 'processing' && (
-                              <Loader2 className="mx-auto mt-3 h-5 w-5 animate-spin text-[#7C5CFF]" />
-                            )}
-                          </div>
-                        </div>
-                      )}
-                      {base44App.status === 'processing' && (
-                        <span className="absolute inset-x-0 bottom-0 h-1 animate-pulse bg-[#7C5CFF]" />
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  <div className="grid h-full place-items-center p-6 text-center">
-                    <div>
-                      <span className="mx-auto grid h-12 w-12 place-items-center rounded-lg bg-[#7C5CFF]/10 text-[#7C5CFF]">
-                        <Rocket className="h-6 w-6" />
-                      </span>
-                      <p className="mt-3 text-[12px] font-semibold text-[var(--v-ink)]">Base44 builds from the prompt you send</p>
-                      <p className="mx-auto mt-1 max-w-[340px] text-[10px] leading-relaxed text-[var(--v-muted)]">
-                        Drag a Canvas or Analysis prompt version on the left, then Generate. Vector sends it to your Base44 workspace automatically.
-                      </p>
+              <div className="relative flex h-[440px] flex-col overflow-hidden rounded-xl border border-[var(--v-line)] bg-[var(--v-surface-2)] lg:h-[560px]">
+                {!base44Loaded && (
+                  <div className="absolute inset-0 z-10 grid place-items-center bg-[var(--v-surface-2)]">
+                    <div className="text-center">
+                      <Loader2 className="mx-auto h-5 w-5 animate-spin text-[#7C5CFF]" />
+                      <p className="mt-2 text-[10px] text-[var(--v-muted)]">Loading Base44…</p>
                     </div>
                   </div>
                 )}
+                <iframe
+                  key={base44Key}
+                  src="https://app.base44.com"
+                  title="Base44 builder"
+                  className="h-full w-full flex-1 border-0 bg-white"
+                  allow="clipboard-read; clipboard-write"
+                  onLoad={() => setBase44Loaded(true)}
+                  onError={() => setBase44Loaded(true)}
+                />
               </div>
             </div>
           </div>
@@ -1540,60 +1403,6 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                 className="v-btn v-btn-ghost h-8 px-3 text-[10.5px]"
               >
                 <Copy className="h-3.5 w-3.5" /> Copy
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {connectOpen && (
-        <div className="fixed inset-0 z-[97] grid place-items-center p-3" role="dialog" aria-modal="true" aria-label="Connect Base44">
-          <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" onClick={() => setConnectOpen(false)} aria-hidden="true" />
-          <div className="relative w-full max-w-[460px] rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] p-4">
-            <div className="flex items-start gap-2">
-              <div className="min-w-0 flex-1">
-                <p className="v-eyebrow">Connection</p>
-                <h2 className="mt-0.5 text-[17px] font-semibold text-[var(--v-ink)]">Connect Base44</h2>
-                <p className="mt-1 text-[10px] leading-relaxed text-[var(--v-muted)]">
-                  Use a Base44 workspace token with app-create permission. Stored only on this device. For commercial use, deploy the server proxy so tokens never reach the browser.
-                </p>
-              </div>
-              <button type="button" onClick={() => setConnectOpen(false)} className="v-icon-btn" aria-label="Close connection">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <label className="mt-3 block">
-              <span className="mb-1 block text-[10px] font-semibold text-[var(--v-muted)]">Workspace API token</span>
-              <input
-                type="password"
-                value={tokenDraft}
-                onChange={(event) => setTokenDraft(event.target.value)}
-                placeholder="base44_..."
-                className="h-8 w-full rounded-md border border-[var(--v-line)] bg-[var(--v-surface-2)] px-2 text-[11px] text-[var(--v-ink)] outline-none focus:border-[var(--v-violet)]"
-              />
-            </label>
-            <label className="mt-2 block">
-              <span className="mb-1 block text-[10px] font-semibold text-[var(--v-muted)]">Organization ID (optional)</span>
-              <input
-                value={orgDraft}
-                onChange={(event) => setOrgDraft(event.target.value)}
-                placeholder="67e0b12c4d8a3f005b21c9e4"
-                className="h-8 w-full rounded-md border border-[var(--v-line)] bg-[var(--v-surface-2)] px-2 text-[11px] text-[var(--v-ink)] outline-none focus:border-[var(--v-violet)]"
-              />
-            </label>
-            <label className="mt-2 block">
-              <span className="mb-1 block text-[10px] font-semibold text-[var(--v-muted)]">Proxy URL (recommended for production)</span>
-              <input
-                value={proxyDraft}
-                onChange={(event) => setProxyDraft(event.target.value)}
-                placeholder="https://your-app.vercel.app/api/base44/apps"
-                className="h-8 w-full rounded-md border border-[var(--v-line)] bg-[var(--v-surface-2)] px-2 text-[11px] text-[var(--v-ink)] outline-none focus:border-[var(--v-violet)]"
-              />
-            </label>
-            <div className="mt-3 flex justify-end gap-2">
-              <button type="button" onClick={() => setConnectOpen(false)} className="v-btn v-btn-ghost h-8 px-3 text-[10.5px]">Cancel</button>
-              <button type="button" onClick={connectBase44} className="v-btn v-btn-primary h-8 px-3 text-[10.5px]">
-                <Check className="h-3.5 w-3.5" /> Save connection
               </button>
             </div>
           </div>
