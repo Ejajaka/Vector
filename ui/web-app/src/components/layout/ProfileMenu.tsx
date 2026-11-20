@@ -136,7 +136,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full mt-2 w-[320px] bg-[#FFFFFF] dark:bg-[#1B2426] border border-[#E5E2D8] dark:border-[#33403F] rounded-lg shadow-[0_24px_60px_-24px_rgba(16,32,32,0.45)] z-50 overflow-hidden"
+          className="v-scroll absolute right-0 top-full z-50 mt-2 max-h-[calc(100vh-6rem)] w-[320px] overflow-y-auto overflow-x-hidden rounded-lg border border-[#E5E2D8] bg-[#FFFFFF] shadow-[0_24px_60px_-24px_rgba(16,32,32,0.45)] dark:border-[#33403F] dark:bg-[#1B2426]"
         >
           {/* Account header */}
           <button
