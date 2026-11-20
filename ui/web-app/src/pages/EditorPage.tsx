@@ -1156,13 +1156,16 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     const onMove = (event: MouseEvent) => {
       const drag = dragRef.current;
       if (!drag) return;
-      const dx = (event.clientX - drag.startX) / zoom;
-      const dy = (event.clientY - drag.startY) / zoom;
+      const screenDx = event.clientX - drag.startX;
+      const screenDy = event.clientY - drag.startY;
+      // A tap often includes 1–2px of finger/mouse jitter. Treat that as a
+      // tap, not a drag, so a second tap can put the caret inside the text.
+      if (!drag.moved && Math.hypot(screenDx, screenDy) < 3) return;
+      const dx = screenDx / zoom;
+      const dy = screenDy / zoom;
       const origin = drag.origin;
-      if (dx !== 0 || dy !== 0) {
-        drag.moved = true;
-        draggedRef.current = true;
-      }
+      drag.moved = true;
+      draggedRef.current = true;
       if (drag.mode === 'move') {
         update(drag.id, {
           x: clamp(Math.round(origin.x + dx), 0, Math.max(0, pageWidth - origin.w)),
@@ -2623,6 +2626,19 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                           type="button"
                           onClick={(event) => {
                             event.stopPropagation();
+                            setSelectedId(item.id);
+                            setEditingId(item.id);
+                          }}
+                          className="absolute -top-6 right-7 w-5 h-5 rounded bg-[#2C2C2C] border border-white/15 grid place-items-center text-[#B9A8FF]"
+                          aria-label="Edit text"
+                          title="Edit text on canvas"
+                        >
+                          <Type className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
                             commit(items.filter((entry) => entry.id !== item.id));
                             setSelectedId(null);
                           }}
@@ -2753,6 +2769,18 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                   );
                 })}
                 <span className="w-px h-5 bg-white/10 mx-1" />
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setSelectedId(selected.id);
+                    setEditingId(selected.id);
+                  }}
+                  title="Edit text on canvas (Enter)"
+                  className="flex h-8 items-center gap-1 rounded-md px-2 text-[10px] font-semibold text-[#C9BDFF] hover:bg-white/10"
+                >
+                  <Type className="w-3.5 h-3.5" /> Edit text
+                </button>
                 <button type="button" onClick={(event) => { event.stopPropagation(); duplicateSelected(); }} title="Duplicate" className="w-8 h-8 rounded-md grid place-items-center text-white/60 hover:bg-white/10">
                   <Copy className="w-4 h-4" />
                 </button>
