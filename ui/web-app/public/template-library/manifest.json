@@ -1,0 +1,871 @@
+{
+  "name": "Vector Template & Asset Library",
+  "generatedAt": "2026-11-20",
+  "figma": [
+    {
+      "category": "Dashboards",
+      "title": "DashStack - Free Admin Dashboard UI Kit",
+      "url": "https://www.figma.com/community/file/1324762163080748317/dashstack-free-admin-dashboard-ui-kit-admin-dashboard-ui-kit-admin-dashboard"
+    },
+    {
+      "category": "Dashboards",
+      "title": "Dashboard UI Kit - Free Admin Dashboard",
+      "url": "https://www.figma.com/community/file/1210542873091115123/dashboard-ui-kit-dashboard-free-admin-dashboard"
+    },
+    {
+      "category": "Dashboards",
+      "title": "BankDash - Dashboard UI Kit",
+      "url": "https://www.figma.com/community/file/1323695683687017923/bankdash-dashboard-ui-kit-admin-template-dashboard-admin-dashboard"
+    },
+    {
+      "category": "Dashboards",
+      "title": "Free Dark Admin Dashboards",
+      "url": "https://www.figma.com/community/file/1325597018063319916/free-dark-admin-dashboards"
+    },
+    {
+      "category": "Dashboards",
+      "title": "Free Figma Tailwind Admin Dashboard - TailAdmin",
+      "url": "https://www.figma.com/community/file/1214477970819985778/free-figma-tailwind-admin-dashboard-tailadmin"
+    },
+    {
+      "category": "Dashboards",
+      "title": "SAAS Dashboard by Jiangyu",
+      "url": "https://www.figma.com/community/file/1065510379888107603/saas-dashboard"
+    },
+    {
+      "category": "Dashboards",
+      "title": "Metrix SaaS Dashboard UI Kit",
+      "url": "https://www.figma.com/community/file/1149477096761797772/metrix-saas-dashboard-ui-kit"
+    },
+    {
+      "category": "Dashboards",
+      "title": "SaaS Selling Dashboard / Admin Dashboard",
+      "url": "https://www.figma.com/community/file/1140272887408902677/saas-selling-dashboard-admin-dashboard"
+    },
+    {
+      "category": "Landing pages",
+      "title": "Positivus Landing Page Design",
+      "url": "https://www.figma.com/community/file/1230604708032389430/positivus-landing-page-design"
+    },
+    {
+      "category": "Landing pages",
+      "title": "50+ Landing Page Designs",
+      "url": "https://www.figma.com/community/file/1127302394641561751/50-landing-page-designs"
+    },
+    {
+      "category": "Landing pages",
+      "title": "Minimal Landing Page Design",
+      "url": "https://www.figma.com/community/file/1222060007934600841/minimal-landing-page-design-website-home-page-design-agency-website-ui-design"
+    },
+    {
+      "category": "Landing pages",
+      "title": "Panto - Furniture Landing Page",
+      "url": "https://www.figma.com/community/file/1061732519182077733/panto-furniture-landing-page-design"
+    },
+    {
+      "category": "Landing pages",
+      "title": "16 Free Landing Page Designs",
+      "url": "https://www.figma.com/community/file/1203891414567587586/16-free-landing-page-design"
+    },
+    {
+      "category": "Landing pages",
+      "title": "Landing Page Kit - 13 Landing Pages",
+      "url": "https://www.figma.com/community/file/1222100666260862670/landing-page-kit-free-13-landing-pages-collection-for-ui-ux-design"
+    },
+    {
+      "category": "Commerce",
+      "title": "E-commerce UI - Figma Ecommerce UI Kit",
+      "url": "https://www.figma.com/community/file/1102233251923362930/e-commerce-ui-figma-ecommerce-ui-kit-demo-version"
+    },
+    {
+      "category": "Commerce",
+      "title": "eCommerce Website - Interior Landing Page",
+      "url": "https://www.figma.com/community/file/1252561852327562039/ecommerce-website-web-page-design-ui-kit-interior-landing-page"
+    },
+    {
+      "category": "Commerce",
+      "title": "Ecommerce Website Design",
+      "url": "https://www.figma.com/community/file/1184498378829556800/ecommerce-website-design"
+    },
+    {
+      "category": "Commerce",
+      "title": "Shoppe - Clothing Store UI",
+      "url": "https://www.figma.com/community/file/1321464360558173342/shoppe-ecommerce-clothing-fashion-store-multi-purpose-ui-mobile-app-design"
+    },
+    {
+      "category": "Commerce",
+      "title": "eCommerce App UI Kit",
+      "url": "https://www.figma.com/community/file/1264098337558102933/ecommerce-app-ui-kit-case-study-ecommerce-mobile-app-ui-kit"
+    },
+    {
+      "category": "Commerce",
+      "title": "Mobile eCommerce Clothing Store",
+      "url": "https://www.figma.com/community/file/1169625825293818878/mobile-ecommerce-clothing-store-app-design"
+    },
+    {
+      "category": "Auth",
+      "title": "20 Screen Login & Register Mobile App",
+      "url": "https://www.figma.com/community/file/1370757927948360864/20-screen-login-register-mobile-app"
+    },
+    {
+      "category": "Auth",
+      "title": "LOGIFY - Web Login UI Kit",
+      "url": "https://www.figma.com/community/file/1019155319918719973/logify-web-login-ui-kit"
+    },
+    {
+      "category": "Auth",
+      "title": "Social Login Buttons",
+      "url": "https://www.figma.com/community/file/945702178038082375/social-login-buttons"
+    },
+    {
+      "category": "Auth",
+      "title": "Login Page Perfect UI (Freebie)",
+      "url": "https://www.figma.com/community/file/1050476989533233612/login-page-perfect-ui-freebie"
+    },
+    {
+      "category": "Auth",
+      "title": "Login Page",
+      "url": "https://www.figma.com/community/file/1249321675959577741/login-page"
+    },
+    {
+      "category": "Auth",
+      "title": "Login Page Design",
+      "url": "https://www.figma.com/community/file/872144934711314532/login-page-design"
+    },
+    {
+      "category": "Data tables",
+      "title": "Figma Data Tables UI Kit - Untitled UI",
+      "url": "https://www.figma.com/community/file/1332203037536263387/figma-data-tables-ui-kit-untitled-ui"
+    },
+    {
+      "category": "Data tables",
+      "title": "UI Prep Data Tables",
+      "url": "https://www.figma.com/community/file/888102678933348280/ui-prep-data-tables"
+    },
+    {
+      "category": "Data tables",
+      "title": "Data Table Design Components",
+      "url": "https://www.figma.com/community/file/1021406552622495462/data-table-design-components-free-ui-kit"
+    },
+    {
+      "category": "Data tables",
+      "title": "Data Table",
+      "url": "https://www.figma.com/community/file/786976918221602322/data-table"
+    },
+    {
+      "category": "Data tables",
+      "title": "Data Table v2",
+      "url": "https://www.figma.com/community/file/828671424087108521/data-table-v2"
+    },
+    {
+      "category": "Data tables",
+      "title": "Data Table v3 (Interactive)",
+      "url": "https://www.figma.com/community/file/1061557188660055783/data-table-v3-interactive"
+    },
+    {
+      "category": "Collaboration",
+      "title": "ChatGPT UI Kit - AI Chat",
+      "url": "https://www.figma.com/community/file/1226866936281840601/chatgpt-ui-kit-ai-chat"
+    },
+    {
+      "category": "Collaboration",
+      "title": "ChatGPT Chat Bot App UI",
+      "url": "https://www.figma.com/community/file/1212265978123382691/chatgpt-chat-bot-app-ui"
+    },
+    {
+      "category": "Collaboration",
+      "title": "ChatGPT v4.5 Chat AI",
+      "url": "https://www.figma.com/community/file/1340700436296746118/chatgpt-v4-5-chat-ai-ai-chatbot"
+    },
+    {
+      "category": "Collaboration",
+      "title": "BrainBox AI ChatBot Mobile App",
+      "url": "https://www.figma.com/community/file/1316069776447695879/brainbox-ai-chatbot-mobile-app-full-100-free-ui-kit"
+    },
+    {
+      "category": "Collaboration",
+      "title": "iMessage Chat Bubbles",
+      "url": "https://www.figma.com/community/file/985048216078661055/imessage-chat-bubbles"
+    },
+    {
+      "category": "Collaboration",
+      "title": "Live Chat / AI Chatbot Component",
+      "url": "https://www.figma.com/community/file/1348071404653891411/live-chat-ai-chatbot-component-for-website-prototypes"
+    },
+    {
+      "category": "Mobile",
+      "title": "Mobile Apps - Prototyping Kit",
+      "url": "https://www.figma.com/community/file/1129468881607079432/mobile-apps-prototyping-kit"
+    },
+    {
+      "category": "Mobile",
+      "title": "Coffee Shop Mobile App Design",
+      "url": "https://www.figma.com/community/file/1116708627748807811/coffee-shop-mobile-app-design"
+    },
+    {
+      "category": "Portfolio",
+      "title": "Portfolio Template - Anima",
+      "url": "https://www.figma.com/community/file/1095695980466714349/portfolio-template-edit-portfolio-export-figma-to-html-publish-portfolio-to-domain-in-no-time"
+    },
+    {
+      "category": "Portfolio",
+      "title": "Portfolio Design",
+      "url": "https://www.figma.com/community/file/1182197835889504018/portfolio-design"
+    },
+    {
+      "category": "Portfolio",
+      "title": "UX Case Study Template",
+      "url": "https://www.figma.com/community/file/1067428863353945820/ux-case-study-template-free"
+    },
+    {
+      "category": "Components",
+      "title": "iOS Keyboards",
+      "url": "https://www.figma.com/community/file/768726574016795759/ios-keyboards"
+    },
+    {
+      "category": "Mobile",
+      "title": "Food Delivery App",
+      "url": "https://www.figma.com/community/file/1231521889522325040/food-delivery-app"
+    },
+    {
+      "category": "Mobile",
+      "title": "Weather App UI Design",
+      "url": "https://www.figma.com/community/file/1100826294536456295/weather-app-ui-design"
+    },
+    {
+      "category": "Mobile",
+      "title": "Task Management & To-do List App",
+      "url": "https://www.figma.com/community/file/1143575071825582037/task-management-to-do-list-app"
+    },
+    {
+      "category": "Mobile",
+      "title": "WhatsApp UI Screens",
+      "url": "https://www.figma.com/community/file/874576344344319149/whatsapp-ui-screens"
+    },
+    {
+      "category": "Portfolio",
+      "title": "Product Designer Portfolio Website",
+      "url": "https://www.figma.com/community/file/1299737213921915682/portfolio-product-designer-portfolio-website"
+    },
+    {
+      "category": "Portfolio",
+      "title": "Personal Website Portfolio",
+      "url": "https://www.figma.com/community/file/1351551318943737601/personal-website-portfolio"
+    },
+    {
+      "category": "Portfolio",
+      "title": "Developer Portfolio Website",
+      "url": "https://www.figma.com/community/file/1308487677104759760/developer-portfolio-website-design"
+    },
+    {
+      "category": "Components",
+      "title": "Charts UI Kit",
+      "url": "https://www.figma.com/community/file/988105631489720603/charts-ui-kit"
+    },
+    {
+      "category": "Components",
+      "title": "Material 3 Design Kit",
+      "url": "https://www.figma.com/community/file/1035203688168086460/material-3-design-kit"
+    },
+    {
+      "category": "Components",
+      "title": "Calendar - Auto Layout",
+      "url": "https://www.figma.com/community/file/806493111803401210/calendar-auto-layout"
+    },
+    {
+      "category": "Components",
+      "title": "User Journey Map Template",
+      "url": "https://www.figma.com/community/file/891225702324436074/user-journey-map-template"
+    },
+    {
+      "category": "Components",
+      "title": "User Persona Template",
+      "url": "https://www.figma.com/community/file/881830156311997001/user-persona-template"
+    }
+  ],
+  "images": [
+    {
+      "src": "images/01-vector-abstract-01.jpg",
+      "alt": "Placeholder image 01",
+      "source": "https://picsum.photos",
+      "license": "Unsplash License via Lorem Picsum"
+    },
+    {
+      "src": "images/02-vector-abstract-02.jpg",
+      "alt": "Placeholder image 02",
+      "source": "https://picsum.photos",
+      "license": "Unsplash License via Lorem Picsum"
+    },
+    {
+      "src": "images/03-vector-workspace-01.jpg",
+      "alt": "Placeholder image 03",
+      "source": "https://picsum.photos",
+      "license": "Unsplash License via Lorem Picsum"
+    },
+    {
+      "src": "images/04-vector-workspace-02.jpg",
+      "alt": "Placeholder image 04",
+      "source": "https://picsum.photos",
+      "license": "Unsplash License via Lorem Picsum"
+    },
+    {
+      "src": "images/05-vector-product-01.jpg",
+      "alt": "Placeholder image 05",
+      "source": "https://picsum.photos",
+      "license": "Unsplash License via Lorem Picsum"
+    },
+    {
+      "src": "images/06-vector-product-02.jpg",
+      "alt": "Placeholder image 06",
+      "source": "https://picsum.photos",
+      "license": "Unsplash License via Lorem Picsum"
+    },
+    {
+      "src": "images/07-vector-city-01.jpg",
+      "alt": "Placeholder image 07",
+      "source": "https://picsum.photos",
+      "license": "Unsplash License via Lorem Picsum"
+    },
+    {
+      "src": "images/08-vector-city-02.jpg",
+      "alt": "Placeholder image 08",
+      "source": "https://picsum.photos",
+      "license": "Unsplash License via Lorem Picsum"
+    },
+    {
+      "src": "images/09-vector-people-01.jpg",
+      "alt": "Placeholder image 09",
+      "source": "https://picsum.photos",
+      "license": "Unsplash License via Lorem Picsum"
+    },
+    {
+      "src": "images/10-vector-people-02.jpg",
+      "alt": "Placeholder image 10",
+      "source": "https://picsum.photos",
+      "license": "Unsplash License via Lorem Picsum"
+    },
+    {
+      "src": "images/11-vector-nature-01.jpg",
+      "alt": "Placeholder image 11",
+      "source": "https://picsum.photos",
+      "license": "Unsplash License via Lorem Picsum"
+    },
+    {
+      "src": "images/12-vector-nature-02.jpg",
+      "alt": "Placeholder image 12",
+      "source": "https://picsum.photos",
+      "license": "Unsplash License via Lorem Picsum"
+    },
+    {
+      "src": "images/13-vector-texture-01.jpg",
+      "alt": "Placeholder image 13",
+      "source": "https://picsum.photos",
+      "license": "Unsplash License via Lorem Picsum"
+    },
+    {
+      "src": "images/14-vector-texture-02.jpg",
+      "alt": "Placeholder image 14",
+      "source": "https://picsum.photos",
+      "license": "Unsplash License via Lorem Picsum"
+    },
+    {
+      "src": "images/15-vector-desk-01.jpg",
+      "alt": "Placeholder image 15",
+      "source": "https://picsum.photos",
+      "license": "Unsplash License via Lorem Picsum"
+    },
+    {
+      "src": "images/16-vector-desk-02.jpg",
+      "alt": "Placeholder image 16",
+      "source": "https://picsum.photos",
+      "license": "Unsplash License via Lorem Picsum"
+    },
+    {
+      "src": "images/17-vector-glass-01.jpg",
+      "alt": "Placeholder image 17",
+      "source": "https://picsum.photos",
+      "license": "Unsplash License via Lorem Picsum"
+    },
+    {
+      "src": "images/18-vector-glass-02.jpg",
+      "alt": "Placeholder image 18",
+      "source": "https://picsum.photos",
+      "license": "Unsplash License via Lorem Picsum"
+    },
+    {
+      "src": "images/19-vector-light-01.jpg",
+      "alt": "Placeholder image 19",
+      "source": "https://picsum.photos",
+      "license": "Unsplash License via Lorem Picsum"
+    },
+    {
+      "src": "images/20-vector-light-02.jpg",
+      "alt": "Placeholder image 20",
+      "source": "https://picsum.photos",
+      "license": "Unsplash License via Lorem Picsum"
+    },
+    {
+      "src": "images/21-vector-night-01.jpg",
+      "alt": "Placeholder image 21",
+      "source": "https://picsum.photos",
+      "license": "Unsplash License via Lorem Picsum"
+    },
+    {
+      "src": "images/22-vector-night-02.jpg",
+      "alt": "Placeholder image 22",
+      "source": "https://picsum.photos",
+      "license": "Unsplash License via Lorem Picsum"
+    },
+    {
+      "src": "images/23-vector-space-01.jpg",
+      "alt": "Placeholder image 23",
+      "source": "https://picsum.photos",
+      "license": "Unsplash License via Lorem Picsum"
+    },
+    {
+      "src": "images/24-vector-space-02.jpg",
+      "alt": "Placeholder image 24",
+      "source": "https://picsum.photos",
+      "license": "Unsplash License via Lorem Picsum"
+    }
+  ],
+  "icons": [
+    {
+      "name": "activity",
+      "src": "icons/activity.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "alert-triangle",
+      "src": "icons/alert-triangle.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "arrow-right",
+      "src": "icons/arrow-right.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "arrow-up-right",
+      "src": "icons/arrow-up-right.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "badge-check",
+      "src": "icons/badge-check.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "bar-chart-3",
+      "src": "icons/bar-chart-3.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "bell",
+      "src": "icons/bell.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "blocks",
+      "src": "icons/blocks.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "book-open",
+      "src": "icons/book-open.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "calendar",
+      "src": "icons/calendar.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "calendar-days",
+      "src": "icons/calendar-days.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "check",
+      "src": "icons/check.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "check-circle-2",
+      "src": "icons/check-circle-2.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "chevron-down",
+      "src": "icons/chevron-down.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "chevron-right",
+      "src": "icons/chevron-right.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "circle-check",
+      "src": "icons/circle-check.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "circle-help",
+      "src": "icons/circle-help.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "circle-x",
+      "src": "icons/circle-x.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "clipboard-check",
+      "src": "icons/clipboard-check.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "clock",
+      "src": "icons/clock.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "cloud",
+      "src": "icons/cloud.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "code",
+      "src": "icons/code.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "compass",
+      "src": "icons/compass.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "cpu",
+      "src": "icons/cpu.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "credit-card",
+      "src": "icons/credit-card.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "database",
+      "src": "icons/database.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "download",
+      "src": "icons/download.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "eye",
+      "src": "icons/eye.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "external-link",
+      "src": "icons/external-link.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "file-json",
+      "src": "icons/file-json.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "file-text",
+      "src": "icons/file-text.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "filter",
+      "src": "icons/filter.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "folder",
+      "src": "icons/folder.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "folder-open",
+      "src": "icons/folder-open.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "gauge",
+      "src": "icons/gauge.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "git-branch",
+      "src": "icons/git-branch.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "globe",
+      "src": "icons/globe.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "graduation-cap",
+      "src": "icons/graduation-cap.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "grid-2x2",
+      "src": "icons/grid-2x2.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "heart",
+      "src": "icons/heart.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "history",
+      "src": "icons/history.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "home",
+      "src": "icons/home.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "image",
+      "src": "icons/image.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "info",
+      "src": "icons/info.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "key",
+      "src": "icons/key.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "layers",
+      "src": "icons/layers.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "layout-dashboard",
+      "src": "icons/layout-dashboard.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "layout-template",
+      "src": "icons/layout-template.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "lightbulb",
+      "src": "icons/lightbulb.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "link",
+      "src": "icons/link.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "list",
+      "src": "icons/list.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "loader",
+      "src": "icons/loader.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "lock",
+      "src": "icons/lock.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "mail",
+      "src": "icons/mail.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "menu",
+      "src": "icons/menu.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "message-square",
+      "src": "icons/message-square.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "monitor",
+      "src": "icons/monitor.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "moon",
+      "src": "icons/moon.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "more-horizontal",
+      "src": "icons/more-horizontal.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "network",
+      "src": "icons/network.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "palette",
+      "src": "icons/palette.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "panel-left",
+      "src": "icons/panel-left.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "play",
+      "src": "icons/play.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "plus",
+      "src": "icons/plus.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "receipt",
+      "src": "icons/receipt.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "refresh-cw",
+      "src": "icons/refresh-cw.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "rocket",
+      "src": "icons/rocket.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "search",
+      "src": "icons/search.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "server",
+      "src": "icons/server.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "settings",
+      "src": "icons/settings.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "shield-check",
+      "src": "icons/shield-check.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "smartphone",
+      "src": "icons/smartphone.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "sparkles",
+      "src": "icons/sparkles.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "star",
+      "src": "icons/star.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "sun",
+      "src": "icons/sun.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "table",
+      "src": "icons/table.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "tablet",
+      "src": "icons/tablet.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "terminal",
+      "src": "icons/terminal.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "trash-2",
+      "src": "icons/trash-2.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "upload",
+      "src": "icons/upload.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "user",
+      "src": "icons/user.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "users",
+      "src": "icons/users.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "wallet",
+      "src": "icons/wallet.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "x",
+      "src": "icons/x.svg",
+      "license": "ISC (Lucide)"
+    },
+    {
+      "name": "zap",
+      "src": "icons/zap.svg",
+      "license": "ISC (Lucide)"
+    }
+  ],
+  "fonts": [
+    {
+      "family": "Inter",
+      "file": "fonts/fonts.css",
+      "license": "SIL Open Font License 1.1"
+    },
+    {
+      "family": "JetBrains Mono",
+      "file": "fonts/fonts.css",
+      "license": "SIL Open Font License 1.1"
+    }
+  ]
+}
