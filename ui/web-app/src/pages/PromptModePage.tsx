@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  AlertCircle, ArrowLeft, ArrowRight, Check, Copy, Cpu, HelpCircle, Layers, Loader2, Plus, Sparkles, Undo2,
+  AlertCircle, ArrowLeft, ArrowRight, Check, Copy, Cpu, HelpCircle, Layers, Loader2, Mic, MicOff, Plus, Sparkles, Undo2,
 } from 'lucide-react';
 import {
   REQUIRED_ATTRS,
@@ -23,11 +23,30 @@ import { loadLearnedLexicon, saveLearnedPhrase } from '../services/lexicon.ts';
 import { loadSettings } from '../services/settings.ts';
 import { isLLMConfigured } from '../services/llmEngine.ts';
 import { parsePromptWithModel, type ModelParseResult } from '../services/semanticParser.ts';
-import { isPaid, readEntitlements } from '../services/entitlements.ts';
-import { ConnectDialog } from '../components/generators/ConnectDialog.tsx';
+import { SideBySideBuild } from '../components/generators/SideBySideBuild.tsx';
 import { WireframePreview } from '../components/editor/WireframePreview.tsx';
 import type { CanvasItem, CanvasItemType, CanvasPage } from '../data/canvas.ts';
 import { TYPE_TO_VARIANT } from '../data/styles.ts';
+
+type SpeechRecognitionLike = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+  onresult: ((event: any) => void) | null;
+  onerror: ((event: any) => void) | null;
+  onend: (() => void) | null;
+};
+
+function speechRecognition(): SpeechRecognitionLike | null {
+  if (typeof window === 'undefined') return null;
+  const ctor = (window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike })
+    .SpeechRecognition
+    || (window as unknown as { webkitSpeechRecognition?: new () => SpeechRecognitionLike }).webkitSpeechRecognition;
+  return ctor ? new ctor() : null;
+}
 
 /** Canvas types that can represent each compiled component kind. */
 const CANVAS_TYPE: Partial<Record<CompiledElement['kind'], CanvasItemType>> = {
@@ -236,7 +255,6 @@ export const PromptModePage: React.FC<Props> = ({
   onBack,
   onOpenCanvas,
   onOpenAssistant,
-  onRequireUpgrade,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const initialDraft = useRef<PromptDraft | null>(null);
@@ -248,7 +266,7 @@ export const PromptModePage: React.FC<Props> = ({
   const [answers, setAnswers] = useState<Record<string, string>>(initialDraft.current.answers);
   const [confirmed, setConfirmed] = useState<Record<string, boolean>>(initialDraft.current.confirmed);
   const [copied, setCopied] = useState(false);
-  const [generateOpen, setGenerateOpen] = useState(false);
+  const [buildOpen, setBuildOpen] = useState(false);
   const [view, setView] = useState<'wireframe' | 'prompt'>('wireframe');
   const [viewport, setViewport] = useState<Viewport>('desktop');
   const [baselineRisks, setBaselineRisks] = useState<Record<string, number>>({});
@@ -265,6 +283,84 @@ export const PromptModePage: React.FC<Props> = ({
     error?: string;
     rejected?: boolean;
   }>({ running: false, percent: 0, stage: '' });
+
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const voiceBaseRef = useRef('');
+  const voiceFinalRef = useRef('');
+  const [listening, setListening] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+
+  const stopVoice = () => {
+    try {
+      recognitionRef.current?.stop();
+    } catch {
+      // ignore
+    }
+    recognitionRef.current = null;
+    setListening(false);
+  };
+
+  const startVoice = () => {
+    setVoiceError(null);
+    const recognition = speechRecognition();
+    if (!recognition) {
+      setVoiceError('Voice input is not available in this browser. Try Chrome or Edge.');
+      return;
+    }
+    voiceBaseRef.current = text;
+    voiceFinalRef.current = '';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    recognition.onresult = (event: any) => {
+      let interim = '';
+      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+        const result = event.results[index];
+        const transcript = result[0]?.transcript || '';
+        if (result.isFinal) voiceFinalRef.current += `${transcript} `;
+        else interim += transcript;
+      }
+      const merged = [voiceBaseRef.current.trim(), voiceFinalRef.current.trim(), interim.trim()]
+        .filter(Boolean)
+        .join(' ');
+      setText(merged);
+    };
+    recognition.onerror = (event: any) => {
+      const code = String(event?.error || 'unknown');
+      setVoiceError(
+        code === 'not-allowed'
+          ? 'Microphone permission was blocked. Allow it in the browser and try again.'
+          : code === 'no-speech'
+            ? 'No speech detected. Try again and speak a little closer to the microphone.'
+            : `Voice capture stopped (${code}).`
+      );
+      setListening(false);
+      recognitionRef.current = null;
+    };
+    recognition.onend = () => {
+      setListening(false);
+      recognitionRef.current = null;
+    };
+    recognitionRef.current = recognition;
+    setListening(true);
+    try {
+      recognition.start();
+    } catch {
+      setListening(false);
+      setVoiceError('The microphone could not start. Close other apps using it and try again.');
+    }
+  };
+
+  useEffect(
+    () => () => {
+      try {
+        recognitionRef.current?.abort();
+      } catch {
+        // ignore
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     if (!projectId) return;
@@ -716,8 +812,23 @@ export const PromptModePage: React.FC<Props> = ({
       <div className="grid gap-4 lg:grid-cols-2">
         {/* ------------------------------------------------ prompt + engine */}
         <section className="rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] p-4">
-          <label className="block">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--v-muted)]">Describe the screen</span>
+          <div className="block">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--v-muted)]">Describe the screen</span>
+              <button
+                type="button"
+                onClick={listening ? stopVoice : startVoice}
+                className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[10px] font-bold transition-colors ${
+                  listening
+                    ? 'border-[#FF7A59] bg-[#FF7A59]/10 text-[#C2410C]'
+                    : 'border-[var(--v-line)] bg-[var(--v-surface)] text-[var(--v-muted)] hover:border-[var(--v-violet)] hover:text-[var(--v-violet)]'
+                }`}
+                aria-label={listening ? 'Stop voice input' : 'Start voice input'}
+              >
+                {listening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
+                {listening ? 'Stop listening' : 'Speak instead'}
+              </button>
+            </div>
             <textarea
               ref={textareaRef}
               value={text}
@@ -726,7 +837,14 @@ export const PromptModePage: React.FC<Props> = ({
               placeholder={'Login page with a blue button saying "Continue", email and password fields, and a logo at the top.'}
               className="mt-1.5 w-full resize-none rounded-xl border border-[var(--v-line)] bg-[var(--v-surface)] px-3 py-2.5 text-[12.5px] leading-relaxed text-[var(--v-ink)] outline-none focus:border-[var(--v-violet)]"
             />
-          </label>
+            {listening && (
+              <p className="mt-1 flex items-center gap-1.5 text-[10px] font-semibold text-[#C2410C]">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#FF7A59]" />
+                Listening… speak naturally. The transcript appears above.
+              </p>
+            )}
+            {voiceError && <p className="mt-1 text-[10px] font-medium text-[#B94D42]">{voiceError}</p>}
+          </div>
 
           <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
             <span className="text-[9.5px] text-[var(--v-faint)]">
@@ -1322,7 +1440,7 @@ export const PromptModePage: React.FC<Props> = ({
 
           <button
             type="button"
-            onClick={() => setGenerateOpen(true)}
+            onClick={() => setBuildOpen(true)}
             disabled={!submitted || elements.length === 0}
             className="mt-2 v-btn v-btn-primary h-9 w-full text-[11.5px] disabled:opacity-40"
           >
@@ -1332,16 +1450,7 @@ export const PromptModePage: React.FC<Props> = ({
         </section>
       </div>
 
-      <ConnectDialog
-        open={generateOpen}
-        onClose={() => setGenerateOpen(false)}
-        prompt={revisedPrompt}
-        paid={isPaid(readEntitlements())}
-        onRequireUpgrade={() => {
-          setGenerateOpen(false);
-          onRequireUpgrade?.();
-        }}
-      />
+      <SideBySideBuild open={buildOpen} prompt={revisedPrompt} onClose={() => setBuildOpen(false)} />
     </div>
   );
 };

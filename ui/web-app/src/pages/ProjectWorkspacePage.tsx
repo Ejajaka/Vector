@@ -13,7 +13,10 @@ import {
   Share2,
   Sparkles,
   Users,
+  X,
 } from 'lucide-react';
+import { parseFigmaJson } from '../services/figma.ts';
+import { SideBySideBuild } from '../components/generators/SideBySideBuild.tsx';
 import { buildPagesPrompt } from '../data/canvas.ts';
 import { BuildComposerModal } from '../components/projects/BuildComposerModal.tsx';
 import { ConnectDialog } from '../components/generators/ConnectDialog.tsx';
@@ -68,6 +71,10 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   const [connectPrompt, setConnectPrompt] = useState<string | null>(null);
   const [files, setFiles] = useState<Array<{ id: string; name: string; type: string; size: number; dataUrl: string }>>([]);
   const fileRef = React.useRef<HTMLInputElement>(null);
+  const figmaRef = React.useRef<HTMLInputElement>(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [buildOpen, setBuildOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -105,6 +112,24 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     });
   };
   const designSystem = useMemo(() => getActiveDesignSystem(), []);
+
+  const importFigmaFile = async (file: File) => {
+    setImportError(null);
+    try {
+      const text = await file.text();
+      const result = parseFigmaJson(text);
+      if (!result.pages.length) {
+        throw new Error('That export did not contain any pages.');
+      }
+      const next = { name: project.name, pages: result.pages, updatedAt: new Date().toISOString() };
+      localStorage.setItem(`vector_project_doc_${project.id}`, JSON.stringify(next));
+      setDoc(next);
+      setImportOpen(false);
+      onOpenCanvas();
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : 'That file could not be imported.');
+    }
+  };
 
   useEffect(() => {
     try {
@@ -163,6 +188,51 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
             </div>
           ))}
         </div>
+      </section>
+
+      {/* Three ways to work in this project */}
+      <section className="grid gap-3 sm:grid-cols-3">
+        <button
+          type="button"
+          onClick={doc ? onOpenCanvas : onBlankCanvas}
+          className="group rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] p-4 text-left transition-colors hover:border-[var(--v-violet)]"
+        >
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--v-violet)]/10 text-[var(--v-violet)]">
+            <LayoutTemplate className="h-4 w-4" />
+          </span>
+          <p className="mt-2.5 text-[12.5px] font-bold text-[var(--v-ink)]">Work in canvas mode</p>
+          <p className="mt-0.5 text-[10.5px] leading-relaxed text-[var(--v-muted)]">
+            {doc ? `Continue ${pageCount} canvas page${pageCount === 1 ? '' : 's'} and edit visually.` : 'Open a blank canvas and place elements yourself.'}
+          </p>
+        </button>
+
+        <button
+          type="button"
+          onClick={onOptimizePrompt}
+          className="group rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] p-4 text-left transition-colors hover:border-[var(--v-violet)]"
+        >
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--v-teal)]/10 text-[var(--v-teal)]">
+            <Sparkles className="h-4 w-4" />
+          </span>
+          <p className="mt-2.5 text-[12.5px] font-bold text-[var(--v-ink)]">Generate your prompt</p>
+          <p className="mt-0.5 text-[10.5px] leading-relaxed text-[var(--v-muted)]">
+            Describe the screen, answer clarifications and build a validated wireframe prompt.
+          </p>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setImportOpen(true)}
+          className="group rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] p-4 text-left transition-colors hover:border-[var(--v-violet)]"
+        >
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--v-coral)]/10 text-[var(--v-coral)]">
+            <Upload className="h-4 w-4" />
+          </span>
+          <p className="mt-2.5 text-[12.5px] font-bold text-[var(--v-ink)]">Import from another tool</p>
+          <p className="mt-0.5 text-[10.5px] leading-relaxed text-[var(--v-muted)]">
+            Bring in a Figma JSON export, connect Base44, or attach existing files.
+          </p>
+        </button>
       </section>
 
       {/* Pipeline */}
@@ -386,6 +456,90 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
           </button>
         </div>
       </section>
+
+      {importOpen && (
+        <div className="fixed inset-0 z-[93] grid place-items-center p-3" role="dialog" aria-modal="true" aria-label="Import into project">
+          <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" onClick={() => setImportOpen(false)} aria-hidden="true" />
+          <div className="relative w-full max-w-[520px] rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] p-4 shadow-[0_30px_80px_-30px_rgba(20,18,31,.5)]">
+            <div className="flex items-start gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="v-eyebrow">Import</p>
+                <h2 className="mt-0.5 text-[17px] font-bold text-[var(--v-ink)]">Bring existing work into this project</h2>
+                <p className="mt-1 text-[10.5px] leading-relaxed text-[var(--v-muted)]">
+                  Choose a source. Imported pages become canvas pages in this project.
+                </p>
+              </div>
+              <button type="button" onClick={() => setImportOpen(false)} className="v-icon-btn -mr-1 -mt-1" aria-label="Close import">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mt-3 space-y-2">
+              <button
+                type="button"
+                onClick={() => figmaRef.current?.click()}
+                className="flex w-full items-center gap-2.5 rounded-xl border border-[var(--v-line)] bg-[var(--v-surface-2)] p-3 text-left hover:border-[var(--v-violet)]"
+              >
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--v-surface)] text-[var(--v-violet)]">
+                  <Upload className="h-4 w-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-[11.5px] font-bold text-[var(--v-ink)]">Import a Figma JSON export</span>
+                  <span className="block text-[9.5px] leading-relaxed text-[var(--v-muted)]">Pages, frames, text and shapes become editable canvas pages.</span>
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setImportOpen(false); setBuildOpen(true); }}
+                className="flex w-full items-center gap-2.5 rounded-xl border border-[var(--v-line)] bg-[var(--v-surface-2)] p-3 text-left hover:border-[var(--v-violet)]"
+              >
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--v-surface)] text-[var(--v-teal)]">
+                  <Rocket className="h-4 w-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-[11.5px] font-bold text-[var(--v-ink)]">Connect Base44 side by side</span>
+                  <span className="block text-[9.5px] leading-relaxed text-[var(--v-muted)]">Use the project prompt in the embedded builder.</span>
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setImportOpen(false); fileRef.current?.click(); }}
+                className="flex w-full items-center gap-2.5 rounded-xl border border-[var(--v-line)] bg-[var(--v-surface-2)] p-3 text-left hover:border-[var(--v-violet)]"
+              >
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--v-surface)] text-[var(--v-coral)]">
+                  <Paperclip className="h-4 w-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-[11.5px] font-bold text-[var(--v-ink)]">Attach reference files</span>
+                  <span className="block text-[9.5px] leading-relaxed text-[var(--v-muted)]">Briefs, screenshots or brand files kept with this project.</span>
+                </span>
+              </button>
+            </div>
+
+            {importError && <p className="mt-2 rounded-lg bg-[#FDF2F0] px-2.5 py-1.5 text-[10px] font-medium text-[#B94D42]">{importError}</p>}
+          </div>
+        </div>
+      )}
+
+      <input
+        ref={figmaRef}
+        type="file"
+        accept=".json,application/json"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) void importFigmaFile(file);
+          event.target.value = '';
+        }}
+      />
+
+      <SideBySideBuild
+        open={buildOpen}
+        prompt={canvasPrompt || `Build a “${project.name}” product. Use the project name, purpose and any files attached to this project to choose the right screens.`}
+        onClose={() => setBuildOpen(false)}
+      />
     </div>
   );
 };

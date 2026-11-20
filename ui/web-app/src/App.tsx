@@ -35,6 +35,9 @@ import { RequirementReviewPage } from './pages/RequirementReviewPage.tsx';
 import { PromptStudioPage } from './pages/PromptStudioPage.tsx';
 import { WorkspacePage } from './pages/WorkspacePage.tsx';
 import { EditorPage } from './pages/EditorPage.tsx';
+import { ProjectWorkspacePage } from './pages/ProjectWorkspacePage.tsx';
+import { ProjectSetupWizard, type ProjectSetupChoice } from './components/projects/ProjectSetupWizard.tsx';
+import { saveProjectSetup, seedProjectFromTemplate } from './services/projectSeed.ts';
 import { AssistantPanel } from './components/ai/AssistantPanel.tsx';
 import { PricingDialog } from './components/pricing/PricingDialog.tsx';
 import { PlanHubDialog, type PlanHubTab } from './components/pricing/PlanHubDialog.tsx';
@@ -159,6 +162,8 @@ function AppShell() {
   const [activeProject, setActiveProject] = useState<{ id: string; name: string; description?: string } | null>(
     () => readStored(ACTIVE_PROJECT_KEY)
   );
+  const [projectView, setProjectView] = useState<'hub' | 'prompt'>('hub');
+  const [setupProject, setSetupProject] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     writeStored(ACTIVE_PROJECT_KEY, activeProject);
@@ -193,6 +198,18 @@ function AppShell() {
     });
   }, [activeTab, activeProject, currentProject]);
 
+  // A project created before its setup interview must still ask after a reload.
+  useEffect(() => {
+    if (activeTab !== 'project' || !activeProject || setupProject) return;
+    try {
+      if (localStorage.getItem(`vector_project_setup_pending_${activeProject.id}`) === '1') {
+        setSetupProject({ id: activeProject.id, name: activeProject.name });
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }, [activeTab, activeProject, setupProject]);
+
   // If the tab survived a reload but the project was deleted, do not leave the
   // user on a blank page.
   useEffect(() => {
@@ -211,6 +228,36 @@ function AppShell() {
   const openProjectWorkspace = (id: string, name: string, description?: string) => {
     selectProject(id);
     setActiveProject({ id, name, description });
+    setProjectView('hub');
+    try {
+      if (localStorage.getItem(`vector_project_setup_pending_${id}`) === '1') {
+        setSetupProject({ id, name });
+      }
+    } catch {
+      // ignore storage errors
+    }
+    setActiveTab('project');
+  };
+
+  const completeProjectSetup = (choice: ProjectSetupChoice) => {
+    if (!setupProject) return;
+    saveProjectSetup(setupProject.id, {
+      purposes: choice.purposes,
+      features: choice.features,
+      start: choice.start,
+      templateId: choice.template?.id ?? null,
+      completedAt: new Date().toISOString(),
+    });
+    if (choice.template) {
+      seedProjectFromTemplate(setupProject.id, setupProject.name, choice.template);
+    }
+    try {
+      localStorage.removeItem(`vector_project_setup_pending_${setupProject.id}`);
+    } catch {
+      // ignore
+    }
+    setSetupProject(null);
+    setProjectView('hub');
     setActiveTab('project');
   };
 
@@ -440,15 +487,20 @@ function AppShell() {
         body: `${template.blocks.length} elements were pre-filled. Keep designing, the prompt updates as you go.`,
         action: { label: 'Open projects', tab: 'projects' },
       });
-      // The project was just created, so the canvas should autosave into it and
-      // survive a reload. The template only provides the starting blocks.
-      setEditorProject({ id: project.id, name: project.name });
+      // Templates always create a real project. Seed its document so the hub
+      // and canvas open with the chosen starting blocks.
+      seedProjectFromTemplate(project.id, project.name, template);
+      saveProjectSetup(project.id, {
+        purposes: [template.category.toLowerCase()],
+        features: [],
+        start: 'template',
+        templateId: template.id,
+        completedAt: new Date().toISOString(),
+      });
       selectProject(project.id);
-      setEditorTemplate(template);
-      setEditorOrigin('templates');
-      setEditorSeed(null);
-      setEditorFresh(false);
-      setActiveTab('editor');
+      setActiveProject({ id: project.id, name: project.name, description: project.description });
+      setProjectView('hub');
+      setActiveTab('project');
     } catch (error) {
       notificationService.push({
         kind: 'system',
@@ -503,6 +555,11 @@ function AppShell() {
             setPlanHubTab(null);
             setPricingOpen(true);
           }}
+        />
+        <ProjectSetupWizard
+          open={Boolean(setupProject)}
+          project={setupProject ?? { id: '', name: '' }}
+          onComplete={completeProjectSetup}
         />
       </div>
     );
@@ -570,14 +627,7 @@ function AppShell() {
           {activeTab === 'templates' && (
             <TemplatesPage
               onUseTemplate={(template) => void handleUseTemplate(template)}
-              onOpenTemplate={(template) => {
-                setEditorTemplate(template);
-                setEditorProject(null);
-                setEditorOrigin('templates');
-                setEditorSeed(null);
-                setEditorFresh(false);
-                setActiveTab('editor');
-              }}
+              onOpenTemplate={(template) => void handleUseTemplate(template)}
               onOpenPrivate={(seedName, pages) => {
                 setEditorTemplate(null);
                 setEditorProject(null);
@@ -615,15 +665,33 @@ function AppShell() {
             />
           )}
 
-          {activeTab === 'project' && activeProject && (
+          {activeTab === 'project' && activeProject && projectView === 'prompt' && (
             <PromptModePage
               key={activeProject.id}
               projectId={activeProject.id}
               projectName={activeProject.name}
-              onBack={() => setActiveTab('projects')}
+              onBack={() => setProjectView('hub')}
               onOpenCanvas={() => enterProjectCanvas({ fresh: false })}
               onOpenAssistant={() => setAssistantOpen(true)}
               onRequireUpgrade={openPricing}
+            />
+          )}
+
+          {activeTab === 'project' && activeProject && projectView === 'hub' && (
+            <ProjectWorkspacePage
+              key={activeProject.id}
+              project={{ id: activeProject.id, name: activeProject.name, description: activeProject.description }}
+              onBack={() => setActiveTab('projects')}
+              onOpenCanvas={() => enterProjectCanvas({ fresh: false })}
+              onBlankCanvas={() => enterProjectCanvas({ fresh: true })}
+              onOptimizePrompt={() => setProjectView('prompt')}
+              onOpenDesignSystem={() => setActiveTab('design')}
+              onDeploy={() => setActiveTab('integrations')}
+              onOpenRequirements={() => setActiveTab('requirements')}
+              onOpenIntelligence={() => setActiveTab('intelligence')}
+              onOpenReview={() => setActiveTab('review')}
+              onOpenPromptStudio={() => setActiveTab('prompt')}
+              onOpenWorkspace={() => setActiveTab('workspace')}
             />
           )}
 
@@ -637,6 +705,13 @@ function AppShell() {
               onCreated={(created) => {
                 selectProject(created.id);
                 setActiveProject({ id: created.id, name: created.name, description: created.description });
+                setProjectView('hub');
+                try {
+                  localStorage.setItem(`vector_project_setup_pending_${created.id}`, '1');
+                } catch {
+                  // ignore
+                }
+                setSetupProject({ id: created.id, name: created.name });
                 setActiveTab('project');
               }}
               onOpenEditor={() => {
@@ -725,6 +800,11 @@ function AppShell() {
           setPlanHubTab(null);
           setPricingOpen(true);
         }}
+      />
+      <ProjectSetupWizard
+        open={Boolean(setupProject)}
+        project={setupProject ?? { id: '', name: '' }}
+        onComplete={completeProjectSetup}
       />
     </div>
   );

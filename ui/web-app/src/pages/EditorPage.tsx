@@ -67,6 +67,7 @@ import { TYPE_TO_VARIANT, VARIANTS, variantById, type StyleVariant } from '../da
 import { DEVICE_GROUPS, describeSize } from '../data/devices.ts';
 import { StyledElement } from '../components/editor/StyledElement.tsx';
 import { VariantPreview } from '../components/editor/VariantPreview.tsx';
+import { SideBySideBuild } from '../components/generators/SideBySideBuild.tsx';
 import { CategoryCover } from '../components/editor/CategoryCover.tsx';
 import { SpotlightHost } from '../components/onboarding/SpotlightHost.tsx';
 import type { TemplateDefinition } from '../data/templates.ts';
@@ -618,6 +619,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   const [invites, setInvites] = useState<Invite[]>(() => readInvites());
   const [shareOpen, setShareOpen] = useState(false);
   const [connectOpen, setConnectOpen] = useState(false);
+  const [buildOpen, setBuildOpen] = useState(false);
   const [workspaceMenu, setWorkspaceMenu] = useState(false);
   const [pagePickerOpen, setPagePickerOpen] = useState(false);
   const [inspectorTab, setInspectorTab] = useState<'design' | 'prototype'>('design');
@@ -1930,7 +1932,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
 
           <button
             type="button"
-            onClick={() => setConnectOpen(true)}
+            onClick={() => setBuildOpen(true)}
             className="h-8 whitespace-nowrap rounded-md px-3.5 text-[11.5px] font-semibold text-white"
             style={{ backgroundImage: 'linear-gradient(118deg,#7C5CFF,#4D7CFE 55%,#22D3EE)' }}
           >
@@ -2365,8 +2367,8 @@ export const EditorPage: React.FC<EditorPageProps> = ({
               </button>
             </div>
           )}
-          <div className="flex min-h-full min-w-full items-center justify-center p-12">
-          <div className="relative" style={{ width: pageWidth * zoom, height: pageHeight * zoom }}>
+          <div className="flex min-h-full min-w-full p-12">
+          <div className="relative m-auto shrink-0" style={{ width: pageWidth * zoom, height: pageHeight * zoom }}>
             <div
               ref={artboardRef}
               key={`${activePage.id}-${preview ? 'preview' : 'edit'}`}
@@ -3869,6 +3871,8 @@ export const EditorPage: React.FC<EditorPageProps> = ({
         paid={paid}
         onRequireUpgrade={() => onRequireUpgrade?.()}
       />
+
+      <SideBySideBuild open={buildOpen} prompt={prompt} onClose={() => setBuildOpen(false)} />
 
       {/* Base44 drawer */}
       {base44 && (
