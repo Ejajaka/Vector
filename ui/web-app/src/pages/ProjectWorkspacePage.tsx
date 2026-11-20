@@ -72,6 +72,7 @@ import {
   type Base44Config,
 } from '../services/base44.ts';
 import { currentRoom, shareLink } from '../services/collab.ts';
+import type { ActiveTab } from '../types/analysis.ts';
 
 interface ProjectRef {
   id: string;
@@ -86,6 +87,7 @@ interface ProjectWorkspacePageProps {
   onBlankCanvas: () => void;
   onOptimizePrompt: () => void;
   onOpenDesignSystem: () => void;
+  onNavigate: (tab: ActiveTab) => void;
 }
 
 interface SavedDoc {
@@ -473,6 +475,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   onBlankCanvas,
   onOptimizePrompt,
   onOpenDesignSystem,
+  onNavigate,
 }) => {
   const [doc, setDoc] = useState<SavedDoc | null>(null);
   const [draft, setDraft] = useState<PromptDraft>({});
@@ -1042,6 +1045,31 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
         </div>
       </header>
 
+      <nav className="flex shrink-0 flex-wrap items-center gap-1 rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] p-1">
+        <span className="px-2 text-[9.5px] font-medium uppercase tracking-[0.05em] text-[var(--v-faint)]">Project tools</span>
+        {[
+          { id: 'requirements' as ActiveTab, label: 'Requirements', icon: FileText },
+          { id: 'intelligence' as ActiveTab, label: 'Requirement graph', icon: GitBranch },
+          { id: 'review' as ActiveTab, label: 'Review & acceptance', icon: ClipboardCheck },
+          { id: 'prompt' as ActiveTab, label: 'Prompt studio', icon: Sparkles },
+          { id: 'workspace' as ActiveTab, label: 'Build workspace', icon: Rocket },
+          { id: 'design' as ActiveTab, label: 'Design systems', icon: Palette },
+          { id: 'new-analysis' as ActiveTab, label: 'Prompt analyser', icon: BarChart3 },
+        ].map((tool) => {
+          const Icon = tool.icon;
+          return (
+            <button
+              key={tool.id}
+              type="button"
+              onClick={() => onNavigate(tool.id)}
+              className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[10.5px] font-medium text-[var(--v-muted)] transition-colors hover:bg-[var(--v-surface-2)] hover:text-[var(--v-ink)]"
+            >
+              <Icon className="h-3.5 w-3.5" /> {tool.label}
+            </button>
+          );
+        })}
+      </nav>
+
       <div className="flex min-h-0 flex-1 gap-3">
         {/* Folder */}
         <aside
@@ -1398,7 +1426,15 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                       </a>
                     </div>
                     <div className="relative min-h-0 flex-1">
-                      {base44App.screenshotUrl || base44App.previewScreenshotUrl ? (
+                      {base44App.url && base44App.status !== 'processing' ? (
+                        <iframe
+                          src={base44App.url}
+                          title="Base44 app preview"
+                          className="h-full min-h-[260px] w-full border-0 bg-white"
+                          loading="lazy"
+                          allow="clipboard-read; clipboard-write"
+                        />
+                      ) : base44App.screenshotUrl || base44App.previewScreenshotUrl ? (
                         <img
                           src={base44App.screenshotUrl || base44App.previewScreenshotUrl || ''}
                           alt="Base44 app"

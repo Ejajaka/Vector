@@ -11,6 +11,7 @@ import { PublicFooter } from './components/layout/PublicFooter.tsx';
 import { AuthPage } from './components/auth/AuthPage.tsx';
 import { ResetPasswordPage } from './components/auth/ResetPasswordPage.tsx';
 import { ProductTour, resetTour } from './components/onboarding/ProductTour.tsx';
+import { WelcomeDialog } from './components/onboarding/WelcomeDialog.tsx';
 import { OverviewPage } from './pages/OverviewPage.tsx';
 import { DashboardPage } from './pages/DashboardPage.tsx';
 import { TemplatesPage } from './pages/TemplatesPage.tsx';
@@ -130,6 +131,7 @@ function AppShell() {
   const [analysisToInspect, setAnalysisToInspect] = useState<AnalysisResult | null>(null);
   const [analysisPromptSeed, setAnalysisPromptSeed] = useState<string | null>(null);
   const [tourOpen, setTourOpen] = useState(false);
+  const [welcomeOpen, setWelcomeOpen] = useState(false);
   useEffect(() => {
     const onOpenPricing = () => setPricingOpen(true);
     const onOpenHub = (event: Event) => {
@@ -161,6 +163,7 @@ function AppShell() {
     () => readStored(ACTIVE_PROJECT_KEY)
   );
   const [projectView, setProjectView] = useState<'hub' | 'prompt'>('hub');
+  const [projectDocVersion, setProjectDocVersion] = useState(0);
   const [setupProject, setSetupProject] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
@@ -263,6 +266,7 @@ function AppShell() {
     if (choice.template) {
       seedProjectFromTemplate(setupProject.id, setupProject.name, choice.template);
     }
+    setProjectDocVersion((value) => value + 1);
     try {
       localStorage.removeItem(`vector_project_setup_pending_${setupProject.id}`);
     } catch {
@@ -346,6 +350,18 @@ function AppShell() {
 
   useEffect(() => {
     if (user) setShowAuth(false);
+  }, [user]);
+
+  // One welcome + plan overview per account, shown once after the first sign-in.
+  useEffect(() => {
+    if (!user) return;
+    const key = `vector_welcome_v1_${user.id}`;
+    try {
+      if (localStorage.getItem(key) === 'done') return;
+    } catch {
+      // ignore
+    }
+    setWelcomeOpen(true);
   }, [user]);
 
   // Keep the assistant's context honest: only the editor and the analysis page
@@ -503,6 +519,7 @@ function AppShell() {
       // Templates always create a real project. Seed its document so the hub
       // and canvas open with the chosen starting blocks.
       seedProjectFromTemplate(project.id, project.name, template);
+      setProjectDocVersion((value) => value + 1);
       saveProjectSetup(project.id, {
         purposes: [template.category.toLowerCase()],
         features: [],
@@ -528,6 +545,22 @@ function AppShell() {
     resetTour();
     setTourOpen(true);
   };
+
+  const closeWelcome = () => {
+    setWelcomeOpen(false);
+    if (!user) return;
+    try {
+      localStorage.setItem(`vector_welcome_v1_${user.id}`, 'done');
+    } catch {
+      // ignore
+    }
+  };
+
+  const welcomeName =
+    (user?.user_metadata?.display_name as string | undefined) ||
+    (user?.user_metadata?.full_name as string | undefined) ||
+    user?.email?.split('@')[0] ||
+    '';
 
   // The editor owns the whole viewport: no rail, no top bar, no page padding.
   if (activeTab === 'editor') {
@@ -586,7 +619,7 @@ function AppShell() {
         <div className="min-h-0 flex-1 overflow-y-auto p-2 sm:p-3">
           {projectView === 'prompt' ? (
             <PromptModePage
-              key={activeProject.id}
+              key={`${activeProject.id}-${projectDocVersion}`}
               projectId={activeProject.id}
               projectName={activeProject.name}
               onBack={() => setProjectView('hub')}
@@ -596,13 +629,14 @@ function AppShell() {
             />
           ) : (
             <ProjectWorkspacePage
-              key={activeProject.id}
+              key={`${activeProject.id}-${projectDocVersion}`}
               project={{ id: activeProject.id, name: activeProject.name, description: activeProject.description }}
               onBack={() => setActiveTab('projects')}
               onOpenCanvas={() => enterProjectCanvas({ fresh: false })}
               onBlankCanvas={() => enterProjectCanvas({ fresh: true })}
               onOptimizePrompt={() => setProjectView('prompt')}
               onOpenDesignSystem={() => setActiveTab('design')}
+              onNavigate={setActiveTab}
             />
           )}
         </div>
@@ -667,6 +701,7 @@ function AppShell() {
             onRequestSignIn={() => requestAuth()}
             onReplayTour={handleReplayTour}
             onOpenAssistant={() => setAssistantOpen(true)}
+            onSignedOut={() => setShowAuth(true)}
           />
         )}
 
@@ -843,6 +878,19 @@ function AppShell() {
         open={Boolean(setupProject)}
         project={setupProject ?? { id: '', name: '' }}
         onComplete={completeProjectSetup}
+      />
+      <WelcomeDialog
+        open={welcomeOpen}
+        name={welcomeName}
+        onClose={closeWelcome}
+        onOpenPlans={() => {
+          closeWelcome();
+          openPricing();
+        }}
+        onChoosePlan={() => {
+          closeWelcome();
+          openPricing();
+        }}
       />
     </div>
   );

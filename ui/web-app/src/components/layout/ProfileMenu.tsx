@@ -5,6 +5,7 @@ import {
   CircleHelp,
   Flag,
   History,
+  Info,
   Laptop,
   LayoutGrid,
   Lightbulb,
@@ -190,6 +191,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
               onClick={() => go('dashboard')}
               trailing={activeTab === 'dashboard' ? <span className="w-1.5 h-1.5 rounded-full bg-[#49686C]" /> : null}
             />
+            <Row icon={History} label="Analysis history" onClick={() => go('history')} />
             <Row icon={Wallet} label="Plans and pricing" onClick={() => go('pricing')} />
             <Row icon={Sparkles} label="See what's included" onClick={() => openHub('included')} />
             <Row icon={Lightbulb} label="Your plan and usage" onClick={() => openHub('usage')} />
@@ -270,6 +272,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
             </div>
 
             <Row icon={MessageSquareWarning} label="Send feedback" onClick={() => go('learn')} />
+            <Row icon={Info} label="Product page" onClick={() => go('about')} />
             <Row icon={Settings} label="Settings" onClick={() => go('settings')} />
           </div>
 

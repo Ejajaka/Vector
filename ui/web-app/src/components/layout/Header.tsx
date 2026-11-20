@@ -32,6 +32,7 @@ interface HeaderProps {
   onRequestSignIn?: () => void;
   onReplayTour?: () => void;
   onOpenAssistant?: () => void;
+  onSignedOut?: () => void;
 }
 
 const TITLES: Record<ActiveTab, string> = {
@@ -85,6 +86,7 @@ export const Header: React.FC<HeaderProps> = ({
   onRequestSignIn,
   onReplayTour,
   onOpenAssistant,
+  onSignedOut,
 }) => {
   const { signOut } = useAuth();
   const { selectProject, projects } = useProject();
@@ -129,6 +131,7 @@ export const Header: React.FC<HeaderProps> = ({
     try {
       await signOut();
       setConfirmingLogout(false);
+      onSignedOut?.();
     } finally {
       setSigningOut(false);
     }

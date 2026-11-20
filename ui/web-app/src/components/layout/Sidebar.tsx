@@ -2,22 +2,14 @@
 import {
   Bell,
   ChevronDown,
-  ClipboardCheck,
   Compass,
-  FileText,
   FolderKanban,
   FolderOpen,
   GraduationCap,
-  History,
   Info,
   LayoutTemplate,
   LogIn,
-  Monitor,
-  Network,
-  Palette,
   Plus,
-  Settings,
-  ShieldCheck,
   Sparkles,
   Wallet,
   X,
@@ -49,24 +41,6 @@ const PRIMARY: RailItem[] = [
   { id: 'templates', label: 'Templates', icon: LayoutTemplate },
   { id: 'library', label: 'Library', icon: FolderOpen },
   { id: 'learn', label: 'Learn', icon: GraduationCap },
-];
-
-const BUILD: RailItem[] = [
-  { id: 'requirements', label: 'Requirements', icon: FileText },
-  { id: 'intelligence', label: 'Requirement graph', icon: Network },
-  { id: 'review', label: 'Review & acceptance', icon: ClipboardCheck },
-  { id: 'prompt', label: 'Prompt studio', icon: Sparkles },
-  { id: 'workspace', label: 'Build workspace', icon: Monitor },
-  { id: 'design', label: 'Design systems', icon: Palette },
-  { id: 'new-analysis', label: 'Prompt analyser', icon: Sparkles },
-];
-
-const ACCOUNT: RailItem[] = [
-  { id: 'pricing', label: 'Plans and pricing', icon: Wallet },
-  { id: 'history', label: 'History', icon: History },
-  { id: 'settings', label: 'Settings', icon: Settings },
-  { id: 'about', label: 'Product page', icon: Info },
-  { id: 'privacy', label: 'Privacy', icon: ShieldCheck },
 ];
 
 const PUBLIC_ITEMS: RailItem[] = [
@@ -253,16 +227,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {PRIMARY.map((item) => (
                 <NavItem key={item.id} item={item} />
               ))}
-
-              <SectionLabel>Project</SectionLabel>
-              {BUILD.map((item) => (
-                <NavItem key={item.id} item={item} />
-              ))}
-
-              <SectionLabel>Account</SectionLabel>
-              {ACCOUNT.map((item) => (
-                <NavItem key={item.id} item={item} />
-              ))}
             </>
           )}
         </nav>
@@ -333,40 +297,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           ? 'bg-[var(--v-surface-2)] text-[var(--v-ink)]'
                           : 'text-[var(--v-muted)] hover:bg-[var(--v-surface-2)] hover:text-[var(--v-ink)]'
                       }`}
-                    >
-                      <Icon className="h-4 w-4" /> {item.label}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <SectionLabel>Project</SectionLabel>
-              <div className="space-y-0.5">
-                {BUILD.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => go(item.id)}
-                      className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium text-[var(--v-muted)] hover:bg-[var(--v-surface-2)] hover:text-[var(--v-ink)]"
-                    >
-                      <Icon className="h-4 w-4" /> {item.label}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <SectionLabel>Account</SectionLabel>
-              <div className="space-y-0.5">
-                {ACCOUNT.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => go(item.id)}
-                      className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium text-[var(--v-muted)] hover:bg-[var(--v-surface-2)] hover:text-[var(--v-ink)]"
                     >
                       <Icon className="h-4 w-4" /> {item.label}
                     </button>
