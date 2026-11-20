@@ -6,10 +6,13 @@ import {
   REQUIRED_ATTRS,
   auditElements,
   auditQuality,
-  compilePrompt,
+  compilePromptScreens,
   layoutElements,
   roughRisk,
   type CompiledElement,
+  type PromptScreen,
+  type QualityIssue,
+  type Question,
   type Viewport,
 } from '../services/promptCompiler.ts';
 import { refineWithBERT } from '../services/promptRefiner.ts';
@@ -20,6 +23,21 @@ interface Props {
   onBack: () => void;
   onOpenCanvas: () => void;
   onGenerate: (prompt: string) => void;
+}
+
+interface PageRefinement {
+  elements: CompiledElement[];
+  applied: string[];
+  confidence: number;
+  ms: number;
+}
+
+interface ScreenView {
+  screen: PromptScreen;
+  elements: CompiledElement[];
+  open: Question[];
+  risk: number;
+  issues: QualityIssue[];
 }
 
 const HINTS: Record<string, string> = {
@@ -41,48 +59,100 @@ const missingAttrs = (element: CompiledElement) =>
     (attribute) => !element[attribute as keyof CompiledElement]
   );
 
+/** Apply confirmed answers, including sibling fills for repeated grids. */
+function applyAnswers(
+  base: CompiledElement[],
+  answers: Record<string, string>,
+  confirmed: Record<string, boolean>
+): CompiledElement[] {
+  const patches = new Map<string, Partial<CompiledElement>>();
+
+  Object.entries(answers).forEach(([key, value]) => {
+    if (!confirmed[key] || !value.trim()) return;
+    const [id, attribute] = key.split(':');
+    const target = base.find((element) => element.id === id);
+    if (!target) return;
+
+    base.forEach((element) => {
+      const sameElement = element.id === target.id;
+      const sibling =
+        attribute !== 'location' &&
+        element.kind === target.kind &&
+        (element.section || '') === (target.section || '') &&
+        (element.sourceLine || '') === (target.sourceLine || '') &&
+        (element.action || '') === (target.action || '') &&
+        !element[attribute as keyof CompiledElement];
+
+      if (!sameElement && !sibling) return;
+      const patch = patches.get(element.id) || {};
+      (patch as Record<string, string>)[attribute] = value.trim();
+      patches.set(element.id, patch);
+    });
+  });
+
+  return base.map((element) => {
+    const patch = patches.get(element.id);
+    return patch ? { ...element, ...patch } : element;
+  });
+}
+
+/**
+ * Describe where an element sits on the schematic board without implying that
+ * its pixel geometry was specified by the user.
+ */
+function placementOf(element: CompiledElement, boardWidth: number): string {
+  const wide = element.w >= boardWidth * 0.6;
+  switch (element.kind) {
+    case 'navbar': return 'full width, top';
+    case 'footer': return 'full width, bottom';
+    case 'modal': return 'centred overlay';
+    case 'table':
+    case 'chart': return 'full width, data block';
+    case 'card': return wide ? 'full-width card' : 'grid cell';
+    case 'image': return wide ? 'hero media' : 'media tile';
+    case 'input': return 'form column';
+    case 'button':
+    case 'link':
+    case 'badge':
+    case 'avatar':
+    case 'checkbox': return 'inline action';
+    case 'tabs': return 'full width, below header';
+    case 'progress': return 'inline progress';
+    case 'heading': return 'wide heading';
+    case 'text': return 'body copy';
+    default: return 'content block';
+  }
+}
+
 export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCanvas, onGenerate }) => {
   const [text, setText] = useState('');
   const [submitted, setSubmitted] = useState('');
+  const [activeId, setActiveId] = useState('screen_1');
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [confirmed, setConfirmed] = useState<Record<string, boolean>>({});
   const [copied, setCopied] = useState(false);
   const [view, setView] = useState<'wireframe' | 'prompt'>('wireframe');
   const [viewport, setViewport] = useState<Viewport>('desktop');
-  const [baselineRisk, setBaselineRisk] = useState<number | null>(null);
-  const [refined, setRefined] = useState<{
-    elements: CompiledElement[];
-    applied: string[];
-    confidence: number;
-    ms: number;
-  } | null>(null);
+  const [baselineRisks, setBaselineRisks] = useState<Record<string, number>>({});
+  const [refinedById, setRefinedById] = useState<Record<string, PageRefinement | undefined>>({});
   const [deep, setDeep] = useState<{
     running: boolean;
     percent: number;
     stage: string;
     error?: string;
+    rejected?: boolean;
   }>({ running: false, percent: 0, stage: '' });
 
-  const compiled = useMemo(() => compilePrompt(submitted), [submitted]);
-  const baseElements = refined?.elements ?? compiled.elements;
+  const screens = useMemo(() => compilePromptScreens(submitted), [submitted]);
+  const pageIndex = Math.max(0, screens.findIndex((screen) => screen.id === activeId));
+  const compiled = screens[pageIndex] ?? screens[0];
 
-  // Only confirmed answers change the artifact, so risk cannot drop on a
-  // keystroke and "no gaps left" only appears after a real answer.
-  const merged: CompiledElement[] = useMemo(
-    () =>
-      baseElements.map((element) => {
-        const patch: Partial<CompiledElement> = {};
-        Object.entries(answers).forEach(([key, value]) => {
-          const [id, attribute] = key.split(':');
-          if (id === element.id && confirmed[key] && value.trim()) {
-            (patch as Record<string, string>)[attribute] = value.trim();
-          }
-        });
-        return Object.keys(patch).length ? { ...element, ...patch } : element;
-      }),
+  const refined = refinedById[compiled.id];
+  const baseElements = refined?.elements ?? compiled.elements;
+  const merged = useMemo(
+    () => applyAnswers(baseElements, answers, confirmed),
     [baseElements, answers, confirmed]
   );
-
   const open = useMemo(() => auditElements(merged), [merged]);
   const elements = useMemo(
     () => layoutElements(merged, compiled.archetype, viewport, compiled.meta.tokens),
@@ -90,23 +160,55 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
   );
   const issues = useMemo(() => auditQuality(elements), [elements]);
   const risk = roughRisk(elements);
-  const ready = submitted.trim().length > 0 && open.length === 0;
+  const baselineRisk = baselineRisks[compiled.id] ?? null;
   const answeredCount = Object.values(confirmed).filter(Boolean).length;
 
-  const missingCount = elements.reduce((sum, element) => sum + missingAttrs(element).length, 0);
-  const requiredCount = elements.reduce(
-    (sum, element) => sum + (REQUIRED_ATTRS[element.kind]?.length || 0),
-    0
+  const allScreens: ScreenView[] = useMemo(
+    () =>
+      screens.map((screen) => {
+        const pageBase = refinedById[screen.id]?.elements ?? screen.elements;
+        const pageMerged = applyAnswers(pageBase, answers, confirmed);
+        const pageLayout = layoutElements(
+          pageMerged,
+          screen.archetype,
+          viewport,
+          screen.meta.tokens
+        );
+        return {
+          screen,
+          elements: pageLayout,
+          open: auditElements(pageMerged),
+          risk: roughRisk(pageLayout),
+          issues: auditQuality(pageLayout),
+        };
+      }),
+    [screens, refinedById, answers, confirmed, viewport]
   );
+
+  const totalOpen = allScreens.reduce((sum, page) => sum + page.open.length, 0);
+  const overallRisk = allScreens.reduce((max, page) => Math.max(max, page.risk), 0);
+  const ready = submitted.trim().length > 0 && totalOpen === 0;
+  const pageReady = submitted.trim().length > 0 && open.length === 0;
+
   const confidence = elements.length
     ? Math.round(
         (elements.reduce((sum, element) => sum + (element.confidence || 0), 0) / elements.length) * 100
       )
     : 0;
 
+  const missingCount = elements.reduce((sum, element) => sum + missingAttrs(element).length, 0);
+  const requiredCount = elements.reduce(
+    (sum, element) => sum + (REQUIRED_ATTRS[element.kind]?.length || 0),
+    0
+  );
+
+  const boardWidth = viewport === 'mobile' ? 390 : 1200;
+  const boardHeight = viewport === 'mobile' ? 844 : 800;
+
   const revisedPrompt = useMemo(() => {
     if (!submitted.trim()) return '';
-    const tokens = compiled.meta.tokens;
+    const tokens = screens[0]?.meta.tokens ?? compiled.meta.tokens;
+    const multi = screens.length > 1;
     const lines: string[] = [
       'ROLE',
       'You are a senior product designer and front-end engineer.',
@@ -114,8 +216,8 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
       'TASK',
       submitted.trim(),
       '',
-      'SCREEN TYPE',
-      `${compiled.archetype} · ${viewport}`,
+      'SCREENS',
+      ...screens.map((screen, index) => `${index + 1}. ${screen.name} — ${screen.archetype}`),
       '',
       'DESIGN TOKENS',
       `primary ${tokens.primary}${tokens.statedColour ? '' : ' (house default)'}`,
@@ -124,32 +226,56 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
       `radius ${tokens.radius}px`,
       `typeface ${tokens.font}`,
       '',
-      'ELEMENTS',
+      'LAYOUT',
+      `Schematic ${boardWidth}×${boardHeight} ${viewport} board. Positions are a starting skeleton, not fixed CSS or a measurement taken from the request. Use responsive auto-layout.`,
+      '',
     ];
 
-    elements.forEach((element, index) => {
-      const attrs = [
-        element.label ? `label “${element.label}”` : 'label UNRESOLVED',
-        element.count && element.count > 1 ? `×${element.count}` : '',
-        element.colour ? `colour ${element.colour}${element.colourInferred ? ' (derived)' : ''}` : '',
-        element.action ? `action ${element.action}` : '',
-        element.section ? `section “${element.section}”` : '',
-        `${Math.round(element.w)}×${Math.round(element.h)} at ${Math.round(element.x)},${Math.round(element.y)}`,
-      ].filter(Boolean);
-      lines.push(`${index + 1}. ${element.kind} — ${attrs.join(', ')}.`);
-    });
+    const writePage = (page: ScreenView) => {
+      page.elements.forEach((element, index) => {
+        const attrs = [
+          element.label ? `label “${element.label}”` : 'label UNRESOLVED',
+          element.count && element.count > 1 ? `×${element.count}` : '',
+          element.colour ? `colour ${element.colour}${element.colourInferred ? ' (derived)' : ''}` : '',
+          element.action ? `action ${element.action}` : '',
+          element.section ? `section “${element.section}”` : '',
+          `place ${placementOf(element, boardWidth)}`,
+        ].filter(Boolean);
+        lines.push(`${index + 1}. ${element.kind} — ${attrs.join(', ')}.`);
+      });
+      lines.push('');
+    };
 
-    if (issues.length) {
-      lines.push('', 'AUDIT');
-      issues.slice(0, 6).forEach((issue) => lines.push(`- ${issue.text}`));
+    if (!multi) {
+      lines.push('ELEMENTS');
+      writePage(allScreens[0]);
+    } else {
+      allScreens.forEach((page, index) => {
+        lines.push(`ELEMENTS — Page ${index + 1}: ${page.screen.name}`);
+        writePage(page);
+      });
     }
 
-    lines.push('', 'CONSTRAINTS');
+    const audit = Array.from(
+      new Set(allScreens.flatMap((page) => page.issues.map((issue) => issue.text)))
+    );
+    if (audit.length) {
+      lines.push('AUDIT');
+      audit.slice(0, 8).forEach((text) => lines.push(`- ${text}`));
+      lines.push('');
+    }
+
+    lines.push('CONSTRAINTS');
     lines.push('- Responsive; single column below 768px. WCAG AA contrast, visible focus states.');
     lines.push('- Real copy, designed empty, loading and error states. Do not invent extra sections.');
-    if (compiled.meta.dark) lines.push('- Dark theme: dark surfaces with accessible light text.');
+    if (allScreens.some((page) => page.screen.meta.dark)) {
+      lines.push('- Dark theme: dark surfaces with accessible light text.');
+    }
+    if (multi) lines.push(`- Build ${screens.length} screens as one flow; keep navigation labels consistent between pages.`);
     return lines.join('\n');
-  }, [submitted, elements, compiled.archetype, compiled.meta, viewport, issues]);
+  }, [
+    submitted, screens, allScreens, compiled.meta.tokens, viewport, boardWidth, boardHeight,
+  ]);
 
   const suggestions = useMemo(() => {
     if (!submitted.trim()) return [];
@@ -175,18 +301,27 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
     if (!compiled.meta.structured && submitted.trim().split(/\s+/).length > 45) {
       found.push('Long prose — split the spec into sections so no line is skipped.');
     }
+    if (screens.length > 1 && totalOpen > 0) {
+      found.push(`${totalOpen} gap${totalOpen === 1 ? '' : 's'} remain across ${screens.length} pages.`);
+    }
     return found.slice(0, 4);
-  }, [submitted, merged, compiled.meta, issues]);
+  }, [submitted, merged, compiled.meta, issues, screens.length, totalOpen]);
 
   const analyse = () => {
-    const next = compilePrompt(text);
-    const layout = layoutElements(next.elements, next.archetype, 'desktop', next.meta.tokens);
+    const next = compilePromptScreens(text);
+    const baselines: Record<string, number> = {};
+    next.forEach((screen) => {
+      baselines[screen.id] = roughRisk(
+        layoutElements(screen.elements, screen.archetype, 'desktop', screen.meta.tokens)
+      );
+    });
     setSubmitted(text);
     setAnswers({});
     setConfirmed({});
-    setBaselineRisk(roughRisk(layout));
-    setRefined(null);
+    setBaselineRisks(baselines);
+    setRefinedById({});
     setDeep({ running: false, percent: 0, stage: '' });
+    setActiveId(next[0]?.id ?? 'screen_1');
     setView('wireframe');
   };
 
@@ -202,21 +337,49 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
 
   const runDeepPass = async () => {
     if (!submitted.trim() || deep.running) return;
-    setDeep({ running: true, percent: 0, stage: 'Starting the local model' });
+    const screenId = compiled.id;
+    const screenName = compiled.name;
+    setDeep({ running: true, percent: 0, stage: `Starting the local model for ${screenName}` });
     try {
       const outcome = await refineWithBERT(compiled, (progress) =>
         setDeep({ running: true, percent: progress.percent, stage: progress.stage })
       );
-      setRefined({
-        elements: outcome.elements,
-        applied: outcome.applied,
-        confidence: outcome.confidence,
-        ms: outcome.ms,
-      });
+      const span = `${outcome.lines} lines · ${Math.round(outcome.confidence * 100)}% span confidence · ${outcome.ms}ms`;
+
+      if (outcome.rejected) {
+        setRefinedById((previous) => ({ ...previous, [screenId]: undefined }));
+        setDeep({
+          running: false,
+          percent: 100,
+          rejected: true,
+          stage: `Rejected on ${screenName} — the model would raise risk ${outcome.beforeRisk} → ${outcome.afterRisk}. Deterministic result kept. ${span}`,
+        });
+        return;
+      }
+
+      if (!outcome.applied.length) {
+        setRefinedById((previous) => ({ ...previous, [screenId]: undefined }));
+        setDeep({
+          running: false,
+          percent: 100,
+          stage: `No grounded fixes found on ${screenName}. Deterministic result kept. ${span}`,
+        });
+        return;
+      }
+
+      setRefinedById((previous) => ({
+        ...previous,
+        [screenId]: {
+          elements: outcome.elements,
+          applied: outcome.applied,
+          confidence: outcome.confidence,
+          ms: outcome.ms,
+        },
+      }));
       setDeep({
         running: false,
         percent: 100,
-        stage: `${outcome.lines} lines · ${outcome.applied.length} fix${outcome.applied.length === 1 ? '' : 'es'} · ${Math.round(outcome.confidence * 100)}% span confidence · ${outcome.ms}ms`,
+        stage: `${outcome.applied.length} fix${outcome.applied.length === 1 ? '' : 'es'} on ${screenName} · ${span}`,
       });
     } catch (error) {
       setDeep({
@@ -238,9 +401,6 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
     }
   };
 
-  const boardWidth = viewport === 'mobile' ? 390 : 1200;
-  const boardHeight = viewport === 'mobile' ? 844 : 800;
-
   return (
     <div className="mx-auto max-w-[1240px] space-y-4 v-fade-up">
       <header className="flex flex-wrap items-center gap-2">
@@ -250,7 +410,7 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
         <div className="min-w-0">
           <h1 className="truncate text-[16px] font-bold text-[var(--v-ink)]">{projectName}</h1>
           <p className="text-[10.5px] text-[var(--v-faint)]">
-            Prompt mode · deterministic engine · optional local model pass
+            Prompt mode · deterministic engine · {screens.length > 1 ? `${screens.length} pages · ` : ''}optional local model
           </p>
         </div>
         <button type="button" onClick={onOpenCanvas} className="ml-auto v-btn v-btn-ghost h-8 px-3 text-[11px]">
@@ -270,6 +430,9 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
               placeholder={'Login page with a blue button saying "Continue", email and password fields, and a logo at the top.'}
               className="mt-1.5 w-full resize-none rounded-xl border border-[var(--v-line)] bg-[var(--v-surface)] px-3 py-2.5 text-[12.5px] leading-relaxed text-[var(--v-ink)] outline-none focus:border-[var(--v-violet)]"
             />
+            <span className="mt-1 block text-[9.5px] text-[var(--v-faint)]">
+              Add pages with <code className="font-semibold">---</code> or <code className="font-semibold">Screen 2: Dashboard</code>. Ordinary headings like “Hero” stay sections of one page.
+            </span>
           </label>
 
           <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -278,6 +441,7 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
             </button>
             {submitted && (
               <span className="text-[10.5px] text-[var(--v-muted)]">
+                {screens.length > 1 ? `${screens.length} pages · ` : ''}
                 {elements.length} elements · risk {risk} · {open.length} open · {confidence}% confidence
               </span>
             )}
@@ -287,9 +451,12 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
           {submitted && (
             <div className="mt-3 rounded-xl border border-[var(--v-line)] bg-[var(--v-surface-2)] p-3">
               <div className="flex flex-wrap items-center justify-between gap-1">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--v-muted)]">Analysis</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--v-muted)]">
+                  Analysis{screens.length > 1 ? ` · page ${pageIndex + 1} of ${screens.length}` : ''}
+                </p>
                 <span className="text-[9.5px] text-[var(--v-faint)]">
-                  {compiled.archetype} · {elements.length} el · risk {risk}
+                  {compiled.name} · {compiled.archetype} · risk {risk}
+                  {screens.length > 1 ? ` · overall ${overallRisk}` : ''}
                 </span>
               </div>
 
@@ -338,7 +505,7 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
                     <button
                       type="button"
                       onClick={() => {
-                        setRefined(null);
+                        setRefinedById((previous) => ({ ...previous, [compiled.id]: undefined }));
                         setDeep({ running: false, percent: 0, stage: '' });
                       }}
                       className="flex h-7 items-center gap-1 rounded-lg px-2 text-[10px] font-semibold text-[var(--v-muted)] hover:text-[var(--v-ink)]"
@@ -347,7 +514,7 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
                     </button>
                   )}
                   <span className="text-[9px] text-[var(--v-faint)]">
-                    Optional. Fills only unresolved attributes, never invents components.
+                    Runs on your machine and is cached after first use. A pass that raises risk is rejected.
                   </span>
                 </div>
 
@@ -364,8 +531,11 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
                 )}
 
                 {!deep.running && deep.stage && (
-                  <p className="mt-1 text-[9px] text-[var(--v-muted)]">
-                    {refined ? `Model pass: ${deep.stage}` : deep.stage}
+                  <p
+                    className="mt-1 text-[9px]"
+                    style={{ color: deep.rejected ? '#B45309' : 'var(--v-muted)' }}
+                  >
+                    {deep.stage}
                   </p>
                 )}
                 {!deep.running && refined && refined.applied.length > 0 && (
@@ -391,7 +561,12 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
                         {element.kind}
                       </span>
                       <span className="font-semibold text-[var(--v-ink)]">
-                        {element.label || <span className="italic text-[var(--v-faint)]">needs copy</span>}
+                        {element.label ||
+                          ((REQUIRED_ATTRS[element.kind] || []).includes('label') ? (
+                            <span className="italic text-[var(--v-faint)]">needs copy</span>
+                          ) : (
+                            <span className="text-[var(--v-faint)]">—</span>
+                          ))}
                       </span>
                       {element.section && (
                         <span className="text-[9px] text-[var(--v-faint)]">@{element.section}</span>
@@ -440,7 +615,7 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
               <p className="mt-2 text-[9.5px] leading-relaxed text-[var(--v-faint)]">
                 Risk {risk}: {missingCount} unresolved attribute{missingCount === 1 ? '' : 's'} of {requiredCount}{' '}
                 required, plus {issues.length} design issue{issues.length === 1 ? '' : 's'}. Dashed red boxes are the
-                same gaps.
+                same gaps. Geometry is a schematic default, not a measurement of your request.
               </p>
             </div>
           )}
@@ -452,8 +627,11 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
                 <p className="flex items-center gap-1.5 text-[11px] font-bold text-[var(--v-ink)]">
                   <AlertCircle className="h-3.5 w-3.5 text-[var(--v-violet)]" />
                   {open.length} open question{open.length === 1 ? '' : 's'}
+                  {screens.length > 1 ? ` on ${compiled.name}` : ''}
                 </p>
-                <span className="text-[9.5px] text-[var(--v-faint)]">answer → engine re-runs</span>
+                <span className="text-[9.5px] text-[var(--v-faint)]">
+                  {totalOpen} across all pages · answer → re-runs
+                </span>
               </div>
 
               <div className="mt-2 max-h-[300px] space-y-2.5 overflow-auto v-scroll pr-1">
@@ -506,8 +684,10 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
               <div className="flex flex-wrap items-center justify-between gap-1">
                 <p className="flex items-center gap-1.5 text-[11px] font-bold text-[var(--v-ink)]">
                   <Check className="h-3.5 w-3.5 text-[var(--v-teal)]" />
-                  Re-analysed after {answeredCount} answer{answeredCount === 1 ? '' : 's'}
-                  {refined ? ' + model pass' : ''}
+                  {answeredCount > 0
+                    ? `Re-analysed after ${answeredCount} answer${answeredCount === 1 ? '' : 's'}${refined ? ' + model pass' : ''}`
+                    : 'Re-analysed after the model pass'}
+                  {screens.length > 1 ? ` · ${compiled.name}` : ''}
                 </p>
                 <span className="text-[9.5px] font-semibold text-[var(--v-teal)]">
                   risk {baselineRisk} → {risk}
@@ -532,7 +712,14 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
 
           {submitted && ready && (
             <p className="mt-3 flex items-center gap-1.5 text-[11px] font-semibold text-[var(--v-teal)]">
-              <Check className="h-3.5 w-3.5" /> No gaps left — every required attribute is answered.
+              <Check className="h-3.5 w-3.5" /> No gaps left — every page is complete.
+            </p>
+          )}
+
+          {submitted && !ready && pageReady && totalOpen > 0 && (
+            <p className="mt-3 flex items-center gap-1.5 text-[11px] font-semibold text-[var(--v-teal)]">
+              <Check className="h-3.5 w-3.5" /> {compiled.name} is complete — {totalOpen} gap
+              {totalOpen === 1 ? '' : 's'} remain on other pages.
             </p>
           )}
         </section>
@@ -574,10 +761,39 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
 
             <span className="text-[10px] text-[var(--v-faint)]">
               {submitted
-                ? `${compiled.archetype} · ${elements.length} el · risk ${risk}`
+                ? `${compiled.archetype} · ${elements.length} el · risk ${risk}${screens.length > 1 ? ` · overall ${overallRisk}` : ''}`
                 : 'waiting for a prompt'}
             </span>
           </div>
+
+          {screens.length > 1 && (
+            <div className="mt-2 flex flex-wrap items-center gap-1">
+              {screens.map((screen, index) => {
+                const pageView = allScreens[index];
+                const active = screen.id === compiled.id;
+                return (
+                  <button
+                    key={screen.id}
+                    type="button"
+                    onClick={() => setActiveId(screen.id)}
+                    className={`flex items-center gap-1 rounded-full px-2 py-1 text-[9.5px] font-semibold ${
+                      active
+                        ? 'bg-[var(--v-ink)] text-[var(--v-surface)]'
+                        : 'bg-[var(--v-surface-2)] text-[var(--v-muted)] hover:text-[var(--v-ink)]'
+                    }`}
+                  >
+                    <span className={active ? 'opacity-70' : 'opacity-60'}>{index + 1}</span>
+                    {screen.name}
+                    {pageView && pageView.open.length > 0 && (
+                      <span className={`rounded-full px-1 text-[8px] ${active ? 'bg-white/20' : 'bg-[var(--v-surface)]'}`}>
+                        {pageView.open.length}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {view === 'wireframe' ? (
             <>
@@ -604,13 +820,15 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
                   <span className="inline-block h-2.5 w-3 rounded-[2px] border border-dashed border-[#E5484D]" />
                   unresolved attribute
                 </span>
-                <span>Deterministic layout · optional local model · no cloud call.</span>
+                <span>Schematic geometry · deterministic layout · no cloud call.</span>
               </div>
             </>
           ) : (
             <div className="mt-2">
               <div className="flex items-center justify-between">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--v-muted)]">Revised prompt</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--v-muted)]">
+                  Revised prompt{screens.length > 1 ? ` · ${screens.length} pages` : ''}
+                </p>
                 <button
                   type="button"
                   onClick={copy}
@@ -631,7 +849,8 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
             disabled={!submitted}
             className="mt-2 v-btn v-btn-primary h-9 w-full text-[11.5px] disabled:opacity-40"
           >
-            Generate with this prompt <ArrowRight className="w-3.5 h-3.5" />
+            Generate {screens.length > 1 ? `${screens.length} screens` : 'with this prompt'}
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </section>
       </div>

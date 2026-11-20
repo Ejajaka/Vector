@@ -45,6 +45,8 @@ export interface CompiledElement {
   section?: string;
   /** The spec line this element came from, used by the optional model pass. */
   sourceLine?: string;
+  /** The full prompt line, so card/footer children can be folded into them. */
+  parentLine?: string;
   /** Corner radius from the prompt's design tokens. */
   radius?: number;
   fontFamily?: string;
@@ -216,10 +218,19 @@ function cleanLabel(raw: string): string {
   return value.length > 48 ? `${value.slice(0, 45).trim()}…` : value;
 }
 
+/**
+ * Replace quoted copy with spaces of the same length. A label like
+ * "Book a table" must not be read as a table component.
+ */
+function maskQuoted(text: string): string {
+  return text.replace(/(["“”'])[^"“”']*\1/g, (match) => ' '.repeat(match.length));
+}
+
 function findColour(text: string): string | undefined {
-  const hex = text.match(/#[0-9a-f]{6}\b/i);
+  const masked = maskQuoted(text);
+  const hex = masked.match(/#[0-9a-f]{6}\b/i);
   if (hex) return hex[0].toUpperCase();
-  const lower = text.toLowerCase();
+  const lower = masked.toLowerCase();
   let best: { value: string; index: number; length: number } | undefined;
   for (const [name, value] of Object.entries(COLOURS)) {
     const match = new RegExp(`\\b${name}\\b`, 'i').exec(lower);
@@ -248,7 +259,7 @@ function findCount(text: string): number | undefined {
 }
 
 const ACTION_VERB =
-  /^(?:open|close|submit|save|send|download|navigate|redirect|go|add|remove|delete|confirm|cancel|start|sign|log|pay|book|create|show|display|filter|search|upload|export|import|toggle|switch|view|edit|update|share|copy|invite|subscribe|buy|checkout|dismiss)\w*/i;
+  /^(?:open|close|submit|save|send|download|navigate|redirect|go|get|try|join|add|remove|delete|confirm|cancel|start|sign|log|pay|book|order|create|show|display|filter|search|upload|export|import|toggle|switch|view|edit|update|share|copy|invite|subscribe|buy|checkout|dismiss)\w*/i;
 
 export function isActionPhrase(value: string): boolean {
   return ACTION_VERB.test(value.trim());
@@ -279,7 +290,7 @@ function findAction(text: string): string | undefined {
 }
 
 function findLocation(text: string): string | undefined {
-  const match = text.match(/\b(top|bottom|left|right|centre|center|middle|sidebar)\b/i);
+  const match = maskQuoted(text).match(/\b(top|bottom|left|right|centre|center|middle|sidebar)\b/i);
   return match ? match[1].toLowerCase() : undefined;
 }
 
@@ -334,6 +345,11 @@ function inferLabel(
   );
   if (says) return cleanLabel(says[1]);
 
+  const word = text.match(
+    /\b(?:with|using)\s+(?:the\s+)?(?:word|words|text|label|copy)\s*[:\-]?\s*["“”']?([^"“”',.;]{2,48})/i
+  );
+  if (word) return cleanLabel(word[1]);
+
   if (kind === 'image' || kind === 'avatar') {
     const of = text.match(
       /\b(?:images?|photos?|pictures?|illustrations?|graphics?|banners?|logos?|avatars?|thumbnails?|screenshots?|maps?|galleries|gallery)\s+(?:of|for|showing)\s+(.+)$/i
@@ -368,10 +384,8 @@ function inferLabel(
     };
     const type = text.match(/\b(feature|product|pricing|stat|testimonial|menu|blog|team)\s+cards?\b/i);
     if (type) return named[type[1].toLowerCase()];
-    if (section) {
-      const of = text.match(/\b(?:cards?|tiles?|panels?)\s+(?:for|of|showing)\s+(.+)$/i);
-      if (of) return titleCase(cleanLabel(of[1]));
-    }
+    const of = text.match(/\b(?:cards?|tiles?|panels?)\s+(?:for|of|showing)\s+(.+)$/i);
+    if (of) return titleCase(cleanLabel(of[1]));
   }
 
   if (kind === 'navbar') return brand || 'Brand';
@@ -452,7 +466,7 @@ function inferScreenTitle(text: string, archetype: Archetype): string | undefine
   return titleCase(word.toLowerCase());
 }
 
-function parseTokens(text: string): DesignTokens {
+function parseTokens(text: string, base: DesignTokens = DEFAULT_TOKENS): DesignTokens {
   const lower = text.toLowerCase();
   const near = lower.match(/\b(?:primary|accent|brand|main|cta)\s*(?:colou?r)?\s*(?:is|:)?\s*(#[0-9a-f]{6}|[a-z]+)/i);
   let primary: string | undefined;
@@ -460,19 +474,25 @@ function parseTokens(text: string): DesignTokens {
     const value = near[1];
     primary = value.startsWith('#') ? value.toUpperCase() : COLOURS[value.toLowerCase()];
   }
-  primary = primary || findColour(text);
+  // A page block may mention "a green button" without redefining the brand.
+  // Only an explicit primary/accent/brand phrase can override an inherited one.
+  if (!primary && !base.statedColour) primary = findColour(text);
 
-  const theme: DesignTokens['theme'] =
+  const darkSignal =
     /\b(?:dark|black)\s+(?:mode|theme|background|ui)\b/i.test(text) ||
-    /background\s+(?:is\s+|in\s+)?(?:black|dark)/i.test(text)
-      ? 'dark'
-      : 'light';
+    /background\s+(?:is\s+|in\s+)?(?:black|dark)/i.test(text) ||
+    /\bdark\b[^.\n]{0,30}\b(?:page|screen|ui|design|site|landing|dashboard|app)\b/i.test(text);
+  const lightSignal =
+    /\b(?:light|white)\s+(?:mode|theme|background|ui)\b/i.test(text) ||
+    /background\s+(?:is\s+|in\s+)?(?:white|light)/i.test(text);
+
+  const theme: DesignTokens['theme'] = darkSignal ? 'dark' : lightSignal ? 'light' : base.theme;
 
   const density: DesignTokens['density'] = /compact|dense|tight/i.test(text)
     ? 'compact'
     : /spacious|airy|roomy|generous/i.test(text)
       ? 'spacious'
-      : 'comfortable';
+      : base.density;
 
   const radius = /sharp|square corners|no radius/i.test(text)
     ? 0
@@ -480,7 +500,7 @@ function parseTokens(text: string): DesignTokens {
       ? 999
       : /rounded|soft corners/i.test(text)
         ? 14
-        : 10;
+        : base.radius;
 
   const font: DesignTokens['font'] = /serif|editorial/i.test(text)
     ? 'georgia'
@@ -488,16 +508,16 @@ function parseTokens(text: string): DesignTokens {
       ? 'mono'
       : /display|expressive|bold type/i.test(text)
         ? 'bricolage'
-        : 'jakarta';
+        : base.font;
 
   return {
-    primary: primary || DEFAULT_TOKENS.primary,
-    statedColour: Boolean(primary),
+    primary: primary || base.primary,
+    statedColour: Boolean(primary) || base.statedColour,
     theme,
     density,
     radius,
     font,
-    responsive: /responsive|mobile|tablet|breakpoint|desktop/i.test(text),
+    responsive: /responsive|mobile|tablet|breakpoint|desktop/i.test(text) || base.responsive,
   };
 }
 
@@ -513,7 +533,8 @@ interface KindMatch {
 }
 
 function findAllKinds(text: string): KindMatch[] {
-  const lower = text.toLowerCase();
+  // Quoted copy is an attribute, not a component mention.
+  const lower = maskQuoted(text).toLowerCase();
   const raw: KindMatch[] = [];
 
   for (const def of KIND_DEFS) {
@@ -590,13 +611,14 @@ export function elementFromText(
 ): CompiledElement | undefined {
   const hit = findAllKinds(text)[0];
   if (!hit) return undefined;
-  const unit: Unit = { text, section: '' };
+  const unit: Unit = { text, section: '', line: text };
   return buildElement(hit, text, unit, findColour(text), findAction(text), undefined, archetype, DEFAULT_TOKENS);
 }
 
 interface Unit {
   text: string;
   section: string;
+  line: string;
 }
 
 interface ParsedPrompt {
@@ -634,7 +656,8 @@ function parsePrompt(prompt: string): ParsedPrompt {
   };
 
   for (const raw of rawLines) {
-    let line = raw.trim();
+    const originalLine = raw.trim();
+    let line = originalLine;
     if (!line) continue;
 
     const hash = line.match(/^#{1,6}\s+(.+)$/);
@@ -663,9 +686,9 @@ function parsePrompt(prompt: string): ParsedPrompt {
 
     const tabList = /\btabs?\s+(?:for|of|with)\b|\btab (?:bar|group)\b/i.test(line);
     if (structured || tabList) {
-      units.push({ text: line, section });
+      units.push({ text: line, section, line: originalLine });
     } else {
-      splitProse(line).forEach((text) => units.push({ text, section }));
+      splitProse(line).forEach((text) => units.push({ text, section, line: originalLine }));
     }
   }
 
@@ -797,7 +820,10 @@ function buildElement(
   const interactive = ['button', 'modal', 'checkbox'].includes(hit.kind);
   const label = inferLabel(windowText, hit.kind, unit.section, brand);
   const colour = findColour(windowText) || unitColour;
-  const action = interactive ? findAction(windowText) || unitAction : undefined;
+  // "Book a table" / "Order now" already state their action in the label.
+  const derivedAction =
+    hit.kind === 'button' && label && isActionPhrase(label) ? label.toLowerCase() : undefined;
+  const action = interactive ? findAction(windowText) || unitAction || derivedAction : undefined;
 
   return {
     id: '',
@@ -814,6 +840,7 @@ function buildElement(
     confidence: confidenceFor(hit, windowText, label, colour, action, unit.section),
     section: unit.section || undefined,
     sourceLine: unit.text,
+    parentLine: unit.line,
     radius: ['button', 'input', 'card', 'modal', 'image', 'badge'].includes(hit.kind)
       ? tokens.radius
       : undefined,
@@ -993,10 +1020,15 @@ function questionText(element: CompiledElement, attribute: Question['attribute']
 
 export function auditElements(elements: CompiledElement[]): Question[] {
   const questions: Question[] = [];
+  const seen = new Set<string>();
   elements.forEach((element) => {
     (REQUIRED_ATTRS[element.kind] || []).forEach((attribute) => {
       const value = element[attribute as keyof CompiledElement];
       if (value) return;
+      // Three identical unlabelled cards need one answer, not three.
+      const group = `${element.kind}|${element.section || ''}|${element.sourceLine || ''}|${attribute}|${element.action || ''}`;
+      if (seen.has(group)) return;
+      seen.add(group);
       questions.push({
         id: `${element.id}:${attribute}`,
         elementId: element.id,
@@ -1107,8 +1139,8 @@ export function auditQuality(elements: CompiledElement[]): QualityIssue[] {
 /* Compile                                                             */
 /* ------------------------------------------------------------------ */
 
-export function compilePrompt(prompt: string): CompileResult {
-  const tokens = parseTokens(prompt);
+export function compilePrompt(prompt: string, tokenBase?: DesignTokens): CompileResult {
+  const tokens = parseTokens(prompt, tokenBase ?? DEFAULT_TOKENS);
   const archetype = detectArchetype(prompt);
   const brand = findBrand(prompt);
   const parsed = parsePrompt(prompt);
@@ -1126,7 +1158,7 @@ export function compilePrompt(prompt: string): CompileResult {
     };
   }
 
-  const raw: CompiledElement[] = [];
+  let raw: CompiledElement[] = [];
   let usedLines = 0;
 
   parsed.units.forEach((unit) => {
@@ -1134,6 +1166,32 @@ export function compilePrompt(prompt: string): CompileResult {
     if (!extracted.length) return;
     usedLines += 1;
     raw.push(...extracted);
+  });
+
+  // A button described inside a card ("…with name, price and an add button")
+  // is an affordance of that card, not a page-level button. Footer links are
+  // represented by the footer component.
+  const foldedNotes: string[] = [];
+  raw = raw.filter((element) => {
+    const parent = (element.parentLine || '').toLowerCase();
+    if (
+      element.kind === 'button' &&
+      /\bcards?\b/.test(parent) &&
+      !element.label &&
+      !element.action
+    ) {
+      foldedNotes.push('A card-level add button was folded into its card.');
+      return false;
+    }
+    if (
+      element.kind === 'link' &&
+      /\bfooter\b/.test(parent) &&
+      (!element.label || element.label === 'Learn more')
+    ) {
+      foldedNotes.push('Footer links are represented by the footer component.');
+      return false;
+    }
+    return true;
   });
 
   // "Login page" / "Settings screen" names the page; seed a heading when the
@@ -1255,6 +1313,7 @@ export function compilePrompt(prompt: string): CompileResult {
   });
 
   repeatSignals.forEach((signal) => signals.push(signal));
+  foldedNotes.forEach((note) => signals.push({ tone: 'merge', text: note }));
 
   if (tokens.statedColour) {
     signals.push({
@@ -1290,6 +1349,115 @@ export function compilePrompt(prompt: string): CompileResult {
       lines: parsed.units.map((unit) => unit.text),
     },
   };
+}
+
+/* ------------------------------------------------------------------ */
+/* Pages / screens                                                     */
+/* ------------------------------------------------------------------ */
+
+export interface PromptScreen extends CompileResult {
+  id: string;
+  name: string;
+}
+
+function stripHeading(line: string): string {
+  return line.trim().replace(/^#{1,6}\s*/, '');
+}
+
+function isScreenMarker(line: string): boolean {
+  const trimmed = line.trim();
+  if (/^-{3,}$/.test(trimmed)) return true;
+  const content = stripHeading(trimmed);
+  if (/^(?:screen|page|view|step)\s*\d*\s*(?:[:—–-].*)?$/i.test(content)) return true;
+  return /^#{1,6}\s+.+\s+(?:screen|page|view)\s*$/i.test(trimmed);
+}
+
+function screenMarkerName(line: string): string | undefined {
+  const trimmed = line.trim();
+  if (/^-{3,}$/.test(trimmed)) return undefined;
+  const content = stripHeading(trimmed);
+  const explicit = content.match(/^(?:screen|page|view|step)\s*\d*\s*[:—–-]\s*(.+)$/i);
+  if (explicit) return cleanHeading(explicit[1]);
+  const trailing = content.match(/^(.+?)\s+(?:screen|page|view)$/i);
+  if (trailing) return cleanHeading(trailing[1]);
+  return undefined;
+}
+
+function blockName(text: string, archetype: Archetype): string | undefined {
+  const heading = text.split(/\r?\n/).find((line) => /^#{1,6}\s+\S/.test(line));
+  if (heading) {
+    const value = cleanHeading(heading.replace(/^#{1,6}\s+/, ''));
+    if (value && !/^(hero|features?|footer|navigation|nav|menu|section|content)$/i.test(value)) {
+      return value;
+    }
+  }
+  return inferScreenTitle(text, archetype);
+}
+
+/**
+ * Split an explicit multi-screen prompt into independently solved pages.
+ *
+ * Boundaries are unambiguous markers — `---`, `Screen 2: Dashboard`,
+ * `## Login screen` — so ordinary section headings such as `## Hero` remain
+ * sections of one page rather than becoming pages themselves.
+ */
+export function compilePromptScreens(prompt: string): PromptScreen[] {
+  const lines = prompt.split(/\r?\n/);
+  const markers = lines.filter((line) => isScreenMarker(line)).length;
+
+  if (markers < 2) {
+    const compiled = compilePrompt(prompt);
+    const name = blockName(prompt, compiled.archetype) || 'Screen 1';
+    return [{ ...compiled, id: 'screen_1', name }];
+  }
+
+  const globalTokens = parseTokens(prompt);
+  const blocks: Array<{ name: string; text: string }> = [];
+  let current: { name: string; lines: string[] } = { name: '', lines: [] };
+
+  lines.forEach((line) => {
+    if (isScreenMarker(line)) {
+      if (current.lines.some((entry) => entry.trim())) {
+        blocks.push({ name: current.name, text: current.lines.join('\n') });
+      }
+      current = { name: screenMarkerName(line) || '', lines: [] };
+    } else {
+      current.lines.push(line);
+    }
+  });
+  if (current.lines.some((entry) => entry.trim())) {
+    blocks.push({ name: current.name, text: current.lines.join('\n') });
+  }
+
+  const candidates = blocks
+    .map((block) => {
+      const compiled = compilePrompt(block.text, globalTokens);
+      return {
+        compiled,
+        name: block.name || blockName(block.text, compiled.archetype) || '',
+      };
+    })
+    // A preamble such as "Dark theme, emerald primary colour" is not a page.
+    .filter((entry) => entry.compiled.meta.usedLines > 0);
+
+  const screens: PromptScreen[] = candidates.map((entry, index) => {
+    const id = `screen_${index + 1}`;
+    const elements = entry.compiled.elements.map((element) => ({
+      ...element,
+      id: `${id}_${element.id}`,
+    }));
+    return {
+      ...entry.compiled,
+      id,
+      name: entry.name || `Screen ${index + 1}`,
+      elements,
+      questions: auditElements(elements),
+    };
+  });
+
+  return screens.length
+    ? screens
+    : [{ ...compilePrompt(prompt), id: 'screen_1', name: 'Screen 1' }];
 }
 
 /* ------------------------------------------------------------------ */

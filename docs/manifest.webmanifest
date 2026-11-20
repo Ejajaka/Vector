@@ -1,9 +1,9 @@
 {
   "name": "Vector — UI prompt engineering",
   "short_name": "Vector",
-  "description": "Review, complete and validate UI prompts before you generate. Works offline for the rules engine.",
-  "start_url": "/?source=pwa",
-  "scope": "/",
+  "description": "Review, complete and validate UI prompts before you generate. Deterministic wireframe engine; optional on-device model.",
+  "start_url": "./?source=pwa",
+  "scope": "./",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#F6F4EC",

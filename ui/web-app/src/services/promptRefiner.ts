@@ -21,6 +21,8 @@ import {
   colourFromText,
   elementFromText,
   isActionPhrase,
+  layoutElements,
+  roughRisk,
   sortForArchetype,
   type Archetype,
   type CompileResult,
@@ -40,6 +42,10 @@ export interface RefineOutcome {
   lines: number;
   added: number;
   ms: number;
+  beforeRisk: number;
+  afterRisk: number;
+  /** True when the merge would have made the prompt worse. */
+  rejected: boolean;
 }
 
 const MAX_LINES = 32;
@@ -48,6 +54,12 @@ const MAX_ADDED = 4;
 const spanCache = new Map<string, { spans: DetectedSpan[]; confidence: number }>();
 
 const INTERACTIVE = new Set(['button', 'modal', 'checkbox']);
+
+/** Only these kinds benefit from a copy label; body text does not. */
+const LABEL_KINDS = new Set([
+  'heading', 'button', 'input', 'card', 'image', 'badge', 'link',
+  'avatar', 'modal', 'checkbox', 'table', 'chart',
+]);
 
 function tidy(text: string): string {
   return text
@@ -108,7 +120,7 @@ export function mergeLineSpans(
   if (lineElements.length === 1) {
     const element = lineElements[0];
 
-    if (!element.label) {
+    if (!element.label && LABEL_KINDS.has(element.kind)) {
       const span = spanFor(spans, 'LABEL');
       const value = grounded(span, line) ? usableLabel(span.text, element.kind) : undefined;
       if (value) {
@@ -150,13 +162,15 @@ export function mergeLineSpans(
     return { applied, added };
   }
 
-  // The line produced several elements (or none). Only add a component when
-  // the span itself classifies, so the model cannot invent a new kind.
+  // Only add when the deterministic layer found nothing on this line. If it
+  // already found a card/footer, the model's "button" span is an affordance of
+  // that component, not a new page-level element.
+  if (lineElements.length > 0) return { applied, added };
+
   const elementSpan = spanFor(spans, 'ELEMENT');
   if (!grounded(elementSpan, line) || added >= maxAdded) return { applied, added };
   const kind = classifyText(elementSpan.text);
   if (!kind) return { applied, added };
-  if (lineElements.some((element) => element.kind === kind)) return { applied, added };
 
   const created = elementFromText(elementSpan.text, archetype);
   if (!created) return { applied, added };
@@ -198,7 +212,40 @@ export async function refineWithBERT(
     .slice(0, MAX_LINES);
 
   if (!lines.length) {
-    return { elements: result.elements, applied: [], confidence: 0, lines: 0, added: 0, ms: 0 };
+    return {
+      elements: result.elements, applied: [], confidence: 0, lines: 0,
+      added: 0, ms: 0, beforeRisk: 0, afterRisk: 0, rejected: false,
+    };
+  }
+
+  // Fail fast when the model is neither cached nor reachable. Otherwise the
+  // transformers loader retries several files and the button appears stuck.
+  const base = new URL('models/bert_tagger/', document.baseURI).href;
+  const files = [
+    'config.json',
+    'tokenizer.json',
+    'tokenizer_config.json',
+    'onnx/model_quantized.onnx',
+  ];
+  let fullyCached = false;
+  try {
+    const cached = await Promise.all(
+      files.map((file) => caches.match(new URL(file, base).href))
+    );
+    fullyCached = cached.every(Boolean);
+  } catch {
+    fullyCached = false;
+  }
+  if (!fullyCached) {
+    const probe = await fetch(new URL('onnx/model_quantized.onnx', base).href, {
+      method: 'HEAD',
+      cache: 'no-store',
+    }).catch(() => null);
+    if (!probe || (!probe.ok && probe.status !== 405)) {
+      throw new Error(
+        'The local model is not cached and cannot be reached. Run the deep pass once while online; it is then available offline. The deterministic wireframe is unaffected.'
+      );
+    }
   }
 
   const { runBERT } = await import('./bertEngine.ts');
@@ -249,9 +296,32 @@ export async function refineWithBERT(
     applied.push(...merged.applied);
   }
 
-  onProgress?.({ percent: 96, stage: 'Merging with the deterministic result' });
+  onProgress?.({ percent: 96, stage: 'Checking the merged result' });
 
   const mergedElements = sortForArchetype(elements, result.archetype);
+  const beforeRisk = roughRisk(
+    layoutElements(result.elements, result.archetype, 'desktop', result.meta.tokens)
+  );
+  const afterRisk = roughRisk(
+    layoutElements(mergedElements, result.archetype, 'desktop', result.meta.tokens)
+  );
+
+  // The model is advisory. If its merge would raise risk, discard it entirely
+  // and keep the deterministic result. This is the guarantee that a model pass
+  // can never make a prompt worse.
+  if (afterRisk > beforeRisk) {
+    return {
+      elements: result.elements,
+      applied: [],
+      confidence: confidenceCount ? Number((confidenceSum / confidenceCount).toFixed(3)) : 0,
+      lines: lines.length,
+      added: 0,
+      ms: Math.round(performance.now() - started),
+      beforeRisk,
+      afterRisk,
+      rejected: true,
+    };
+  }
 
   return {
     elements: mergedElements,
@@ -260,5 +330,8 @@ export async function refineWithBERT(
     lines: lines.length,
     added,
     ms: Math.round(performance.now() - started),
+    beforeRisk,
+    afterRisk,
+    rejected: false,
   };
 }
