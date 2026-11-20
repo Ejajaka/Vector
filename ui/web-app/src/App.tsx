@@ -9,6 +9,7 @@ import { Header } from './components/layout/Header.tsx';
 import { PublicHeader } from './components/layout/PublicHeader.tsx';
 import { PublicFooter } from './components/layout/PublicFooter.tsx';
 import { AuthPage } from './components/auth/AuthPage.tsx';
+import { SignedOutPage } from './components/auth/SignedOutPage.tsx';
 import { ResetPasswordPage } from './components/auth/ResetPasswordPage.tsx';
 import { ProductTour, resetTour } from './components/onboarding/ProductTour.tsx';
 import { WelcomeDialog } from './components/onboarding/WelcomeDialog.tsx';
@@ -124,6 +125,14 @@ function AppShell() {
   const [pricingOpen, setPricingOpen] = useState(false);
   const [planHubTab, setPlanHubTab] = useState<PlanHubTab | null>(null);
   const [showAuth, setShowAuth] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [signedOut, setSignedOut] = useState(() => {
+    try {
+      return sessionStorage.getItem('vector_signed_out_v1') === '1';
+    } catch {
+      return false;
+    }
+  });
   const [pendingTab, setPendingTab] = useState<ActiveTab | null>(null);
   const [tabHydrated, setTabHydrated] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -349,7 +358,15 @@ function AppShell() {
   }, [signedIn, activeTab]);
 
   useEffect(() => {
-    if (user) setShowAuth(false);
+    if (user) {
+      setShowAuth(false);
+      setSignedOut(false);
+      try {
+        sessionStorage.removeItem('vector_signed_out_v1');
+      } catch {
+        // ignore
+      }
+    }
   }, [user]);
 
   // One welcome + plan overview per account, shown once after the first sign-in.
@@ -433,8 +450,33 @@ function AppShell() {
     return <ResetPasswordPage />;
   }
 
-  if (configured && !user && showAuth) {
-    return <AuthPage onBack={() => setShowAuth(false)} />;
+  if (!user && showAuth) {
+    return <AuthPage initialMode={authMode} onBack={() => setShowAuth(false)} />;
+  }
+
+  if (signedOut && !user) {
+    return (
+      <SignedOutPage
+        configured={configured}
+        onLogin={() => {
+          setAuthMode('login');
+          setShowAuth(true);
+        }}
+        onRegister={() => {
+          setAuthMode('register');
+          setShowAuth(true);
+        }}
+        onContinueLocal={() => {
+          setSignedOut(false);
+          setShowAuth(false);
+          try {
+            sessionStorage.removeItem('vector_signed_out_v1');
+          } catch {
+            // ignore
+          }
+        }}
+      />
+    );
   }
 
   const handleOpenAnalysis = (item: AnalysisResult) => {
@@ -462,6 +504,7 @@ function AppShell() {
 
   const requestAuth = (target?: ActiveTab) => {
     if (target) setPendingTab(target);
+    setAuthMode('login');
     setShowAuth(true);
   };
 
@@ -701,7 +744,14 @@ function AppShell() {
             onRequestSignIn={() => requestAuth()}
             onReplayTour={handleReplayTour}
             onOpenAssistant={() => setAssistantOpen(true)}
-            onSignedOut={() => setShowAuth(true)}
+            onSignedOut={() => {
+              setSignedOut(true);
+              try {
+                sessionStorage.setItem('vector_signed_out_v1', '1');
+              } catch {
+                // ignore
+              }
+            }}
           />
         )}
 

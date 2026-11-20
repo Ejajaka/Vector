@@ -19,6 +19,7 @@ type Mode = 'login' | 'register' | 'reset';
 
 interface AuthPageProps {
   onBack?: () => void;
+  initialMode?: 'login' | 'register';
 }
 
 const HIGHLIGHTS = [
@@ -28,9 +29,9 @@ const HIGHLIGHTS = [
   'Six-section design briefs with design tokens',
 ];
 
-export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
+export const AuthPage: React.FC<AuthPageProps> = ({ onBack, initialMode = 'login' }) => {
   const { signIn, signUp, resetPassword } = useAuth();
-  const [mode, setMode] = useState<Mode>('login');
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
