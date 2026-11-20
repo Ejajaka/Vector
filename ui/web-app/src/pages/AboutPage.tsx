@@ -2,12 +2,15 @@ import React from 'react';
 import {
   AlertTriangle,
   ArrowRight,
+  Blocks,
   Check,
   ChevronRight,
   CircleDot,
+  GripVertical,
   Layers,
   LogIn,
   MessageSquareText,
+  Plus,
   ScanSearch,
   Sparkles,
   UserPlus,
@@ -319,6 +322,147 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis, onOpenTem
               <p className="mt-1.5 text-[13px] leading-[1.65] text-[var(--v-muted)]">{item.text}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Block composer -------------------------------------------- */}
+      <section
+        id="block-composer"
+        className="relative scroll-mt-20 overflow-hidden border-y border-[var(--v-line)] bg-[var(--v-surface)]/35"
+        aria-label="Block composer"
+      >
+        <div aria-hidden="true" className="v-spotlight pointer-events-none absolute inset-x-0 -top-32 h-[420px]" />
+        <div className="relative mx-auto grid w-full max-w-[1200px] gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[.9fr_1.1fr] lg:items-center lg:gap-16 lg:px-8">
+          <div>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--v-accent-hover)]/30 bg-[var(--v-accent-soft)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--v-accent-hover)]">
+              <Blocks className="h-3 w-3" /> Block composer
+            </span>
+            <h2 className="v-display mt-4 text-[28px] text-[var(--v-ink)] sm:text-[38px]">
+              Place the blocks.
+              <br />
+              <span className="text-[var(--v-muted)]">Vector writes the prompt.</span>
+            </h2>
+            <p className="mt-3 max-w-[430px] text-[13.5px] leading-[1.65] text-[var(--v-muted)]">
+              Drop in a nav, hero, KPI row, table, form or auth screen. Vector turns the arrangement
+              into a complete six-section prompt with labels, states, interactions and design tokens
+              already filled in — ready to paste into Base44, v0, Bolt or Figma.
+            </p>
+            <ul className="mt-6 space-y-2.5">
+              {[
+                '24+ documented UI blocks, from navigation to empty states',
+                'Every block carries its label, action and required attributes',
+                'Prompt sections update as you add, remove or reorder blocks',
+                'Design-system tokens carried into the generated prompt',
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-2 text-[12.5px] leading-relaxed text-[var(--v-muted)]">
+                  <span className="mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full bg-[var(--v-accent-soft)] text-[var(--v-accent-hover)]">
+                    <Check className="h-2.5 w-2.5" />
+                  </span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              onClick={auth ? auth.onRegister : onStartAnalysis}
+              className="v-btn v-btn-primary mt-7 h-9 rounded-full px-4 text-[12.5px]"
+            >
+              <Blocks className="h-3.5 w-3.5" /> Build with blocks
+            </button>
+          </div>
+
+          <div className="relative">
+            <div aria-hidden="true" className="pointer-events-none absolute -inset-6 rounded-2xl bg-[#7170ff]/10 blur-2xl" />
+            <div className="relative overflow-hidden rounded-xl border border-[var(--v-line)] bg-[var(--v-surface)] shadow-[0_40px_120px_-60px_rgba(0,0,0,0.9)]">
+              <div className="flex flex-wrap items-center gap-2 border-b border-[var(--v-line)] px-3.5 py-2.5">
+                <span className="grid h-6 w-6 place-items-center rounded-md bg-[var(--v-accent-soft)] text-[var(--v-accent-hover)]">
+                  <Blocks className="h-3 w-3" />
+                </span>
+                <span className="text-[11.5px] font-semibold text-[var(--v-ink)]">Checkout blocks</span>
+                <span className="rounded-full border border-[var(--v-line)] px-2 py-0.5 text-[9px] text-[var(--v-faint)]">3 pages</span>
+                <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-[var(--v-accent-hover)]/30 bg-[var(--v-accent-soft)] px-2 py-0.5 text-[9px] font-medium text-[var(--v-accent-hover)]">
+                  <Sparkles className="h-2.5 w-2.5" /> Prompt ready
+                </span>
+              </div>
+
+              <div className="grid gap-0 md:grid-cols-[1fr_1.15fr]">
+                <div className="border-b border-[var(--v-line)] bg-[var(--v-bg)] p-3.5 md:border-b-0 md:border-r">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[9.5px] font-semibold uppercase tracking-[0.12em] text-[var(--v-faint)]">Block palette</p>
+                    <span className="text-[9px] text-[var(--v-faint)]">24 blocks</span>
+                  </div>
+                  <div className="mt-2.5 space-y-1.5">
+                    {[
+                      ['Navigation', 'Top nav'],
+                      ['Hero', 'Headline + CTA'],
+                      ['KPI row', '4 cards'],
+                      ['Table', 'Recent orders'],
+                      ['Checkout', 'Form + summary'],
+                      ['Footer', 'Links + legal'],
+                    ].map(([label, detail], index) => (
+                      <div
+                        key={label}
+                        className={`flex items-center gap-2 rounded-md border px-2 py-1.5 ${
+                          index === 4
+                            ? 'border-[var(--v-accent-hover)]/40 bg-[var(--v-accent-soft)]'
+                            : 'border-[var(--v-line)] bg-[var(--v-surface)]'
+                        }`}
+                      >
+                        <GripVertical className="h-3 w-3 text-[var(--v-faint)]" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[10.5px] font-medium text-[var(--v-ink)]">{label}</p>
+                          <p className="truncate text-[9px] text-[var(--v-faint)]">{detail}</p>
+                        </div>
+                        {index === 4 ? (
+                          <Check className="h-3 w-3 text-[var(--v-accent-hover)]" />
+                        ) : (
+                          <Plus className="h-3 w-3 text-[var(--v-faint)]" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-2.5 text-[9px] leading-relaxed text-[var(--v-faint)]">
+                    Drag to arrange. Order becomes the layout section of the prompt.
+                  </p>
+                </div>
+
+                <div className="p-3.5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[9.5px] font-semibold uppercase tracking-[0.12em] text-[var(--v-faint)]">Generated prompt</p>
+                    <span className="rounded border border-[var(--v-line)] px-1.5 py-0.5 font-mono text-[8.5px] text-[var(--v-faint)]">draft / v.01</span>
+                  </div>
+                  <div className="mt-2.5 space-y-1.5 font-mono text-[9.5px] leading-relaxed">
+                    {[
+                      ['01', 'Context', 'Checkout for a commerce store, 1200×800.'],
+                      ['02', 'Layout', 'Top nav · 2-col form/summary · footer.'],
+                      ['03', 'Components', 'Order summary, card field, promo input.'],
+                      ['04', 'Interaction', 'Validate on blur; pay opens the review step.'],
+                      ['05', 'Style', 'Indigo #7170FF · Inter · 8px cards.'],
+                      ['06', 'Acceptance', 'Empty, loading, error and success states.'],
+                    ].map(([number, title, body]) => (
+                      <div key={title} className="rounded-md border border-[var(--v-line)] bg-[var(--v-bg)] px-2 py-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[var(--v-accent-hover)]">{number}</span>
+                          <span className="text-[8px] uppercase tracking-[0.1em] text-[var(--v-faint)]">{title}</span>
+                        </div>
+                        <p className="mt-0.5 truncate text-[9px] text-[var(--v-muted)]">{body}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {['Base44', 'v0', 'Bolt', 'Figma'].map((tool) => (
+                      <span key={tool} className="rounded border border-[var(--v-line)] px-1.5 py-0.5 text-[8px] text-[var(--v-muted)]">
+                        {tool}
+                      </span>
+                    ))}
+                    <span className="ml-auto inline-flex items-center gap-1 rounded bg-[var(--v-accent-soft)] px-1.5 py-0.5 text-[8px] font-medium text-[var(--v-accent-hover)]">
+                      Copy prompt <ArrowRight className="h-2.5 w-2.5" />
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 

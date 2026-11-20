@@ -722,8 +722,6 @@ function AppShell() {
 
         {showMarketingChrome && (
           <PublicHeader
-            activeTab={activeTab}
-            onNavigate={navigate}
             onRequestSignIn={handleRequestSignIn}
             onOpenApp={signedIn ? () => setActiveTab('dashboard') : undefined}
           />
