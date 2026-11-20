@@ -178,6 +178,37 @@ function variantFor(item: CanvasItem): StyleVariant {
 }
 
 /**
+ * Keep an AI arrangement inside the page. If the chosen layout is taller or
+ * wider than the frame, scale the whole composition down uniformly (including
+ * type) and then clamp every edge as a final guarantee.
+ */
+function containArrangement(items: CanvasItem[], W: number, H: number): CanvasItem[] {
+  if (!items.length) return items;
+  const minX = Math.min(...items.map((item) => item.x));
+  const minY = Math.min(...items.map((item) => item.y));
+  const maxX = Math.max(...items.map((item) => item.x + item.w));
+  const maxY = Math.max(...items.map((item) => item.y + item.h));
+  const left = Math.max(0, minX);
+  const top = Math.max(0, minY);
+  const width = Math.max(1, maxX - minX);
+  const height = Math.max(1, maxY - minY);
+  const availableW = Math.max(1, W - left);
+  const availableH = Math.max(1, H - top);
+  const scale = Math.min(1, availableW / width, availableH / height);
+
+  return items.map((item) => {
+    const x = clamp(Math.round(left + (item.x - minX) * scale), 0, Math.max(0, W - 24));
+    const y = clamp(Math.round(top + (item.y - minY) * scale), 0, Math.max(0, H - 16));
+    const w = clamp(Math.round(item.w * scale), 24, Math.max(24, W - x));
+    const h = clamp(Math.round(item.h * scale), 16, Math.max(16, H - y));
+    const fontSize = item.fontSize
+      ? clamp(Math.round(item.fontSize * scale), 8, Math.max(8, Math.min(200, Math.round(h / 1.1))))
+      : item.fontSize;
+    return { ...item, x, y, w, h, fontSize };
+  });
+}
+
+/**
  * Deterministic layout suggestions used by the Design button. The user can
  * cycle through four arrangements; each one starts from the layout they saved
  * before the first suggestion.
@@ -356,10 +387,14 @@ function aiArrange(items: CanvasItem[], W: number, H: number, variant: number): 
     fallbackY += h + gap;
   });
 
-  return items.map((item) => {
-    const next = positions.get(item.id);
-    return next ? { ...item, ...next } : item;
-  });
+  return containArrangement(
+    items.map((item) => {
+      const next = positions.get(item.id);
+      return next ? { ...item, ...next } : item;
+    }),
+    W,
+    H
+  );
 }
 
 /** Render a variant scaled into a fixed thumbnail tile. */
@@ -810,13 +845,14 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     if (!selected) return;
     const next = clamp(Math.round(size), 6, 200);
     const patch: Partial<CanvasItem> = { fontSize: next };
+    const maxHeight = Math.max(16, pageHeight - selected.y);
     if (selectedIsText) {
-      patch.h = Math.max(selected.h, Math.round(next * 1.8));
+      patch.h = Math.min(maxHeight, Math.max(selected.h, Math.round(next * 1.8)));
     } else {
-      patch.h = Math.max(selected.h, Math.round(next * 1.6));
+      patch.h = Math.min(maxHeight, Math.max(selected.h, Math.round(next * 1.6)));
       if (selected.type === 'button' || selected.type === 'badge' || selected.type === 'input') {
         patch.w = Math.min(
-          pageWidth,
+          Math.max(24, pageWidth - selected.x),
           Math.max(selected.w, Math.round(Math.max(selected.label.length, 6) * next * 0.68))
         );
       }
