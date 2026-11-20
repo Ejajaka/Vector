@@ -20,6 +20,7 @@ import {
   LayoutTemplate,
   Lock,
   Maximize2,
+  Minimize2,
   Minus,
   Monitor,
   MousePointer2,
@@ -273,7 +274,22 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   const [panel, setPanel] = useState<PanelTab>('elements');
   const [category, setCategory] = useState<string | null>(null);
   const [query, setQuery] = useState('');
-  const [zoom, setZoom] = useState(0.72);
+  const [zoom, setZoom] = useState(() => {
+    try {
+      const saved = Number(localStorage.getItem('vector_editor_zoom_v1'));
+      if (Number.isFinite(saved)) return clamp(saved, 0.1, 4);
+    } catch {
+      // ignore
+    }
+    return 0.72;
+  });
+  const zoomRef = useRef(zoom);
+  const [zoomMenuOpen, setZoomMenuOpen] = useState(false);
+  const [spaceHeld, setSpaceHeld] = useState(false);
+  const spaceHeldRef = useRef(false);
+  const [panning, setPanning] = useState(false);
+  const panRef = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
+  const suppressCanvasClick = useRef(false);
   const [preview, setPreview] = useState(false);
   const [previewTick, setPreviewTick] = useState(0);
   const [playAllTick, setPlayAllTick] = useState(0);
@@ -290,6 +306,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     }
   });
   const artboardRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const figmaRef = useRef<HTMLInputElement>(null);
   const attachRef = useRef<HTMLInputElement>(null);
@@ -719,8 +736,8 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   }, [zoom, pageWidth, pageHeight]);
 
   const startDrag = (event: React.MouseEvent, item: CanvasItem, mode: 'move' | 'resize') => {
+    if (preview || editingId === item.id || event.button !== 0 || spaceHeldRef.current) return;
     event.stopPropagation();
-    if (preview || editingId === item.id) return;
     setSelectedId(item.id);
     dragRef.current = { id: item.id, mode, startX: event.clientX, startY: event.clientY, origin: { ...item } };
   };
@@ -877,10 +894,184 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     }
   };
 
+  /**
+   * Zoom around a point in the viewport. Used by the −/+ buttons, the zoom
+   * menu, keyboard shortcuts and trackpad pinch (ctrl/meta + wheel).
+   */
+  const applyZoom = useCallback(
+    (next: number, clientX?: number, clientY?: number) => {
+      const el = viewportRef.current;
+      const art = artboardRef.current;
+      const target = clamp(next, 0.1, 4);
+      zoomRef.current = target;
+      if (!el || !art) {
+        setZoom(target);
+        return;
+      }
+
+      const artRect = art.getBoundingClientRect();
+      const viewRect = el.getBoundingClientRect();
+      const cx = clientX ?? viewRect.left + el.clientWidth / 2;
+      const cy = clientY ?? viewRect.top + el.clientHeight / 2;
+      const px = artRect.width ? (cx - artRect.left) / artRect.width : 0.5;
+      const py = artRect.height ? (cy - artRect.top) / artRect.height : 0.5;
+
+      setZoom(target);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const nextArt = artboardRef.current;
+          if (!nextArt) return;
+          const nextRect = nextArt.getBoundingClientRect();
+          el.scrollLeft += nextRect.left + px * nextRect.width - cx;
+          el.scrollTop += nextRect.top + py * nextRect.height - cy;
+        });
+      });
+    },
+    []
+  );
+
+  const zoomStep = (direction: number) =>
+    applyZoom(zoom * (direction > 0 ? 1.15 : 1 / 1.15));
+
   const fitToScreen = () => {
-    const availableWidth = window.innerWidth - 700;
-    const availableHeight = window.innerHeight - 180;
-    setZoom(clamp(Math.min(availableWidth / pageWidth, availableHeight / pageHeight), 0.15, 1.2));
+    const el = viewportRef.current;
+    const width = el ? el.clientWidth : window.innerWidth - 700;
+    const height = el ? el.clientHeight : window.innerHeight - 180;
+    const next = clamp(
+      Math.min((width - 96) / pageWidth, (height - 96) / pageHeight),
+      0.1,
+      2
+    );
+    applyZoom(next);
+  };
+
+  const minimiseCanvas = () => applyZoom(0.15);
+
+  const startPan = (event: React.MouseEvent) => {
+    const el = viewportRef.current;
+    const wantsPan = event.button === 1 || (event.button === 0 && spaceHeldRef.current);
+    if (!el || !wantsPan) return;
+    event.preventDefault();
+    event.stopPropagation();
+    suppressCanvasClick.current = true;
+    panRef.current = {
+      x: event.clientX,
+      y: event.clientY,
+      left: el.scrollLeft,
+      top: el.scrollTop,
+    };
+    setPanning(true);
+  };
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('vector_editor_zoom_v1', String(zoom));
+    } catch {
+      // ignore
+    }
+  }, [zoom]);
+
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+    const onWheel = (event: WheelEvent) => {
+      if (!(event.ctrlKey || event.metaKey)) return;
+      event.preventDefault();
+      const factor = Math.exp(-event.deltaY * 0.0015);
+      applyZoom(zoomRef.current * factor, event.clientX, event.clientY);
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [applyZoom]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const typing =
+        target &&
+        (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) ||
+          target.isContentEditable ||
+          Boolean(target.closest('button, a, [role="button"]')));
+
+      if (event.code === 'Space' && !typing) {
+        event.preventDefault();
+        spaceHeldRef.current = true;
+        setSpaceHeld(true);
+      }
+      if (!(event.ctrlKey || event.metaKey) || typing) return;
+
+      if (event.key === '0') {
+        event.preventDefault();
+        applyZoom(1);
+      } else if (event.key === '1') {
+        event.preventDefault();
+        fitToScreen();
+      } else if (event.key === '+' || event.key === '=') {
+        event.preventDefault();
+        zoomStep(1);
+      } else if (event.key === '-') {
+        event.preventDefault();
+        zoomStep(-1);
+      }
+    };
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (event.code === 'Space') {
+        spaceHeldRef.current = false;
+        setSpaceHeld(false);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+    };
+  }, [zoom, pageWidth, pageHeight, applyZoom]);
+
+  useEffect(() => {
+    const move = (event: MouseEvent) => {
+      const pan = panRef.current;
+      const el = viewportRef.current;
+      if (!pan || !el) return;
+      el.scrollLeft = pan.left - (event.clientX - pan.x);
+      el.scrollTop = pan.top - (event.clientY - pan.y);
+    };
+    const up = () => {
+      if (!panRef.current) return;
+      panRef.current = null;
+      setPanning(false);
+      window.setTimeout(() => {
+        suppressCanvasClick.current = false;
+      }, 0);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+    return () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+    };
+  }, []);
+
+  const startFrameResize = (event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const startW = pageWidth;
+    const startH = pageHeight;
+    const move = (moveEvent: MouseEvent) => {
+      setPageSize(
+        clamp(Math.round(startW + (moveEvent.clientX - startX) / zoom), 320, 3000),
+        clamp(Math.round(startH + (moveEvent.clientY - startY) / zoom), 240, 3000)
+      );
+    };
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
   };
 
   const allVariants = VARIANTS.filter((variant) => {
@@ -1002,16 +1193,118 @@ export const EditorPage: React.FC<EditorPageProps> = ({
             {preview ? <MousePointer2 className="w-4 h-4" /> : <Play className="w-4 h-4" />}
           </button>
 
-          <button
-            type="button"
-            onClick={fitToScreen}
-            className="hidden sm:flex items-center gap-1 px-1.5 h-7 rounded-md hover:bg-white/10"
-            title="Fit to screen"
-          >
-            <Minus className="w-3 h-3 text-white/40" />
-            <span className="text-[11px] font-medium w-10 text-center text-white/80">{Math.round(zoom * 100)}%</span>
-            <Plus className="w-3 h-3 text-white/40" />
-          </button>
+          <div className="relative hidden sm:block">
+            <div className="flex h-7 items-center overflow-hidden rounded-md border border-white/10 bg-[#333]">
+              <button
+                type="button"
+                onClick={() => zoomStep(-1)}
+                className="grid h-7 w-7 place-items-center text-white/60 hover:bg-white/10"
+                title="Zoom out (Ctrl/⌘ −)"
+              >
+                <Minus className="h-3 w-3" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setZoomMenuOpen((value) => !value)}
+                className="h-7 px-1.5 text-[11px] font-medium tabular-nums text-white/80 hover:bg-white/10"
+                title="Canvas size"
+              >
+                {Math.round(zoom * 100)}%
+              </button>
+              <button
+                type="button"
+                onClick={() => zoomStep(1)}
+                className="grid h-7 w-7 place-items-center text-white/60 hover:bg-white/10"
+                title="Zoom in (Ctrl/⌘ +)"
+              >
+                <Plus className="h-3 w-3" />
+              </button>
+              <button
+                type="button"
+                onClick={fitToScreen}
+                className="grid h-7 w-7 place-items-center border-l border-white/10 text-white/60 hover:bg-white/10"
+                title="Fit to screen (Ctrl/⌘ 1)"
+              >
+                <Maximize2 className="h-3 w-3" />
+              </button>
+            </div>
+
+            {zoomMenuOpen && (
+              <>
+                <button
+                  type="button"
+                  className="fixed inset-0 z-40 cursor-default"
+                  onClick={() => setZoomMenuOpen(false)}
+                  aria-label="Close canvas size menu"
+                />
+                <div className="absolute right-0 top-9 z-50 w-60 rounded-xl border border-white/10 bg-[#2C2C2C] p-3 shadow-2xl">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-white/45">
+                      Canvas size
+                    </span>
+                    <span className="text-[10px] tabular-nums text-white/55">
+                      {Math.round(zoom * 100)}%
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={10}
+                    max={400}
+                    step={5}
+                    value={Math.round(zoom * 100)}
+                    onChange={(event) => applyZoom(Number(event.target.value) / 100)}
+                    className="mt-2 w-full accent-[#0D99FF]"
+                    aria-label="Canvas zoom"
+                  />
+                  <div className="mt-2 grid grid-cols-3 gap-1">
+                    {[25, 50, 75, 100, 150, 200].map((percent) => (
+                      <button
+                        key={percent}
+                        type="button"
+                        onClick={() => applyZoom(percent / 100)}
+                        className={`h-6 rounded text-[10px] font-semibold ${
+                          Math.round(zoom * 100) === percent
+                            ? 'bg-[#0D99FF] text-white'
+                            : 'bg-[#383838] text-white/65 hover:bg-white/15'
+                        }`}
+                      >
+                        {percent}%
+                      </button>
+                    ))}
+                  </div>
+                  <div className="mt-2 grid grid-cols-3 gap-1">
+                    <button
+                      type="button"
+                      onClick={fitToScreen}
+                      className="flex h-7 items-center justify-center gap-1 rounded bg-[#383838] text-[10px] font-semibold text-white/70 hover:bg-white/15"
+                      title="Fit to screen"
+                    >
+                      <Maximize2 className="h-3 w-3" /> Fit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyZoom(1)}
+                      className="h-7 rounded bg-[#383838] text-[10px] font-semibold text-white/70 hover:bg-white/15"
+                      title="Actual size"
+                    >
+                      100%
+                    </button>
+                    <button
+                      type="button"
+                      onClick={minimiseCanvas}
+                      className="flex h-7 items-center justify-center gap-1 rounded bg-[#383838] text-[10px] font-semibold text-white/70 hover:bg-white/15"
+                      title="Minimise canvas"
+                    >
+                      <Minimize2 className="h-3 w-3" /> Min
+                    </button>
+                  </div>
+                  <p className="mt-2 text-[9px] leading-relaxed text-white/35">
+                    Ctrl/⌘ + scroll or pinch to zoom. Space or middle-drag to pan.
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
 
           <button
             type="button"
@@ -1352,8 +1645,22 @@ export const EditorPage: React.FC<EditorPageProps> = ({
         </aside>
 
         {/* Canvas */}
-        <main className="flex-1 min-w-0 relative overflow-auto v-scroll bg-[#1E1E1E] flex justify-center pt-10 pb-24" onClick={() => setSelectedId(null)}>
-          <div style={{ width: pageWidth * zoom, height: pageHeight * zoom }}>
+        <main
+          ref={viewportRef}
+          onMouseDown={startPan}
+          className={`flex-1 min-w-0 relative overflow-auto v-scroll bg-[#1E1E1E] ${
+            panning ? 'cursor-grabbing' : spaceHeld ? 'cursor-grab' : ''
+          }`}
+          onClick={() => {
+            if (suppressCanvasClick.current) {
+              suppressCanvasClick.current = false;
+              return;
+            }
+            setSelectedId(null);
+          }}
+        >
+          <div className="flex min-h-full min-w-full items-center justify-center p-12">
+          <div className="relative" style={{ width: pageWidth * zoom, height: pageHeight * zoom }}>
             <div
               ref={artboardRef}
               key={`${activePage.id}-${preview ? 'preview' : 'edit'}`}
@@ -1543,6 +1850,18 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                 );
               })}
             </div>
+
+            {!preview && (
+              <button
+                type="button"
+                onMouseDown={startFrameResize}
+                onClick={(event) => event.stopPropagation()}
+                className="absolute -bottom-1.5 -right-1.5 z-30 h-3 w-3 cursor-nwse-resize rounded-[2px] border border-[#0D99FF] bg-white"
+                title={`Resize frame (${pageWidth} × ${pageHeight})`}
+                aria-label="Resize frame"
+              />
+            )}
+          </div>
           </div>
 
           {/* Pages strip */}
