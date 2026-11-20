@@ -95,7 +95,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
 
         <div className="grid lg:grid-cols-[1.05fr_1fr] rounded-lg overflow-hidden border border-[#E5E2D8] dark:border-[#33403F] shadow-2xl bg-white dark:bg-[#1B2526]">
           {/* Brand / product panel */}
-          <aside className="relative hidden lg:flex flex-col justify-between p-9 bg-[#2D5D4F] text-white overflow-hidden">
+          <aside className="relative hidden lg:flex flex-col justify-between p-9 bg-[var(--v-surface)] text-[var(--v-ink)] overflow-hidden">
             <div
               className="absolute inset-0 opacity-[0.16]"
               style={{
@@ -132,7 +132,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
                 {HIGHLIGHTS.map((item) => (
                   <li key={item} className="flex items-start gap-2 text-xs text-white/85">
                     <span className="mt-0.5 w-4 h-4 rounded-full bg-white/12 flex items-center justify-center shrink-0">
-                      <Check className="w-2.5 h-2.5 text-[#FAD237]" />
+                      <Check className="w-2.5 h-2.5 text-[var(--v-accent-hover)]" />
                     </span>
                     {item}
                   </li>
@@ -147,7 +147,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
                   <span className="text-[9px] uppercase tracking-[0.16em] text-white/50 font-semibold">
                     Generated brief
                   </span>
-                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[#FAD237]/15 text-[#FAD237] border border-[#FAD237]/25">
+                  <span className="rounded border border-[var(--v-accent)]/25 bg-[var(--v-accent-soft)] px-1.5 py-0.5 text-[9px] font-semibold text-[var(--v-accent-hover)]">
                     Ready
                   </span>
                 </div>
@@ -157,7 +157,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
                   <div className="h-1.5 w-5/6 rounded-full bg-white/15" />
                 </div>
                 <div className="flex items-center gap-1.5 pt-1">
-                  {['#49686C', '#D1B653', '#E4EBDD'].map((color) => (
+                  {['#7170ff', '#5e6ad2', '#2a2b2f'].map((color) => (
                     <span key={color} className="w-4 h-4 rounded-full border border-white/30" style={{ background: color }} />
                   ))}
                   <span className="text-[9px] text-white/55 font-mono ml-1">tokens injected</span>

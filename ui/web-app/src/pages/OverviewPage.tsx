@@ -272,7 +272,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           </div>
         </div>
 
-        <div className="absolute -right-4 -bottom-12 opacity-[0.07] hidden md:block pointer-events-none text-[#2D5D4F]">
+        <div className="absolute -right-4 -bottom-12 opacity-[0.07] hidden md:block pointer-events-none text-[var(--v-accent)]">
           <svg width="300" height="300" viewBox="0 0 48 48" fill="none" aria-hidden="true">
             <path d="M13.1 11.4 L24 36.2 L34.9 11.4" stroke="currentColor" strokeWidth="7.4" strokeLinecap="round" strokeLinejoin="round" />
           </svg>

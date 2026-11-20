@@ -30,7 +30,7 @@ export const ResetPasswordPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#F6F4EC] flex items-center justify-center px-4">
       <div className="w-full max-w-md bg-[#FFFFFF] border border-[#E5E2D8] rounded-lg shadow-xs p-6">
-        <div className="w-11 h-11 rounded-xl bg-[#2D5D4F] text-white flex items-center justify-center mb-4">
+        <div className="w-11 h-11 rounded-xl bg-[var(--v-accent)] text-white flex items-center justify-center mb-4">
           <KeyRound className="w-5 h-5" />
         </div>
         <h1 className="text-xl font-semibold text-[#283638] tracking-tight">Choose a new password</h1>

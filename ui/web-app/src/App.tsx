@@ -407,8 +407,8 @@ function AppShell() {
     return (
       <div className="min-h-screen bg-[#F6F4EC] flex items-center justify-center">
         <div className="text-center">
-          <div className="w-9 h-9 rounded-xl bg-[#2D5D4F] text-white mx-auto flex items-center justify-center font-black">V</div>
-          <p className="mt-3 text-xs font-semibold text-[#737A72]">Restoring your sessionâ€¦</p>
+          <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--v-accent)] font-semibold text-white">V</div>
+          <p className="mt-3 text-xs font-medium text-[var(--v-muted)]">Restoring your session...</p>
         </div>
       </div>
     );
