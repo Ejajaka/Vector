@@ -81,9 +81,33 @@ function tabSessionKey(userId: string | undefined): string {
   return `vector_active_tab_session_${userId || 'guest'}`;
 }
 
+const ACTIVE_PROJECT_KEY = 'vector_active_project_v1';
+const EDITOR_PROJECT_KEY = 'vector_editor_project_v1';
+const EDITOR_ORIGIN_KEY = 'vector_editor_origin_v1';
+const EDITOR_TEMPLATE_KEY = 'vector_editor_template_v1';
+const EDITOR_SEED_KEY = 'vector_editor_seed_v1';
+
+function readStored<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStored(key: string, value: unknown): void {
+  try {
+    if (value) localStorage.setItem(key, JSON.stringify(value));
+    else localStorage.removeItem(key);
+  } catch {
+    // storage is best effort
+  }
+}
+
 function AppShell() {
   const { configured, loading, user, passwordRecovery } = useAuth();
-  const { projects, currentProject, selectProject, createProject } = useProject();
+  const { projects, currentProject, selectProject, createProject, loading: projectLoading } = useProject();
   const [activeTab, setActiveTab] = useState<ActiveTab>('about');
   const [showAuth, setShowAuth] = useState(false);
   const [pendingTab, setPendingTab] = useState<ActiveTab | null>(null);
@@ -93,14 +117,73 @@ function AppShell() {
   const [analysisToInspect, setAnalysisToInspect] = useState<AnalysisResult | null>(null);
   const [analysisPromptSeed, setAnalysisPromptSeed] = useState<string | null>(null);
   const [tourOpen, setTourOpen] = useState(false);
-  const [editorTemplate, setEditorTemplate] = useState<TemplateDefinition | null>(null);
-  const [editorSeed, setEditorSeed] = useState<{ name: string; pages: any[] } | null>(null);
-  const [editorOrigin, setEditorOrigin] = useState<ActiveTab>('templates');
-  const [editorProject, setEditorProject] = useState<{ id: string; name: string; type?: string } | null>(null);
+  const [editorTemplate, setEditorTemplate] = useState<TemplateDefinition | null>(
+    () => readStored(EDITOR_TEMPLATE_KEY)
+  );
+  const [editorSeed, setEditorSeed] = useState<{ name: string; pages: any[] } | null>(
+    () => readStored(EDITOR_SEED_KEY)
+  );
+  const [editorOrigin, setEditorOrigin] = useState<ActiveTab>(
+    () => readStored<ActiveTab>(EDITOR_ORIGIN_KEY) || 'templates'
+  );
+  const [editorProject, setEditorProject] = useState<{ id: string; name: string; type?: string } | null>(
+    () => readStored(EDITOR_PROJECT_KEY)
+  );
   const [editorFresh, setEditorFresh] = useState(false);
-  const [activeProject, setActiveProject] = useState<{ id: string; name: string; description?: string } | null>(null);
+  const [activeProject, setActiveProject] = useState<{ id: string; name: string; description?: string } | null>(
+    () => readStored(ACTIVE_PROJECT_KEY)
+  );
+
+  useEffect(() => {
+    writeStored(ACTIVE_PROJECT_KEY, activeProject);
+  }, [activeProject]);
+  useEffect(() => {
+    writeStored(EDITOR_PROJECT_KEY, editorProject);
+  }, [editorProject]);
+  useEffect(() => {
+    writeStored(EDITOR_ORIGIN_KEY, editorOrigin);
+  }, [editorOrigin]);
+  useEffect(() => {
+    writeStored(EDITOR_TEMPLATE_KEY, editorTemplate);
+  }, [editorTemplate]);
+  useEffect(() => {
+    writeStored(EDITOR_SEED_KEY, editorSeed);
+  }, [editorSeed]);
+
+  // A restored editor implies its project even if the active-project key was
+  // cleared by a previous session.
+  useEffect(() => {
+    if (activeProject || !editorProject) return;
+    setActiveProject({ id: editorProject.id, name: editorProject.name });
+  }, [activeProject, editorProject]);
+
+  // Reloading the prompt tab restores the project selected by ProjectContext.
+  useEffect(() => {
+    if (activeTab !== 'project' || activeProject || !currentProject) return;
+    setActiveProject({
+      id: currentProject.id,
+      name: currentProject.name,
+      description: currentProject.description,
+    });
+  }, [activeTab, activeProject, currentProject]);
+
+  // If the tab survived a reload but the project was deleted, do not leave the
+  // user on a blank page.
+  useEffect(() => {
+    if (activeTab !== 'project' || activeProject) return;
+    if (projectLoading) return;
+    if (!currentProject) setActiveTab('projects');
+  }, [activeTab, activeProject, currentProject, projectLoading]);
+
+  // Project-origin editor with a missing stored id: recover the context project.
+  useEffect(() => {
+    if (activeTab !== 'editor' || editorProject || !currentProject) return;
+    if (editorOrigin !== 'project') return;
+    setEditorProject({ id: currentProject.id, name: currentProject.name });
+  }, [activeTab, editorProject, currentProject, editorOrigin]);
 
   const openProjectWorkspace = (id: string, name: string, description?: string) => {
+    selectProject(id);
     setActiveProject({ id, name, description });
     setActiveTab('project');
   };
@@ -116,11 +199,11 @@ function AppShell() {
   };
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [wideViewport, setWideViewport] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 640px)').matches
+    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 1440px)').matches
   );
 
   useEffect(() => {
-    const mq = window.matchMedia('(min-width: 640px)');
+    const mq = window.matchMedia('(min-width: 1440px)');
     const onChange = (event: MediaQueryListEvent) => setWideViewport(event.matches);
     mq.addEventListener('change', onChange);
     return () => mq.removeEventListener('change', onChange);
@@ -331,8 +414,14 @@ function AppShell() {
         body: `${template.blocks.length} elements were pre-filled. Keep designing, the prompt updates as you go.`,
         action: { label: 'Open projects', tab: 'projects' },
       });
+      // The project was just created, so the canvas should autosave into it and
+      // survive a reload. The template only provides the starting blocks.
+      setEditorProject({ id: project.id, name: project.name });
+      selectProject(project.id);
       setEditorTemplate(template);
+      setEditorOrigin('templates');
       setEditorSeed(null);
+      setEditorFresh(false);
       setActiveTab('editor');
     } catch (error) {
       notificationService.push({
@@ -435,16 +524,23 @@ function AppShell() {
             />
           )}
 
-          {activeTab === 'templates' && (            <TemplatesPage
+          {activeTab === 'templates' && (
+            <TemplatesPage
               onUseTemplate={(template) => void handleUseTemplate(template)}
               onOpenTemplate={(template) => {
                 setEditorTemplate(template);
+                setEditorProject(null);
+                setEditorOrigin('templates');
                 setEditorSeed(null);
+                setEditorFresh(false);
                 setActiveTab('editor');
               }}
               onOpenPrivate={(seedName, pages) => {
                 setEditorTemplate(null);
+                setEditorProject(null);
+                setEditorOrigin('templates');
                 setEditorSeed({ name: seedName, pages });
+                setEditorFresh(false);
                 setActiveTab('editor');
               }}
               onNavigatePricing={() => setActiveTab('pricing')}
@@ -478,11 +574,13 @@ function AppShell() {
 
           {activeTab === 'project' && activeProject && (
             <PromptModePage
+              key={activeProject.id}
+              projectId={activeProject.id}
               projectName={activeProject.name}
               onBack={() => setActiveTab('projects')}
               onOpenCanvas={() => enterProjectCanvas({ fresh: false })}
-              onGenerate={() => enterProjectCanvas({ fresh: false })}
               onOpenAssistant={() => setAssistantOpen(true)}
+              onRequireUpgrade={() => setActiveTab('pricing')}
             />
           )}
 
@@ -493,12 +591,16 @@ function AppShell() {
               onBrowseTemplates={() => setActiveTab('templates')}
               onOpenIntegrations={() => setActiveTab('integrations')}
               onCreated={(created) => {
+                selectProject(created.id);
                 setActiveProject({ id: created.id, name: created.name, description: created.description });
                 setActiveTab('project');
               }}
               onOpenEditor={() => {
                 setEditorTemplate(null);
                 setEditorProject(null);
+                setEditorOrigin('templates');
+                setEditorSeed(null);
+                setEditorFresh(true);
                 setActiveTab('editor');
               }}
             />
@@ -506,7 +608,10 @@ function AppShell() {
             <DesignSystemsPage
               onOpenEditor={(seedName, seedPages) => {
                 setEditorTemplate(null);
+                setEditorProject(null);
+                setEditorOrigin('templates');
                 setEditorSeed({ name: seedName, pages: seedPages });
+                setEditorFresh(false);
                 setActiveTab('editor');
               }}
             />

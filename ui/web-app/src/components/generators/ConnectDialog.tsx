@@ -97,7 +97,7 @@ export const ConnectDialog: React.FC<ConnectDialogProps> = ({ open, onClose, pro
           <div>
             <h2 className="text-[14px] font-semibold">Generate this project</h2>
             <p className="mt-0.5 text-[11px] text-white/45">
-              The revised prompt is copied automatically. Pick the tool you want to build in.
+              Copy the revised prompt, then pick the tool you want to build in.
             </p>
           </div>
           <button type="button" onClick={onClose} className="grid h-7 w-7 place-items-center rounded text-white/50 hover:bg-white/10" aria-label="Close">

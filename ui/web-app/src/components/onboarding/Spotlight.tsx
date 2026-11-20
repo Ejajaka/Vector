@@ -79,7 +79,10 @@ const ART: Record<SpotlightArt, React.ReactNode> = {
     </div>
   ),
   prompt: (
-    <div className="w-full h-full p-3 font-mono text-[7px] leading-[1.5] text-white/45" style={{ background: 'linear-gradient(140deg,#1A2430,#12151C)' }}>
+    <div className="relative w-full h-full p-3 font-mono text-[7px] leading-[1.5] text-white/45" style={{ background: 'linear-gradient(140deg,#1A2430,#12151C)' }}>
+      <span className="absolute right-2 top-2 rounded bg-white/10 px-1 py-0.5 text-[6px] uppercase tracking-wider text-white/50">
+        Example
+      </span>
       <p className="text-[#B9A8FF]">PAGE 1 — “Home”</p>
       <p className="mt-1">1. Primary filled button, violet, 176×48</p>
       <p>2. Card, white surface, 12px radius</p>

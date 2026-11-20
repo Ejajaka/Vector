@@ -223,6 +223,18 @@ export const EditorPage: React.FC<EditorPageProps> = ({
 }) => {
   const projectDocKey = projectId ? `vector_project_doc_${projectId}` : null;
 
+  // Editors opened from a template or a design system have no project id. Give
+  // them their own draft so closing or reloading the tab does not lose edits,
+  // keyed by the source so opening a different template starts clean.
+  const draftKey = 'vector_editor_draft_v1';
+  const draftSource = projectDocKey
+    ? `project:${projectId}`
+    : template
+      ? `template:${template.id}`
+      : seed
+        ? `seed:${seed.name}`
+        : 'blank';
+
   const loadProjectDoc = (): { name: string; pages: CanvasPage[] } | null => {
     if (!projectDocKey) return null;
     try {
@@ -236,11 +248,29 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     }
   };
 
-  const restored = fresh ? null : loadProjectDoc();
+  const loadDraft = (): { name: string; pages: CanvasPage[] } | null => {
+    if (projectDocKey) return null;
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (parsed?.source !== draftSource) return null;
+      if (!Array.isArray(parsed?.pages) || parsed.pages.length === 0) return null;
+      return { name: String(parsed.name || 'Untitled screen'), pages: parsed.pages as CanvasPage[] };
+    } catch {
+      return null;
+    }
+  };
 
-  const [name, setName] = useState(restored?.name || projectName || seed?.name || template?.name || 'Untitled screen');
+  const restored = fresh ? null : loadProjectDoc();
+  const draft = fresh ? null : loadDraft();
+
+  const [name, setName] = useState(
+    restored?.name || draft?.name || projectName || seed?.name || template?.name || 'Untitled screen'
+  );
   const [pages, setPages] = useState<CanvasPage[]>(() => {
     if (restored?.pages?.length) return restored.pages;
+    if (draft?.pages?.length) return draft.pages;
     if (seed?.pages?.length) return seed.pages;
     if (!template) return [{ id: newId(), name: 'Page 1', items: emptyCanvas() }];
     const device = template.device || 'desktop';
@@ -299,12 +329,16 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   const [saved, setSaved] = useState(false);
   const [openFrameGroup, setOpenFrameGroup] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 1000) return false;
     try {
       return localStorage.getItem('vector_panel_open_v1') !== '0';
     } catch {
       return true;
     }
   });
+  const [inspectorOpen, setInspectorOpen] = useState(
+    () => typeof window === 'undefined' || window.innerWidth >= 1000
+  );
   const artboardRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -333,7 +367,15 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   const applyingRemote = useRef(false);
   const publishTimer = useRef<number | undefined>(undefined);
   const lastCursor = useRef(0);
-  const dragRef = useRef<{ id: string; mode: 'move' | 'resize'; startX: number; startY: number; origin: CanvasItem } | null>(null);
+  const dragRef = useRef<{
+    id: string;
+    mode: 'move' | 'resize';
+    startX: number;
+    startY: number;
+    origin: CanvasItem;
+    before: CanvasPage[];
+    moved: boolean;
+  } | null>(null);
   const history = useRef<CanvasPage[][]>([]);
   const future = useRef<CanvasPage[][]>([]);
 
@@ -374,18 +416,25 @@ export const EditorPage: React.FC<EditorPageProps> = ({
 
   const selected = items.find((item) => item.id === selectedId) || null;
   const activeSystem = getActiveDesignSystem();
-  // Autosave into the project document so leaving and returning keeps everything.
+  // Autosave into the project document (or a source-keyed draft for template
+  // editors) so leaving and returning keeps everything.
   useEffect(() => {
-    if (!projectDocKey) return;
     const timer = window.setTimeout(() => {
       try {
-        localStorage.setItem(projectDocKey, JSON.stringify({ name, pages, updatedAt: new Date().toISOString() }));
+        if (projectDocKey) {
+          localStorage.setItem(projectDocKey, JSON.stringify({ name, pages, updatedAt: new Date().toISOString() }));
+        } else {
+          localStorage.setItem(
+            draftKey,
+            JSON.stringify({ source: draftSource, name, pages, updatedAt: new Date().toISOString() })
+          );
+        }
       } catch {
         // ignore quota errors
       }
     }, 600);
     return () => window.clearTimeout(timer);
-  }, [name, pages, projectDocKey]);
+  }, [name, pages, projectDocKey, draftKey, draftSource]);
 
   const prompt = useMemo(() => {
     const base = buildPagesPrompt(name, pages);
@@ -574,14 +623,18 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     setSaved(false);
   };
 
-  const setPageSize = (width: number, height: number, label?: string) => {
-    setPages((prev) =>
-      prev.map((page) =>
+  const setPageSize = (width: number, height: number, label?: string, record = true) => {
+    setPages((prev) => {
+      if (record) {
+        history.current = [...history.current.slice(-19), prev];
+        future.current = [];
+      }
+      return prev.map((page) =>
         page.id === activePage.id
           ? { ...page, width: Math.max(120, Math.round(width)), height: Math.max(120, Math.round(height)), ...(label ? { name: label } : {}) }
           : page
-      )
-    );
+      );
+    });
     setSaved(false);
   };
 
@@ -712,6 +765,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
       const dx = (event.clientX - drag.startX) / zoom;
       const dy = (event.clientY - drag.startY) / zoom;
       const origin = drag.origin;
+      if (dx !== 0 || dy !== 0) drag.moved = true;
       if (drag.mode === 'move') {
         update(drag.id, {
           x: clamp(Math.round(origin.x + dx), 0, Math.max(0, pageWidth - origin.w)),
@@ -725,6 +779,11 @@ export const EditorPage: React.FC<EditorPageProps> = ({
       }
     };
     const onUp = () => {
+      const drag = dragRef.current;
+      if (drag?.moved) {
+        history.current = [...history.current.slice(-19), drag.before];
+        future.current = [];
+      }
       dragRef.current = null;
     };
     window.addEventListener('mousemove', onMove);
@@ -739,7 +798,15 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     if (preview || editingId === item.id || event.button !== 0 || spaceHeldRef.current) return;
     event.stopPropagation();
     setSelectedId(item.id);
-    dragRef.current = { id: item.id, mode, startX: event.clientX, startY: event.clientY, origin: { ...item } };
+    dragRef.current = {
+      id: item.id,
+      mode,
+      startX: event.clientX,
+      startY: event.clientY,
+      origin: { ...item },
+      before: pages,
+      moved: false,
+    };
   };
 
   const onDrop = (event: React.DragEvent) => {
@@ -1060,13 +1127,20 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     const startY = event.clientY;
     const startW = pageWidth;
     const startH = pageHeight;
+    const before = pages;
+    let changed = false;
     const move = (moveEvent: MouseEvent) => {
-      setPageSize(
-        clamp(Math.round(startW + (moveEvent.clientX - startX) / zoom), 320, 3000),
-        clamp(Math.round(startH + (moveEvent.clientY - startY) / zoom), 240, 3000)
-      );
+      const nextW = clamp(Math.round(startW + (moveEvent.clientX - startX) / zoom), 320, 3000);
+      const nextH = clamp(Math.round(startH + (moveEvent.clientY - startY) / zoom), 240, 3000);
+      if (nextW !== startW || nextH !== startH) changed = true;
+      // Record one history entry for the whole drag, on mouse-up.
+      setPageSize(nextW, nextH, undefined, false);
     };
     const up = () => {
+      if (changed) {
+        history.current = [...history.current.slice(-19), before];
+        future.current = [];
+      }
       window.removeEventListener('mousemove', move);
       window.removeEventListener('mouseup', up);
     };
@@ -1193,6 +1267,25 @@ export const EditorPage: React.FC<EditorPageProps> = ({
             {preview ? <MousePointer2 className="w-4 h-4" /> : <Play className="w-4 h-4" />}
           </button>
 
+          <button
+            type="button"
+            onClick={() => {
+              setInspectorOpen((value) => {
+                const next = !value;
+                // On a narrow window only one side panel can fit.
+                if (next && window.innerWidth < 1000) setPanelOpen(false);
+                return next;
+              });
+            }}
+            className={`w-8 h-8 rounded-md grid place-items-center ${
+              inspectorOpen ? 'bg-white/10 text-white' : 'text-white/60 hover:bg-white/10'
+            }`}
+            title={inspectorOpen ? 'Hide inspector' : 'Show inspector'}
+            aria-label={inspectorOpen ? 'Hide inspector' : 'Show inspector'}
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+          </button>
+
           <div className="relative hidden sm:block">
             <div className="flex h-7 items-center overflow-hidden rounded-md border border-white/10 bg-[#333]">
               <button
@@ -1309,7 +1402,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
           <button
             type="button"
             onClick={() => figmaRef.current?.click()}
-            className="h-8 px-2.5 rounded-md text-[11.5px] font-semibold text-white/75 hover:bg-white/10 inline-flex items-center gap-1.5"
+            className="hidden md:inline-flex h-8 px-2.5 rounded-md text-[11.5px] font-semibold text-white/75 hover:bg-white/10 items-center gap-1.5"
             title="Import a Figma JSON export"
           >
             <Frame className="w-3.5 h-3.5" /> Import Figma
@@ -1433,6 +1526,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                   setPanel(tab.id);
                   setPanelOpen(true);
                   setCategory(null);
+                  if (window.innerWidth < 1000) setInspectorOpen(false);
                 }}
                 className={`w-[56px] py-1.5 rounded-md flex flex-col items-center gap-1 transition-colors ${
                   active ? 'bg-white/10 text-white' : 'text-white/45 hover:text-white/80 hover:bg-white/5'
@@ -1916,6 +2010,13 @@ export const EditorPage: React.FC<EditorPageProps> = ({
 
             <span className="w-px h-5 bg-white/10 mx-1" />
 
+            <button type="button" onClick={(event) => { event.stopPropagation(); undo(); }} title="Undo (Ctrl/⌘ Z)" className="w-8 h-8 rounded-md grid place-items-center text-white/60 hover:bg-white/10">
+              <Undo2 className="w-4 h-4" />
+            </button>
+            <button type="button" onClick={(event) => { event.stopPropagation(); redo(); }} title="Redo (Ctrl/⌘ Shift Z)" className="w-8 h-8 rounded-md grid place-items-center text-white/60 hover:bg-white/10">
+              <Redo2 className="w-4 h-4" />
+            </button>
+
             {selected ? (
               <>
                 {[
@@ -1944,11 +2045,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                   <Trash2 className="w-4 h-4" />
                 </button>
               </>
-            ) : (
-              <button type="button" onClick={(event) => { event.stopPropagation(); undo(); }} title="Undo" className="w-8 h-8 rounded-md grid place-items-center text-white/60 hover:bg-white/10">
-                <Undo2 className="w-4 h-4" />
-              </button>
-            )}
+            ) : null}
           </div>
 
           <button
@@ -1962,6 +2059,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
         </main>
 
         {/* Inspector */}
+        {inspectorOpen && (
         <aside data-spot="editor-inspector" className="w-[286px] shrink-0 border-l border-white/10 bg-[#2C2C2C] flex flex-col min-h-0 overflow-y-auto v-scroll">
           <div className="h-11 shrink-0 flex items-center gap-1 px-3 border-b border-white/10">
             <button
@@ -2677,6 +2775,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
             </button>
           </div>
         </aside>
+        )}
       </div>
 
       <SpotlightHost page="editor" onLearnMore={() => onOpenAssistant?.()} />

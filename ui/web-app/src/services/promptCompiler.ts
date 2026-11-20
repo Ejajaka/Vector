@@ -1233,10 +1233,61 @@ function applyCaps(elements: CompiledElement[]): CompiledElement[] {
   return kept;
 }
 
+function expandQuantities(elements: CompiledElement[]): {
+  elements: CompiledElement[];
+  notes: Signal[];
+} {
+  const expanded: CompiledElement[] = [];
+  const notes: Signal[] = [];
+
+  elements.forEach((element) => {
+    const count = element.count || 1;
+    if (
+      (element.kind === 'card' || element.kind === 'image' || element.kind === 'avatar' ||
+        element.kind === 'badge' || element.kind === 'link') &&
+      count > 1
+    ) {
+      const shown = Math.min(count, 3);
+      notes.push({
+        tone: 'infer',
+        text: `Requested ${count} ${element.kind}s → ${shown} drawn (a grid, not one wide box).`,
+      });
+      for (let index = 0; index < shown; index += 1) {
+        expanded.push({ ...element, count: undefined });
+      }
+    } else {
+      expanded.push(element);
+    }
+  });
+
+  return { elements: expanded, notes };
+}
+
+/**
+ * Validate externally supplied elements (model output) with the same rules the
+ * deterministic compiler uses: de-duplicate, cap counts, expand quantities and
+ * sort into the screen's canonical order.
+ */
+export function finaliseElements(
+  elements: CompiledElement[],
+  archetype: Archetype,
+  idPrefix = 'el'
+): CompiledElement[] {
+  const deduped = dedupe(elements);
+  const capped = applyCaps(deduped);
+  const { elements: expanded } = expandQuantities(capped);
+  const ordered = sortSemantic(applyCaps(expanded), archetype);
+  return ordered.map((element, index) => ({
+    ...element,
+    id: `${idPrefix}_${index + 1}`,
+  }));
+}
+
 const SEMANTIC_ORDER: Record<Archetype, ElementKind[]> = {
   auth: ['background', 'shape', 'navbar', 'image', 'avatar', 'heading', 'text', 'input', 'checkbox', 'button', 'link', 'badge', 'tabs', 'progress', 'card', 'table', 'chart', 'modal', 'footer'],
   commerce: ['background', 'shape', 'navbar', 'image', 'avatar', 'heading', 'text', 'badge', 'card', 'tabs', 'input', 'button', 'link', 'progress', 'table', 'chart', 'checkbox', 'modal', 'footer'],
-  dashboard: ['background', 'shape', 'navbar', 'card', 'chart', 'progress', 'table', 'tabs', 'heading', 'text', 'input', 'button', 'link', 'badge', 'image', 'avatar', 'checkbox', 'modal', 'footer'],
+  // The page title leads a dashboard; metrics and tables follow it.
+  dashboard: ['background', 'shape', 'navbar', 'heading', 'text', 'card', 'chart', 'progress', 'table', 'tabs', 'input', 'button', 'link', 'badge', 'image', 'avatar', 'checkbox', 'modal', 'footer'],
   landing: ['background', 'shape', 'navbar', 'image', 'avatar', 'heading', 'text', 'badge', 'button', 'link', 'card', 'tabs', 'input', 'progress', 'table', 'chart', 'checkbox', 'modal', 'footer'],
   generic: ['background', 'shape', 'navbar', 'image', 'avatar', 'heading', 'text', 'badge', 'tabs', 'card', 'progress', 'input', 'button', 'link', 'table', 'chart', 'modal', 'checkbox', 'footer'],
 };
@@ -1799,7 +1850,8 @@ export function compilePrompt(
   // prompt did not already describe one.
   const screenTitle = inferScreenTitle(prompt, archetype);
   if (screenTitle && !raw.some((element) => element.kind === 'heading')) {
-    raw.push({
+    // The page title leads the page, even when components were detected first.
+    raw.unshift({
       id: '', kind: 'heading', label: screenTitle, preset: 'text-h2',
       confidence: 0.5, radius: tokens.radius, fontFamily: tokens.font,
       x: 0, y: 0, w: 0, h: 0,
@@ -1844,28 +1896,7 @@ export function compilePrompt(
   const deduped = dedupe(raw);
   const capped = applyCaps(deduped);
 
-  // "6 dishes" is one spec line but should read as a grid, not one wide box.
-  const expanded: CompiledElement[] = [];
-  const repeatSignals: Signal[] = [];
-  capped.forEach((element) => {
-    const count = element.count || 1;
-    if (
-      (element.kind === 'card' || element.kind === 'image' || element.kind === 'avatar' ||
-        element.kind === 'badge' || element.kind === 'link') &&
-      count > 1
-    ) {
-      const shown = Math.min(count, 3);
-      repeatSignals.push({
-        tone: 'infer',
-        text: `Requested ${count} ${element.kind}s → ${shown} drawn (a grid, not one wide box).`,
-      });
-      for (let index = 0; index < shown; index += 1) {
-        expanded.push({ ...element, count: undefined });
-      }
-    } else {
-      expanded.push(element);
-    }
-  });
+  const { elements: expanded, notes: repeatSignals } = expandQuantities(capped);
 
   const ordered = sortSemantic(applyCaps(expanded), archetype).map((element, index) => ({
     ...element,
@@ -1997,6 +2028,38 @@ function screenMarkerName(line: string): string | undefined {
   return undefined;
 }
 
+/**
+ * A marker can carry the description on the same line
+ * ("Screen 1: Login page with email and password fields…"). Treat that inline
+ * text as page content instead of discarding it; short values such as
+ * "Screen 2: Dashboard" stay page names.
+ */
+function screenMarkerInlineBody(line: string): string | undefined {
+  const trimmed = line.trim();
+  if (/^-{3,}$/.test(trimmed)) return undefined;
+  const content = stripHeading(trimmed);
+  const explicit = content.match(/^(?:screen|page|view|step)\s*\d*\s*[:—–-]\s*(.+)$/i);
+  if (!explicit) return undefined;
+  const value = explicit[1].trim();
+  if (!value) return undefined;
+  const words = value.split(/\s+/).filter(Boolean).length;
+  // Sentences, comma lists and long descriptions are body copy, not a name.
+  return words >= 5 || /[,.;]/.test(value) ? value : undefined;
+}
+
+/** Pull a short title out of an inline screen description. */
+function inlineScreenTitle(value: string): string | undefined {
+  const lead = value
+    .split(/\s+(?:with|that|which|containing|including|showing|featuring|where)\b|[,.;:]/i)[0]
+    .replace(/\s+(?:screen|page|view|dashboard)$/i, '')
+    .trim();
+  if (!lead || lead.length > 40) return undefined;
+  const words = lead.split(/\s+/).filter(Boolean);
+  if (words.length === 0 || words.length > 3) return undefined;
+  if (/^(?:a|an|the|this|that|my|our|your)$/i.test(words[0])) return undefined;
+  return cleanHeading(titleCase(lead.toLowerCase()));
+}
+
 function blockName(text: string, archetype: Archetype): string | undefined {
   const heading = text.split(/\r?\n/).find((line) => /^#{1,6}\s+\S/.test(line));
   if (heading) {
@@ -2042,7 +2105,12 @@ export function compilePromptScreens(
       if (current.lines.some((entry) => entry.trim())) {
         blocks.push({ name: current.name, text: current.lines.join('\n'), fromMarker: current.fromMarker });
       }
-      current = { name: screenMarkerName(line) || '', lines: [], fromMarker: true };
+      const inlineBody = screenMarkerInlineBody(line);
+      current = {
+        name: inlineBody ? inlineScreenTitle(inlineBody) || '' : screenMarkerName(line) || '',
+        lines: inlineBody ? [inlineBody] : [],
+        fromMarker: true,
+      };
     } else {
       current.lines.push(line);
     }

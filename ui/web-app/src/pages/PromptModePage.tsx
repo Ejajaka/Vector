@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle, ArrowLeft, ArrowRight, Check, Copy, Cpu, HelpCircle, Layers, Loader2, Plus, Sparkles, Undo2,
 } from 'lucide-react';
@@ -23,14 +23,74 @@ import { loadLearnedLexicon, saveLearnedPhrase } from '../services/lexicon.ts';
 import { loadSettings } from '../services/settings.ts';
 import { isLLMConfigured } from '../services/llmEngine.ts';
 import { parsePromptWithModel, type ModelParseResult } from '../services/semanticParser.ts';
+import { isPaid, readEntitlements } from '../services/entitlements.ts';
+import { ConnectDialog } from '../components/generators/ConnectDialog.tsx';
 import { WireframePreview } from '../components/editor/WireframePreview.tsx';
+import type { CanvasItem, CanvasItemType, CanvasPage } from '../data/canvas.ts';
+
+/** Canvas types that can represent each compiled component kind. */
+const CANVAS_TYPE: Partial<Record<CompiledElement['kind'], CanvasItemType>> = {
+  navbar: 'navbar',
+  heading: 'heading',
+  text: 'text',
+  button: 'button',
+  input: 'input',
+  link: 'text',
+  card: 'card',
+  image: 'image',
+  avatar: 'avatar',
+  badge: 'badge',
+  tabs: 'text',
+  progress: 'chart',
+  table: 'table',
+  chart: 'chart',
+  modal: 'modal',
+  checkbox: 'input',
+  footer: 'footer',
+};
+
+/** Convert laid-out prompt screens into real canvas pages. */
+function screensToCanvasPages(
+  pages: Array<{ screen: PromptScreen; elements: CompiledElement[] }>,
+  width: number,
+  height: number
+): CanvasPage[] {
+  return pages.map(({ screen, elements }, index) => {
+    const items: CanvasItem[] = [];
+    elements.forEach((element) => {
+      const type = CANVAS_TYPE[element.kind];
+      if (!type) return;
+      items.push({
+        id: `item_${screen.id}_${element.id}`,
+        type,
+        x: Math.max(0, Math.round(element.x)),
+        y: Math.max(0, Math.round(element.y)),
+        w: Math.max(24, Math.round(element.w)),
+        h: Math.max(16, Math.round(element.h)),
+        label: element.label,
+        color: element.colour,
+        action: element.action,
+        radius: element.radius,
+      });
+    });
+    return {
+      id: `page_${screen.id}`,
+      name: screen.name || `Page ${index + 1}`,
+      width,
+      height,
+      background: screen.meta.dark ? '#0B0E14' : '#FFFFFF',
+      items,
+    };
+  });
+}
 
 interface Props {
+  projectId?: string;
   projectName: string;
   onBack: () => void;
   onOpenCanvas: () => void;
-  onGenerate: (prompt: string) => void;
   onOpenAssistant?: () => void;
+  onRequireUpgrade?: () => void;
 }
 
 interface PageRefinement {
@@ -61,6 +121,40 @@ const TONE: Record<string, string> = {
   infer: 'bg-[var(--v-teal)]',
   warn: 'bg-[#E5484D]',
 };
+
+interface PromptDraft {
+  text: string;
+  submitted: string;
+  answers: Record<string, string>;
+  confirmed: Record<string, boolean>;
+  activeId: string;
+}
+
+function readPromptDraft(projectId?: string): PromptDraft {
+  const fallback: PromptDraft = {
+    text: '',
+    submitted: '',
+    answers: {},
+    confirmed: {},
+    activeId: 'screen_1',
+  };
+  if (!projectId) return fallback;
+  try {
+    const raw = localStorage.getItem(`vector_project_prompt_${projectId}`);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw) as Partial<PromptDraft>;
+    return {
+      text: typeof parsed.text === 'string' ? parsed.text : '',
+      submitted: typeof parsed.submitted === 'string' ? parsed.submitted : '',
+      answers: parsed.answers && typeof parsed.answers === 'object' ? parsed.answers : {},
+      confirmed:
+        parsed.confirmed && typeof parsed.confirmed === 'object' ? parsed.confirmed : {},
+      activeId: typeof parsed.activeId === 'string' ? parsed.activeId : 'screen_1',
+    };
+  } catch {
+    return fallback;
+  }
+}
 
 const missingAttrs = (element: CompiledElement) =>
   (REQUIRED_ATTRS[element.kind] || []).filter(
@@ -135,19 +229,24 @@ function placementOf(element: CompiledElement, boardWidth: number): string {
 }
 
 export const PromptModePage: React.FC<Props> = ({
+  projectId,
   projectName,
   onBack,
   onOpenCanvas,
-  onGenerate,
   onOpenAssistant,
+  onRequireUpgrade,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [text, setText] = useState('');
-  const [submitted, setSubmitted] = useState('');
-  const [activeId, setActiveId] = useState('screen_1');
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [confirmed, setConfirmed] = useState<Record<string, boolean>>({});
+  const initialDraft = useRef<PromptDraft | null>(null);
+  if (initialDraft.current === null) initialDraft.current = readPromptDraft(projectId);
+
+  const [text, setText] = useState(initialDraft.current.text);
+  const [submitted, setSubmitted] = useState(initialDraft.current.submitted);
+  const [activeId, setActiveId] = useState(initialDraft.current.activeId);
+  const [answers, setAnswers] = useState<Record<string, string>>(initialDraft.current.answers);
+  const [confirmed, setConfirmed] = useState<Record<string, boolean>>(initialDraft.current.confirmed);
   const [copied, setCopied] = useState(false);
+  const [generateOpen, setGenerateOpen] = useState(false);
   const [view, setView] = useState<'wireframe' | 'prompt'>('wireframe');
   const [viewport, setViewport] = useState<Viewport>('desktop');
   const [baselineRisks, setBaselineRisks] = useState<Record<string, number>>({});
@@ -164,6 +263,21 @@ export const PromptModePage: React.FC<Props> = ({
     error?: string;
     rejected?: boolean;
   }>({ running: false, percent: 0, stage: '' });
+
+  useEffect(() => {
+    if (!projectId) return;
+    const timer = window.setTimeout(() => {
+      try {
+        localStorage.setItem(
+          `vector_project_prompt_${projectId}`,
+          JSON.stringify({ text, submitted, answers, confirmed, activeId })
+        );
+      } catch {
+        // ignore quota/private-mode errors
+      }
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [projectId, text, submitted, answers, confirmed, activeId]);
 
   const deterministicScreens = useMemo(
     () => compilePromptScreens(submitted, lexicon),
@@ -507,14 +621,16 @@ export const PromptModePage: React.FC<Props> = ({
 
     setModelStatus({ running: true });
     try {
-      const result = await parsePromptWithModel(
-        submitted,
-        lexicon,
-        deterministicScreens
-      );
+      // Compare against the deterministic artifact *including* the user's
+      // confirmed answers, otherwise the model's risk looks better than it is.
+      const answeredBase = deterministicScreens.map((screen) => {
+        const answered = applyAnswers(screen.elements, answers, confirmed);
+        return { ...screen, elements: answered, questions: auditElements(answered) };
+      });
+      const result = await parsePromptWithModel(submitted, lexicon, answeredBase);
       setModel(result);
-      setAnswers({});
-      setConfirmed({});
+      // Keep deterministic answers: model ids are namespaced, so they cannot
+      // collide, and switching back must not erase the user's work.
       setRefinedById({});
       setBaselineRisks({});
       setActiveId(result.screens[0]?.id ?? 'screen_1');
@@ -530,10 +646,42 @@ export const PromptModePage: React.FC<Props> = ({
   const useDeterministic = () => {
     setModel(null);
     setModelStatus({ running: false });
-    setAnswers({});
-    setConfirmed({});
     setRefinedById({});
     setBaselineRisks({});
+  };
+
+  /**
+   * Open the freeform canvas. On the first visit, seed it with the compiled
+   * screens so the two modes show the same artifact instead of a blank board.
+   * Never overwrite an existing canvas.
+   */
+  const openCanvas = () => {
+    const docKey = projectId ? `vector_project_doc_${projectId}` : null;
+    if (docKey && submitted.trim() && screens.length > 0) {
+      try {
+        const raw = localStorage.getItem(docKey);
+        const parsed = raw ? JSON.parse(raw) : null;
+        const pages: CanvasPage[] = Array.isArray(parsed?.pages) ? parsed.pages : [];
+        const blank = pages.length === 0 || pages.every((page) => !Array.isArray(page.items) || page.items.length === 0);
+        if (blank) {
+          localStorage.setItem(
+            docKey,
+            JSON.stringify({
+              name: projectName,
+              pages: screensToCanvasPages(
+                allScreens.map((view) => ({ screen: view.screen, elements: view.elements })),
+                boardWidth,
+                boardHeight
+              ),
+              updatedAt: new Date().toISOString(),
+            })
+          );
+        }
+      } catch {
+        // A malformed or full store must not block the canvas.
+      }
+    }
+    onOpenCanvas();
   };
 
   const copy = async () => {
@@ -558,7 +706,7 @@ export const PromptModePage: React.FC<Props> = ({
             Prompt mode · deterministic engine · {screens.length > 1 ? `${screens.length} pages · ` : ''}optional local model
           </p>
         </div>
-        <button type="button" onClick={onOpenCanvas} className="ml-auto v-btn v-btn-ghost h-8 px-3 text-[11px]">
+        <button type="button" onClick={openCanvas} className="ml-auto v-btn v-btn-ghost h-8 px-3 text-[11px]">
           <Layers className="w-3 h-3" /> Switch to canvas
         </button>
       </header>
@@ -1172,7 +1320,7 @@ export const PromptModePage: React.FC<Props> = ({
 
           <button
             type="button"
-            onClick={() => onGenerate(revisedPrompt)}
+            onClick={() => setGenerateOpen(true)}
             disabled={!submitted}
             className="mt-2 v-btn v-btn-primary h-9 w-full text-[11.5px] disabled:opacity-40"
           >
@@ -1181,6 +1329,17 @@ export const PromptModePage: React.FC<Props> = ({
           </button>
         </section>
       </div>
+
+      <ConnectDialog
+        open={generateOpen}
+        onClose={() => setGenerateOpen(false)}
+        prompt={revisedPrompt}
+        paid={isPaid(readEntitlements())}
+        onRequireUpgrade={() => {
+          setGenerateOpen(false);
+          onRequireUpgrade?.();
+        }}
+      />
     </div>
   );
 };

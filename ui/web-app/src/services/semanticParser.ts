@@ -269,7 +269,7 @@ export function normaliseModelScreens(
       : base.archetype;
 
     let elements = normalised.length
-      ? finaliseElements(normalised, archetype, `${id}_el`)
+      ? finaliseElements(normalised, archetype, `${id}_model`)
       : base.elements;
     if (!normalised.length) {
       warnings.push(
