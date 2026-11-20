@@ -244,11 +244,11 @@ export const TemplatesPage: React.FC<TemplatesPageProps> = ({
       {preview && (
         <div className="fixed inset-0 z-[70] grid place-items-center p-4">
           <div className="absolute inset-0 bg-[#14121F]/55 backdrop-blur-sm" onClick={() => setPreview(null)} aria-hidden="true" />
-          <div className="v-scroll relative max-h-[88vh] w-full max-w-[880px] overflow-y-auto rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] shadow-[var(--v-shadow-lg)]">
+          <div className="v-scroll relative max-h-[calc(100vh-1rem)] w-full max-w-[880px] overflow-y-auto rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] shadow-[var(--v-shadow-lg)]">
             <div className="grid md:grid-cols-[1.05fr_1fr]">
               <div className="relative">
                 {preview.pages && preview.pages.length > 0 && (
-                  <div className="flex gap-1.5 overflow-x-auto v-scroll px-4 pt-4 pb-2">
+                  <div className="v-scroll flex gap-1.5 overflow-x-auto px-3 pb-1.5 pt-3">
                     {[0, ...preview.pages.map((_, index) => index + 1)].map((pageIndex) => (
                       <button
                         key={pageIndex}
@@ -265,25 +265,25 @@ export const TemplatesPage: React.FC<TemplatesPageProps> = ({
                     ))}
                   </div>
                 )}
-                <div className="h-[300px] overflow-hidden">
+                <div className="h-[130px] overflow-hidden sm:h-[220px] md:h-[300px]">
                   <Preview template={preview} detail page={previewPage} />
                 </div>
               </div>
 
-              <div className="p-5 sm:p-6">
+              <div className="p-4 sm:p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="v-eyebrow">{preview.category}</p>
-                    <h2 className="v-display text-[24px] mt-1 text-[var(--v-ink)]">{preview.name}</h2>
+                    <h2 className="v-display mt-1 text-[21px] text-[var(--v-ink)] sm:text-[24px]">{preview.name}</h2>
                   </div>
                   <button type="button" onClick={() => setPreview(null)} className="v-icon-btn -mr-2 -mt-2" aria-label="Close">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
 
-                <p className="mt-2 text-[12px] leading-relaxed text-[var(--v-muted)]">{preview.description}</p>
+                <p className="mt-2 text-[11.5px] leading-relaxed text-[var(--v-muted)]">{preview.description}</p>
 
-                <div className="mt-3 flex flex-wrap gap-1.5">
+                <div className="mt-2 flex flex-wrap gap-1.5">
                   {preview.tags.map((tag) => (
                     <span key={tag} className="px-2 py-0.5 rounded-full bg-[var(--v-surface-2)] text-[10px] font-medium text-[var(--v-muted)]">
                       #{tag}
@@ -291,10 +291,10 @@ export const TemplatesPage: React.FC<TemplatesPageProps> = ({
                   ))}
                 </div>
 
-                <h3 className="mt-4 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--v-faint)] flex items-center gap-1.5">
+                <h3 className="mt-3 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--v-faint)]">
                   <Layers className="w-3 h-3" /> What is included
                 </h3>
-                <div className="mt-2 space-y-2">
+                <div className="mt-2 grid grid-cols-1 gap-2 min-[520px]:grid-cols-2">
                   {preview.blocks.map((block) => (
                     <div key={block.label}>
                       <div className="flex items-center gap-1.5">
@@ -317,12 +317,12 @@ export const TemplatesPage: React.FC<TemplatesPageProps> = ({
                 <button
                   type="button"
                   onClick={() => use(preview)}
-                  className="mt-5 w-full v-btn v-btn-primary h-10 text-[12.5px]"
+                  className="mt-4 w-full v-btn v-btn-primary h-9 text-[12px]"
                 >
                   {preview.pro && !paid ? <Lock className="w-3.5 h-3.5" /> : null}
                   Use this template <ArrowRight className="w-3.5 h-3.5" />
                 </button>
-                <p className="mt-2 text-center text-[10px] text-[var(--v-faint)]">
+                <p className="mt-1.5 text-center text-[9.5px] text-[var(--v-faint)]">
                   Creates a project and opens the prompt studio.
                 </p>
               </div>
