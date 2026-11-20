@@ -32,7 +32,6 @@ interface ProjectsPageProps {
   onOpenProject: (project: Project) => void;
   onOpenSettings: () => void;
   onBrowseTemplates?: () => void;
-  onOpenIntegrations?: () => void;
   onOpenEditor?: () => void;
   onCreated?: (project: Project) => void;
   onOpenPricing?: () => void;
@@ -44,7 +43,6 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
   onOpenProject,
   onOpenSettings,
   onBrowseTemplates,
-  onOpenIntegrations,
   onOpenEditor,
   onCreated,
   onOpenPricing,

@@ -15,7 +15,6 @@ const COLUMNS: Array<{ title: string; links: Array<{ label: string; tab: ActiveT
       { label: 'Overview', tab: 'about' },
       { label: 'Templates', tab: 'templates' },
       { label: 'Design systems', tab: 'design' },
-      { label: 'Integrations', tab: 'integrations' },
     ],
   },
   {
@@ -86,7 +85,7 @@ export const PublicFooter: React.FC<PublicFooterProps> = ({ activeTab, onNavigat
 
         <div className="mt-10 flex flex-col gap-3 border-t border-[var(--v-line)] pt-5 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[10.5px] text-[var(--v-faint)]">
-            Â© 2026 Vector. All rights reserved. Â· Bengaluru, India
+            © 2026 Vector. All rights reserved. · Bengaluru, India
           </p>
           <div className="flex items-center gap-4">
             <button type="button" onClick={() => go('contact')} className="text-[10.5px] text-[var(--v-muted)] hover:text-[var(--v-ink)]">

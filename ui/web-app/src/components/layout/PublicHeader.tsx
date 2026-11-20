@@ -1,7 +1,6 @@
 ﻿import React, { useEffect, useState } from 'react';
-import { ArrowRight, LogIn, Menu, Moon, Sun, X } from 'lucide-react';
+import { ArrowRight, LogIn, Menu, X } from 'lucide-react';
 import type { ActiveTab } from '../../types/analysis.ts';
-import { useTheme } from '../../context/ThemeContext.tsx';
 import { Logo } from '../ui/Logo.tsx';
 
 interface PublicHeaderProps {
@@ -21,7 +20,6 @@ const LINKS: Array<{ id: ActiveTab; label: string }> = [
 ];
 
 export const PublicHeader: React.FC<PublicHeaderProps> = ({ activeTab, onNavigate, onRequestSignIn, onOpenApp }) => {
-  const { theme, toggleTheme } = useTheme();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -80,10 +78,6 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ activeTab, onNavigat
         </nav>
 
         <div className="ml-auto flex items-center gap-1.5">
-          <button type="button" onClick={toggleTheme} className="v-icon-btn hidden sm:inline-flex" aria-label="Toggle theme">
-            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </button>
-
           {onOpenApp ? (
             <button
               type="button"

@@ -6,7 +6,6 @@ import {
   Check,
   ShieldCheck,
   Trash2,
-  Sun,
   Moon,
   ExternalLink,
   BookOpen,
@@ -14,7 +13,6 @@ import {
 } from 'lucide-react';
 import { historyStorage } from '../services/historyStorage.ts';
 import { useToast } from '../components/ui/Toast.tsx';
-import { useTheme } from '../context/ThemeContext.tsx';
 
 interface SettingsPageProps {
   onRefreshData?: () => void;
@@ -23,7 +21,6 @@ interface SettingsPageProps {
 
 export const SettingsPage: React.FC<SettingsPageProps> = ({ onRefreshData, onOpenManual }) => {
   const { toast } = useToast();
-  const { theme, setTheme } = useTheme();
 
   const handleClearData = () => {
     if (window.confirm('Clear the prompt-analysis history stored in this browser? Cloud projects are not affected.')) {
@@ -52,60 +49,19 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onRefreshData, onOpe
         </div>
 
         <p className="text-xs text-[#737A72] dark:text-[#8E9A93]">
-          Choose your interface theme. Both themes use the same indigo accent and Inter type, with
-          high-contrast readability.
+          Vector is dark-only. The interface uses the deep Linear canvas, hairline borders and the
+          indigo accent throughout.
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-          <label className={`p-4 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
-            theme === 'light'
-              ? 'border-[#49686C] bg-[#F0F5F5] ring-1 ring-[#49686C]'
-              : 'border-[#E5E2D8] dark:border-[#33403F] bg-[#FAFAF8] dark:bg-[#141C1D] hover:bg-white dark:hover:bg-[#222E30]'
-          }`}>
-            <div className="flex items-center gap-3">
-              <input
-                type="radio"
-                name="theme"
-                value="light"
-                checked={theme === 'light'}
-                onChange={() => setTheme('light')}
-                className="text-[#49686C] focus:ring-[#49686C]"
-              />
-              <div className="p-2 rounded-lg bg-[#FFFFFF] border border-[#E5E2D8] text-[#D1B653]">
-                <Sun className="w-4 h-4" />
-              </div>
-              <div>
-                <span className="text-xs font-semibold text-[#283638] dark:text-[#E7E4D9] block">Vector Classic</span>
-                <span className="text-[11px] text-[#737A72] dark:text-[#8E9A93]">Warm ivory canvas</span>
-              </div>
-            </div>
-            {theme === 'light' && <Check className="w-4 h-4 text-[#49686C]" />}
-          </label>
-
-          <label className={`p-4 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
-            theme === 'dark'
-              ? 'border-[#49686C] bg-[#F0F5F5] ring-1 ring-[#49686C]'
-              : 'border-[#E5E2D8] dark:border-[#33403F] bg-[#FAFAF8] dark:bg-[#141C1D] hover:bg-white dark:hover:bg-[#222E30]'
-          }`}>
-            <div className="flex items-center gap-3">
-              <input
-                type="radio"
-                name="theme"
-                value="dark"
-                checked={theme === 'dark'}
-                onChange={() => setTheme('dark')}
-                className="text-[#49686C] focus:ring-[#49686C]"
-              />
-              <div className="p-2 rounded-lg bg-[#283638] text-white">
-                <Moon className="w-4 h-4" />
-              </div>
-              <div>
-                <span className="text-xs font-semibold text-[#283638] dark:text-[#E7E4D9] block">Vector Obsidian</span>
-                <span className="text-[11px] text-[#737A72] dark:text-[#8E9A93]">Deep slate, high contrast</span>
-              </div>
-            </div>
-            {theme === 'dark' && <Check className="w-4 h-4 text-[#49686C]" />}
-          </label>
+        <div className="flex items-center gap-3 rounded-lg border border-[#E5E2D8] bg-[#FAFAF8] p-3.5 dark:border-[#33403F] dark:bg-[#141C1D]">
+          <div className="rounded-md bg-[#283638] p-2 text-white">
+            <Moon className="h-4 w-4" />
+          </div>
+          <div>
+            <span className="block text-xs font-semibold text-[#283638] dark:text-[#E7E4D9]">Vector Obsidian</span>
+            <span className="text-[11px] text-[#737A72] dark:text-[#8E9A93]">Dark, high contrast, indigo accent</span>
+          </div>
+          <Check className="ml-auto h-4 w-4 text-[var(--v-accent-hover)]" />
         </div>
       </div>
 

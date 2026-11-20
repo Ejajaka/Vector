@@ -16,7 +16,6 @@ import { DashboardPage } from './pages/DashboardPage.tsx';
 import { TemplatesPage } from './pages/TemplatesPage.tsx';
 import { LearnPage } from './pages/LearnPage.tsx';
 import { PricingPage } from './pages/PricingPage.tsx';
-import { IntegrationsPage } from './pages/IntegrationsPage.tsx';
 import { NewAnalysisPage } from './pages/NewAnalysisPage.tsx';
 import { HistoryPage } from './pages/HistoryPage.tsx';
 import { SettingsPage } from './pages/SettingsPage.tsx';
@@ -66,7 +65,6 @@ const KNOWN_TABS: ActiveTab[] = [
   'library',
   'learn',
   'pricing',
-  'integrations',
   'design',
   'new-analysis',
   'editor',
@@ -305,8 +303,11 @@ function AppShell() {
   const localWorkspace = !configured;
   const signedIn = !!user || localWorkspace;
   // Marketing chrome is a property of the page, not of the session: /pricing and
-  // /about look like a commercial site whether or not you are signed in.
-  const showMarketingChrome = MARKETING_TABS.includes(activeTab);
+  // /about look like a commercial site whether or not you are signed in. Learn
+  // is the exception: once signed in it is part of the workspace, so the rail
+  // and header stay put when it is opened from the sidebar.
+  const showMarketingChrome =
+    MARKETING_TABS.includes(activeTab) && !(activeTab === 'learn' && signedIn);
 
   // Restore the current tab for this browser session.
   useEffect(() => {
@@ -724,10 +725,6 @@ function AppShell() {
             <PricingPage onNavigate={(tab) => setActiveTab(tab as ActiveTab)} />
           )}
 
-          {activeTab === 'integrations' && (
-            <IntegrationsPage onNavigate={navigate} />
-          )}
-
           {activeTab === 'overview' && (
             <OverviewPage
               publicMode={publicMode}
@@ -745,7 +742,6 @@ function AppShell() {
               onOpenPricing={openPricing}
               onOpenSettings={() => setActiveTab('settings')}
               onBrowseTemplates={() => setActiveTab('templates')}
-              onOpenIntegrations={() => setActiveTab('integrations')}
               onCreated={(created) => {
                 selectProject(created.id);
                 setActiveProject({ id: created.id, name: created.name, description: created.description });

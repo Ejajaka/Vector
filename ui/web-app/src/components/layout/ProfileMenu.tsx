@@ -1,19 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Bell,
-  Briefcase,
   ChevronRight,
   CircleHelp,
   Flag,
-  Globe,
   History,
   Laptop,
   LayoutGrid,
   Lightbulb,
   LogOut,
   MessageSquareWarning,
-  Monitor,
-  Palette,
   Settings,
   ShieldCheck,
   Sparkles,
@@ -22,7 +18,6 @@ import {
 } from 'lucide-react';
 import type { ActiveTab } from '../../types/analysis.ts';
 import { useAuth } from '../../context/AuthContext.tsx';
-import { useTheme } from '../../context/ThemeContext.tsx';
 import { planFor, readEntitlements } from '../../services/entitlements.ts';
 
 interface ProfileMenuProps {
@@ -50,7 +45,6 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
   unreadCount,
 }) => {
   const { user, localMode } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const [open, setOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -200,12 +194,6 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
             <Row icon={Sparkles} label="See what's included" onClick={() => openHub('included')} />
             <Row icon={Lightbulb} label="Your plan and usage" onClick={() => openHub('usage')} />
             <Row icon={History} label="Purchase history" onClick={() => go('pricing')} />
-            <Row
-              icon={theme === 'dark' ? Globe : Palette}
-              label={theme === 'dark' ? 'Theme: Dark' : 'Theme: Light'}
-              onClick={toggleTheme}
-              trailing={<span className="text-[11px] text-[#737A72]">Toggle</span>}
-            />
             <Row icon={Bell} label="Notifications" onClick={onOpenNotifications} trailing={
               unreadCount > 0 ? (
                 <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#49686C] text-white">{unreadCount}</span>
@@ -245,7 +233,9 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
                   </button>
                   <button
                     type="button"
-                    onClick={() => go('integrations')}
+                    onClick={() => {
+                      window.location.href = 'mailto:hello@vector.is-a.dev?subject=Vector%20suggestion';
+                    }}
                     className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[12.5px] text-[#283638] dark:text-[#E7E4D9] hover:bg-[#F6F4EC] dark:hover:bg-[#222E30]"
                   >
                     <Lightbulb className="w-3.5 h-3.5 text-[#737A72]" /> Suggest improvement
@@ -280,8 +270,6 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
             </div>
 
             <Row icon={MessageSquareWarning} label="Send feedback" onClick={() => go('learn')} />
-            <Row icon={Briefcase} label="Open in desktop app" onClick={() => go('integrations')} />
-            <Row icon={Monitor} label="Download for Windows / Mac" onClick={() => go('integrations')} />
             <Row icon={Settings} label="Settings" onClick={() => go('settings')} />
           </div>
 

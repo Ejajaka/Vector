@@ -5,10 +5,8 @@ import {
   CheckCircle2,
   Clock3,
   Compass,
-  Figma,
   Layers,
   Play,
-  Rocket,
   ScanLine,
   Sparkles,
   Wallet,
@@ -30,7 +28,7 @@ interface Lesson {
   to: string;
 }
 
-const TABS = ['Get started', 'Prompting', 'Elements', 'Templates', 'Integrations', 'Billing'] as const;
+const TABS = ['Get started', 'Prompting', 'Elements', 'Templates', 'Billing'] as const;
 type Tab = (typeof TABS)[number];
 
 const LESSONS: Record<Tab, Lesson[]> = {
@@ -54,10 +52,6 @@ const LESSONS: Record<Tab, Lesson[]> = {
     { title: 'Using a template without inheriting its opinions', summary: 'Preview the attributes, keep what applies, delete the rest.', minutes: 3, level: 'Beginner', icon: Layers, from: '#8B5CF6', to: '#FF6B8A' },
     { title: 'How a template becomes a prompt', summary: 'Blocks → attributes → prose → score, step by step.', minutes: 4, level: 'Intermediate', icon: Sparkles, from: '#0FA3A3', to: '#4F7DF3' },
   ],
-  Integrations: [
-    { title: 'From Figma frame to brief', summary: 'Connect Figma, pick a frame, and let Vector describe what it sees.', minutes: 5, level: 'Intermediate', icon: Figma, from: '#0FA3A3', to: '#22C1A6' },
-    { title: 'Deploying from Vector', summary: 'Connect a host and ship the build without leaving the app.', minutes: 6, level: 'Advanced', icon: Rocket, from: '#FF6B8A', to: '#8B5CF6' },
-  ],
   Billing: [
     { title: 'How the two-project trial works', summary: 'What counts as a project, what happens at zero, how to restore access.', minutes: 2, level: 'Beginner', icon: Wallet, from: '#FFC53D', to: '#FF8A6B' },
     { title: 'Invoices, GST and refunds', summary: 'Where receipts live, what is taxed, and the refund window.', minutes: 3, level: 'Beginner', icon: BookOpen, from: '#4F7DF3', to: '#0FA3A3' },
@@ -70,23 +64,22 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onStartTour })
 
   return (
     <div className="space-y-6 v-fade-up">
-      <section className="v-mesh v-noise rounded-[32px] px-6 sm:px-10 py-9 text-white relative">
-        <div className="relative z-10 max-w-xl">
-          <p className="text-[10.5px] uppercase tracking-[0.18em] font-semibold text-white/70">Learn</p>
-          <h1 className="v-display text-[30px] sm:text-[40px] mt-2">Short lessons, not a manual</h1>
-          <p className="mt-2 text-[13px] text-white/75 max-w-md">
+      <section className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="v-eyebrow">Learn</p>
+          <h1 className="v-display mt-1 text-[26px] text-[var(--v-ink)]">Short lessons, not a manual</h1>
+          <p className="mt-1 max-w-[620px] text-[13px] text-[var(--v-muted)]">
             Two to six minutes each, written for people who want to ship a better prompt today.
           </p>
-          <div className="mt-5 flex flex-wrap gap-2">
-            <button type="button" onClick={onStartTour} className="v-btn bg-white text-[#14121F] h-10 px-5 text-[12.5px]">
-              <Play className="w-3.5 h-3.5" /> Start the 60-second tour
-            </button>
-            <button type="button" onClick={() => onNavigate('templates')} className="v-btn border border-white/30 text-white h-10 px-5 text-[12.5px] hover:bg-white/10">
-              Browse templates <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
         </div>
-        <BookOpen className="hidden lg:block absolute right-10 bottom-6 w-32 h-32 text-white/10" />
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={onStartTour} className="v-btn v-btn-primary h-8 px-3 text-[12px]">
+            <Play className="h-3.5 w-3.5" /> Start the tour
+          </button>
+          <button type="button" onClick={() => onNavigate('templates')} className="v-btn h-8 px-3 text-[12px]">
+            Browse templates <ArrowRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </section>
 
       <div className="flex items-center gap-2 overflow-x-auto v-scroll pb-1">
@@ -129,7 +122,7 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onStartTour })
       <section className="grid md:grid-cols-3 gap-4">
         {[
           { title: 'Watch the walkthrough', body: 'Two minutes, narrated, whole flow.', icon: Play, tab: 'learn' as ActiveTab, cta: 'Watch' },
-          { title: 'Connect your first tool', body: 'Figma import and one-click deploys.', icon: Figma, tab: 'integrations' as ActiveTab, cta: 'Open' },
+          { title: 'Start from a template', body: 'Preview a screen, then open it in the editor.', icon: Layers, tab: 'templates' as ActiveTab, cta: 'Browse' },
           { title: 'Pick a plan when ready', body: 'Two projects free, no card.', icon: Wallet, tab: 'pricing' as ActiveTab, cta: 'Compare' },
         ].map((card) => {
           const Icon = card.icon;

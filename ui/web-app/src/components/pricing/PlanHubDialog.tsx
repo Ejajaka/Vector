@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, Check, FolderKanban, LayoutTemplate, Plug, Users, X } from 'lucide-react';
+import { ArrowRight, Check, FolderKanban, LayoutTemplate, Users, X } from 'lucide-react';
 import {
   TRIAL_PROJECTS,
   isPaid,
@@ -63,18 +63,6 @@ export const PlanHubDialog: React.FC<PlanHubDialogProps> = ({ open, initialTab =
       used: null,
       limit: null,
       detail: plan.limits.templates === 'all' ? 'Every template unlocked' : `${plan.limits.templates} starter templates`,
-    },
-    {
-      icon: Plug,
-      label: 'Integrations',
-      used: null,
-      limit: null,
-      detail:
-        plan.limits.integrations === 'all'
-          ? 'Every integration unlocked'
-          : plan.limits.integrations === 0
-            ? 'Not included on Free'
-            : `${plan.limits.integrations} integrations`,
     },
     {
       icon: Users,

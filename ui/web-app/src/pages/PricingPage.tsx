@@ -16,7 +16,7 @@ import { notificationService } from '../services/notifications.ts';
 import { useAuth } from '../context/AuthContext.tsx';
 
 interface PricingPageProps {
-  onNavigate: (tab: 'dashboard' | 'projects' | 'settings' | 'integrations') => void;
+  onNavigate: (tab: 'dashboard' | 'projects' | 'settings') => void;
 }
 
 const ROWS: Array<{ label: string; values: [string, string, string, string] }> = [
@@ -24,7 +24,6 @@ const ROWS: Array<{ label: string; values: [string, string, string, string] }> =
   { label: 'Templates', values: ['3', 'All 10+', 'All + shared', 'All + shared'] },
   { label: 'Block palette composer', values: ['—', '✓', '✓', '✓'] },
   { label: 'AI explanations', values: ['—', 'BYO key', 'BYO key', 'Managed'] },
-  { label: 'Integrations', values: ['—', '2', 'All', 'All'] },
   { label: 'Custom element schema', values: ['—', '—', '✓', '✓'] },
   { label: 'CI gates & audit log', values: ['—', '—', '✓', '✓'] },
   { label: 'One-click deploy', values: ['—', 'Figma export', 'Vercel / Netlify', 'Vercel / Netlify'] },
@@ -71,7 +70,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
         notificationService.push({
           kind: 'billing',
           title: `${plan.name} plan activated`,
-          body: `Payment ${paymentId.slice(0, 14)}… confirmed. Unlimited projects and integrations are unlocked.`,
+          body: `Payment ${paymentId.slice(0, 14)}… confirmed. Unlimited projects and generators are unlocked.`,
           action: { label: 'Go home', tab: 'dashboard' },
         });
         setFlash({ tone: 'ok', text: `${plan.name} is active. Receipt saved to purchase history.` });

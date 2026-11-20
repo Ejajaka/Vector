@@ -15,7 +15,6 @@ import {
   Monitor,
   Network,
   Palette,
-  Plug,
   Plus,
   Settings,
   ShieldCheck,
@@ -50,7 +49,6 @@ const PRIMARY: RailItem[] = [
   { id: 'templates', label: 'Templates', icon: LayoutTemplate },
   { id: 'library', label: 'Library', icon: FolderOpen },
   { id: 'learn', label: 'Learn', icon: GraduationCap },
-  { id: 'integrations', label: 'Integrations', icon: Plug },
 ];
 
 const BUILD: RailItem[] = [
@@ -152,7 +150,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { label: 'New project', tab: 'projects' as ActiveTab, icon: FolderKanban },
         { label: 'From a template', tab: 'templates' as ActiveTab, icon: LayoutTemplate },
         { label: 'Analyse a prompt', tab: 'new-analysis' as ActiveTab, icon: Sparkles },
-        { label: 'Import from Figma', tab: 'integrations' as ActiveTab, icon: Plug },
       ].map((item) => {
         const Icon = item.icon;
         return (

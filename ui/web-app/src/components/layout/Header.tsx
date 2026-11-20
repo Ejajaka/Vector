@@ -10,18 +10,14 @@ import {
   LayoutTemplate,
   Menu,
   Monitor,
-  Moon,
   Network,
-  Plug,
   Plus,
   Search,
   Settings,
   Sparkles,
-  Sun,
   Wallet,
 } from 'lucide-react';
 import type { ActiveTab } from '../../types/analysis.ts';
-import { useTheme } from '../../context/ThemeContext.tsx';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { useProject } from '../../context/ProjectContext.tsx';
 import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
@@ -77,7 +73,6 @@ const COMMANDS: Array<{ id: ActiveTab; label: string; hint: string; icon: React.
   { id: 'templates', label: 'Templates', hint: 'Previewable starters', icon: LayoutTemplate },
   { id: 'history', label: 'History', hint: 'Past analyses', icon: FileText },
   { id: 'learn', label: 'Learn', hint: 'Guides and walkthroughs', icon: GraduationCap },
-  { id: 'integrations', label: 'Integrations', hint: 'Figma, Canva, Vercel, Netlify', icon: Plug },
   { id: 'pricing', label: 'Plans and pricing', hint: 'Trial and billing', icon: Wallet },
   { id: 'settings', label: 'Settings', hint: 'Preferences and account', icon: Settings },
 ];
@@ -91,7 +86,6 @@ export const Header: React.FC<HeaderProps> = ({
   onReplayTour,
   onOpenAssistant,
 }) => {
-  const { theme, toggleTheme } = useTheme();
   const { signOut } = useAuth();
   const { selectProject, projects } = useProject();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -290,15 +284,6 @@ export const Header: React.FC<HeaderProps> = ({
                   onOpenChange={setNotificationsOpen}
                   onNavigate={setActiveTab}
                 />
-
-                <button
-                  type="button"
-                  onClick={toggleTheme}
-                  className="v-icon-btn"
-                  aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                >
-                  {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                </button>
 
                 <ProfileMenu
                   activeTab={activeTab}
