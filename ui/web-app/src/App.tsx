@@ -48,7 +48,7 @@ import { notificationService } from './services/notifications.ts';
 const PUBLIC_TABS: ActiveTab[] = ['about', 'privacy', 'pricing', 'learn', 'terms', 'contact'];
 
 /** Pages that always carry the commercial header and footer. */
-const MARKETING_TABS: ActiveTab[] = ['about', 'privacy', 'pricing', 'learn', 'terms', 'contact'];
+const MARKETING_TABS: ActiveTab[] = ['about', 'privacy', 'pricing', 'terms', 'contact'];
 
 const KNOWN_TABS: ActiveTab[] = [
   'about',
@@ -302,12 +302,10 @@ function AppShell() {
   // signed-in state â€” otherwise local users could never reach the dashboard.
   const localWorkspace = !configured;
   const signedIn = !!user || localWorkspace;
-  // Marketing chrome is a property of the page, not of the session: /pricing and
-  // /about look like a commercial site whether or not you are signed in. Learn
-  // is the exception: once signed in it is part of the workspace, so the rail
-  // and header stay put when it is opened from the sidebar.
-  const showMarketingChrome =
-    MARKETING_TABS.includes(activeTab) && !(activeTab === 'learn' && signedIn);
+  // Marketing chrome is a property of the page, not of the session. Learn is
+  // deliberately not in this list: it lives inside the workspace shell so the
+  // rail and header never disappear when it is opened from the sidebar.
+  const showMarketingChrome = MARKETING_TABS.includes(activeTab);
 
   // Restore the current tab for this browser session.
   useEffect(() => {

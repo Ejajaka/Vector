@@ -173,7 +173,7 @@ export const PlanHubDialog: React.FC<PlanHubDialogProps> = ({ open, initialTab =
                 <p className="mt-0.5 text-[10px] leading-relaxed text-white/50">
                   {projectLimit
                     ? `${Math.max(0, projectLimit - projects)} project slot${projectLimit - projects === 1 ? '' : 's'} left. Free projects stay available forever.`
-                    : 'Unlimited projects, all templates and every integration on this plan.'}
+                    : 'Unlimited projects, all templates and every generator on this plan.'}
                 </p>
                 <button type="button" onClick={onSeePlans} className="mt-2 inline-flex h-7 items-center gap-1 rounded-md border border-white/20 px-2.5 text-[10px] font-semibold text-white/85 hover:bg-white/10">
                   See plans <ArrowRight className="h-3 w-3" />
