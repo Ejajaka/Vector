@@ -11,6 +11,7 @@ import {
   FolderOpen,
   GraduationCap,
   History,
+  Info,
   LayoutTemplate,
   LogIn,
   Monitor,
@@ -67,6 +68,7 @@ const ACCOUNT: RailItem[] = [
   { id: 'pricing', label: 'Plans and pricing', icon: Wallet },
   { id: 'history', label: 'History', icon: History },
   { id: 'settings', label: 'Settings', icon: Settings },
+  { id: 'about', label: 'Product page', icon: Info },
   { id: 'privacy', label: 'Privacy', icon: ShieldCheck },
 ];
 
