@@ -4,13 +4,15 @@ A local, license-safe starting pack for the template gallery and project canvas.
 
 ## Open the catalog
 
-With the web app running:
+From the repository root:
 
 ```
-http://localhost:3000/template-library/
+python -m http.server 8094
 ```
 
-Or open `public/template-library/index.html` directly.
+Open http://localhost:8094/template-library/index.html
+
+The library is standalone and is not linked from the app UI.
 
 ## What is included
 

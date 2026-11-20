@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1] / "ui" / "web-app" / "public" / "template-library"
+ROOT = Path(__file__).resolve().parents[1] / "template-library"
 OUT = ROOT / "blocks"
 OUT.mkdir(parents=True, exist_ok=True)
 
