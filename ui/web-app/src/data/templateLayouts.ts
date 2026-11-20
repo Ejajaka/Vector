@@ -164,7 +164,7 @@ const LAYOUTS: Record<string, CanvasItem[]> = {
 
   /* -------------------------------------------------------- portfolio */
   'portfolio-grid': [
-    el('text', 'text-display', 40, 72, 700, 60, 'Roshna George'),
+    el('text', 'text-display', 40, 72, 700, 60, 'Your Name'),
     el('text', 'text-body', 40, 148, 520, 44, 'Product designer working on developer tools and design systems.'),
     el('text', 'text-caption', 40, 214, 300, 22, 'Selected work'),
     el('image', 'image-rounded', 40, 250, 540, 220, 'Northwind dashboard', VIOLET),

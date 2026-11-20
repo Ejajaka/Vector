@@ -277,7 +277,7 @@ export const TemplateArt: React.FC<{ template: TemplateDefinition; detail?: bool
       return shell(
         <div className="h-full flex flex-col">
           <div className="flex items-end justify-between px-1">
-            <div className="text-[11px] font-semibold text-[#f7f8f8] leading-none">Roshna George</div>
+            <div className="text-[11px] font-semibold text-[#f7f8f8] leading-none">Your Name</div>
             <div className="flex gap-1">
               <div className="h-1 w-4 rounded-full bg-[#e8e8ea]/25" />
               <div className="h-1 w-4 rounded-full bg-[#e8e8ea]/25" />

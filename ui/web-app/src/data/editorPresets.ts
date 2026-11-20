@@ -55,7 +55,7 @@ export const TEXT_COMBOS: TextCombo[] = [
     description: 'A quote with attribution.',
     build: () => [
       { type: 'text', variant: 'text-quote', label: '“It cut our design review from four rounds to one.”', x: 64, y: 140, w: 640, h: 72, fontSize: 24, fontWeight: 400 },
-      { type: 'text', variant: 'text-caption', label: 'Roshna George · Product design', x: 64, y: 226, w: 420, h: 22 },
+      { type: 'text', variant: 'text-caption', label: 'Your Name · Product design', x: 64, y: 226, w: 420, h: 22 },
     ],
   },
   {

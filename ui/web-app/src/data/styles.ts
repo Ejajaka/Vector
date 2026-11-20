@@ -187,7 +187,7 @@ export const VARIANTS: StyleVariant[] = [
 
   /* More cards ---------------------------------------------------- */
   { id: 'card-list', type: 'card', name: 'List card', group: 'Cards', style: 'card-list', w: 340, h: 220, label: 'Activity', prompt: 'card containing a list of rows with dividers' },
-  { id: 'card-profile', type: 'card', name: 'Profile card', group: 'Cards', style: 'card-profile', w: 280, h: 240, label: 'Roshna George', color: '#7C5CFF', prompt: 'profile card with an avatar, name, role and two actions' },
+  { id: 'card-profile', type: 'card', name: 'Profile card', group: 'Cards', style: 'card-profile', w: 280, h: 240, label: 'Your Name', color: '#7C5CFF', prompt: 'profile card with an avatar, name, role and two actions' },
   { id: 'card-pricing', type: 'card', name: 'Pricing card', group: 'Cards', style: 'card-pricing', w: 280, h: 300, label: 'Pro', color: '#7C5CFF', prompt: 'pricing card with a plan name, price, feature list and CTA' },
 
   /* More text ----------------------------------------------------- */
