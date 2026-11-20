@@ -545,6 +545,31 @@ export const PromptModePage: React.FC<Props> = ({
     submitted, screens, allScreens, compiled.meta.tokens, viewport, boardWidth, boardHeight,
   ]);
 
+  // Keep the exact revised prompt in the project folder so the studio can use
+  // it as an Analysis prompt version without copying or recompiling.
+  useEffect(() => {
+    if (!projectId) return;
+    const key = `vector_project_revised_prompt_${projectId}`;
+    try {
+      if (!submitted.trim() || !revisedPrompt.trim()) {
+        localStorage.removeItem(key);
+        return;
+      }
+      localStorage.setItem(
+        key,
+        JSON.stringify({
+          prompt: revisedPrompt,
+          updatedAt: new Date().toISOString(),
+          risk,
+          elements: elements.length,
+          pages: screens.length,
+        })
+      );
+    } catch {
+      // storage is best effort
+    }
+  }, [projectId, submitted, revisedPrompt, risk, elements.length, screens.length]);
+
   const suggestions = useMemo(() => {
     if (!submitted.trim()) return [];
     const found: string[] = [];

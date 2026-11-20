@@ -239,6 +239,20 @@ function AppShell() {
     setActiveTab('project');
   };
 
+  // Shared project links use ?project=<id>. Resolve them once projects load.
+  useEffect(() => {
+    if (projectLoading || !projects.length) return;
+    const projectId = new URLSearchParams(window.location.search).get('project');
+    if (!projectId) return;
+    const project = projects.find((entry) => entry.id === projectId);
+    if (!project) return;
+    openProjectWorkspace(project.id, project.name, project.description);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('project');
+    window.history.replaceState({}, '', url.toString());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projects, projectLoading]);
+
   const completeProjectSetup = (choice: ProjectSetupChoice) => {
     if (!setupProject) return;
     saveProjectSetup(setupProject.id, {
@@ -686,12 +700,6 @@ function AppShell() {
               onBlankCanvas={() => enterProjectCanvas({ fresh: true })}
               onOptimizePrompt={() => setProjectView('prompt')}
               onOpenDesignSystem={() => setActiveTab('design')}
-              onDeploy={() => setActiveTab('integrations')}
-              onOpenRequirements={() => setActiveTab('requirements')}
-              onOpenIntelligence={() => setActiveTab('intelligence')}
-              onOpenReview={() => setActiveTab('review')}
-              onOpenPromptStudio={() => setActiveTab('prompt')}
-              onOpenWorkspace={() => setActiveTab('workspace')}
             />
           )}
 
