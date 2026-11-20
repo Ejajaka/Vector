@@ -6,6 +6,7 @@ import { FONT_STACKS } from '../../data/canvas.ts';
 interface StyledElementProps {
   style: StyleKey;
   label: string;
+  texts?: Record<string, string>;
   color?: string;
   src?: string;
   fontSize?: number;
@@ -29,6 +30,7 @@ interface StyledElementProps {
 export const StyledElement: React.FC<StyledElementProps> = ({
   style,
   label,
+  texts,
   color,
   src,
   fontSize,
@@ -44,6 +46,12 @@ export const StyledElement: React.FC<StyledElementProps> = ({
   tracking,
 }) => {
   const accent = color || '#7C5CFF';
+  const copy = (key: string, fallback: string) => texts?.[key] ?? fallback;
+  const copyList = (key: string, fallback: string) =>
+    copy(key, fallback)
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean);
 
   const border: React.CSSProperties =
     strokeWidth && strokeWidth > 0
@@ -190,7 +198,7 @@ export const StyledElement: React.FC<StyledElementProps> = ({
             <div className="h-1.5 w-[55%] rounded-full bg-white/30" />
           </div>
           <span className="mt-auto self-start rounded-lg px-3 py-1.5 text-[10px] font-bold text-[#0B0E14]" style={{ backgroundColor: '#FFFFFF' }}>
-            Open
+            {copy('cta', 'Open')}
           </span>
         </div>
       );
@@ -198,9 +206,9 @@ export const StyledElement: React.FC<StyledElementProps> = ({
       return (
         <div className="w-full h-full p-4 flex flex-col" style={box('#FFFFFF', 12, { borderStyle: 'solid', borderWidth: `${strokeWidth || 1}px`, borderColor: strokeColor || '#E7E5F0' })}>
           <span className="text-[10px] font-semibold uppercase tracking-wider text-[#9B99A6]">{label}</span>
-          <span className="mt-1 text-[26px] leading-none font-extrabold" style={text(26)}>₹48,210</span>
+          <span className="mt-1 text-[26px] leading-none font-extrabold" style={text(26)}>{copy('value', '₹48,210')}</span>
           <span className="mt-1.5 inline-flex w-fit items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold" style={{ background: '#22D3EE22', color: '#0E8A9A' }}>
-            ▲ 12.4%
+            {copy('delta', '▲ 12.4%')}
           </span>
           <div className="mt-auto flex items-end gap-1 h-8">
             {[30, 55, 40, 70, 58, 85, 66].map((h, i) => (
@@ -278,7 +286,7 @@ export const StyledElement: React.FC<StyledElementProps> = ({
         <div className="w-full h-full flex flex-col justify-center">
           <span className="text-[10.5px] font-semibold mb-1" style={text(10.5, '#64626F')}>{label}</span>
           <div className="flex-1 min-h-0 max-h-[42px] px-3 flex items-center text-[#9B99A6]" style={box('#FFFFFF', 10, { ...type(12), borderStyle: 'solid', borderWidth: `${strokeWidth || 1}px`, borderColor: strokeColor || '#E7E5F0' })}>
-            you@company.com
+            {copy('placeholder', 'you@company.com')}
           </div>
         </div>
       );
@@ -287,7 +295,7 @@ export const StyledElement: React.FC<StyledElementProps> = ({
         <div className="w-full h-full rounded-full px-3.5 flex items-center gap-2" style={box('#FFFFFF', 999, { borderStyle: 'solid', borderWidth: `${strokeWidth || 1}px`, borderColor: strokeColor || '#E7E5F0' })}>
           <Search className="w-3.5 h-3.5 text-[#9B99A6]" />
           <span className="text-[#9B99A6]" style={type(12)}>{label}</span>
-          <span className="ml-auto rounded border border-[#E7E5F0] px-1 text-[9px] text-[#C3C1CE]">⌘K</span>
+          <span className="ml-auto rounded border border-[#E7E5F0] px-1 text-[9px] text-[#C3C1CE]">{copy('shortcut', '⌘K')}</span>
         </div>
       );
     case 'input-float':
@@ -297,7 +305,7 @@ export const StyledElement: React.FC<StyledElementProps> = ({
             {label}
           </span>
           <div className="flex items-center h-full pb-3">
-            <span className="text-[12px]" style={text(12)}>••••••••</span>
+            <span className="text-[12px]" style={text(12)}>{copy('value', '••••••••')}</span>
             <ChevronDown className="w-3.5 h-3.5 text-[#9B99A6] ml-auto" />
           </div>
         </div>
@@ -310,8 +318,10 @@ export const StyledElement: React.FC<StyledElementProps> = ({
           <span className="w-6 h-6 rounded-md" style={{ background: accent }} />
           <span className="text-[13px] font-extrabold" style={text(13)}>{label}</span>
           <div className="ml-auto flex items-center gap-4 text-[11.5px] text-[#64626F]">
-            <span>Product</span><span>Pricing</span><span>Docs</span>
-            <span className="rounded-lg px-3 py-1.5 text-white text-[11px] font-semibold" style={{ background: '#0B0E14' }}>Sign in</span>
+            {copyList('links', 'Product,Pricing,Docs').map((link) => (
+              <span key={link}>{link}</span>
+            ))}
+            <span className="rounded-lg px-3 py-1.5 text-white text-[11px] font-semibold" style={{ background: '#0B0E14' }}>{copy('cta', 'Sign in')}</span>
           </div>
         </div>
       );
@@ -321,8 +331,10 @@ export const StyledElement: React.FC<StyledElementProps> = ({
           <span className="w-6 h-6 rounded-md" style={{ background: accent }} />
           <span className="font-extrabold text-white" style={type(13)}>{label}</span>
           <div className="ml-auto flex items-center gap-4 text-[11.5px] text-white/65">
-            <span>Product</span><span>Pricing</span>
-            <span className="rounded-lg px-3 py-1.5 text-[11px] font-semibold text-[#0B0E14]" style={{ background: '#22D3EE' }}>Get started</span>
+            {copyList('links', 'Product,Pricing').map((link) => (
+              <span key={link}>{link}</span>
+            ))}
+            <span className="rounded-lg px-3 py-1.5 text-[11px] font-semibold text-[#0B0E14]" style={{ background: '#22D3EE' }}>{copy('cta', 'Get started')}</span>
           </div>
         </div>
       );
@@ -381,7 +393,7 @@ export const StyledElement: React.FC<StyledElementProps> = ({
         <div className="w-full h-full p-3 flex flex-col" style={box('#FFFFFF', 12, { borderStyle: 'solid', borderWidth: `${strokeWidth || 1}px`, borderColor: strokeColor || '#E7E5F0' })}>
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold" style={text(11)}>{label}</span>
-            <span className="text-[9px] text-[#9B99A6]">Last 9 months</span>
+            <span className="text-[9px] text-[#9B99A6]">{copy('caption', 'Last 9 months')}</span>
           </div>
           <div className="mt-2 flex-1 flex items-end gap-1.5">
             {[38, 62, 48, 74, 56, 88, 66, 92, 72].map((h, i) => (
@@ -411,7 +423,7 @@ export const StyledElement: React.FC<StyledElementProps> = ({
         <div className="w-full h-full overflow-hidden" style={box('#FFFFFF', 12, { borderStyle: 'solid', borderWidth: `${strokeWidth || 1}px`, borderColor: strokeColor || '#E7E5F0' })}>
           <div className="h-8 px-3 flex items-center gap-3 bg-[#F7F7FB] border-b border-[#E7E5F0]">
             <span className="font-bold text-[#64626F]" style={type(10)}>{label}</span>
-            <span className="ml-auto text-[9px] text-[#9B99A6]">Search · Filter</span>
+            <span className="ml-auto text-[9px] text-[#9B99A6]">{copy('search', 'Search · Filter')}</span>
           </div>
           {[0, 1, 2, 3].map((row) => (
             <div key={row} className="h-8 px-3 flex items-center gap-3 border-b border-[#F1EFF8] last:border-0">
@@ -429,8 +441,12 @@ export const StyledElement: React.FC<StyledElementProps> = ({
       return (
         <div className="w-full h-full px-5 py-3 flex items-start gap-8" style={box('#FFFFFF', 12, { borderStyle: 'solid', borderWidth: `${strokeWidth || 1}px`, borderColor: strokeColor || '#E7E5F0' })}>
           <span className="text-[11px] font-bold" style={text(11)}>{label}</span>
-          <div className="flex gap-6 text-[10px] text-[#9B99A6]"><span>Product</span><span>Company</span><span>Legal</span></div>
-          <span className="ml-auto text-[9.5px] text-[#C3C1CE]">© 2026</span>
+          <div className="flex gap-6 text-[10px] text-[#9B99A6]">
+            {copyList('links', 'Product,Company,Legal').map((link) => (
+              <span key={link}>{link}</span>
+            ))}
+          </div>
+          <span className="ml-auto text-[9.5px] text-[#C3C1CE]">{copy('copyright', '© 2026')}</span>
         </div>
       );
     case 'modal-default':
@@ -442,8 +458,8 @@ export const StyledElement: React.FC<StyledElementProps> = ({
             <div className="h-1.5 w-[66%] rounded-full bg-[#EFEDF6]" />
           </div>
           <div className="mt-auto flex gap-2">
-            <span className="flex-1 h-8 rounded-lg border border-[#E7E5F0] grid place-items-center text-[10px] text-[#64626F]">Cancel</span>
-            <span className="flex-1 h-8 rounded-lg grid place-items-center text-[10px] font-bold text-white" style={{ background: accent }}>Confirm</span>
+            <span className="flex-1 h-8 rounded-lg border border-[#E7E5F0] grid place-items-center text-[10px] text-[#64626F]">{copy('cancel', 'Cancel')}</span>
+            <span className="flex-1 h-8 rounded-lg grid place-items-center text-[10px] font-bold text-white" style={{ background: accent }}>{copy('cta', 'Confirm')}</span>
           </div>
         </div>
       );

@@ -9,7 +9,7 @@
  * assets never change, so cache-first is safe for them. The optional local
  * BERT model is cached on first use and then available offline as well.
  */
-const CACHE = 'vector-shell-v12';
+const CACHE = 'vector-shell-v13';
 
 /**
  * Static assets are stored without transport headers:

@@ -244,3 +244,43 @@ export const TYPE_TO_VARIANT: Record<string, string> = {
   dropdown: 'input-labelled',
   checkbox: 'input-labelled',
 };
+
+export interface VariantTextField {
+  id: string;
+  label: string;
+  fallback: string;
+}
+
+/**
+ * Extra editable copy inside a single component. The main label stays on the
+ * element itself; these are the secondary text runs that used to be hardcoded
+ * (metric values, nav links, placeholders, CTA labels).
+ */
+export const VARIANT_TEXT_FIELDS: Record<string, VariantTextField[]> = {
+  'card-stat': [
+    { id: 'value', label: 'Metric value', fallback: '₹48,210' },
+    { id: 'delta', label: 'Change', fallback: '▲ 12.4%' },
+  ],
+  'card-gradient': [{ id: 'cta', label: 'Button label', fallback: 'Open' }],
+  'nav-light': [
+    { id: 'links', label: 'Links (comma separated)', fallback: 'Product,Pricing,Docs' },
+    { id: 'cta', label: 'Action label', fallback: 'Sign in' },
+  ],
+  'nav-dark': [
+    { id: 'links', label: 'Links (comma separated)', fallback: 'Product,Pricing' },
+    { id: 'cta', label: 'Action label', fallback: 'Get started' },
+  ],
+  'input-labelled': [{ id: 'placeholder', label: 'Placeholder', fallback: 'you@company.com' }],
+  'input-search': [{ id: 'shortcut', label: 'Keyboard hint', fallback: '⌘K' }],
+  'input-float': [{ id: 'value', label: 'Value', fallback: '••••••••' }],
+  'table-default': [{ id: 'search', label: 'Toolbar text', fallback: 'Search · Filter' }],
+  'chart-bars': [{ id: 'caption', label: 'Caption', fallback: 'Last 9 months' }],
+  'footer-default': [
+    { id: 'links', label: 'Links (comma separated)', fallback: 'Product,Company,Legal' },
+    { id: 'copyright', label: 'Copyright', fallback: '© 2026' },
+  ],
+  'modal-default': [
+    { id: 'cta', label: 'Confirm label', fallback: 'Confirm' },
+    { id: 'cancel', label: 'Cancel label', fallback: 'Cancel' },
+  ],
+};

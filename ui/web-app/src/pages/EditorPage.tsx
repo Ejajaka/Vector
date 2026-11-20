@@ -63,7 +63,7 @@ import {
   type CanvasPage,
   type ElementAnimation,
 } from '../data/canvas.ts';
-import { TYPE_TO_VARIANT, VARIANTS, variantById, type StyleVariant } from '../data/styles.ts';
+import { TYPE_TO_VARIANT, VARIANTS, VARIANT_TEXT_FIELDS, variantById, type StyleVariant } from '../data/styles.ts';
 import { DEVICE_GROUPS, describeSize } from '../data/devices.ts';
 import { StyledElement } from '../components/editor/StyledElement.tsx';
 import { VariantPreview } from '../components/editor/VariantPreview.tsx';
@@ -166,6 +166,11 @@ function isDarkColour(hex: string): boolean {
   const g = parseInt(value.slice(2, 4), 16) || 0;
   const b = parseInt(value.slice(4, 6), 16) || 0;
   return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 < 0.5;
+}
+
+/** True when a single tap should place the caret instead of only selecting. */
+function canInlineEdit(item: CanvasItem): boolean {
+  return item.variant !== 'shape-rect';
 }
 
 /** Best renderer for an item, even when it was seeded without a variant id. */
@@ -471,15 +476,16 @@ const TYPE_LABEL: Record<CanvasItemType, string> = {
 
 const TEXT_SIZE_PRESETS = [12, 14, 16, 18, 24, 32, 40, 56];
 
-const Section: React.FC<{ title: string; children?: React.ReactNode; action?: React.ReactNode; defaultOpen?: boolean }> = ({
-  title,
-  children,
-  action,
-  defaultOpen = true,
-}) => {
+const Section: React.FC<{
+  id?: string;
+  title: string;
+  children?: React.ReactNode;
+  action?: React.ReactNode;
+  defaultOpen?: boolean;
+}> = ({ id, title, children, action, defaultOpen = true }) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border-b border-white/8">
+    <div id={id} className="border-b border-white/8">
       <div className="h-10 flex items-center gap-1 px-3">
         <button type="button" onClick={() => setOpen((value) => !value)} className="flex items-center gap-1 min-w-0">
           <ChevronDown className={`w-3 h-3 text-white/40 transition-transform ${open ? '' : '-rotate-90'}`} />
@@ -716,6 +722,9 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   const selected = items.find((item) => item.id === selectedId) || null;
   const currentFontSize = selected?.fontSize ?? (selected ? DEFAULT_FONT_SIZE[selected.type] : 14);
   const selectedIsText = selected?.type === 'text' || selected?.type === 'heading';
+  const selectedTextFields = selected
+    ? VARIANT_TEXT_FIELDS[variantFor(selected).style] || []
+    : [];
   const activeSystem = getActiveDesignSystem();
 
   // Selection changes the whole inspector; always start at the top so the
@@ -2479,26 +2488,38 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                     }}
                     onClick={(event) => {
                       event.stopPropagation();
-                      if (preview && item.animation?.trigger === 'click') playItem(item.id);
-                      if (preview && item.linkToPageId) {
-                        setActivePageId(item.linkToPageId);
+                      if (preview) {
+                        if (item.animation?.trigger === 'click') playItem(item.id);
+                        if (item.linkToPageId) setActivePageId(item.linkToPageId);
                         return;
                       }
-                      // A second click on the selected element puts the caret on
-                      // the canvas, the same way a design tool does.
-                      if (!preview && selectedId === item.id && editingId !== item.id) {
-                        if (!draggedRef.current) setEditingId(item.id);
-                        draggedRef.current = false;
-                        return;
-                      }
+                      // One tap only selects. Dragging moves, handles reshape,
+                      // and a double-tap is the only way into text editing.
                       setSelectedId(item.id);
                       draggedRef.current = false;
                     }}
                     onDoubleClick={(event) => {
                       event.stopPropagation();
-                      if (!preview) setEditingId(item.id);
+                      if (!preview && canInlineEdit(item)) {
+                        setEditingId(item.id);
+                        setSelectedId(item.id);
+                        setInspectorOpen(true);
+                      }
                     }}
-                    style={{ left: item.x, top: item.y, width: item.w, height: item.h }}
+                    style={{
+                      left: item.x,
+                      top: item.y,
+                      width: item.w,
+                      height: item.h,
+                      // Text and controls sit above cards/shapes so every field
+                      // can be picked individually when they share one box.
+                      zIndex:
+                        item.type === 'text' || item.type === 'heading' || item.type === 'button' || item.type === 'badge' || item.type === 'input'
+                          ? 6
+                          : item.variant === 'shape-rect'
+                            ? 1
+                            : 3,
+                    }}
                     className={`absolute select-none ${preview ? '' : editing ? 'cursor-text' : 'cursor-move'}`}
                   >
                     {editing ? (
@@ -2563,6 +2584,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                         <StyledElement
                           style={variant.style}
                           label={item.label}
+                          texts={item.texts}
                           color={item.color}
                           src={item.src}
                           fontSize={item.fontSize}
@@ -2580,7 +2602,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                       </div>
                     )}
 
-                    {item.variant === 'shape-rect' && !preview && (
+                    {item.variant === 'shape-rect' && !preview && !editing && (
                       <div className="absolute inset-0 overflow-hidden">
                         <span className="pointer-events-none absolute inset-2 rounded border border-dashed border-black/20" />
                         <button
@@ -2658,19 +2680,21 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                             className={`absolute z-20 rounded-[1px] border border-[#0D99FF] bg-white ${entry.position}`}
                           />
                         ))}
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setSelectedId(item.id);
-                            setEditingId(item.id);
-                          }}
-                          className="absolute -top-6 right-7 w-5 h-5 rounded bg-[#2C2C2C] border border-white/15 grid place-items-center text-[#B9A8FF]"
-                          aria-label="Edit text"
-                          title="Edit text on canvas"
-                        >
-                          <Type className="w-3 h-3" />
-                        </button>
+                        {!editing && (
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setSelectedId(item.id);
+                              setEditingId(item.id);
+                            }}
+                            className="absolute -top-6 right-7 w-5 h-5 rounded bg-[#2C2C2C] border border-white/15 grid place-items-center text-[#B9A8FF]"
+                            aria-label="Edit text"
+                            title="Edit text on canvas"
+                          >
+                            <Type className="w-3 h-3" />
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={(event) => {
@@ -3530,9 +3554,46 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                   Type directly on canvas
                 </button>
                 <p className="text-[9.5px] leading-relaxed text-white/30">
-                  Click the element twice, double-click it, or press Enter to put the caret on the canvas.
+                  Double-click the element, or press Enter, to put the caret on the canvas.
                 </p>
+                {selectedTextFields.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      document.getElementById('vector-text-fields')?.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center',
+                      })
+                    }
+                    className="mt-1.5 inline-flex h-7 items-center gap-1 rounded-md border border-[#7C5CFF]/40 bg-[#7C5CFF]/10 px-2 text-[10px] font-semibold text-[#C9BDFF] hover:bg-[#7C5CFF]/20"
+                  >
+                    <Type className="h-3 w-3" /> Edit all {selectedTextFields.length + 1} text fields in this box
+                  </button>
+                )}
               </Section>
+
+              {selectedTextFields.length > 0 && (
+                <Section id="vector-text-fields" title="Text fields">
+                  <p className="text-[9.5px] leading-relaxed text-white/35">
+                    This component contains several text fields. Double-click the box for the main label, and edit the
+                    secondary copy here.
+                  </p>
+                  {selectedTextFields.map((field) => (
+                    <label key={field.id} className="block">
+                      <span className="mb-1 block text-[10px] font-semibold text-white/45">{field.label}</span>
+                      <input
+                        value={selected.texts?.[field.id] ?? field.fallback}
+                        onChange={(event) =>
+                          update(selected.id, {
+                            texts: { ...(selected.texts || {}), [field.id]: event.target.value },
+                          })
+                        }
+                        className="h-7 w-full rounded-md bg-[#383838] px-2 text-[11px] outline-none focus:ring-1 focus:ring-[#0D99FF]"
+                      />
+                    </label>
+                  ))}
+                </Section>
+              )}
 
               <Section title="Layout">
                 <div className="flex items-center gap-1.5">

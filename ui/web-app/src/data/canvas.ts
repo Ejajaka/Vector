@@ -1,5 +1,5 @@
 import type { TemplateDefinition } from './templates.ts';
-import { TYPE_TO_VARIANT, variantById } from './styles.ts';
+import { TYPE_TO_VARIANT, VARIANT_TEXT_FIELDS, variantById } from './styles.ts';
 
 export type CanvasItemType =
   | 'navbar'
@@ -100,6 +100,8 @@ export interface CanvasItem {
   action?: string;
   /** Interaction comments captured from the inspector and carried into the prompt. */
   notes?: string[];
+  /** Secondary editable copy inside a composite component (value, CTA, links…). */
+  texts?: Record<string, string>;
   /** Uploaded or pasted image as a data URL. */
   src?: string;
   /** Text-only overrides. */
@@ -434,6 +436,14 @@ export function buildPagesPrompt(name: string, pages: CanvasPage[]): string {
     if (item.action) bits.push(`on click: ${item.action.replace(/[.]+$/, '')}`);
     if (item.notes?.length) {
       bits.push(`comments: ${item.notes.map((note) => note.trim().replace(/[.]+$/, '')).join('; ')}`);
+    }
+    const extraFields = VARIANT_TEXT_FIELDS[item.variant || ''] || [];
+    if (extraFields.length) {
+      bits.push(
+        `text fields: ${extraFields
+          .map((field) => `${field.label.toLowerCase()} “${item.texts?.[field.id] ?? field.fallback}”`)
+          .join(', ')}`
+      );
     }
     if (item.src) bits.push('using the supplied image');
     if (item.animation) {
