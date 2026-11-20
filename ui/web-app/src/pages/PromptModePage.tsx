@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import {
-  AlertCircle, ArrowLeft, ArrowRight, Check, Copy, Cpu, Layers, Loader2, Plus, Sparkles, Undo2,
+  AlertCircle, ArrowLeft, ArrowRight, Check, Copy, Cpu, HelpCircle, Layers, Loader2, Plus, Sparkles, Undo2,
 } from 'lucide-react';
 import {
   REQUIRED_ATTRS,
@@ -9,13 +9,17 @@ import {
   compilePromptScreens,
   layoutElements,
   roughRisk,
+  type Clarification,
+  type ClarificationOption,
   type CompiledElement,
+  type LearnedLexicon,
   type PromptScreen,
   type QualityIssue,
   type Question,
   type Viewport,
 } from '../services/promptCompiler.ts';
 import { refineWithBERT } from '../services/promptRefiner.ts';
+import { loadLearnedLexicon, saveLearnedPhrase } from '../services/lexicon.ts';
 import { WireframePreview } from '../components/editor/WireframePreview.tsx';
 
 interface Props {
@@ -104,6 +108,7 @@ function placementOf(element: CompiledElement, boardWidth: number): string {
   const wide = element.w >= boardWidth * 0.6;
   switch (element.kind) {
     case 'background': return 'full-board backdrop';
+    case 'shape': return element.preset === 'shape-divider' ? 'divider line' : 'overlay shape';
     case 'navbar': return 'full width, top';
     case 'footer': return 'full width, bottom';
     case 'modal': return 'centred overlay';
@@ -136,6 +141,7 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
   const [view, setView] = useState<'wireframe' | 'prompt'>('wireframe');
   const [viewport, setViewport] = useState<Viewport>('desktop');
   const [baselineRisks, setBaselineRisks] = useState<Record<string, number>>({});
+  const [lexicon, setLexicon] = useState<LearnedLexicon>(() => loadLearnedLexicon());
   const [refinedById, setRefinedById] = useState<Record<string, PageRefinement | undefined>>({});
   const [deep, setDeep] = useState<{
     running: boolean;
@@ -145,7 +151,10 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
     rejected?: boolean;
   }>({ running: false, percent: 0, stage: '' });
 
-  const screens = useMemo(() => compilePromptScreens(submitted), [submitted]);
+  const screens = useMemo(
+    () => compilePromptScreens(submitted, lexicon),
+    [submitted, lexicon]
+  );
   const pageIndex = Math.max(0, screens.findIndex((screen) => screen.id === activeId));
   const compiled = screens[pageIndex] ?? screens[0];
 
@@ -190,10 +199,25 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
   const totalOpen = allScreens.reduce((sum, page) => sum + page.open.length, 0);
   const overallRisk = allScreens.reduce((max, page) => Math.max(max, page.risk), 0);
   const unrecognised = allScreens.filter(
-    (page) => page.screen.meta.usedLines === 0 && page.screen.meta.specLines > 0
+    (page) =>
+      page.screen.meta.usedLines === 0 &&
+      page.screen.meta.specLines > 0 &&
+      page.screen.clarifications.length === 0
   );
-  const ready = submitted.trim().length > 0 && totalOpen === 0 && unrecognised.length === 0;
-  const pageReady = submitted.trim().length > 0 && open.length === 0 && elements.length > 0;
+  const pendingClarifications = allScreens.reduce(
+    (sum, page) => sum + page.screen.clarifications.length,
+    0
+  );
+  const ready =
+    submitted.trim().length > 0 &&
+    totalOpen === 0 &&
+    unrecognised.length === 0 &&
+    pendingClarifications === 0;
+  const pageReady =
+    submitted.trim().length > 0 &&
+    open.length === 0 &&
+    elements.length > 0 &&
+    compiled.clarifications.length === 0;
 
   const confidence = elements.length
     ? Math.round(
@@ -296,7 +320,11 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
       (element) => !element.label && (REQUIRED_ATTRS[element.kind] || []).includes('label')
     ).length;
 
-    if (compiled.meta.usedLines === 0 && compiled.meta.specLines > 0) {
+    if (compiled.clarifications.length > 0) {
+      found.push(
+        `Clarify ${compiled.clarifications.length} unmapped word${compiled.clarifications.length === 1 ? '' : 's'} to draw this page.`
+      );
+    } else if (compiled.meta.usedLines === 0 && compiled.meta.specLines > 0) {
       found.push('This page has no screenshot-able components — describe UI elements, not a drawing.');
     }
     if (unlabelled > 0) {
@@ -368,6 +396,22 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
   const answerWith = (id: string, value: string) => {
     setAnswers((previous) => ({ ...previous, [id]: value }));
     setConfirmed((previous) => ({ ...previous, [id]: true }));
+  };
+
+  /**
+   * Learn a word from a choice, then recompile. This is how the engine grows
+   * without a training job: the workspace remembers its own vocabulary.
+   */
+  const chooseClarification = (
+    clarification: Clarification,
+    option: ClarificationOption
+  ) => {
+    const next = saveLearnedPhrase(clarification.phrase, option.kind ?? 'ignore');
+    setLexicon(next);
+    setAnswers({});
+    setConfirmed({});
+    setRefinedById({});
+    setBaselineRisks({});
   };
 
   const runDeepPass = async () => {
@@ -669,8 +713,11 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
 
               {elements.length === 0 ? (
                 <p className="mt-2 text-[9.5px] leading-relaxed text-[var(--v-faint)]">
-                  No components to score on this page. {compiled.meta.specLines} line
-                  {compiled.meta.specLines === 1 ? '' : 's'} were read, but none described a UI component.
+                  {compiled.clarifications.length > 0
+                    ? `Clarify ${compiled.clarifications.length} word${compiled.clarifications.length === 1 ? '' : 's'} to draw this page.`
+                    : `No components to score on this page. ${compiled.meta.specLines} line${
+                        compiled.meta.specLines === 1 ? '' : 's'
+                      } ${compiled.meta.specLines === 1 ? 'was' : 'were'} read, but none described a UI component.`}
                 </p>
               ) : (
                 <p className="mt-2 text-[9.5px] leading-relaxed text-[var(--v-faint)]">
@@ -679,6 +726,38 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
                   same gaps. Geometry is a schematic default, not a measurement of your request.
                 </p>
               )}
+            </div>
+          )}
+
+          {/* ------------------------------------------ unmapped vocabulary */}
+          {submitted && compiled.clarifications.length > 0 && (
+            <div className="mt-3 rounded-xl border border-[#F59E0B]/40 bg-[var(--v-surface-2)] p-3">
+              <p className="flex items-center gap-1.5 text-[11px] font-bold text-[var(--v-ink)]">
+                <HelpCircle className="h-3.5 w-3.5 text-[#B45309]" />
+                Clarify before drawing
+              </p>
+              <p className="mt-0.5 text-[9.5px] leading-relaxed text-[var(--v-faint)]">
+                Only decisions that change the wireframe. Your answer is remembered for this workspace.
+              </p>
+              <div className="mt-2 space-y-2">
+                {compiled.clarifications.map((clarification) => (
+                  <div key={clarification.id}>
+                    <p className="text-[10.5px] text-[var(--v-muted)]">{clarification.text}</p>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {clarification.options.map((option) => (
+                        <button
+                          key={option.label}
+                          type="button"
+                          onClick={() => chooseClarification(clarification, option)}
+                          className="rounded-full border border-[var(--v-line)] bg-[var(--v-surface)] px-2 py-0.5 text-[9.5px] font-semibold text-[var(--v-violet)] hover:border-[var(--v-violet)]"
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -860,6 +939,15 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
                         {pageView.open.length}
                       </span>
                     )}
+                    {pageView && pageView.screen.clarifications.length > 0 && (
+                      <span
+                        className={`rounded-full px-1 text-[8px] font-bold ${
+                          active ? 'bg-white/20' : 'bg-[#F59E0B]/10 text-[#B45309]'
+                        }`}
+                      >
+                        ?
+                      </span>
+                    )}
                     {pageView &&
                       pageView.screen.meta.usedLines === 0 &&
                       pageView.screen.meta.specLines > 0 && (
@@ -886,7 +974,16 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
                   width={boardWidth}
                   height={boardHeight}
                   empty={
-                    submitted && compiled.meta.usedLines === 0 && compiled.meta.specLines > 0 ? (
+                    submitted && compiled.clarifications.length > 0 ? (
+                      <div className="px-4 text-center">
+                        <p className={`text-[11px] font-bold ${compiled.meta.dark ? 'text-white' : 'text-[#0B0E14]'}`}>
+                          Waiting for a clarification
+                        </p>
+                        <p className={`mt-1 text-[10px] leading-relaxed ${compiled.meta.dark ? 'text-white/70' : 'text-[#64626F]'}`}>
+                          Answer the question in the panel and this page will draw itself.
+                        </p>
+                      </div>
+                    ) : submitted && compiled.meta.usedLines === 0 && compiled.meta.specLines > 0 ? (
                       <div className="px-4 text-center">
                         <p className={`text-[11px] font-bold ${compiled.meta.dark ? 'text-white' : 'text-[#0B0E14]'}`}>
                           No UI components on this page

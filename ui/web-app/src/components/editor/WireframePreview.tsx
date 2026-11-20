@@ -17,6 +17,7 @@ interface Props {
 /** Placeholder copy so a wireframe never renders as a blank rectangle. */
 const SAMPLE: Record<string, string> = {
   background: 'Backdrop',
+  shape: 'Shape',
   navbar: 'Brand',
   heading: 'Your headline',
   text: 'Supporting copy that explains the value in one or two lines.',
@@ -56,6 +57,61 @@ function styleFor(element: CompiledElement): StyleKey {
     default: return 'rect';
   }
 }
+
+const ShapeBlock: React.FC<{ element: CompiledElement; dark: boolean }> = ({ element, dark }) => {
+  const stroke = element.colour || (dark ? '#F5F5F7' : '#0B0E14');
+  const fill = element.colour ? `${element.colour}22` : 'none';
+  const preset = element.preset || 'shape-line';
+  let shape: React.ReactNode;
+
+  switch (preset) {
+    case 'shape-circle':
+      shape = <circle cx="50" cy="50" r="42" fill={fill} stroke={stroke} strokeWidth="2" />;
+      break;
+    case 'shape-rect':
+      shape = <rect x="10" y="14" width="80" height="72" rx="6" fill={fill} stroke={stroke} strokeWidth="2" />;
+      break;
+    case 'shape-triangle':
+      shape = <polygon points="50,8 92,90 8,90" fill={fill} stroke={stroke} strokeWidth="2" />;
+      break;
+    case 'shape-arrow':
+      shape = (
+        <>
+          <line x1="8" y1="50" x2="86" y2="50" stroke={stroke} strokeWidth="2" />
+          <polyline points="72,36 88,50 72,64" fill="none" stroke={stroke} strokeWidth="2" />
+        </>
+      );
+      break;
+    case 'shape-divider':
+      shape = <line x1="0" y1="50" x2="100" y2="50" stroke={stroke} strokeWidth="2" />;
+      break;
+    case 'shape-diagonal':
+      shape = <line x1="100" y1="0" x2="0" y2="100" stroke={stroke} strokeWidth="2" />;
+      break;
+    default:
+      shape = <line x1="0" y1="50" x2="100" y2="50" stroke={stroke} strokeWidth="2" />;
+  }
+
+  const showLabel =
+    Boolean(element.label) &&
+    !['shape-line', 'shape-divider', 'shape-diagonal', 'shape-arrow'].includes(preset);
+
+  return (
+    <div className="relative h-full w-full">
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full">
+        {shape}
+      </svg>
+      {showLabel && (
+        <span
+          className="absolute inset-0 grid place-items-center px-1 text-center text-[11px] font-semibold"
+          style={{ color: stroke }}
+        >
+          {element.label}
+        </span>
+      )}
+    </div>
+  );
+};
 
 const BackdropBlock: React.FC<{ element: CompiledElement }> = ({ element }) => {
   const first = element.colour || '#FFC53D';
@@ -222,6 +278,8 @@ export const WireframePreview: React.FC<Props> = ({
               >
                 {element.kind === 'background' ? (
                   <BackdropBlock element={element} />
+                ) : element.kind === 'shape' ? (
+                  <ShapeBlock element={element} dark={dark} />
                 ) : element.kind === 'checkbox' ? (
                   <CheckboxRow element={element} dark={dark} />
                 ) : element.kind === 'tabs' ? (

@@ -21,7 +21,7 @@
 /* ------------------------------------------------------------------ */
 
 export type ElementKind =
-  | 'background'
+  | 'background' | 'shape'
   | 'navbar' | 'heading' | 'text' | 'button' | 'input' | 'link'
   | 'card' | 'image' | 'avatar' | 'badge' | 'tabs' | 'progress'
   | 'table' | 'chart' | 'modal' | 'checkbox' | 'footer';
@@ -75,6 +75,22 @@ export interface Question {
   suggestion?: string;
 }
 
+/** User-taught phrases. `ignore` means "never ask about this again". */
+export type LearnedLexicon = Record<string, ElementKind | 'ignore'>;
+
+export interface ClarificationOption {
+  label: string;
+  /** Omit for the "Ignore" option. */
+  kind?: ElementKind;
+}
+
+export interface Clarification {
+  id: string;
+  phrase: string;
+  text: string;
+  options: ClarificationOption[];
+}
+
 export type Archetype = 'auth' | 'landing' | 'dashboard' | 'commerce' | 'generic';
 export type Viewport = 'desktop' | 'mobile';
 
@@ -116,6 +132,7 @@ export interface CompileMeta {
 export interface CompileResult {
   elements: CompiledElement[];
   questions: Question[];
+  clarifications: Clarification[];
   archetype: Archetype;
   meta: CompileMeta;
 }
@@ -131,6 +148,10 @@ interface KindDef {
 
 const KIND_DEFS: KindDef[] = [
   { kind: 'footer', words: ['footer', 'bottom bar', 'copyright bar'] },
+  {
+    kind: 'shape',
+    words: ['diagonal line', 'dashed line', 'dotted line', 'horizontal line', 'vertical line', 'divider', 'separator', 'ellipse', 'rectangle', 'triangle', 'polygon', 'circle', 'square', 'arrow', 'wave', 'line'],
+  },
   {
     kind: 'navbar',
     words: ['navigation bar', 'navbar', 'nav bar', 'top bar', 'app bar', 'site header', 'page header', 'menu bar', 'navigation', 'header', 'navber', 'navigaton', 'navbr'],
@@ -163,7 +184,7 @@ const KIND_DEFS: KindDef[] = [
 
 /** Ties at the same span resolve toward the more specific component. */
 const KIND_PRIORITY: Record<ElementKind, number> = {
-  background: 0,
+  background: 0, shape: 1,
   avatar: 1, badge: 2, link: 2, tabs: 2, progress: 2,
   input: 3, button: 3, card: 4,
   image: 5, table: 5, chart: 5, modal: 5, checkbox: 5,
@@ -171,7 +192,7 @@ const KIND_PRIORITY: Record<ElementKind, number> = {
 };
 
 const CAPS: Record<ElementKind, number> = {
-  background: 1,
+  background: 1, shape: 6,
   navbar: 1, footer: 1, image: 4, card: 4, avatar: 2, badge: 3,
   tabs: 2, progress: 2, input: 3, button: 3, link: 3,
   heading: 3, text: 3, table: 2, chart: 2, modal: 2, checkbox: 2,
@@ -191,7 +212,7 @@ const COLOURS: Record<string, string> = {
 const ACCENT_KINDS: ElementKind[] = ['button', 'badge', 'avatar', 'link', 'chart', 'progress', 'navbar', 'checkbox'];
 
 export const REQUIRED_ATTRS: Record<ElementKind, Array<Question['attribute']>> = {
-  background: [], navbar: [], footer: [], text: [], tabs: [], progress: [],
+  background: [], shape: [], navbar: [], footer: [], text: [], tabs: [], progress: [],
   heading: ['label'], card: ['label'], image: ['label'], avatar: ['label'],
   badge: ['label'], link: ['label'], input: ['label'],
   button: ['label', 'action'], table: ['label'], chart: ['label'],
@@ -557,6 +578,13 @@ function inferLabel(
     if (tabsFor) return titleCase(cleanLabel(tabsFor[1]));
   }
 
+  if (kind === 'shape') {
+    const drawn = text.match(
+      /\b(?:draw|add|include|show|display|insert|place|put)\s+(?:a|an|the)?\s*([a-z][a-z -]{2,28}?)(?=\s+(?:at|on|in|to|with|that|which|below|above|for|from|across|between|near|inside|outside|next|under|over|and)\b|[,.;]|$)/i
+    );
+    if (drawn) return titleCase(cleanLabel(drawn[1]));
+  }
+
   if (kind === 'input' || kind === 'checkbox' || kind === 'badge' || kind === 'link') {
     const forWhat = text.match(/\b(?:fields?|inputs?|search|dropdowns?|box(?:es)?|checkbox(?:es)?|badges?|links?)\s+(?:for|of|to)\s+(.+)$/i);
     if (forWhat) return titleCase(cleanLabel(forWhat[1]));
@@ -616,6 +644,16 @@ function pickPreset(kind: ElementKind, lower: string, dark: boolean, archetype: 
       if (/stat|metric|kpi|revenue|sales|growth|number/.test(lower)) return 'card-stat';
       if (/feature|pricing|plan|testimonial/.test(lower)) return 'card-elevated';
       return 'card-media';
+    case 'shape':
+      if (/diagonal/.test(lower)) return 'shape-diagonal';
+      if (/divider|separator|horizontal line/.test(lower)) return 'shape-divider';
+      if (/circle|ellipse/.test(lower)) return 'shape-circle';
+      if (/triangle/.test(lower)) return 'shape-triangle';
+      if (/arrow/.test(lower)) return 'shape-arrow';
+      if (/rect|square|box/.test(lower)) return 'shape-rect';
+      if (/line/.test(lower)) return 'shape-line';
+      // An unknown word taught as a shape becomes a labelled placeholder box.
+      return 'shape-rect';
     case 'chart': return /line|trend|growth|over time/.test(lower) ? 'chart-line' : 'chart-bars';
     case 'button': return dark ? 'btn-dark' : 'btn-solid';
     case 'heading': return archetype === 'dashboard' ? 'text-h2' : 'text-display';
@@ -771,10 +809,28 @@ interface KindMatch {
   end: number;
 }
 
-function findAllKinds(text: string): KindMatch[] {
+function findAllKinds(text: string, lexicon: LearnedLexicon = {}): KindMatch[] {
   // Quoted copy is an attribute, not a component mention.
   const lower = maskQuoted(text).toLowerCase();
   const raw: KindMatch[] = [];
+
+  // Phrases learned from the user's own clarifications.
+  for (const [phrase, learnedKind] of Object.entries(lexicon)) {
+    if (learnedKind === 'ignore') continue;
+    const term = phrase.trim();
+    if (!term) continue;
+    const regex = new RegExp(`\\b${escapeRe(term)}s?\\b`, 'gi');
+    let learned: RegExpExecArray | null;
+    while ((learned = regex.exec(lower)) !== null) {
+      raw.push({
+        kind: learnedKind,
+        word: term,
+        start: learned.index,
+        end: learned.index + learned[0].length,
+      });
+      if (learned.index === regex.lastIndex) regex.lastIndex += 1;
+    }
+  }
 
   for (const def of KIND_DEFS) {
     for (const word of def.words) {
@@ -878,7 +934,7 @@ function splitProse(line: string): string[] {
     .filter(Boolean);
 }
 
-function parsePrompt(prompt: string): ParsedPrompt {
+function parsePrompt(prompt: string, lexicon: LearnedLexicon = {}): ParsedPrompt {
   const rawLines = prompt.split(/\r?\n/);
   const headingLines = rawLines.filter((line) => /^\s*#{1,6}\s+/.test(line)).length;
   const bulletLines = rawLines.filter((line) => /^\s*(?:[-*•]|\d+[.)])\s+/.test(line)).length;
@@ -918,7 +974,7 @@ function parsePrompt(prompt: string): ParsedPrompt {
     if (!line) continue;
 
     const colonSection = line.match(/^([A-Za-z][A-Za-z /&-]{1,28}):$/);
-    if (colonSection && findAllKinds(line).length === 0) {
+    if (colonSection && findAllKinds(line, lexicon).length === 0) {
       noteSection(colonSection[1]);
       continue;
     }
@@ -1102,9 +1158,10 @@ function extractElements(
   unit: Unit,
   brand: string | undefined,
   archetype: Archetype,
-  tokens: DesignTokens
+  tokens: DesignTokens,
+  lexicon: LearnedLexicon = {}
 ): CompiledElement[] {
-  const hits = findAllKinds(unit.text);
+  const hits = findAllKinds(unit.text, lexicon);
   if (!hits.length) return [];
   const windows = windowsFor(unit.text, hits);
   // A unit-level action is only safe when the line produced one element.
@@ -1177,11 +1234,11 @@ function applyCaps(elements: CompiledElement[]): CompiledElement[] {
 }
 
 const SEMANTIC_ORDER: Record<Archetype, ElementKind[]> = {
-  auth: ['background', 'navbar', 'image', 'avatar', 'heading', 'text', 'input', 'checkbox', 'button', 'link', 'badge', 'tabs', 'progress', 'card', 'table', 'chart', 'modal', 'footer'],
-  commerce: ['background', 'navbar', 'image', 'avatar', 'heading', 'text', 'badge', 'card', 'tabs', 'input', 'button', 'link', 'progress', 'table', 'chart', 'checkbox', 'modal', 'footer'],
-  dashboard: ['background', 'navbar', 'card', 'chart', 'progress', 'table', 'tabs', 'heading', 'text', 'input', 'button', 'link', 'badge', 'image', 'avatar', 'checkbox', 'modal', 'footer'],
-  landing: ['background', 'navbar', 'image', 'avatar', 'heading', 'text', 'badge', 'button', 'link', 'card', 'tabs', 'input', 'progress', 'table', 'chart', 'checkbox', 'modal', 'footer'],
-  generic: ['background', 'navbar', 'image', 'avatar', 'heading', 'text', 'badge', 'tabs', 'card', 'progress', 'input', 'button', 'link', 'table', 'chart', 'modal', 'checkbox', 'footer'],
+  auth: ['background', 'shape', 'navbar', 'image', 'avatar', 'heading', 'text', 'input', 'checkbox', 'button', 'link', 'badge', 'tabs', 'progress', 'card', 'table', 'chart', 'modal', 'footer'],
+  commerce: ['background', 'shape', 'navbar', 'image', 'avatar', 'heading', 'text', 'badge', 'card', 'tabs', 'input', 'button', 'link', 'progress', 'table', 'chart', 'checkbox', 'modal', 'footer'],
+  dashboard: ['background', 'shape', 'navbar', 'card', 'chart', 'progress', 'table', 'tabs', 'heading', 'text', 'input', 'button', 'link', 'badge', 'image', 'avatar', 'checkbox', 'modal', 'footer'],
+  landing: ['background', 'shape', 'navbar', 'image', 'avatar', 'heading', 'text', 'badge', 'button', 'link', 'card', 'tabs', 'input', 'progress', 'table', 'chart', 'checkbox', 'modal', 'footer'],
+  generic: ['background', 'shape', 'navbar', 'image', 'avatar', 'heading', 'text', 'badge', 'tabs', 'card', 'progress', 'input', 'button', 'link', 'table', 'chart', 'modal', 'checkbox', 'footer'],
 };
 
 function sortSemantic(elements: CompiledElement[], archetype: Archetype): CompiledElement[] {
@@ -1398,20 +1455,285 @@ export function auditQuality(elements: CompiledElement[]): QualityIssue[] {
 }
 
 /* ------------------------------------------------------------------ */
+/* Clarifications                                                      */
+/* ------------------------------------------------------------------ */
+
+const GENERIC_KIND_OPTIONS: ClarificationOption[] = [
+  { label: 'Heading', kind: 'heading' },
+  { label: 'Text', kind: 'text' },
+  { label: 'Card', kind: 'card' },
+  { label: 'Button', kind: 'button' },
+  { label: 'Input', kind: 'input' },
+  { label: 'Image', kind: 'image' },
+  { label: 'Shape', kind: 'shape' },
+  { label: 'Ignore' },
+];
+
+const AMBIGUOUS_TERMS: Array<{
+  phrase: string;
+  question: string;
+  options: ClarificationOption[];
+}> = [
+  {
+    phrase: 'carousel',
+    question: 'How should the carousel be drawn?',
+    options: [
+      { label: 'Image gallery', kind: 'image' },
+      { label: 'Row of cards', kind: 'card' },
+      { label: 'Ignore' },
+    ],
+  },
+  {
+    phrase: 'accordion',
+    question: 'How should the accordion be drawn?',
+    options: [
+      { label: 'Stacked cards', kind: 'card' },
+      { label: 'List of rows', kind: 'table' },
+      { label: 'Ignore' },
+    ],
+  },
+  {
+    phrase: 'sidebar',
+    question: 'What is the sidebar?',
+    options: [
+      { label: 'Navigation bar', kind: 'navbar' },
+      { label: 'Panel', kind: 'card' },
+      { label: 'Ignore' },
+    ],
+  },
+  {
+    phrase: 'tooltip',
+    question: 'How should the tooltip be drawn?',
+    options: [
+      { label: 'Badge', kind: 'badge' },
+      { label: 'Modal', kind: 'modal' },
+      { label: 'Ignore' },
+    ],
+  },
+  {
+    phrase: 'popover',
+    question: 'How should the popover be drawn?',
+    options: [
+      { label: 'Modal', kind: 'modal' },
+      { label: 'Badge', kind: 'badge' },
+      { label: 'Ignore' },
+    ],
+  },
+  {
+    phrase: 'calendar',
+    question: 'How should the calendar be drawn?',
+    options: [
+      { label: 'Table', kind: 'table' },
+      { label: 'Cards', kind: 'card' },
+      { label: 'Ignore' },
+    ],
+  },
+  {
+    phrase: 'feed',
+    question: 'How should the feed be drawn?',
+    options: [
+      { label: 'List of rows', kind: 'table' },
+      { label: 'Cards', kind: 'card' },
+      { label: 'Ignore' },
+    ],
+  },
+  {
+    phrase: 'chat',
+    question: 'How should the chat area be drawn?',
+    options: [
+      { label: 'List of rows', kind: 'table' },
+      { label: 'Cards', kind: 'card' },
+      { label: 'Ignore' },
+    ],
+  },
+  {
+    phrase: 'hero',
+    question: 'What is the hero?',
+    options: [
+      { label: 'Hero image', kind: 'image' },
+      { label: 'Heading', kind: 'heading' },
+      { label: 'Ignore' },
+    ],
+  },
+  {
+    phrase: 'testimonial',
+    question: 'How should the testimonial be drawn?',
+    options: [
+      { label: 'Card', kind: 'card' },
+      { label: 'Quote text', kind: 'text' },
+      { label: 'Ignore' },
+    ],
+  },
+  {
+    phrase: 'pricing',
+    question: 'How should the pricing section be drawn?',
+    options: [
+      { label: 'Pricing cards', kind: 'card' },
+      { label: 'Pricing table', kind: 'table' },
+      { label: 'Ignore' },
+    ],
+  },
+  {
+    phrase: 'kanban',
+    question: 'How should the kanban board be drawn?',
+    options: [
+      { label: 'Cards', kind: 'card' },
+      { label: 'Table', kind: 'table' },
+      { label: 'Ignore' },
+    ],
+  },
+  {
+    phrase: 'video',
+    question: 'How should the video be drawn?',
+    options: [
+      { label: 'Media block', kind: 'image' },
+      { label: 'Card', kind: 'card' },
+      { label: 'Ignore' },
+    ],
+  },
+  {
+    phrase: 'rating',
+    question: 'How should the rating be drawn?',
+    options: [
+      { label: 'Text', kind: 'text' },
+      { label: 'Badge', kind: 'badge' },
+      { label: 'Ignore' },
+    ],
+  },
+  {
+    phrase: 'breadcrumb',
+    question: 'How should the breadcrumb be drawn?',
+    options: [
+      { label: 'Links', kind: 'link' },
+      { label: 'Text', kind: 'text' },
+      { label: 'Ignore' },
+    ],
+  },
+  {
+    phrase: 'pagination',
+    question: 'How should pagination be drawn?',
+    options: [
+      { label: 'Buttons', kind: 'button' },
+      { label: 'Links', kind: 'link' },
+      { label: 'Ignore' },
+    ],
+  },
+  {
+    phrase: 'slider',
+    question: 'How should the slider be drawn?',
+    options: [
+      { label: 'Input', kind: 'input' },
+      { label: 'Progress bar', kind: 'progress' },
+      { label: 'Ignore' },
+    ],
+  },
+];
+
+/**
+ * Ask only when a word is genuinely unmapped and changes the wireframe.
+ * Choosing an option is saved by the UI as a learned phrase, so the same
+ * question is never asked twice in this workspace.
+ */
+function detectClarifications(text: string, lexicon: LearnedLexicon = {}): Clarification[] {
+  const found: Clarification[] = [];
+  const seen = new Set<string>();
+  const hits = findAllKinds(text, lexicon);
+
+  for (const term of AMBIGUOUS_TERMS) {
+    if (lexicon[term.phrase] !== undefined) continue;
+    const regex = new RegExp(`\\b${escapeRe(term.phrase)}s?\\b`, 'gi');
+    let match: RegExpExecArray | null;
+    let occurrences = 0;
+    let coveredOccurrences = 0;
+
+    while ((match = regex.exec(text)) !== null) {
+      const start = match.index;
+      const end = start + match[0].length;
+      occurrences += 1;
+
+      // A heading such as "## Hero" or "Pricing:" names a section, not an
+      // undrawn component. Do not ask about it.
+      const lineStart = text.lastIndexOf('\n', start) + 1;
+      const lineBreak = text.indexOf('\n', start);
+      const sourceLine = text.slice(lineStart, lineBreak === -1 ? text.length : lineBreak).trim();
+      const headingLine =
+        /^#{1,6}\s+/.test(sourceLine) ||
+        (/:\s*$/.test(sourceLine) && sourceLine.length <= 40);
+      const after = text.slice(end, end + 16).toLowerCase();
+      const pageContext = /^\s+(?:page|screen|section|view|area)\b/.test(after);
+
+      // "hero image" is already an image; "pricing cards" already a card.
+      if (
+        headingLine ||
+        pageContext ||
+        hits.some((hit) => hit.start <= start && hit.end >= end)
+      ) {
+        coveredOccurrences += 1;
+      }
+    }
+
+    // If the prompt already expressed the concept anywhere, do not ask.
+    if (occurrences > 0 && coveredOccurrences === 0) {
+      found.push({
+        id: `clarify_${term.phrase}`,
+        phrase: term.phrase,
+        text: term.question,
+        options: term.options,
+      });
+      seen.add(term.phrase);
+    }
+  }
+
+  // Open vocabulary: a noun after add/include/show/draw that is not in the
+  // schema becomes a proper multiple-choice question, not a silent omission.
+  const verbs =
+    /\b(?:add|include|show|display|draw|insert|place|put)\s+(?:a|an|the)\s+([a-z][a-z -]{2,32}?)(?=\s+(?:at|on|in|to|with|that|which|below|above|for|from|across|between|near|inside|outside|next|under|over|and)\b|[,.;]|$)/gi;
+  let match: RegExpExecArray | null;
+  while ((match = verbs.exec(text)) !== null && found.length < 3) {
+    const phrase = match[1].trim().toLowerCase();
+    if (!phrase || seen.has(phrase) || lexicon[phrase] !== undefined) continue;
+    if (
+      /^(?:nice|modern|clean|simple|cool|good|great|new|responsive|small|large|big|some|few|beautiful|professional|minimal|dark|light|rounded|spacious|compact|better|best)\b/.test(
+        phrase
+      )
+    ) {
+      continue;
+    }
+    if (findAllKinds(phrase, lexicon).length > 0) continue;
+    if (/\b(?:page|screen|section|view|area|layout|design|style|colou?r|copy)\b/.test(phrase)) continue;
+
+    found.push({
+      id: `clarify_${phrase.replace(/\s+/g, '_')}`,
+      phrase,
+      text: `What should “${phrase}” be on this screen?`,
+      options: GENERIC_KIND_OPTIONS,
+    });
+    seen.add(phrase);
+  }
+
+  return found.slice(0, 3);
+}
+
+/* ------------------------------------------------------------------ */
 /* Compile                                                             */
 /* ------------------------------------------------------------------ */
 
-export function compilePrompt(prompt: string, tokenBase?: DesignTokens): CompileResult {
+export function compilePrompt(
+  prompt: string,
+  tokenBase?: DesignTokens,
+  lexicon: LearnedLexicon = {}
+): CompileResult {
   const tokens = parseTokens(prompt, tokenBase ?? DEFAULT_TOKENS);
   const archetype = detectArchetype(prompt);
   const brand = findBrand(prompt);
-  const parsed = parsePrompt(prompt);
+  const parsed = parsePrompt(prompt, lexicon);
   const dark = tokens.theme === 'dark';
 
   if (!prompt.trim()) {
     return {
       elements: [],
       questions: [],
+      clarifications: [],
       archetype: 'generic',
       meta: {
         structured: false, sections: [], specLines: 0, usedLines: 0,
@@ -1421,11 +1743,18 @@ export function compilePrompt(prompt: string, tokenBase?: DesignTokens): Compile
   }
 
   const backdrop = detectBackdrop(prompt);
+  const clarifications = detectClarifications(prompt, lexicon);
+  const ignoredOnly = Object.entries(lexicon).some(
+    ([phrase, kind]) =>
+      kind === 'ignore' &&
+      phrase.trim().length > 0 &&
+      new RegExp(`\\b${escapeRe(phrase.trim())}s?\\b`, 'i').test(prompt)
+  );
   let raw: CompiledElement[] = backdrop ? [backdrop] : [];
   let usedLines = backdrop ? 1 : 0;
 
   parsed.units.forEach((unit) => {
-    const extracted = extractElements(unit, brand, archetype, tokens);
+    const extracted = extractElements(unit, brand, archetype, tokens, lexicon);
     if (!extracted.length) return;
     usedLines += 1;
     raw.push(...extracted);
@@ -1436,6 +1765,15 @@ export function compilePrompt(prompt: string, tokenBase?: DesignTokens): Compile
   // represented by the footer component.
   const foldedNotes: string[] = [];
   raw = raw.filter((element) => {
+    // The diagonal split backdrop already draws its own divider line.
+    if (
+      backdrop &&
+      element.kind === 'shape' &&
+      /diagonal/i.test(element.sourceLine || '') &&
+      (element.preset === 'shape-diagonal' || element.preset === 'shape-line')
+    ) {
+      return false;
+    }
     const parent = (element.parentLine || '').toLowerCase();
     if (
       element.kind === 'button' &&
@@ -1494,7 +1832,7 @@ export function compilePrompt(prompt: string, tokenBase?: DesignTokens): Compile
     });
   }
 
-  if (!raw.length) {
+  if (!raw.length && clarifications.length === 0 && !ignoredOnly) {
     raw.push(
       { id: '', kind: 'heading', label: '', preset: 'text-display', confidence: 0.2, radius: tokens.radius, fontFamily: tokens.font, x: 0, y: 0, w: 0, h: 0 },
       { id: '', kind: 'text', label: '', preset: 'text-body', confidence: 0.2, fontFamily: tokens.font, x: 0, y: 0, w: 0, h: 0 },
@@ -1610,6 +1948,7 @@ export function compilePrompt(prompt: string, tokenBase?: DesignTokens): Compile
   return {
     elements: ordered,
     questions: auditElements(ordered),
+    clarifications,
     archetype,
     meta: {
       structured: parsed.structured,
@@ -1676,14 +2015,17 @@ function blockName(text: string, archetype: Archetype): string | undefined {
  * `## Login screen` — so ordinary section headings such as `## Hero` remain
  * sections of one page rather than becoming pages themselves.
  */
-export function compilePromptScreens(prompt: string): PromptScreen[] {
+export function compilePromptScreens(
+  prompt: string,
+  lexicon: LearnedLexicon = {}
+): PromptScreen[] {
   const lines = prompt.split(/\r?\n/);
   const markers = lines.filter((line) => isScreenMarker(line)).length;
 
   // One separator is enough: "page one --- page two" is two pages. A single
   // marker at the top is just a page title and yields one page after filtering.
   if (markers === 0) {
-    const compiled = compilePrompt(prompt);
+    const compiled = compilePrompt(prompt, undefined, lexicon);
     const name = blockName(prompt, compiled.archetype) || 'Screen 1';
     return [{ ...compiled, id: 'screen_1', name }];
   }
@@ -1716,7 +2058,7 @@ export function compilePromptScreens(prompt: string): PromptScreen[] {
 
   const candidates = blocks
     .map((block) => {
-      const compiled = compilePrompt(block.text, globalTokens);
+      const compiled = compilePrompt(block.text, globalTokens, lexicon);
       return {
         compiled,
         name: block.name || blockName(block.text, compiled.archetype) || '',
@@ -1763,7 +2105,7 @@ export function compilePromptScreens(prompt: string): PromptScreen[] {
 
   return screens.length
     ? screens
-    : [{ ...compilePrompt(prompt), id: 'screen_1', name: 'Screen 1' }];
+    : [{ ...compilePrompt(prompt, undefined, lexicon), id: 'screen_1', name: 'Screen 1' }];
 }
 
 /* ------------------------------------------------------------------ */
@@ -2083,10 +2425,15 @@ export function layoutElements(
   const frame = FRAMES[viewport];
   const density = DENSITY_SCALE[tokens?.density || 'comfortable'];
   const background = elements.filter((element) => element.kind === 'background');
+  const shapes = elements.filter((element) => element.kind === 'shape');
   const nav = elements.filter((element) => element.kind === 'navbar');
   const footer = elements.filter((element) => element.kind === 'footer');
   const body = elements.filter(
-    (element) => element.kind !== 'navbar' && element.kind !== 'footer' && element.kind !== 'background'
+    (element) =>
+      element.kind !== 'navbar' &&
+      element.kind !== 'footer' &&
+      element.kind !== 'background' &&
+      element.kind !== 'shape'
   );
   const out: CompiledElement[] = [];
 
@@ -2109,6 +2456,31 @@ export function layoutElements(
   footer.forEach((element) =>
     out.push({ ...element, x: frame.pad, y: footerTop, w: frame.w - frame.pad * 2, h: frame.footerH })
   );
+
+  // Shapes are overlays: rendered last so they sit above the content.
+  shapes.forEach((element, index) => {
+    const preset = element.preset || 'shape-line';
+    if (preset === 'shape-diagonal') {
+      out.push({ ...element, x: 0, y: 0, w: frame.w, h: frame.h });
+    } else if (preset === 'shape-divider') {
+      out.push({
+        ...element,
+        x: frame.pad,
+        y: frame.h / 2,
+        w: frame.w - frame.pad * 2,
+        h: 3,
+      });
+    } else {
+      const size = Math.min(240, frame.w * 0.28);
+      out.push({
+        ...element,
+        x: (frame.w - size) / 2 + index * 10,
+        y: (frame.h - size) / 2 + index * 10,
+        w: size,
+        h: size,
+      });
+    }
+  });
 
   return out;
 }
