@@ -29,10 +29,9 @@
       // Apply the saved theme before paint so the dark shell never flashes light.
       (function () {
         try {
-          var stored = localStorage.getItem('prompt_linter_theme_preference');
-          var theme = stored === 'light' ? 'light' : 'dark';
-          document.documentElement.classList.toggle('dark', theme === 'dark');
-          document.documentElement.setAttribute('data-theme', theme);
+          localStorage.setItem('prompt_linter_theme_preference', 'dark');
+          document.documentElement.classList.add('dark');
+          document.documentElement.setAttribute('data-theme', 'dark');
         } catch (error) {
           document.documentElement.classList.add('dark');
           document.documentElement.setAttribute('data-theme', 'dark');
