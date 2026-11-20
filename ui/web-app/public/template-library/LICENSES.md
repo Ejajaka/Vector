@@ -19,10 +19,13 @@ production.
 
 ## Icons
 
-Source: [Lucide](https://lucide.dev)  
-License: [ISC](https://github.com/lucide-icons/lucide/blob/main/LICENSE)
+Sources:
 
-The SVG files in `icons/` are unmodified Lucide static icons.
+- [Lucide](https://lucide.dev) - ISC
+- [Tabler Icons](https://tabler.io/icons) - MIT
+- [Heroicons](https://heroicons.com) - MIT
+
+The SVG files in `icons/` are unmodified static icons from those sets.
 
 ## Fonts
 

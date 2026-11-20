@@ -137,3 +137,28 @@ Links only. Each file keeps its own license; review the file page before using i
 - [User Journey Map Template](https://www.figma.com/community/file/891225702324436074/user-journey-map-template)
 
 - [User Persona Template](https://www.figma.com/community/file/881830156311997001/user-persona-template)
+
+
+## Open-source UI kits and templates
+
+These are source libraries, not copied files. Check each project license before shipping.
+
+- [shadcn/ui](https://ui.shadcn.com/) - MIT, React components built on Radix.
+- [Radix UI](https://www.radix-ui.com/) - MIT, accessible primitives.
+- [Headless UI](https://headlessui.com/) - MIT, unstyled components.
+- [Tailwind UI](https://tailwindui.com/) - paid product; free examples only where the license allows.
+- [DaisyUI](https://daisyui.com/) - MIT, Tailwind component classes.
+- [Flowbite](https://flowbite.com/) - MIT components and blocks.
+- [Preline UI](https://preline.co/) - MIT Tailwind blocks.
+- [Mantine](https://mantine.dev/) - MIT React components.
+- [Chakra UI](https://chakra-ui.com/) - MIT React components.
+- [MUI](https://mui.com/) - MIT core components.
+- [Ant Design](https://ant.design/) - MIT component library.
+- [Tabler](https://tabler.io/) - MIT admin template and UI kit.
+- [Start Bootstrap](https://startbootstrap.com/templates) - MIT HTML themes.
+- [HTML5 UP](https://html5up.net/) - CC BY 3.0 templates; attribution required.
+- [Tailwind Toolbox](https://www.tailwindtoolbox.com/) - MIT templates.
+- [Cruip](https://cruip.com/) - free and paid templates; check each license.
+- [Open Peeps](https://www.openpeeps.com/) - CC0 illustration library.
+- [Humaaans](https://www.humaaans.com/) - CC BY 4.0; attribution required.
+- [Storyset](https://storyset.com/) - free illustrations with attribution.

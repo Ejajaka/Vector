@@ -1,0 +1,26 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Review suggestions - Vector block</title><link rel="stylesheet" href="blocks.css"></head>
+<body>
+<div class="top"><span class="brand"><span class="mark"><i></i></span>Vector</span><span class="crumb">/ <b>Review & acceptance</b></span><input class="search" placeholder="Search projects, briefs, templates..." /><div class="actions"><button class="btn ghost">Ask AI</button><button class="btn primary">Create</button></div></div>
+<div class="layout"><div class="side"><div class="item "><span class="dot"></span>Home</div><div class="item on"><span class="dot"></span>Projects</div><div class="item "><span class="dot"></span>Templates</div><div class="item "><span class="dot"></span>Library</div><div class="item "><span class="dot"></span>Learn</div></div>
+  <div class="main">
+    <div class="head"><div><div class="eyebrow">Project / Review</div><h1>Review &amp; acceptance</h1><p>AI-inferred behaviours stay suggestions until you accept them.</p></div><button class="btn primary">Accept all high confidence</button></div>
+    <div class="cols" style="grid-template-columns:360px 1fr">
+      <div class="card" style="padding:0">
+        <div class="row" style="padding:11px 12px;background:rgba(113,112,255,.08);border-left:2px solid var(--accent)"><span style="color:var(--bad)">*</span><b>Button action is vague</b><span class="right">HIGH</span></div>
+        <div class="row" style="padding:11px 12px"><span style="color:var(--bad)">*</span><b>Missing empty state</b><span class="right">HIGH</span></div>
+        <div class="row" style="padding:11px 12px"><span style="color:var(--warn)">*</span><b>Validation timing unclear</b><span class="right">MEDIUM</span></div>
+        <div class="row" style="padding:11px 12px"><span style="color:var(--warn)">*</span><b>Export scope unclear</b><span class="right">MEDIUM</span></div>
+      </div>
+      <div class="card">
+        <span class="tag" style="color:#ff9a9a;border-color:rgba(235,87,87,.28);background:rgba(235,87,87,.08)">HIGH SEVERITY</span>
+        <h2 style="font-size:22px;margin-top:12px">Button action is vague.</h2>
+        <p>The signup button says it opens the form, but the destination, transition and failure state are not defined.</p>
+        <div class="notice" style="margin-top:12px">Why it matters: this is the first action a new user takes. Ambiguity produces a dead end or a duplicate screen.</div>
+        <div class="card" style="margin-top:10px;background:var(--bg);padding:11px"><span class="mono" style="font-size:10px;color:var(--accent)">REQ-01</span><p style="font-size:11.5px">Employees must sign in with their company email and password before they can access the profile area.</p></div>
+        <div style="display:flex;gap:6px;margin-top:14px"><button class="btn primary" style="flex:1">Accept suggestion</button><button class="btn" style="flex:1">Edit then accept</button><button class="btn" style="flex:1">Reject</button></div>
+      </div>
+    </div>
+  </div>
+</div></body></html>

@@ -17,8 +17,10 @@ Or open `public/template-library/index.html` directly.
 | Folder | Contents | License |
 | --- | --- | --- |
 | `links.md` | 56 curated Figma Community links across dashboards, landing pages, commerce, auth, data tables, collaboration, mobile, portfolio and components. | Links only. Each file has its own license. |
+| `blocks/` | 17 original, self-contained UI screens: dashboard, analytics, projects, requirements, review, prompt studio, settings, billing, auth, landing, commerce, chat, onboarding, empty state, 404 and mobile. | Original Vector work. |
 | `images/` | 24 placeholder images from Lorem Picsum. | Unsplash License via Lorem Picsum. |
-| `icons/` | 85 Lucide SVG icons. | ISC. |
+| `illustrations/` | 12 unDraw illustrations. | unDraw License. |
+| `icons/` | 217 SVG icons across Lucide (ISC), Tabler (MIT) and Heroicons (MIT). | ISC / MIT. |
 | `fonts/` | Inter and JetBrains Mono WOFF2 files plus the generated `fonts.css`. | SIL Open Font License 1.1. |
 | `manifest.json` | Machine-readable index used by the catalog page and the app. | Metadata. |
 

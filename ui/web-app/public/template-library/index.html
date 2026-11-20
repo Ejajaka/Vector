@@ -80,6 +80,17 @@
     .image-card { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); }
     .image-card img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
     .image-card span { display: block; padding: 8px 10px; font-size: 10.5px; color: var(--faint); }
+    .grid-blocks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .block-card { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); transition: border-color .15s ease, transform .15s ease; }
+    .block-card:hover { border-color: var(--line-2); transform: translateY(-1px); }
+    .block-preview { height: 190px; overflow: hidden; background: var(--bg); border-bottom: 1px solid var(--line); position: relative; }
+    .block-preview iframe { width: 100%; height: 100%; border: 0; pointer-events: none; }
+    .block-body { display: flex; align-items: center; gap: 8px; padding: 10px 11px; }
+    .block-body b { font-size: 11.5px; font-weight: 500; }
+    .block-body span { margin-left: auto; font-size: 9.5px; color: var(--faint); }
+    .grid-illustrations { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .illustration-card { border: 1px solid var(--line); border-radius: 8px; background: #f7f8f8; padding: 14px; display: grid; place-items: center; aspect-ratio: 4 / 3; }
+    .illustration-card img { width: 100%; height: 100%; object-fit: contain; }
     .grid-icons { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 8px; }
     .icon-card { border: 1px solid var(--line); border-radius: 6px; background: var(--panel); padding: 10px 6px; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; }
     .icon-card:hover { border-color: var(--line-2); background: var(--panel-2); }
@@ -95,7 +106,7 @@
     .hidden { display: none !important; }
     .empty { padding: 40px; text-align: center; color: var(--faint); font-size: 12px; border: 1px dashed var(--line-2); border-radius: 8px; }
     footer { border-top: 1px solid var(--line); padding: 24px 0 40px; font-size: 11px; color: var(--faint); display: flex; justify-content: space-between; gap: 20px; }
-    @media (max-width: 1100px) { .grid-figma { grid-template-columns: repeat(2, 1fr); } .grid-icons { grid-template-columns: repeat(8, 1fr); } }
+    @media (max-width: 1100px) { .grid-figma { grid-template-columns: repeat(2, 1fr); } .grid-icons { grid-template-columns: repeat(8, 1fr); } .grid-illustrations { grid-template-columns: repeat(2, 1fr); } .grid-blocks { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 760px) {
       h1 { font-size: 38px; }
       .grid-figma, .grid-images, .type-grid { grid-template-columns: 1fr; }
@@ -121,8 +132,8 @@
       <div class="eyebrow">Template &amp; asset library / 2026</div>
       <h1>Everything you need to start.</h1>
       <p class="sub">
-        A local, license-safe collection of Figma Community references, placeholder imagery,
-        icons and type. Figma files are linked at source; they are not copied or redistributed.
+        A local, license-safe collection of original UI blocks, Figma Community references,
+        placeholder imagery, illustrations, icons and type. Figma files are linked at source; they are not copied or redistributed.
       </p>
       <div class="stats" id="stats"></div>
     </header>
@@ -130,7 +141,9 @@
     <div class="toolbar">
       <div class="tabs" id="tabs">
         <button class="tab on" data-tab="figma">Figma links</button>
+        <button class="tab" data-tab="blocks">UI blocks</button>
         <button class="tab" data-tab="images">Images</button>
+        <button class="tab" data-tab="illustrations">Illustrations</button>
         <button class="tab" data-tab="icons">Icons</button>
         <button class="tab" data-tab="type">Type</button>
       </div>
@@ -146,12 +159,29 @@
       <div class="empty hidden" id="figma-empty">Nothing matches that search.</div>
     </section>
 
+    <section class="section hidden" data-section="blocks" id="blocks">
+      <div class="section-head">
+        <h2>UI blocks</h2>
+        <p>Original Vector screens &middot; open any block full size</p>
+      </div>
+      <div class="grid-blocks" id="block-grid"></div>
+      <div class="empty hidden" id="block-empty">Nothing matches that search.</div>
+    </section>
+
     <section class="section hidden" data-section="images" id="assets">
       <div class="section-head">
         <h2>Placeholder imagery</h2>
         <p>Lorem Picsum / Unsplash License</p>
       </div>
       <div class="grid-images" id="image-grid"></div>
+    </section>
+
+    <section class="section hidden" data-section="illustrations" id="illustrations">
+      <div class="section-head">
+        <h2>Illustrations</h2>
+        <p>unDraw &middot; unDraw License</p>
+      </div>
+      <div class="grid-illustrations" id="illustration-grid"></div>
     </section>
 
     <section class="section hidden" data-section="icons" id="icons">
@@ -182,9 +212,9 @@
 
     <div class="notice" id="licenses">
       <b>Licenses and attribution.</b> Figma Community entries are links to the original files.
-      Each file has its own license and terms; review the file page before using it. The included
-      imagery comes from Lorem Picsum (Unsplash License), icons from Lucide (ISC), and type from
-      Google Fonts (SIL Open Font License 1.1). No paid or proprietary template files are bundled.
+      Each file has its own license and terms; review the file page before using it. The UI blocks are original Vector work. The
+      imagery comes from Lorem Picsum (Unsplash License), illustrations from unDraw (unDraw
+      License), icons from Lucide (ISC), and type from Google Fonts (SIL Open Font License 1.1). No paid or proprietary template files are bundled.
     </div>
 
     <footer>
@@ -207,8 +237,10 @@
       const root = document.getElementById('stats');
       const stats = [
         [state.data.figma.length, 'Figma references'],
+        [state.data.blocks.length, 'UI blocks'],
         [state.data.images.length, 'Images'],
         [state.data.icons.length, 'Icons'],
+        [state.data.illustrations.length, 'Illustrations'],
         [state.data.fonts.length, 'Typefaces'],
       ];
       root.innerHTML = '';
@@ -242,6 +274,34 @@
       });
     }
 
+    function renderBlocks() {
+      const grid = document.getElementById('block-grid');
+      const empty = document.getElementById('block-empty');
+      grid.innerHTML = '';
+      const term = state.query.toLowerCase();
+      const rows = state.data.blocks.filter((item) =>
+        !term || item.title.toLowerCase().includes(term) || item.category.toLowerCase().includes(term)
+      );
+      empty.classList.toggle('hidden', rows.length > 0);
+      rows.forEach((item) => {
+        const card = el('a', 'block-card');
+        card.href = item.file;
+        card.target = '_blank';
+        card.rel = 'noreferrer';
+        const preview = el('div', 'block-preview');
+        const frame = document.createElement('iframe');
+        frame.src = item.file;
+        frame.loading = 'lazy';
+        frame.scrolling = 'no';
+        frame.title = item.title;
+        preview.append(frame);
+        const body = el('div', 'block-body');
+        body.append(el('b', '', item.title), el('span', '', item.category));
+        card.append(preview, body);
+        grid.append(card);
+      });
+    }
+
     function renderImages() {
       const grid = document.getElementById('image-grid');
       grid.innerHTML = '';
@@ -252,6 +312,20 @@
         img.alt = item.alt;
         img.loading = 'lazy';
         card.append(img, el('span', '', item.alt));
+        grid.append(card);
+      });
+    }
+
+    function renderIllustrations() {
+      const grid = document.getElementById('illustration-grid');
+      grid.innerHTML = '';
+      state.data.illustrations.forEach((item) => {
+        const card = el('div', 'illustration-card');
+        const img = document.createElement('img');
+        img.src = item.src;
+        img.alt = item.name;
+        img.loading = 'lazy';
+        card.append(img);
         grid.append(card);
       });
     }
@@ -301,9 +375,13 @@
     async function main() {
       const response = await fetch('./manifest.json');
       state.data = await response.json();
+      const blocksResponse = await fetch('./blocks/blocks.json');
+      state.data.blocks = await blocksResponse.json();
       renderStats();
       renderFigma();
+      renderBlocks();
       renderImages();
+      renderIllustrations();
       renderIcons();
       document.querySelectorAll('.tab').forEach((button) => {
         button.addEventListener('click', () => setTab(button.dataset.tab));
@@ -311,6 +389,7 @@
       document.getElementById('search').addEventListener('input', (event) => {
         state.query = event.target.value;
         if (state.tab === 'icons') renderIcons();
+        else if (state.tab === 'blocks') renderBlocks();
         else renderFigma();
       });
     }

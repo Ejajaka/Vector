@@ -1,0 +1,104 @@
+[
+  {
+    "slug": "dashboard-overview",
+    "title": "Dashboard overview",
+    "category": "Dashboard",
+    "file": "blocks/dashboard-overview.html"
+  },
+  {
+    "slug": "analytics-report",
+    "title": "Analytics report",
+    "category": "Dashboard",
+    "file": "blocks/analytics-report.html"
+  },
+  {
+    "slug": "projects-grid",
+    "title": "Projects grid",
+    "category": "Projects",
+    "file": "blocks/projects-grid.html"
+  },
+  {
+    "slug": "requirements-table",
+    "title": "Requirements table",
+    "category": "Data",
+    "file": "blocks/requirements-table.html"
+  },
+  {
+    "slug": "review-suggestions",
+    "title": "Review suggestions",
+    "category": "Workflow",
+    "file": "blocks/review-suggestions.html"
+  },
+  {
+    "slug": "prompt-studio",
+    "title": "Prompt studio",
+    "category": "Workflow",
+    "file": "blocks/prompt-studio.html"
+  },
+  {
+    "slug": "settings-profile",
+    "title": "Settings & profile",
+    "category": "Settings",
+    "file": "blocks/settings-profile.html"
+  },
+  {
+    "slug": "billing-plans",
+    "title": "Billing plans",
+    "category": "Settings",
+    "file": "blocks/billing-plans.html"
+  },
+  {
+    "slug": "auth-login",
+    "title": "Login",
+    "category": "Auth",
+    "file": "blocks/auth-login.html"
+  },
+  {
+    "slug": "landing-hero",
+    "title": "Landing page",
+    "category": "Marketing",
+    "file": "blocks/landing-hero.html"
+  },
+  {
+    "slug": "commerce-product",
+    "title": "Product detail",
+    "category": "Commerce",
+    "file": "blocks/commerce-product.html"
+  },
+  {
+    "slug": "chat-interface",
+    "title": "Chat interface",
+    "category": "Collaboration",
+    "file": "blocks/chat-interface.html"
+  },
+  {
+    "slug": "onboarding-steps",
+    "title": "Onboarding",
+    "category": "Workflow",
+    "file": "blocks/onboarding-steps.html"
+  },
+  {
+    "slug": "empty-state",
+    "title": "Empty state",
+    "category": "Utility",
+    "file": "blocks/empty-state.html"
+  },
+  {
+    "slug": "not-found",
+    "title": "404",
+    "category": "Utility",
+    "file": "blocks/not-found.html"
+  },
+  {
+    "slug": "mobile-app",
+    "title": "Mobile app",
+    "category": "Mobile",
+    "file": "blocks/mobile-app.html"
+  },
+  {
+    "slug": "portfolio-grid",
+    "title": "Portfolio grid",
+    "category": "Marketing",
+    "file": "blocks/portfolio-grid.html"
+  }
+]
