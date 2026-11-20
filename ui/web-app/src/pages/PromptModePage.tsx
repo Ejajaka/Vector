@@ -27,6 +27,7 @@ import { isPaid, readEntitlements } from '../services/entitlements.ts';
 import { ConnectDialog } from '../components/generators/ConnectDialog.tsx';
 import { WireframePreview } from '../components/editor/WireframePreview.tsx';
 import type { CanvasItem, CanvasItemType, CanvasPage } from '../data/canvas.ts';
+import { TYPE_TO_VARIANT } from '../data/styles.ts';
 
 /** Canvas types that can represent each compiled component kind. */
 const CANVAS_TYPE: Partial<Record<CompiledElement['kind'], CanvasItemType>> = {
@@ -63,6 +64,7 @@ function screensToCanvasPages(
       items.push({
         id: `item_${screen.id}_${element.id}`,
         type,
+        variant: TYPE_TO_VARIANT[type],
         x: Math.max(0, Math.round(element.x)),
         y: Math.max(0, Math.round(element.y)),
         w: Math.max(24, Math.round(element.w)),

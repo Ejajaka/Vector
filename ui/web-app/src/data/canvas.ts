@@ -423,8 +423,12 @@ export function buildPagesPrompt(name: string, pages: CanvasPage[]): string {
       `${Math.round(item.w)}×${Math.round(item.h)}px`,
     ];
     if (item.color) bits.push(`accent ${item.color}`);
-    if (item.type === 'text' && item.fontSize) bits.push(`font size ${item.fontSize}px`);
-    if (item.type === 'text' && item.align) bits.push(`${item.align}-aligned`);
+    if (item.fontSize) bits.push(`font size ${item.fontSize}px`);
+    if (item.fontWeight) bits.push(`weight ${item.fontWeight}`);
+    if (item.fontFamily) bits.push(`${item.fontFamily} typeface`);
+    if (item.align) bits.push(`${item.align}-aligned`);
+    if (item.italic) bits.push('italic');
+    if (item.underline) bits.push('underlined');
     if (item.src) bits.push('using the supplied image');
     if (item.animation) {
       const motion = item.animation;

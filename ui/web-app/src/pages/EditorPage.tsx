@@ -57,10 +57,11 @@ import {
   FONT_LABELS,
   FONT_STACKS,
   type CanvasItem,
+  type CanvasItemType,
   type CanvasPage,
   type ElementAnimation,
 } from '../data/canvas.ts';
-import { VARIANTS, variantById, type StyleVariant } from '../data/styles.ts';
+import { TYPE_TO_VARIANT, VARIANTS, variantById, type StyleVariant } from '../data/styles.ts';
 import { DEVICE_GROUPS, describeSize } from '../data/devices.ts';
 import { StyledElement } from '../components/editor/StyledElement.tsx';
 import { VariantPreview } from '../components/editor/VariantPreview.tsx';
@@ -164,9 +165,18 @@ function isDarkColour(hex: string): boolean {
   return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 < 0.5;
 }
 
-/** Render a variant scaled into a fixed white thumbnail tile. */
-const Tile: React.FC<{ variant: StyleVariant; size?: number }> = ({ variant }) => (
-  <div className="h-full w-full overflow-hidden rounded-md" style={{ background: '#FFFFFF' }}>
+/** Best renderer for an item, even when it was seeded without a variant id. */
+function variantFor(item: CanvasItem): StyleVariant {
+  return (
+    variantById(item.variant || '') ||
+    variantById(TYPE_TO_VARIANT[item.type] || '') ||
+    VARIANTS[0]
+  );
+}
+
+/** Render a variant scaled into a fixed thumbnail tile. */
+const Tile: React.FC<{ variant: StyleVariant }> = ({ variant }) => (
+  <div className="h-full w-full overflow-hidden rounded-md" style={{ background: '#F6F5FA' }}>
     <VariantPreview variant={variant} />
   </div>
 );
@@ -186,6 +196,57 @@ const ANIMATION_TRIGGERS: Array<{ id: ElementAnimation['trigger']; label: string
   { id: 'click', label: 'On click' },
   { id: 'in-view', label: 'In view' },
 ];
+
+/** The size each element type renders at before the user picks an override. */
+const DEFAULT_FONT_SIZE: Record<CanvasItemType, number> = {
+  navbar: 13,
+  heading: 28,
+  text: 14,
+  button: 13,
+  input: 12,
+  card: 13,
+  image: 11,
+  chart: 11,
+  table: 10,
+  avatar: 12,
+  badge: 10.5,
+  footer: 11,
+  modal: 13,
+};
+
+const DEFAULT_FONT_WEIGHT: Record<CanvasItemType, number> = {
+  navbar: 800,
+  heading: 700,
+  text: 400,
+  button: 700,
+  input: 600,
+  card: 700,
+  image: 600,
+  chart: 700,
+  table: 700,
+  avatar: 700,
+  badge: 700,
+  footer: 700,
+  modal: 700,
+};
+
+const TYPE_LABEL: Record<CanvasItemType, string> = {
+  navbar: 'Navigation',
+  heading: 'Heading',
+  text: 'Text',
+  button: 'Button',
+  input: 'Input',
+  card: 'Card',
+  image: 'Image',
+  chart: 'Chart',
+  table: 'Table',
+  avatar: 'Avatar',
+  badge: 'Badge',
+  footer: 'Footer',
+  modal: 'Modal',
+};
+
+const TEXT_SIZE_PRESETS = [12, 14, 16, 18, 24, 32, 40, 56];
 
 const Section: React.FC<{ title: string; children?: React.ReactNode; action?: React.ReactNode; defaultOpen?: boolean }> = ({
   title,
@@ -341,7 +402,9 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   );
   const artboardRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
+  const inspectorRef = useRef<HTMLElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const replaceImageRef = useRef<HTMLInputElement>(null);
   const figmaRef = useRef<HTMLInputElement>(null);
   const attachRef = useRef<HTMLInputElement>(null);
   const editRef = useRef<HTMLTextAreaElement | null>(null);
@@ -415,7 +478,15 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   }, [panelOpen]);
 
   const selected = items.find((item) => item.id === selectedId) || null;
+  const currentFontSize = selected?.fontSize ?? (selected ? DEFAULT_FONT_SIZE[selected.type] : 14);
+  const selectedIsText = selected?.type === 'text' || selected?.type === 'heading';
   const activeSystem = getActiveDesignSystem();
+
+  // Selection changes the whole inspector; always start at the top so the
+  // controls for the newly selected object are visible.
+  useEffect(() => {
+    inspectorRef.current?.scrollTo({ top: 0 });
+  }, [selectedId, activePageId, inspectorTab, inspectorOpen]);
   // Autosave into the project document (or a source-keyed draft for template
   // editors) so leaving and returning keeps everything.
   useEffect(() => {
@@ -503,9 +574,9 @@ export const EditorPage: React.FC<EditorPageProps> = ({
       pageCount: pages.length,
       frame: { width: pageWidth, height: pageHeight },
       background: pageBg,
-      selected: selected ? { name: (variantById(selected.variant || '') || VARIANTS[0]).name, label: selected.label, w: selected.w, h: selected.h } : undefined,
+      selected: selected ? { name: variantFor(selected).name, label: selected.label, w: selected.w, h: selected.h } : undefined,
       elements: items.map((item) => ({
-        name: (variantById(item.variant || '') || VARIANTS[0]).name,
+        name: variantFor(item).name,
         label: item.label,
       })),
       colors: Array.from(new Set(items.map((item) => item.color).filter(Boolean))) as string[],
@@ -705,6 +776,25 @@ export const EditorPage: React.FC<EditorPageProps> = ({
         setSelectedId(item.id);
       };
       image.src = src;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const replaceSelectedImage = (file: File) => {
+    if (!selected || selected.type !== 'image') return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const src = String(reader.result || '');
+      if (!src) return;
+      void addAsset({
+        name: file.name || 'Image',
+        kind: 'image',
+        mime: file.type || 'image/png',
+        size: file.size,
+        dataUrl: src,
+        source: 'canvas',
+      });
+      commit(items.map((item) => (item.id === selected.id ? { ...item, src, label: item.label || 'Image' } : item)));
     };
     reader.readAsDataURL(file);
   };
@@ -1402,7 +1492,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
           <button
             type="button"
             onClick={() => figmaRef.current?.click()}
-            className="hidden md:inline-flex h-8 px-2.5 rounded-md text-[11.5px] font-semibold text-white/75 hover:bg-white/10 items-center gap-1.5"
+            className="hidden lg:inline-flex h-8 whitespace-nowrap px-2.5 rounded-md text-[11.5px] font-semibold text-white/75 hover:bg-white/10 items-center gap-1.5"
             title="Import a Figma JSON export"
           >
             <Frame className="w-3.5 h-3.5" /> Import Figma
@@ -1410,18 +1500,18 @@ export const EditorPage: React.FC<EditorPageProps> = ({
           <button
             type="button"
             onClick={onOpenAssistant}
-            className="h-8 px-2.5 rounded-md text-[11.5px] font-semibold text-white/75 hover:bg-white/10 inline-flex items-center gap-1.5"
+            className="h-8 whitespace-nowrap px-2.5 rounded-md text-[11.5px] font-semibold text-white/75 hover:bg-white/10 inline-flex items-center gap-1.5"
           >
             <Sparkles className="w-3.5 h-3.5 text-[#B9A8FF]" /> Ask AI
           </button>
-          <button type="button" onClick={save} className="h-8 px-3 rounded-md text-[11.5px] font-semibold text-white/80 hover:bg-white/10 hidden sm:inline-flex items-center">
+          <button type="button" onClick={save} className="h-8 whitespace-nowrap px-3 rounded-md text-[11.5px] font-semibold text-white/80 hover:bg-white/10 hidden sm:inline-flex items-center">
             {saved ? 'Saved' : 'Save'}
           </button>
           <div className="relative">
             <button
               type="button"
               onClick={() => setWorkspaceMenu((open) => !open)}
-              className="h-8 rounded-md border border-white/15 px-2.5 text-[11.5px] font-semibold text-white/80 hover:bg-white/10 inline-flex items-center gap-1"
+              className="h-8 whitespace-nowrap rounded-md border border-white/15 px-2.5 text-[11.5px] font-semibold text-white/80 hover:bg-white/10 inline-flex items-center gap-1"
               aria-expanded={workspaceMenu}
             >
               Workspace <ChevronDown className="w-3 h-3" />
@@ -1461,7 +1551,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
           <button
             type="button"
             onClick={() => setConnectOpen(true)}
-            className="h-8 rounded-md px-3.5 text-[11.5px] font-semibold text-white"
+            className="h-8 whitespace-nowrap rounded-md px-3.5 text-[11.5px] font-semibold text-white"
             style={{ backgroundImage: 'linear-gradient(118deg,#7C5CFF,#4D7CFE 55%,#22D3EE)' }}
           >
             Generate
@@ -1469,7 +1559,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
           <button
             type="button"
             onClick={() => setShareOpen(true)}
-            className="h-8 rounded-md border border-white/20 px-3 text-[11.5px] font-semibold text-white/85 hover:bg-white/5"
+            className="h-8 whitespace-nowrap rounded-md border border-white/20 px-3 text-[11.5px] font-semibold text-white/85 hover:bg-white/5"
           >
             Share
           </button>
@@ -1484,6 +1574,18 @@ export const EditorPage: React.FC<EditorPageProps> = ({
         className="hidden"
         onChange={(event) => {
           Array.from(event.target.files || []).forEach(addImageFromFile);
+          event.target.value = '';
+        }}
+      />
+
+      <input
+        ref={replaceImageRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) replaceSelectedImage(file);
           event.target.value = '';
         }}
       />
@@ -1712,8 +1814,8 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                     title={`${variant.name} — drag onto the canvas`}
                   >
                     <div className="rounded-lg overflow-hidden ring-1 ring-white/10 group-hover:ring-[#0D99FF] p-1.5" style={{ background: '#383838' }}>
-                      <div className="h-[72px]">
-                        <Tile variant={variant} size={62} />
+                      <div className="h-[86px]">
+                        <Tile variant={variant} />
                       </div>
                     </div>
                     <span className="mt-1 block text-[10.5px] text-white/80 truncate">{variant.name}</span>
@@ -1793,7 +1895,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
               )}
 
               {items.map((item) => {
-                const variant = variantById(item.variant || '') || VARIANTS[0];
+                const variant = variantFor(item);
                 const editing = editingId === item.id;
                 const isSelected = selectedId === item.id && !preview;
 
@@ -1856,7 +1958,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                           }
                         }}
                         style={{
-                          fontSize: item.fontSize ?? 28,
+                          fontSize: item.fontSize ?? DEFAULT_FONT_SIZE[item.type],
                           color: item.color || '#0B0E14',
                           fontWeight: item.fontWeight ?? 700,
                           textAlign: item.align || 'left',
@@ -2060,7 +2162,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
 
         {/* Inspector */}
         {inspectorOpen && (
-        <aside data-spot="editor-inspector" className="w-[286px] shrink-0 border-l border-white/10 bg-[#2C2C2C] flex flex-col min-h-0 overflow-y-auto v-scroll">
+        <aside ref={inspectorRef} data-spot="editor-inspector" className="w-[286px] shrink-0 border-l border-white/10 bg-[#2C2C2C] flex flex-col min-h-0 overflow-y-auto v-scroll">
           <div className="h-11 shrink-0 flex items-center gap-1 px-3 border-b border-white/10">
             <button
               type="button"
@@ -2394,6 +2496,8 @@ export const EditorPage: React.FC<EditorPageProps> = ({
 
           {inspectorTab === 'design' && (
             <>
+          {!selected && (
+            <>
           <Section title="Frame">
             <div className="flex items-center gap-1.5">
               <span className="text-[10.5px] text-white/45 w-14">Size</span>
@@ -2462,7 +2566,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
             </div>
           </Section>
 
-          <Section title="Page">
+          <Section title="Page background">
             <div className="flex items-center gap-1.5">
               <span className="text-[10.5px] text-white/45 w-14">Background</span>
               <label className="relative w-6 h-6 rounded border border-white/15 overflow-hidden cursor-pointer">
@@ -2488,192 +2592,343 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                 Make text readable on this background
               </button>
             )}
+            <p className="text-[9.5px] leading-relaxed text-white/30">
+              Click empty canvas to return here. Select any element to edit only its own controls.
+            </p>
           </Section>
+            </>
+          )}
 
           {selected && !preview && (
-            <Section
-              title={(variantById(selected.variant || '') || VARIANTS[0]).name}
-              action={
-                <>
-                  <button type="button" onClick={duplicateSelected} className="w-6 h-6 rounded grid place-items-center text-white/45 hover:bg-white/10" aria-label="Duplicate">
-                    <Copy className="w-3 h-3" />
-                  </button>
-                  <button type="button" onClick={removeSelected} className="w-6 h-6 rounded grid place-items-center text-[#FF8A8A] hover:bg-white/10" aria-label="Delete">
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                </>
-              }
-            >
-              {selected.type === 'text' ? (
-                <div className="rounded-md bg-[#383838] px-2.5 py-2">
-                  <p className="text-[10.5px] leading-relaxed text-white/50">
-                    Type directly on the canvas — double-click the text, or press Enter.
-                  </p>
+            <>
+              <div className="flex items-center gap-1 border-b border-white/8 px-3 py-2 text-[10.5px]">
+                <button
+                  type="button"
+                  onClick={() => setSelectedId(null)}
+                  className="rounded px-1.5 py-0.5 font-medium text-white/45 hover:bg-white/10 hover:text-white"
+                >
+                  Page
+                </button>
+                <ChevronRight className="h-3 w-3 text-white/25" />
+                <span className="min-w-0 flex-1 truncate font-semibold text-white/85">
+                  {TYPE_LABEL[selected.type]} · {variantFor(selected).name}
+                </span>
+                <button type="button" onClick={duplicateSelected} className="grid h-6 w-6 place-items-center rounded text-white/45 hover:bg-white/10" aria-label="Duplicate">
+                  <Copy className="h-3 w-3" />
+                </button>
+                <button type="button" onClick={removeSelected} className="grid h-6 w-6 place-items-center rounded text-[#FF8A8A] hover:bg-white/10" aria-label="Delete">
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              </div>
+
+              <Section title="Text">
+                {selectedIsText ? (
+                  <textarea
+                    value={selected.label}
+                    onChange={(event) => update(selected.id, { label: event.target.value })}
+                    rows={2}
+                    className="w-full resize-none rounded-md bg-[#383838] px-2 py-1.5 text-[11.5px] leading-relaxed outline-none focus:ring-1 focus:ring-[#0D99FF]"
+                    aria-label="Text content"
+                  />
+                ) : (
+                  <input
+                    value={selected.label}
+                    onChange={(event) => update(selected.id, { label: event.target.value })}
+                    className="h-7 w-full rounded-md bg-[#383838] px-2 text-[11.5px] outline-none focus:ring-1 focus:ring-[#0D99FF]"
+                    aria-label="Label"
+                  />
+                )}
+
+                <div className="mt-2 flex items-center gap-1.5">
+                  <span className="w-12 text-[10.5px] text-white/45">Size</span>
                   <button
                     type="button"
-                    onClick={() => setEditingId(selected.id)}
-                    className="mt-1.5 w-full h-7 rounded text-[10.5px] font-semibold text-white"
-                    style={{ background: '#0D99FF' }}
+                    onClick={() => update(selected.id, { fontSize: Math.max(6, Math.round(currentFontSize - 1)) })}
+                    className="grid h-7 w-7 place-items-center rounded bg-[#383838] text-white/70 hover:bg-white/15"
+                    aria-label="Decrease text size"
                   >
-                    Edit text on canvas
+                    <Minus className="h-3.5 w-3.5" />
                   </button>
-                </div>
-              ) : (
-                <input
-                  value={selected.label}
-                  onChange={(event) => update(selected.id, { label: event.target.value })}
-                  className="w-full h-7 rounded-md bg-[#383838] px-2 text-[11.5px] outline-none focus:ring-1 focus:ring-[#0D99FF]"
-                />
-              )}
-
-              {selected.type === 'text' && (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10.5px] text-white/45 w-14">Size</span>
                   <input
                     type="number"
-                    value={selected.fontSize ?? 28}
-                    onChange={(event) => update(selected.id, { fontSize: Number(event.target.value) || 12 })}
-                    className="w-12 h-7 rounded bg-[#383838] px-1.5 text-[10.5px] outline-none"
+                    min={6}
+                    max={200}
+                    value={currentFontSize}
+                    onChange={(event) =>
+                      update(selected.id, {
+                        fontSize: Math.max(6, Math.min(200, Number(event.target.value) || currentFontSize)),
+                      })
+                    }
+                    className="h-7 w-14 rounded bg-[#383838] px-1.5 text-center text-[11px] tabular-nums outline-none focus:ring-1 focus:ring-[#0D99FF]"
+                    aria-label="Text size"
                   />
+                  <button
+                    type="button"
+                    onClick={() => update(selected.id, { fontSize: Math.min(200, Math.round(currentFontSize + 1)) })}
+                    className="grid h-7 w-7 place-items-center rounded bg-[#383838] text-white/70 hover:bg-white/15"
+                    aria-label="Increase text size"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </button>
+                  <span className="text-[9.5px] text-white/35">px</span>
+                </div>
+
+                <div className="mt-1 grid grid-cols-4 gap-1">
+                  {TEXT_SIZE_PRESETS.map((size) => (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() => update(selected.id, { fontSize: size })}
+                      className={`h-6 rounded text-[10px] font-semibold tabular-nums ${
+                        Math.round(currentFontSize) === size
+                          ? 'bg-[#0D99FF] text-white'
+                          : 'bg-[#383838] text-white/55 hover:bg-white/15'
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mt-1 flex items-center gap-1.5">
+                  <span className="w-12 text-[10.5px] text-white/45">Weight</span>
                   {[400, 600, 800].map((weight) => (
                     <button
                       key={weight}
                       type="button"
                       onClick={() => update(selected.id, { fontWeight: weight })}
-                      className={`h-7 px-2 rounded text-[10px] font-bold ${(selected.fontWeight ?? 700) === weight ? 'bg-[#0D99FF] text-white' : 'bg-[#383838] text-white/60'}`}
+                      className={`h-7 flex-1 rounded text-[9.5px] font-bold ${
+                        (selected.fontWeight ?? DEFAULT_FONT_WEIGHT[selected.type]) === weight
+                          ? 'bg-[#0D99FF] text-white'
+                          : 'bg-[#383838] text-white/60'
+                      }`}
                     >
-                      {weight === 400 ? 'R' : weight === 600 ? 'SB' : 'B'}
+                      {weight === 400 ? 'Regular' : weight === 600 ? 'Semi' : 'Bold'}
                     </button>
                   ))}
                 </div>
-              )}
 
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10.5px] text-white/45 w-14">{selected.type === 'text' ? 'Fill' : 'Accent'}</span>
-                <div className="flex gap-1 flex-wrap">
-                  {SWATCHES.map((swatch) => (
-                    <button
-                      key={swatch}
-                      type="button"
-                      onClick={() => update(selected.id, { color: swatch })}
-                      className={`w-5 h-5 rounded border ${selected.color === swatch ? 'border-[#0D99FF]' : 'border-white/15'}`}
-                      style={{ background: swatch }}
-                      aria-label={`Use ${swatch}`}
-                    />
-                  ))}
+                <div className="mt-1 flex items-center gap-1.5">
+                  <span className="w-12 text-[10.5px] text-white/45">Font</span>
+                  <select
+                    value={selected.fontFamily || 'jakarta'}
+                    onChange={(event) => update(selected.id, { fontFamily: event.target.value })}
+                    className="h-7 flex-1 rounded bg-[#383838] px-1.5 text-[10.5px] text-white outline-none"
+                    style={{ fontFamily: FONT_STACKS[selected.fontFamily || 'jakarta'] }}
+                  >
+                    {FONT_LABELS.map((font) => (
+                      <option key={font.id} value={font.id}>
+                        {font.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              </div>
 
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10.5px] text-white/45 w-14">W / H</span>
-                <input
-                  type="number"
-                  value={selected.w}
-                  onChange={(event) => update(selected.id, { w: Number(event.target.value) || 60 })}
-                  className="w-[60px] h-7 rounded bg-[#383838] px-1.5 text-[10.5px] outline-none"
-                  aria-label="Width"
-                />
-                <input
-                  type="number"
-                  value={selected.h}
-                  onChange={(event) => update(selected.id, { h: Number(event.target.value) || 24 })}
-                  className="w-[60px] h-7 rounded bg-[#383838] px-1.5 text-[10.5px] outline-none"
-                  aria-label="Height"
-                />
-              </div>
+                <div className="mt-1 flex items-center gap-1.5">
+                  <span className="w-12 text-[10.5px] text-white/45">Style</span>
+                  <button
+                    type="button"
+                    onClick={() => update(selected.id, { italic: !selected.italic })}
+                    className={`grid h-7 w-7 place-items-center rounded ${selected.italic ? 'bg-[#0D99FF] text-white' : 'bg-[#383838] text-white/60'}`}
+                    aria-label="Italic"
+                  >
+                    <Italic className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => update(selected.id, { underline: !selected.underline })}
+                    className={`grid h-7 w-7 place-items-center rounded ${selected.underline ? 'bg-[#0D99FF] text-white' : 'bg-[#383838] text-white/60'}`}
+                    aria-label="Underline"
+                  >
+                    <Underline className="h-3.5 w-3.5" />
+                  </button>
+                  <span className="mx-0.5 h-4 w-px bg-white/10" />
+                  {([
+                    { value: 'left' as const, icon: AlignLeft },
+                    { value: 'center' as const, icon: AlignCenter },
+                    { value: 'right' as const, icon: AlignRight },
+                  ]).map((option) => {
+                    const Icon = option.icon;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => update(selected.id, { align: option.value })}
+                        className={`grid h-7 w-7 place-items-center rounded ${
+                          (selected.align || 'left') === option.value ? 'bg-[#0D99FF] text-white' : 'bg-[#383838] text-white/60'
+                        }`}
+                        aria-label={`Align ${option.value}`}
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                      </button>
+                    );
+                  })}
+                </div>
 
-              {selected.type !== 'text' && colorRow('Surface', selected.fill, (next) => update(selected.id, { fill: next || undefined }), true)}
-              {colorRow('Border', selected.strokeColor, (next) => update(selected.id, { strokeColor: next }))}
-
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10.5px] text-white/45 w-14 shrink-0">Thickness</span>
-                <input
-                  type="range"
-                  min={0}
-                  max={8}
-                  step={1}
-                  value={selected.strokeWidth ?? 0}
-                  onChange={(event) => update(selected.id, { strokeWidth: Number(event.target.value) })}
-                  className="flex-1 accent-[#0D99FF]"
-                />
-                <span className="w-9 text-right text-[10.5px] text-white/70">{selected.strokeWidth ?? 0}px</span>
-              </div>
-
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10.5px] text-white/45 w-14 shrink-0">Radius</span>
-                <input
-                  type="range"
-                  min={0}
-                  max={48}
-                  step={1}
-                  value={selected.radius ?? 12}
-                  onChange={(event) => update(selected.id, { radius: Number(event.target.value) })}
-                  className="flex-1 accent-[#0D99FF]"
-                />
-                <span className="w-9 text-right text-[10.5px] text-white/70">{selected.radius ?? 12}px</span>
-              </div>
-
-              {selected.type === 'text' && (
-                <>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10.5px] text-white/45 w-14 shrink-0">Font</span>
-                    <select
-                      value={selected.fontFamily || 'jakarta'}
-                      onChange={(event) => update(selected.id, { fontFamily: event.target.value })}
-                      className="h-7 flex-1 rounded bg-[#383838] px-1.5 text-[10.5px] text-white outline-none"
-                      style={{ fontFamily: FONT_STACKS[selected.fontFamily || 'jakarta'] }}
-                    >
-                      {FONT_LABELS.map((font) => (
-                        <option key={font.id} value={font.id}>
-                          {font.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10.5px] text-white/45 w-14 shrink-0">Style</span>
+                {selectedIsText && (
+                  <>
+                    <div className="mt-1 flex items-center gap-1.5">
+                      <span className="w-12 shrink-0 text-[10.5px] text-white/45">Tracking</span>
+                      <input
+                        type="range"
+                        min={-2}
+                        max={8}
+                        step={0.5}
+                        value={selected.tracking ?? 0}
+                        onChange={(event) => update(selected.id, { tracking: Number(event.target.value) })}
+                        className="flex-1 accent-[#0D99FF]"
+                      />
+                      <span className="w-9 text-right text-[10.5px] text-white/70">{selected.tracking ?? 0}px</span>
+                    </div>
                     <button
                       type="button"
-                      onClick={() => update(selected.id, { italic: !selected.italic })}
-                      className={`w-7 h-7 rounded grid place-items-center ${selected.italic ? 'bg-[#0D99FF] text-white' : 'bg-[#383838] text-white/60'}`}
-                      aria-label="Italic"
+                      onClick={() => setEditingId(selected.id)}
+                      className="mt-1 h-7 w-full rounded text-[10.5px] font-semibold text-white"
+                      style={{ background: '#0D99FF' }}
                     >
-                      <Italic className="w-3.5 h-3.5" />
+                      Edit text on canvas
                     </button>
+                  </>
+                )}
+              </Section>
+
+              <Section title="Layout">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-12 text-[10.5px] text-white/45">Position</span>
+                  <input
+                    type="number"
+                    value={selected.x}
+                    onChange={(event) => update(selected.id, { x: Number(event.target.value) || 0 })}
+                    className="h-7 w-[58px] rounded bg-[#383838] px-1.5 text-[10.5px] tabular-nums outline-none"
+                    aria-label="X position"
+                  />
+                  <input
+                    type="number"
+                    value={selected.y}
+                    onChange={(event) => update(selected.id, { y: Number(event.target.value) || 0 })}
+                    className="h-7 w-[58px] rounded bg-[#383838] px-1.5 text-[10.5px] tabular-nums outline-none"
+                    aria-label="Y position"
+                  />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-12 text-[10.5px] text-white/45">Size</span>
+                  <input
+                    type="number"
+                    value={selected.w}
+                    onChange={(event) => update(selected.id, { w: Math.max(16, Number(event.target.value) || 60) })}
+                    className="h-7 w-[58px] rounded bg-[#383838] px-1.5 text-[10.5px] tabular-nums outline-none"
+                    aria-label="Width"
+                  />
+                  <input
+                    type="number"
+                    value={selected.h}
+                    onChange={(event) => update(selected.id, { h: Math.max(16, Number(event.target.value) || 24) })}
+                    className="h-7 w-[58px] rounded bg-[#383838] px-1.5 text-[10.5px] tabular-nums outline-none"
+                    aria-label="Height"
+                  />
+                </div>
+              </Section>
+
+              <Section title={selectedIsText ? 'Colour' : 'Appearance'}>
+                <div className="flex items-start gap-1.5">
+                  <span className="w-12 shrink-0 pt-1 text-[10.5px] text-white/45">{selectedIsText ? 'Text' : 'Accent'}</span>
+                  <div className="flex flex-wrap gap-1">
+                    {SWATCHES.map((swatch) => (
+                      <button
+                        key={swatch}
+                        type="button"
+                        onClick={() => update(selected.id, { color: swatch })}
+                        className={`h-5 w-5 rounded border ${selected.color === swatch ? 'border-[#0D99FF]' : 'border-white/15'}`}
+                        style={{ background: swatch }}
+                        aria-label={`Use ${swatch}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {!selectedIsText && (
+                  <>
+                    {colorRow('Surface', selected.fill, (next) => update(selected.id, { fill: next || undefined }), true)}
+                    {colorRow('Border', selected.strokeColor, (next) => update(selected.id, { strokeColor: next }))}
+
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-14 shrink-0 text-[10.5px] text-white/45">Thickness</span>
+                      <input
+                        type="range"
+                        min={0}
+                        max={8}
+                        step={1}
+                        value={selected.strokeWidth ?? 0}
+                        onChange={(event) => update(selected.id, { strokeWidth: Number(event.target.value) })}
+                        className="flex-1 accent-[#0D99FF]"
+                      />
+                      <span className="w-9 text-right text-[10.5px] text-white/70">{selected.strokeWidth ?? 0}px</span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-14 shrink-0 text-[10.5px] text-white/45">Radius</span>
+                      <input
+                        type="range"
+                        min={0}
+                        max={48}
+                        step={1}
+                        value={selected.radius ?? 12}
+                        onChange={(event) => update(selected.id, { radius: Number(event.target.value) })}
+                        className="flex-1 accent-[#0D99FF]"
+                      />
+                      <span className="w-9 text-right text-[10.5px] text-white/70">{selected.radius ?? 12}px</span>
+                    </div>
+                  </>
+                )}
+              </Section>
+
+              {selected.type === 'image' && (
+                <Section title="Image">
+                  <div className="h-24 w-full overflow-hidden rounded-md border border-white/10 bg-[#383838]">
+                    {selected.src ? (
+                      <img src={selected.src} alt={selected.label} className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="grid h-full place-items-center text-[10.5px] text-white/35">No image yet</div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => replaceImageRef.current?.click()}
+                    className="mt-1.5 inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-md border border-white/15 text-[11px] font-semibold text-white/85 hover:bg-white/5"
+                  >
+                    <Upload className="h-3 w-3" /> {selected.src ? 'Replace image' : 'Upload image'}
+                  </button>
+                  {selected.src && (
                     <button
                       type="button"
-                      onClick={() => update(selected.id, { underline: !selected.underline })}
-                      className={`w-7 h-7 rounded grid place-items-center ${selected.underline ? 'bg-[#0D99FF] text-white' : 'bg-[#383838] text-white/60'}`}
-                      aria-label="Underline"
+                      onClick={() =>
+                        commit(items.map((item) => (item.id === selected.id ? { ...item, src: undefined } : item)))
+                      }
+                      className="mt-1 h-7 w-full rounded-md text-[10.5px] font-medium text-[#FF8A8A] hover:bg-white/5"
                     >
-                      <Underline className="w-3.5 h-3.5" />
+                      Remove image
                     </button>
-                    <span className="mx-0.5 h-4 w-px bg-white/10" />
-                    {([
-                      { value: 'left' as const, icon: AlignLeft },
-                      { value: 'center' as const, icon: AlignCenter },
-                      { value: 'right' as const, icon: AlignRight },
-                    ]).map((option) => {
-                      const Icon = option.icon;
-                      return (
-                        <button
-                          key={option.value}
-                          type="button"
-                          onClick={() => update(selected.id, { align: option.value })}
-                          className={`w-7 h-7 rounded grid place-items-center ${
-                            (selected.align || 'left') === option.value ? 'bg-[#0D99FF] text-white' : 'bg-[#383838] text-white/60'
-                          }`}
-                          aria-label={`Align ${option.value}`}
-                        >
-                          <Icon className="w-3.5 h-3.5" />
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
+                  )}
+                  <p className="text-[9.5px] leading-relaxed text-white/30">
+                    Images are embedded in the project and the exported bundle.
+                  </p>
+                </Section>
               )}
-            </Section>
+
+              {selected.type === 'button' && (
+                <Section title="Action">
+                  <input
+                    value={selected.action || ''}
+                    onChange={(event) => update(selected.id, { action: event.target.value })}
+                    placeholder="What happens on click?"
+                    className="h-7 w-full rounded-md bg-[#383838] px-2 text-[11px] outline-none placeholder:text-white/25 focus:ring-1 focus:ring-[#0D99FF]"
+                  />
+                  <p className="text-[9.5px] leading-relaxed text-white/30">
+                    This is copied into the prompt and the exported manifest.
+                  </p>
+                </Section>
+              )}
+            </>
           )}
 
           <Section
