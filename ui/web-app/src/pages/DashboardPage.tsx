@@ -33,14 +33,14 @@ interface DashboardPageProps {
 }
 
 const CATEGORY_STYLES: Record<string, { from: string; to: string }> = {
-  All: { from: '#0FA3A3', to: '#4F7DF3' },
-  Dashboard: { from: '#4F7DF3', to: '#8B5CF6' },
-  Marketing: { from: '#FF6B8A', to: '#FF8A6B' },
-  Commerce: { from: '#FFC53D', to: '#FF8A6B' },
-  Auth: { from: '#8B5CF6', to: '#4F7DF3' },
-  Mobile: { from: '#0FA3A3', to: '#22C1A6' },
-  Data: { from: '#4F7DF3', to: '#0FA3A3' },
-  Collaboration: { from: '#FF8A6B', to: '#FF6B8A' },
+  All: { from: '#00b8cc', to: '#7170ff' },
+  Dashboard: { from: '#7170ff', to: '#8b7bff' },
+  Marketing: { from: '#d46ec0', to: '#8b7bff' },
+  Commerce: { from: '#f2c94c', to: '#fc7840' },
+  Auth: { from: '#8b7bff', to: '#4ea7fc' },
+  Mobile: { from: '#00b8cc', to: '#4cc38a' },
+  Data: { from: '#4ea7fc', to: '#00b8cc' },
+  Collaboration: { from: '#fc7840', to: '#d46ec0' },
 };
 
 function firstName(input: string): string {
@@ -93,62 +93,59 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onStar
       {/* Hero */}
       <section className="v-mesh v-noise rounded-3xl px-5 sm:px-8 lg:px-10 py-7 sm:py-9 text-white">
         <div className="relative z-10 flex flex-col items-center text-center">
-          <div className="inline-flex items-center gap-1 p-1 rounded-full bg-white/12 border border-white/20 backdrop-blur">
+          <div className="inline-flex items-center gap-1 p-0.5 rounded-full border border-[var(--v-line)] bg-[var(--v-surface)]/70">
             <button
               type="button"
               onClick={() => onNavigate('dashboard')}
-              className="px-4 py-1.5 rounded-full bg-white text-[#14121F] text-[12px] font-bold"
+              className="px-3.5 py-1.5 rounded-full bg-[#e5e5e6] text-[#08090a] text-[12px] font-medium"
             >
               Home
             </button>
             <button
               type="button"
               onClick={() => onNavigate('templates')}
-              className="px-4 py-1.5 rounded-full text-white/85 text-[12px] font-semibold hover:text-white transition-colors"
+              className="px-3.5 py-1.5 rounded-full text-[var(--v-muted)] text-[12px] font-medium hover:text-[var(--v-ink)] transition-colors"
             >
               Templates
             </button>
           </div>
 
           <h1 className="v-display mt-4 text-[28px] sm:text-[34px] lg:text-[40px] max-w-[18ch]">
-            What will you <span className="italic text-[#FFD98A]">build</span> today?
+            What will you <span className="text-[var(--v-muted)]">build</span> today?
           </h1>
-          <p className="mt-2 text-[12px] sm:text-[13px] text-white/75 max-w-md">
+          <p className="mt-2 text-[12px] sm:text-[13px] text-[var(--v-muted)] max-w-md">
             Turn one vague sentence into a complete, scored prompt — with every label, action, colour and placement resolved before you generate.
           </p>
 
           <form onSubmit={search} className="mt-5 w-full max-w-[520px]">
-            <div className="flex items-center gap-2 bg-white rounded-full p-1.5 pl-4 shadow-[0_20px_50px_-24px_rgba(0,0,0,.6)]">
-              <Search className="w-4 h-4 text-[#8B8798] shrink-0" />
+            <div className="flex items-center gap-2 rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] p-1 pl-3 shadow-[0_20px_60px_-30px_rgba(0,0,0,.8)]">
+              <Search className="w-4 h-4 text-[var(--v-faint)] shrink-0" />
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search templates, elements or prompt ideas"
-                className="flex-1 min-w-0 bg-transparent outline-none text-[14px] text-[#14121F] placeholder:text-[#8B8798]"
+                className="flex-1 min-w-0 bg-transparent outline-none text-[13px] text-[var(--v-ink)] placeholder:text-[var(--v-faint)]"
               />
-              <button type="submit" className="v-btn v-btn-primary h-10 px-5 text-[12.5px] shrink-0">
+              <button type="submit" className="v-btn v-btn-primary h-8 px-4 text-[12.5px] shrink-0">
                 Start <ArrowUpRight className="w-3.5 h-3.5" />
               </button>
             </div>
           </form>
 
           <div className="mt-5 flex flex-wrap items-center justify-center gap-2 text-[11.5px]">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/15">
-              <Sparkles className="w-3 h-3 text-[#FFD98A]" />
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--v-surface-2)] border border-[var(--v-line)] text-[var(--v-muted)]">
+              <Sparkles className="w-3 h-3 text-[var(--v-accent)]" />
               {paid ? `${plan.name} plan active` : `${remaining} of ${TRIAL_PROJECTS} free projects left`}
             </span>
             <button
               type="button"
               onClick={onStartNewAnalysis}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 hover:bg-white/20 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--v-surface-2)] border border-[var(--v-line)] text-[var(--v-muted)] transition-colors hover:text-[var(--v-ink)] hover:border-[var(--v-line-strong)]"
             >
               <Wand2 className="w-3 h-3" /> Score a prompt
             </button>
           </div>
         </div>
-
-        <div className="v-orb w-[280px] h-[280px] bg-[#FFC53D]/40 -right-10 -bottom-24" aria-hidden="true" />
-        <div className="v-orb w-[220px] h-[220px] bg-[#0FA3A3]/50 -left-16 top-0" aria-hidden="true" />
       </section>
 
       {/* Categories */}
@@ -178,12 +175,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onStar
                 className="group flex flex-col items-center gap-2 shrink-0 w-[86px]"
               >
                 <span
-                  className="w-[48px] h-[48px] rounded-full grid place-items-center text-white shadow-[var(--v-shadow-sm)] group-hover:scale-105 transition-transform"
-                  style={{ backgroundImage: `linear-gradient(140deg, ${tone.from}, ${tone.to})` }}
+                  className="w-[44px] h-[44px] rounded-lg border border-[var(--v-line)] grid place-items-center transition-colors group-hover:border-[var(--v-line-strong)]"
+                  style={{ backgroundColor: `${tone.from}14`, color: tone.from }}
                 >
-                  <LayoutTemplate className="w-5 h-5" />
+                  <LayoutTemplate className="w-[18px] h-[18px]" />
                 </span>
-                <span className="text-[11px] font-semibold text-[var(--v-muted)] group-hover:text-[var(--v-ink)] transition-colors">
+                <span className="text-[11px] font-medium text-[var(--v-muted)] group-hover:text-[var(--v-ink)] transition-colors">
                   {category}
                 </span>
               </button>
@@ -239,16 +236,18 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onStar
                 className="h-[74px] relative"
                 style={{
                   backgroundImage: `linear-gradient(140deg, ${
-                    CATEGORY_STYLES[Object.keys(CATEGORY_STYLES)[(project.name.length % 6) + 1]]?.from || '#4F7DF3'
-                  }, ${CATEGORY_STYLES[Object.keys(CATEGORY_STYLES)[(project.name.length % 6) + 1]]?.to || '#8B5CF6'})`,
+                    CATEGORY_STYLES[Object.keys(CATEGORY_STYLES)[(project.name.length % 6) + 1]]?.from || '#7170ff'
+                  }26, ${
+                    CATEGORY_STYLES[Object.keys(CATEGORY_STYLES)[(project.name.length % 6) + 1]]?.to || '#4ea7fc'
+                  }14)`,
                 }}
               >
-                <div className="absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_20%_20%,white,transparent_45%)]" />
-                <span className="absolute bottom-2 left-2.5 text-white/95 text-[18px] font-extrabold v-display">
+                <div className="absolute inset-0 bg-[var(--v-surface)]/30" />
+                <span className="absolute bottom-2 left-2.5 text-[17px] font-semibold tracking-[-0.02em] text-[var(--v-ink)]">
                   {project.name.slice(0, 2).toUpperCase()}
                 </span>
-                <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white/25 backdrop-blur grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <ArrowUpRight className="w-3.5 h-3.5 text-white" />
+                <span className="absolute top-2 right-2 w-5 h-5 rounded-md border border-[var(--v-line)] bg-[var(--v-surface)]/70 grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <ArrowUpRight className="w-3 h-3 text-[var(--v-ink)]" />
                 </span>
               </div>
               <div className="p-2.5">

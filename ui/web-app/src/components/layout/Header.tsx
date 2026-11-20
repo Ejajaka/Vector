@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -142,7 +142,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <>
-      <header className="sticky top-0 z-30 h-[68px] border-b border-[var(--v-line)] v-glass">
+      <header className="sticky top-0 z-30 h-14 border-b border-[var(--v-line)] v-glass">
         <div className="mx-auto flex h-full w-full max-w-[1680px] items-center gap-3 px-4 lg:px-6">
           <button
             onClick={onOpenMobileMenu}
@@ -167,13 +167,13 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
-          <span className="v-display text-[19px] tracking-tight text-[var(--v-ink)] shrink-0">
+          <span className="text-[13.5px] font-semibold tracking-[-0.011em] text-[var(--v-ink)] shrink-0">
             {TITLES[activeTab] || 'Vector'}
           </span>
 
           {!publicMode && (
             <div className="relative flex-1 max-w-[520px] mx-auto hidden md:block" ref={searchRef}>
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--v-faint)] pointer-events-none" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--v-faint)] pointer-events-none" />
               <input
                 ref={inputRef}
                 value={query}
@@ -183,18 +183,18 @@ export const Header: React.FC<HeaderProps> = ({
                 }}
                 onFocus={() => setSearchOpen(true)}
                 placeholder="Search projects, templates and tools"
-                className="v-input h-10 pl-11 pr-16 text-[13px]"
+                className="v-input h-8 pl-9 pr-16 text-[12.5px]"
                 aria-label="Search"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 hidden lg:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md border border-[var(--v-line)] text-[10px] font-semibold text-[var(--v-faint)]">
-                ⌘K
+                âŒ˜K
               </span>
 
               {searchOpen && (
-                <div className="absolute left-0 right-0 top-[46px] v-card p-2 shadow-[var(--v-shadow-lg)] z-50">
+                <div className="absolute left-0 right-0 top-[38px] v-card p-1.5 shadow-[var(--v-shadow-lg)] z-50">
                   <p className="px-2 py-1.5 v-eyebrow">Jump to</p>
                   {filtered.length === 0 && (
-                    <p className="px-2 py-3 text-[12px] text-[var(--v-muted)]">Nothing matches “{query}”.</p>
+                    <p className="px-2 py-3 text-[12px] text-[var(--v-muted)]">Nothing matches â€œ{query}â€.</p>
                   )}
                   {filtered.map((command) => {
                     const Icon = command.icon;
@@ -252,7 +252,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           <div className="ml-auto flex items-center gap-1 sm:gap-1.5 shrink-0">
             {publicMode ? (
-              <button type="button" onClick={onRequestSignIn} className="v-btn v-btn-primary h-9 px-4 text-[12.5px]">
+              <button type="button" onClick={onRequestSignIn} className="v-btn v-btn-primary h-8 px-3.5 text-[12.5px]">
                 Sign in
               </button>
             ) : (
@@ -260,7 +260,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   type="button"
                   onClick={() => setActiveTab('projects')}
-                  className="v-btn v-btn-primary h-9 px-3.5 text-[12.5px] hidden sm:inline-flex"
+                  className="v-btn v-btn-primary h-8 px-3 text-[12.5px] hidden sm:inline-flex"
                 >
                   <Plus className="w-4 h-4" /> Create
                 </button>
@@ -268,7 +268,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   type="button"
                   onClick={onOpenAssistant}
-                  className="v-btn v-btn-ghost h-9 px-3 text-[12.5px] text-[var(--v-violet)]"
+                  className="v-btn v-btn-ghost h-8 px-2.5 text-[12.5px] text-[var(--v-muted)]"
                   title="Ask AI for help with this prompt"
                 >
                   <Sparkles className="w-4 h-4" />
@@ -317,3 +317,4 @@ export const Header: React.FC<HeaderProps> = ({
     </>
   );
 };
+

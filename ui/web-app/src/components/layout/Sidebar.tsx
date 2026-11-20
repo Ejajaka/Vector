@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import {
   Bell,
   Blocks,
@@ -123,9 +123,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         onClick={() => go(item.id)}
         data-tour={`nav-${item.id}`}
         aria-current={active ? 'page' : undefined}
-        className={`group relative flex flex-col items-center justify-center gap-1 w-[60px] py-2 rounded-2xl transition-all ${
-          active
-            ? 'bg-[var(--v-surface)] text-[var(--v-ink)] shadow-[var(--v-shadow-sm)]'
+        className={`group relative flex flex-col items-center justify-center gap-1 w-[56px] py-1.5 rounded-lg transition-all ${
+          active ? 'bg-[var(--v-surface-2)] text-[var(--v-ink)]'
             : 'text-[var(--v-muted)] hover:bg-[var(--v-surface-2)] hover:text-[var(--v-ink)]'
         }`}
         title={item.label}
@@ -135,16 +134,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
         >
           <Icon className="w-[19px] h-[19px]" strokeWidth={active ? 2.2 : 1.8} />
         </span>
-        <span className="text-[9.5px] font-semibold leading-none tracking-tight">{item.label}</span>
+        <span className="text-[9.5px] leading-none tracking-[-0.01em]">{item.label}</span>
         {active && (
-          <span className="absolute -left-[13px] top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full v-grad" />
+          <span className="absolute -left-[14px] top-1/2 -translate-y-1/2 w-[2px] h-4 rounded-full bg-[var(--v-accent)]" />
         )}
       </button>
     );
   };
 
   const CreateMenu: React.FC = () => (
-    <div className="absolute left-[64px] top-0 w-[240px] v-card p-2 shadow-[var(--v-shadow-lg)] z-50">
+    <div className="absolute left-[60px] top-0 w-[240px] v-card p-1.5 shadow-[var(--v-shadow-lg)] z-50">
       <p className="px-2 py-1.5 v-eyebrow">Create</p>
       {[
         { label: 'New project', tab: 'projects' as ActiveTab, icon: FolderKanban },
@@ -158,7 +157,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             key={item.label}
             type="button"
             onClick={() => go(item.tab)}
-            className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-[12.5px] font-semibold text-[var(--v-ink)] hover:bg-[var(--v-surface-2)] transition-colors"
+            className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[12.5px] font-medium text-[var(--v-ink)] hover:bg-[var(--v-surface-2)] transition-colors"
           >
             <Icon className="w-4 h-4 text-[var(--v-muted)]" />
             {item.label}
@@ -189,7 +188,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           type="button"
           onClick={() => go('dashboard')}
           className="mb-1 rounded-2xl p-0.5 hover:scale-105 transition-transform"
-          aria-label="Vector — go to home"
+          aria-label="Vector â€” go to home"
           title="Vector"
         >
           <Logo size={36} />
@@ -200,7 +199,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             type="button"
             onClick={() => setCreateOpen((value) => !value)}
-            className="w-[48px] h-[48px] rounded-2xl v-grad text-white grid place-items-center shadow-[0_10px_24px_-12px_rgba(79,125,243,.8)] hover:scale-105 active:scale-95 transition-transform"
+            className="w-[40px] h-[40px] rounded-lg bg-[#e5e5e6] text-[#08090a] grid place-items-center hover:bg-white transition-colors dark:bg-[#e5e5e6] dark:text-[#08090a]"
             aria-label="Create"
             aria-expanded={createOpen}
             title="Create"
@@ -234,8 +233,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 type="button"
                 onClick={() => setMoreOpen((value) => !value)}
-                className={`flex flex-col items-center justify-center gap-1 w-[60px] py-2 rounded-2xl transition-all ${
-                  moreOpen ? 'bg-[var(--v-surface)] shadow-[var(--v-shadow-sm)] text-[var(--v-ink)]' : 'text-[var(--v-muted)] hover:bg-[var(--v-surface-2)] hover:text-[var(--v-ink)]'
+                className={`flex flex-col items-center justify-center gap-1 w-[56px] py-1.5 rounded-lg transition-all ${
+                  moreOpen ? 'bg-[var(--v-surface-2)] text-[var(--v-ink)]' : 'text-[var(--v-muted)] hover:bg-[var(--v-surface-2)] hover:text-[var(--v-ink)]'
                 }`}
                 aria-expanded={moreOpen}
                 aria-label="More"
@@ -246,7 +245,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </button>
 
               {moreOpen && (
-                <div className="absolute left-[64px] top-0 w-[248px] v-card p-2 shadow-[var(--v-shadow-lg)] z-50 max-h-[70vh] overflow-y-auto v-scroll">
+                <div className="absolute left-[60px] top-0 w-[248px] v-card p-1.5 shadow-[var(--v-shadow-lg)] z-50 max-h-[70vh] overflow-y-auto v-scroll">
                   <p className="px-2 py-1.5 v-eyebrow">Project workflow</p>
                   {BUILD.map((item) => {
                     const Icon = item.icon;
@@ -255,7 +254,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         key={item.id}
                         type="button"
                         onClick={() => go(item.id)}
-                        className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-[12.5px] font-semibold text-[var(--v-ink)] hover:bg-[var(--v-surface-2)] transition-colors"
+                        className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[12.5px] font-medium text-[var(--v-ink)] hover:bg-[var(--v-surface-2)] transition-colors"
                       >
                         <Icon className="w-4 h-4 text-[var(--v-muted)]" />
                         <span className="flex-1 text-left">{item.label}</span>
@@ -272,7 +271,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         key={item.id}
                         type="button"
                         onClick={() => go(item.id)}
-                        className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-[12.5px] font-semibold text-[var(--v-ink)] hover:bg-[var(--v-surface-2)] transition-colors"
+                        className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[12.5px] font-medium text-[var(--v-ink)] hover:bg-[var(--v-surface-2)] transition-colors"
                       >
                         <Icon className="w-4 h-4 text-[var(--v-muted)]" />
                         <span className="flex-1 text-left">{item.label}</span>
@@ -345,7 +344,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   key={item.id}
                   type="button"
                   onClick={() => go(item.id)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-colors ${
+                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-md text-[13px] font-medium transition-colors ${
                     active ? 'bg-[var(--v-surface-2)] text-[var(--v-ink)]' : 'text-[var(--v-muted)] hover:bg-[var(--v-surface-2)]'
                   }`}
                 >
@@ -364,7 +363,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   key={item.id}
                   type="button"
                   onClick={() => go(item.id)}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-semibold text-[var(--v-muted)] hover:bg-[var(--v-surface-2)] hover:text-[var(--v-ink)]"
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-md text-[13px] font-medium text-[var(--v-muted)] hover:bg-[var(--v-surface-2)] hover:text-[var(--v-ink)]"
                 >
                   <Icon className="w-4 h-4" /> {item.label}
                 </button>
@@ -381,7 +380,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   key={item.id}
                   type="button"
                   onClick={() => go(item.id)}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-semibold text-[var(--v-muted)] hover:bg-[var(--v-surface-2)] hover:text-[var(--v-ink)]"
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-md text-[13px] font-medium text-[var(--v-muted)] hover:bg-[var(--v-surface-2)] hover:text-[var(--v-ink)]"
                 >
                   <Icon className="w-4 h-4" /> {item.label}
                 </button>
@@ -417,3 +416,4 @@ export const Sidebar: React.FC<SidebarProps> = ({
     </>
   );
 };
+

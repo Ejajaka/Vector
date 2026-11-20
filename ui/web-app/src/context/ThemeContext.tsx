@@ -22,7 +22,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch {
       // ignore
     }
-    return 'light';
+    // Vector is a dark-first product; light stays available from the header.
+    return 'dark';
   });
 
   const setTheme = (newTheme: Theme) => {

@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { ArrowUp, Mail } from 'lucide-react';
 import type { ActiveTab } from '../../types/analysis.ts';
 import { Logo } from '../ui/Logo.tsx';
@@ -43,15 +43,15 @@ export const PublicFooter: React.FC<PublicFooterProps> = ({ activeTab, onNavigat
   };
 
   return (
-    <footer className="mt-20 border-t border-[var(--v-line)] bg-[var(--v-surface-2)]">
-      <div className="mx-auto w-full max-w-[1240px] px-4 py-12 sm:px-6 lg:px-8">
+    <footer className="mt-24 border-t border-[var(--v-line)] bg-[var(--v-bg)]">
+      <div className="mx-auto w-full max-w-[1200px] px-4 pb-10 pt-14 sm:px-6 lg:px-8">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_repeat(3,1fr)]">
           <div>
             <button type="button" onClick={() => go('about')} className="flex items-center gap-2" aria-label="Vector home">
-              <Logo size={28} />
-              <span className="text-[15px] font-extrabold tracking-tight text-[var(--v-ink)]">Vector</span>
+              <Logo size={24} />
+              <span className="text-[14px] font-semibold tracking-[-0.02em] text-[var(--v-ink)]">Vector</span>
             </button>
-            <p className="mt-3 max-w-[240px] text-[11.5px] leading-relaxed text-[var(--v-muted)]">
+            <p className="mt-3 max-w-[240px] text-[12px] leading-relaxed text-[var(--v-muted)]">
               Requirement engineering for UI teams. Turn an under-specified prompt into a complete, reviewed brief.
             </p>
             <a
@@ -64,14 +64,14 @@ export const PublicFooter: React.FC<PublicFooterProps> = ({ activeTab, onNavigat
 
           {COLUMNS.map((column) => (
             <div key={column.title}>
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--v-faint)]">{column.title}</p>
+              <p className="text-[11px] font-medium text-[var(--v-faint)]">{column.title}</p>
               <ul className="mt-3 space-y-2">
                 {column.links.map((link) => (
                   <li key={link.label}>
                     <button
                       type="button"
                       onClick={() => go(link.tab)}
-                      className={`text-[11.5px] transition-colors hover:text-[var(--v-ink)] ${
+                      className={`text-[12px] transition-colors hover:text-[var(--v-ink)] ${
                         activeTab === link.tab ? 'font-semibold text-[var(--v-ink)]' : 'text-[var(--v-muted)]'
                       }`}
                     >
@@ -86,7 +86,7 @@ export const PublicFooter: React.FC<PublicFooterProps> = ({ activeTab, onNavigat
 
         <div className="mt-10 flex flex-col gap-3 border-t border-[var(--v-line)] pt-5 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[10.5px] text-[var(--v-faint)]">
-            © 2026 Vector. All rights reserved. · Bengaluru, India
+            Â© 2026 Vector. All rights reserved. Â· Bengaluru, India
           </p>
           <div className="flex items-center gap-4">
             <button type="button" onClick={() => go('contact')} className="text-[10.5px] text-[var(--v-muted)] hover:text-[var(--v-ink)]">
@@ -111,3 +111,4 @@ export const PublicFooter: React.FC<PublicFooterProps> = ({ activeTab, onNavigat
     </footer>
   );
 };
+

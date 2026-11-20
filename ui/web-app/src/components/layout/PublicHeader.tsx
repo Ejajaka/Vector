@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { ArrowRight, LogIn, Menu, Moon, Sun, X } from 'lucide-react';
 import type { ActiveTab } from '../../types/analysis.ts';
 import { useTheme } from '../../context/ThemeContext.tsx';
@@ -49,17 +49,17 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ activeTab, onNavigat
     <header
       className={`sticky top-0 z-50 border-b transition-colors duration-200 ${
         scrolled
-          ? 'border-[var(--v-line)] bg-[var(--v-bg)]'
+          ? 'border-[var(--v-line)] bg-[color-mix(in_srgb,var(--v-bg)_86%,transparent)] backdrop-blur-md'
           : 'border-transparent bg-transparent'
       }`}
     >
-      <div className="mx-auto flex h-16 w-full max-w-[1240px] items-center gap-3 px-4 sm:px-6 lg:px-8">
-        <button type="button" onClick={() => go('about')} className="flex shrink-0 items-center gap-2" aria-label="Vector home">
-          <Logo size={28} />
-          <span className="hidden text-[15px] font-extrabold tracking-tight text-[var(--v-ink)] sm:inline">Vector</span>
+      <div className="mx-auto flex h-14 w-full max-w-[1200px] items-center gap-1 px-4 sm:px-6 lg:px-8">
+        <button type="button" onClick={() => go('about')} className="flex shrink-0 items-center gap-2 pr-2" aria-label="Vector home">
+          <Logo size={24} />
+          <span className="hidden text-[14px] font-semibold tracking-[-0.02em] text-[var(--v-ink)] sm:inline">Vector</span>
         </button>
 
-        <nav className="ml-4 hidden items-center gap-0.5 lg:flex" aria-label="Main">
+        <nav className="ml-3 hidden items-center gap-0.5 lg:flex" aria-label="Main">
           {LINKS.map((link) => {
             const active = activeTab === link.id;
             return (
@@ -68,9 +68,8 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ activeTab, onNavigat
                 type="button"
                 onClick={() => go(link.id)}
                 aria-current={active ? 'page' : undefined}
-                className={`rounded-full px-3 py-1.5 text-[12.5px] font-semibold transition-colors ${
-                  active
-                    ? 'bg-[var(--v-surface-2)] text-[var(--v-ink)]'
+                className={`rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-colors ${
+                  active ? 'bg-[var(--v-surface-2)] text-[var(--v-ink)]'
                     : 'text-[var(--v-muted)] hover:text-[var(--v-ink)]'
                 }`}
               >
@@ -89,8 +88,8 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ activeTab, onNavigat
             <button
               type="button"
               onClick={onOpenApp}
-              className="hidden h-9 items-center gap-1.5 rounded-full px-4 text-[12px] font-bold text-white sm:inline-flex"
-              style={{ backgroundImage: 'linear-gradient(118deg,#7C5CFF,#4D7CFE 55%,#22D3EE)' }}
+              className="hidden h-8 items-center gap-1.5 rounded-full bg-[#282a30] px-3.5 text-[12.5px] font-medium text-white transition-colors hover:bg-[#111214] dark:bg-[#e5e5e6] dark:text-[#08090a] dark:hover:bg-white sm:inline-flex"
+              
             >
               Open workspace <ArrowRight className="h-3.5 w-3.5" />
             </button>
@@ -99,7 +98,7 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ activeTab, onNavigat
               <button
                 type="button"
                 onClick={onRequestSignIn}
-                className="hidden h-9 items-center gap-1.5 rounded-full px-3 text-[12px] font-semibold text-[var(--v-muted)] transition-colors hover:text-[var(--v-ink)] sm:inline-flex"
+                className="hidden h-8 items-center gap-1.5 rounded-full px-3 text-[12.5px] font-medium text-[var(--v-muted)] transition-colors hover:text-[var(--v-ink)] sm:inline-flex"
               >
                 <LogIn className="h-3.5 w-3.5" /> Sign in
               </button>
@@ -107,8 +106,8 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ activeTab, onNavigat
               <button
                 type="button"
                 onClick={onRequestSignIn}
-                className="hidden h-9 items-center gap-1.5 rounded-full px-4 text-[12px] font-bold text-white sm:inline-flex"
-                style={{ backgroundImage: 'linear-gradient(118deg,#7C5CFF,#4D7CFE 55%,#22D3EE)' }}
+                className="hidden h-8 items-center gap-1.5 rounded-full bg-[#282a30] px-3.5 text-[12.5px] font-medium text-white transition-colors hover:bg-[#111214] dark:bg-[#e5e5e6] dark:text-[#08090a] dark:hover:bg-white sm:inline-flex"
+                
               >
                 Start free <ArrowRight className="h-3.5 w-3.5" />
               </button>
@@ -157,3 +156,5 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ activeTab, onNavigat
     </header>
   );
 };
+
+

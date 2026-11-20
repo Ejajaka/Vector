@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+﻿import React, { useMemo, useState } from 'react';
 import {
   ArrowUpRight,
   Clock3,
@@ -41,12 +41,12 @@ interface ProjectsPageProps {
 type Tab = 'all' | 'recent' | 'shared' | 'trash';
 
 const TONES = [
-  ['#0FA3A3', '#4F7DF3'],
-  ['#4F7DF3', '#8B5CF6'],
-  ['#FF6B8A', '#FF8A6B'],
-  ['#FFC53D', '#FF8A6B'],
-  ['#8B5CF6', '#FF6B8A'],
-  ['#22C1A6', '#4F7DF3'],
+  ['#7170ff', '#00b8cc'],
+  ['#8b7bff', '#4ea7fc'],
+  ['#d46ec0', '#8b7bff'],
+  ['#f2c94c', '#fc7840'],
+  ['#4ea7fc', '#4cc38a'],
+  ['#00b8cc', '#7170ff'],
 ];
 
 function toneFor(id: string): [string, string] {
@@ -195,122 +195,116 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
   ];
 
   return (
-    <div className="flex flex-col lg:flex-row gap-5 v-fade-up">
+    <div className="v-fade-up">
       <SpotlightHost page="projects" />
-      {/* Sub navigation */}
-      <aside className="lg:w-[214px] shrink-0">
-        <div className="lg:sticky lg:top-[84px] space-y-1">
+      <div className="mx-auto w-full max-w-[1120px]">
+        {/* Page header */}
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="v-display text-[24px] text-[var(--v-ink)]">
+              {tab === 'trash' ? 'Trash' : tab === 'shared' ? 'Shared with you' : tab === 'recent' ? 'Recents' : 'Projects'}
+            </h1>
+            <p className="mt-1 max-w-[560px] text-[13px] text-[var(--v-muted)]">
+              {tab === 'trash'
+                ? 'Restore a project or delete it permanently.'
+                : 'Requirements, prompts, design systems and history stay together in one place.'}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="relative hidden sm:block">
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--v-faint)]" />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search projects"
+                className="v-input h-8 w-[230px] pl-8 pr-3 text-[12.5px]"
+                disabled={tab === 'shared'}
+                aria-label="Search projects"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setCreateOpen(true)}
+              className="v-btn v-btn-primary h-8 px-3 text-[12.5px]"
+            >
+              <Plus className="w-3.5 h-3.5" /> New project
+            </button>
+          </div>
+        </div>
+
+        {error && (
+          <div className="mt-4 rounded-lg border border-[var(--v-danger)]/30 bg-[var(--v-danger-soft)] px-3 py-2 text-[12px] text-[var(--v-danger)]">
+            {error}
+          </div>
+        )}
+
+        {/* Views toolbar */}
+        <div className="mt-6 flex flex-wrap items-center gap-1 border-b border-[var(--v-line)] pb-2">
           {TABS.map((item) => {
-            const Icon = item.icon;
             const isActive = tab === item.id;
             return (
               <button
                 key={item.id}
                 type="button"
                 onClick={() => setTab(item.id)}
-                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[12.5px] font-semibold transition-colors ${
+                className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[12.5px] transition-colors ${
                   isActive
-                    ? 'bg-[var(--v-surface)] text-[var(--v-ink)] shadow-[var(--v-shadow-sm)]'
-                    : 'text-[var(--v-muted)] hover:bg-[var(--v-surface-2)] hover:text-[var(--v-ink)]'
+                    ? 'bg-[var(--v-surface-2)] text-[var(--v-ink)]'
+                    : 'text-[var(--v-muted)] hover:bg-[var(--v-surface-2)]/60 hover:text-[var(--v-ink)]'
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-[var(--v-violet)]' : ''}`} />
-                <span className="flex-1 text-left">{item.label}</span>
+                {item.label}
                 {item.id === 'trash' && trashed.length > 0 && (
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[var(--v-surface-2)]">
-                    {trashed.length}
-                  </span>
+                  <span className="text-[10px] text-[var(--v-faint)]">{trashed.length}</span>
                 )}
               </button>
             );
           })}
 
-          <div className="!mt-4 rounded-2xl border border-dashed border-[var(--v-line)] p-3.5">
-            <p className="text-[11.5px] font-bold text-[var(--v-ink)]">
-              {paid ? 'Unlimited projects' : `${remaining} free project${remaining === 1 ? '' : 's'} left`}
-            </p>
-            <p className="mt-1 text-[10.5px] leading-relaxed text-[var(--v-muted)]">
-              {paid
-                ? 'Your plan includes unlimited projects, all templates and integrations.'
-                : 'Two full projects on the house. Upgrade when you need more.'}
-            </p>
+          <div className="ml-auto flex items-center gap-1">
             <button
               type="button"
-              onClick={() => onOpenPricing?.()}
-              className="mt-2 text-[10.5px] font-bold text-[var(--v-violet)] hover:underline"
+              className="v-chip h-7"
+              onClick={() => setSort(sort === 'updated' ? 'name' : 'updated')}
+              title="Toggle sort order"
             >
-              {paid ? 'Manage plan' : 'See plans'}
+              {sort === 'updated' ? 'Last modified' : 'Name'}
             </button>
-          </div>
-
-          {localMode && (
-            <div className="rounded-2xl bg-[var(--v-surface-2)] p-3 text-[10.5px] leading-relaxed text-[var(--v-muted)]">
-              <b className="text-[var(--v-ink)]">Local mode.</b> Projects are stored in this browser only.
-            </div>
-          )}
-
-          <button
-            type="button"
-            onClick={onOpenSettings}
-            className="w-full flex items-center gap-2 px-3 py-2 text-[11.5px] font-semibold text-[var(--v-muted)] hover:text-[var(--v-ink)]"
-          >
-            <Database className="w-3.5 h-3.5" /> Account & data
-          </button>
-        </div>
-      </aside>
-
-      {/* Main */}
-      <section className="flex-1 min-w-0">
-        <div className="text-center max-w-xl mx-auto">
-          <h1 className="v-display text-[30px] sm:text-[38px] text-[var(--v-ink)]">
-            {tab === 'trash' ? 'Trash' : tab === 'shared' ? 'Shared with you' : tab === 'recent' ? 'Recents' : 'All projects'}
-          </h1>
-          <p className="mt-1.5 text-[12.5px] text-[var(--v-muted)]">
-            {tab === 'trash'
-              ? 'Restore a project or delete it permanently.'
-              : 'Every project keeps its requirements, prompts, design system and history in one place.'}
-          </p>
-        </div>
-
-        {error && (
-          <div className="mt-4 rounded-2xl border border-[#F0C4BF] bg-[#FDF2F0] px-4 py-3 text-[12px] text-[#B94D42]">
-            {error}
-          </div>
-        )}
-
-        {/* Search + filters */}
-        <div className="mt-5">
-          <div className="relative max-w-[620px] mx-auto">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--v-faint)]" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search projects"
-              className="v-input h-11 pl-11 pr-4 text-[13px]"
-              disabled={tab === 'shared'}
-            />
-          </div>
-
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-            <button type="button" className="v-chip" onClick={() => setSort('updated')} data-active={sort === 'updated'}>
-              Last modified
-            </button>
-            <button type="button" className="v-chip" onClick={() => setSort('name')} data-active={sort === 'name'}>
-              Name
-            </button>
-            <button type="button" className="v-chip" onClick={() => setView(view === 'grid' ? 'list' : 'grid')}>
+            <button
+              type="button"
+              onClick={() => setView(view === 'grid' ? 'list' : 'grid')}
+              className="v-icon-btn"
+              aria-label={view === 'grid' ? 'Show as list' : 'Show as grid'}
+              title={view === 'grid' ? 'List view' : 'Grid view'}
+            >
               {view === 'grid' ? <List className="w-3.5 h-3.5" /> : <LayoutGrid className="w-3.5 h-3.5" />}
-              {view === 'grid' ? 'List' : 'Grid'}
             </button>
-            <button type="button" onClick={() => void refresh()} className="v-chip">
-              <RotateCcw className="w-3.5 h-3.5" /> Refresh
+            <button
+              type="button"
+              onClick={() => void refresh()}
+              className="v-icon-btn"
+              aria-label="Refresh projects"
+              title="Refresh"
+            >
+              <RotateCcw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             </button>
-            {loading && <Loader2 className="w-4 h-4 animate-spin text-[var(--v-faint)]" />}
           </div>
+        </div>
+
+        <div className="relative mt-4 sm:hidden">
+          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--v-faint)]" />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search projects"
+            className="v-input h-8 w-full pl-8 pr-3 text-[12.5px]"
+            disabled={tab === 'shared'}
+            aria-label="Search projects"
+          />
         </div>
 
         {tab === 'shared' ? (
-          <div className="mt-10 v-card rounded-[24px] p-10 text-center max-w-xl mx-auto">
+          <div className="mt-10 v-card rounded-xl p-10 text-center max-w-xl mx-auto">
             <Users className="w-7 h-7 mx-auto text-[var(--v-faint)]" />
             <p className="mt-2 text-[14px] font-bold text-[var(--v-ink)]">Nothing shared with you yet</p>
             <p className="mt-1 text-[12px] text-[var(--v-muted)]">
@@ -330,12 +324,12 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
                   type="button"
                   data-spot="projects-create"
                   onClick={() => setCreateOpen(true)}
-                  className="rounded-[20px] border-2 border-dashed border-[var(--v-line)] hover:border-[var(--v-violet)] bg-[var(--v-surface-2)] min-h-[190px] flex flex-col items-center justify-center gap-2 transition-colors group"
+                  className="rounded-xl border border-dashed border-[var(--v-line)] bg-transparent transition-colors hover:border-[var(--v-line-strong)] hover:bg-[var(--v-surface)] min-h-[172px] flex flex-col items-center justify-center gap-2 group"
                 >
-                  <span className="w-11 h-11 rounded-2xl v-grad text-white grid place-items-center group-hover:scale-105 transition-transform">
-                    <Plus className="w-5 h-5" />
+                  <span className="w-9 h-9 rounded-lg border border-[var(--v-line)] grid place-items-center text-[var(--v-muted)] transition-colors group-hover:text-[var(--v-ink)]">
+                    <Plus className="w-4 h-4" />
                   </span>
-                  <span className="text-[12.5px] font-bold text-[var(--v-ink)]">New project</span>
+                  <span className="text-[12.5px] font-medium text-[var(--v-ink)]">New project</span>
                   <span className="text-[10.5px] text-[var(--v-faint)]">
                     {paid ? 'Unlimited' : `${remaining} free left`}
                   </span>
@@ -352,7 +346,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
                     key={project.id}
                     className={`relative group ${
                       view === 'grid'
-                        ? 'v-card v-card-lift rounded-[20px]'
+                        ? 'v-card v-card-lift rounded-xl'
                         : 'v-card rounded-2xl p-3 flex items-center gap-3'
                     }`}
                   >
@@ -364,20 +358,20 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
                           className="block w-full text-left"
                         >
                           <div
-                            className="h-[132px] relative overflow-hidden rounded-t-[20px]"
-                            style={{ backgroundImage: `linear-gradient(140deg, ${from}, ${to})` }}
+                            className="h-[112px] relative overflow-hidden rounded-t-[12px] border-b border-[var(--v-line)]"
+                            style={{ backgroundImage: `linear-gradient(140deg, ${from}26, ${to}12)` }}
                           >
-                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_15%,rgba(255,255,255,.45),transparent_55%)]" />
-                            <span className="absolute bottom-2.5 left-3.5 v-display text-white/95 text-[28px]">
+                            <div className="absolute inset-0 bg-[var(--v-surface)]/25" />
+                            <span className="absolute bottom-2.5 left-3.5 text-[24px] font-semibold tracking-[-0.03em] text-[var(--v-ink)]">
                               {project.name.slice(0, 2).toUpperCase()}
                             </span>
                             {isCurrent && (
-                              <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full bg-white/90 text-[9px] font-bold uppercase tracking-wider text-[#14121F]">
+                              <span className="absolute top-2.5 left-2.5 rounded-full border border-[var(--v-line)] bg-[var(--v-surface)]/85 px-2 py-0.5 text-[9px] font-medium text-[var(--v-muted)]">
                                 Current
                               </span>
                             )}
-                            <span className="absolute bottom-2.5 right-3 w-7 h-7 rounded-full bg-white/25 backdrop-blur grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                              <ArrowUpRight className="w-3.5 h-3.5 text-white" />
+                            <span className="absolute bottom-2.5 right-3 grid h-6 w-6 place-items-center rounded-md border border-[var(--v-line)] bg-[var(--v-surface)]/70 opacity-0 transition-opacity group-hover:opacity-100">
+                              <ArrowUpRight className="w-3 h-3 text-[var(--v-ink)]" />
                             </span>
                           </div>
                           <div className="p-3.5">
@@ -395,8 +389,8 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
                     ) : (
                       <>
                         <span
-                          className="w-10 h-10 rounded-xl shrink-0 grid place-items-center text-white text-[12px] font-bold"
-                          style={{ backgroundImage: `linear-gradient(140deg, ${from}, ${to})` }}
+                          className="w-10 h-10 rounded-lg shrink-0 grid place-items-center border border-[var(--v-line)] text-[12px] font-semibold text-[var(--v-ink)]"
+                          style={{ backgroundColor: `${from}1f` }}
                         >
                           {project.name.slice(0, 2).toUpperCase()}
                         </span>
@@ -407,7 +401,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
                         >
                           <p className="text-[12.5px] font-bold text-[var(--v-ink)] truncate">{project.name}</p>
                           <p className="text-[10.5px] text-[var(--v-faint)] truncate">
-                            {project.description || 'No description'} · {new Date(project.updatedAt).toLocaleDateString()}
+                            {project.description || 'No description'} Â· {new Date(project.updatedAt).toLocaleDateString()}
                           </p>
                         </button>
                       </>
@@ -482,10 +476,10 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
             </div>
 
             {!loading && visible.length === 0 && (
-              <div className="mt-6 v-card rounded-[24px] p-10 text-center">
+              <div className="mt-6 v-card rounded-xl p-10 text-center">
                 <Sparkles className="w-6 h-6 mx-auto text-[var(--v-faint)]" />
                 <p className="mt-2 text-[13.5px] font-bold text-[var(--v-ink)]">
-                  {query ? `No projects match “${query}”` : tab === 'trash' ? 'Trash is empty' : 'No projects yet'}
+                  {query ? `No projects match â€œ${query}â€` : tab === 'trash' ? 'Trash is empty' : 'No projects yet'}
                 </p>
                 <p className="mt-1 text-[11.5px] text-[var(--v-muted)]">
                   {tab === 'trash' ? 'Deleted projects can be restored for 30 days.' : 'Create one, or start from a template.'}
@@ -499,13 +493,37 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
             )}
           </>
         )}
-      </section>
+
+        {/* Footer meta */}
+        <div className="mt-8 flex flex-col gap-3 border-t border-[var(--v-line)] pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-[11.5px] text-[var(--v-faint)]">
+            {paid ? 'Pro plan · unlimited projects' : `${remaining} free project${remaining === 1 ? '' : 's'} left`}
+            {localMode ? ' · Stored in this browser' : ''}
+          </p>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => onOpenPricing?.()}
+              className="text-[11.5px] text-[var(--v-muted)] transition-colors hover:text-[var(--v-ink)]"
+            >
+              {paid ? 'Manage plan' : 'See plans'}
+            </button>
+            <button
+              type="button"
+              onClick={onOpenSettings}
+              className="inline-flex items-center gap-1.5 text-[11.5px] text-[var(--v-muted)] transition-colors hover:text-[var(--v-ink)]"
+            >
+              <Database className="w-3.5 h-3.5" /> Account &amp; data
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Create modal */}
       {createOpen && (
         <div className="fixed inset-0 z-[70] grid place-items-center p-4">
           <div className="absolute inset-0 bg-[#14121F]/50 backdrop-blur-sm" onClick={() => setCreateOpen(false)} aria-hidden="true" />
-          <form onSubmit={handleCreate} className="relative w-full max-w-[440px] v-card rounded-[24px] p-6 shadow-[var(--v-shadow-lg)]">
+          <form onSubmit={handleCreate} className="relative w-full max-w-[440px] v-card rounded-xl p-6 shadow-[var(--v-shadow-lg)]">
             <div className="flex items-start justify-between">
               <div>
                 <p className="v-eyebrow">New</p>
@@ -561,7 +579,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
       {editTarget && (
         <div className="fixed inset-0 z-[70] grid place-items-center p-4">
           <div className="absolute inset-0 bg-[#14121F]/50 backdrop-blur-sm" onClick={() => setEditTarget(null)} aria-hidden="true" />
-          <form onSubmit={handleEditSave} className="relative w-full max-w-[440px] v-card rounded-[24px] p-6 shadow-[var(--v-shadow-lg)]">
+          <form onSubmit={handleEditSave} className="relative w-full max-w-[440px] v-card rounded-xl p-6 shadow-[var(--v-shadow-lg)]">
             <div className="flex items-start justify-between">
               <h2 className="v-display text-[22px] text-[var(--v-ink)]">Edit project</h2>
               <button type="button" onClick={() => setEditTarget(null)} className="v-icon-btn -mr-2 -mt-2" aria-label="Close">
@@ -609,3 +627,4 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
     </div>
   );
 };
+

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+﻿import React, { useCallback, useEffect, useState } from 'react';
 import type { ActiveTab, AnalysisResult } from './types/analysis.ts';
 import { ToastProvider } from './components/ui/Toast.tsx';
 import { ThemeProvider } from './context/ThemeContext.tsx';
@@ -301,7 +301,7 @@ function AppShell() {
 
   const publicMode = configured && !user;
   // Without Supabase the app runs as a local workspace, which is a valid
-  // signed-in state — otherwise local users could never reach the dashboard.
+  // signed-in state â€” otherwise local users could never reach the dashboard.
   const localWorkspace = !configured;
   const signedIn = !!user || localWorkspace;
   // Marketing chrome is a property of the page, not of the session: /pricing and
@@ -408,7 +408,7 @@ function AppShell() {
       <div className="min-h-screen bg-[#F6F4EC] flex items-center justify-center">
         <div className="text-center">
           <div className="w-9 h-9 rounded-xl bg-[#2D5D4F] text-white mx-auto flex items-center justify-center font-black">V</div>
-          <p className="mt-3 text-xs font-semibold text-[#737A72]">Restoring your session…</p>
+          <p className="mt-3 text-xs font-semibold text-[#737A72]">Restoring your sessionâ€¦</p>
         </div>
       </div>
     );
@@ -497,7 +497,7 @@ function AppShell() {
       }
       notificationService.push({
         kind: 'system',
-        title: `“${template.name}” project created`,
+        title: `â€œ${template.name}â€ project created`,
         body: `${template.blocks.length} elements were pre-filled. Keep designing, the prompt updates as you go.`,
         action: { label: 'Open projects', tab: 'projects' },
       });
@@ -683,11 +683,11 @@ function AppShell() {
         <main
           id="main-content"
           className={`mx-auto w-full flex-1 ${
-            showMarketingChrome ? '' : 'max-w-[1680px] px-4 sm:px-6 lg:px-8 py-5 sm:py-7'
+            showMarketingChrome ? '' : 'max-w-[1680px] px-4 sm:px-6 lg:px-8 py-4 sm:py-6'
           }`}
           role="main"
         >
-          {activeTab === 'about' && <AboutPage onStartAnalysis={handleStartRequirementWorkflow} />}
+          {activeTab === 'about' && <AboutPage onStartAnalysis={handleStartRequirementWorkflow} onOpenTemplates={() => setActiveTab('templates')} />}
 
           {activeTab === 'dashboard' && (
             <DashboardPage
@@ -867,3 +867,5 @@ export default function App() {
     </ThemeProvider>
   );
 }
+
+

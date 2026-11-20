@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,7 +10,7 @@
     <link rel="apple-touch-icon" href="./favicon-512.png" />
     <link rel="manifest" href="./manifest.webmanifest" />
 
-    <meta name="theme-color" content="#7C5CFF" />
+    <meta name="theme-color" content="#08090a" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Vector" />
@@ -21,12 +21,34 @@
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet" />
-    <script type="module" crossorigin src="./assets/index-BcqvfYIx.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-DfMtetqZ.css">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      // Apply the saved theme before paint so the dark shell never flashes light.
+      (function () {
+        try {
+          var stored = localStorage.getItem('prompt_linter_theme_preference');
+          var theme = stored === 'light' ? 'light' : 'dark';
+          document.documentElement.classList.toggle('dark', theme === 'dark');
+          document.documentElement.setAttribute('data-theme', theme);
+        } catch (error) {
+          document.documentElement.classList.add('dark');
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+      })();
+      (function () {
+        // A tiny enhancement hook used by Linear-style chrome.
+        try {
+          if ((navigator.hardwareConcurrency || 4) > 4) document.documentElement.classList.add('enhanced');
+        } catch (error) {}
+      })();
+    </script>
+    <script type="module" crossorigin src="./assets/index-D7kaI3QJ.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-BeRhvAwl.css">
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"></div>
   </body>
 </html>
