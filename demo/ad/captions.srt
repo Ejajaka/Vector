@@ -1,0 +1,23 @@
+1
+00:00:00,500 --> 00:00:06,044
+Most AI tools start with a prompt. Vector starts with the truth.
+
+2
+00:00:07,094 --> 00:00:13,334
+Drop in a brief. Vector extracts every requirement, with the source attached.
+
+3
+00:00:14,384 --> 00:00:18,728
+It finds the gaps a generator would have guessed at. You decide what gets accepted.
+
+4
+00:00:19,778 --> 00:00:26,690
+Then it writes one complete, versioned prompt. Ready for Base44, v0, Bolt or Figma.
+
+5
+00:00:27,740 --> 00:00:31,220
+From a rough sentence to an interface your team can defend.
+
+6
+00:00:32,340 --> 00:00:40,092
+Vector. The requirement-to-interface system. Start free at vector.is-a.dev.
