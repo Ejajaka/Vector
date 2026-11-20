@@ -678,7 +678,6 @@ function AppShell() {
               onOpenCanvas={() => enterProjectCanvas({ fresh: false })}
               onBlankCanvas={() => enterProjectCanvas({ fresh: true })}
               onOptimizePrompt={() => setProjectView('prompt')}
-              onOpenDesignSystem={() => setActiveTab('design')}
               onNavigate={setActiveTab}
             />
           )}

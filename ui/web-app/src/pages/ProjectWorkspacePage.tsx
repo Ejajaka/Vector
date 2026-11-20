@@ -64,6 +64,11 @@ import { currentRoom, shareLink } from '../services/collab.ts';
 import type { ActiveTab } from '../types/analysis.ts';
 import { useSearchAutocomplete } from '../hooks/useSearchAutocomplete.ts';
 import { SearchSuggestions } from '../components/ui/SearchSuggestions.tsx';
+import {
+  ProjectToolsDialog,
+  type ProjectToolId,
+  type ProjectToolSource,
+} from '../components/project/ProjectToolsDialog.tsx';
 
 interface ProjectRef {
   id: string;
@@ -77,7 +82,6 @@ interface ProjectWorkspacePageProps {
   onOpenCanvas: () => void;
   onBlankCanvas: () => void;
   onOptimizePrompt: () => void;
-  onOpenDesignSystem: () => void;
   onNavigate: (tab: ActiveTab) => void;
 }
 
@@ -179,6 +183,20 @@ function slug(value: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
     .slice(0, 48) || 'project';
+}
+
+function dataUrlToText(dataUrl: string): string {
+  try {
+    const comma = dataUrl.indexOf(',');
+    if (comma < 0) return '';
+    const meta = dataUrl.slice(0, comma);
+    const payload = dataUrl.slice(comma + 1);
+    if (!meta.includes(';base64')) return decodeURIComponent(payload);
+    const bytes = dataUrlToBytes(dataUrl);
+    return bytes ? new TextDecoder().decode(bytes) : '';
+  } catch {
+    return '';
+  }
 }
 
 function dataUrlToBytes(dataUrl: string): Uint8Array | null {
@@ -465,7 +483,6 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   onOpenCanvas,
   onBlankCanvas,
   onOptimizePrompt,
-  onOpenDesignSystem,
   onNavigate,
 }) => {
   const [doc, setDoc] = useState<SavedDoc | null>(null);
@@ -486,6 +503,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   const [zipBusy, setZipBusy] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
+  const [toolOpen, setToolOpen] = useState<ProjectToolId | null>(null);
   const [base44Copied, setBase44Copied] = useState(false);
   const [base44Key, setBase44Key] = useState(0);
   const [base44Loaded, setBase44Loaded] = useState(false);
@@ -571,6 +589,32 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     }
     return next.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   }, [doc, project.name, revised]);
+
+  const toolSources = useMemo<ProjectToolSource[]>(() => {
+    const list: ProjectToolSource[] = versions.map((version) => ({
+      id: `prompt:${version.id}`,
+      label: version.label,
+      detail: `${version.pages} page${version.pages === 1 ? '' : 's'} · ${version.elements} element${version.elements === 1 ? '' : 's'}${version.risk != null ? ` · risk ${version.risk}` : ''}`,
+      text: version.prompt,
+      kind: 'prompt',
+    }));
+    files.forEach((file) => {
+      const textLike =
+        file.type.startsWith('text/') ||
+        /\.(txt|md|markdown|json|csv|tsv|html?)$/i.test(file.name);
+      if (!textLike) return;
+      const text = dataUrlToText(file.dataUrl);
+      if (text.trim().length < 24) return;
+      list.push({
+        id: `file:${file.id}`,
+        label: file.name,
+        detail: `Project file · ${Math.max(1, Math.round(file.size / 1024))} KB`,
+        text,
+        kind: 'file',
+      });
+    });
+    return list;
+  }, [files, versions]);
 
   useEffect(() => {
     if (!versions.length) {
@@ -905,6 +949,16 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     }
   };
 
+  const fullTabForTool: Record<ProjectToolId, ActiveTab> = {
+    requirements: 'requirements',
+    graph: 'intelligence',
+    review: 'review',
+    prompt: 'prompt',
+    build: 'workspace',
+    design: 'design',
+    analyser: 'new-analysis',
+  };
+
   const copyBase44Prompt = async () => {
     if (!base44Version) return;
     try {
@@ -979,20 +1033,20 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
       <nav className="flex shrink-0 flex-wrap items-center gap-1 rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] p-1">
         <span className="px-2 text-[9.5px] font-medium uppercase tracking-[0.05em] text-[var(--v-faint)]">Project tools</span>
         {[
-          { id: 'requirements' as ActiveTab, label: 'Requirements', icon: FileText },
-          { id: 'intelligence' as ActiveTab, label: 'Requirement graph', icon: GitBranch },
-          { id: 'review' as ActiveTab, label: 'Review & acceptance', icon: ClipboardCheck },
-          { id: 'prompt' as ActiveTab, label: 'Prompt studio', icon: Sparkles },
-          { id: 'workspace' as ActiveTab, label: 'Build workspace', icon: Rocket },
-          { id: 'design' as ActiveTab, label: 'Design systems', icon: Palette },
-          { id: 'new-analysis' as ActiveTab, label: 'Prompt analyser', icon: BarChart3 },
+          { id: 'requirements' as ProjectToolId, label: 'Requirements', icon: FileText },
+          { id: 'graph' as ProjectToolId, label: 'Requirement graph', icon: GitBranch },
+          { id: 'review' as ProjectToolId, label: 'Review & acceptance', icon: ClipboardCheck },
+          { id: 'prompt' as ProjectToolId, label: 'Prompt studio', icon: Sparkles },
+          { id: 'build' as ProjectToolId, label: 'Build workspace', icon: Rocket },
+          { id: 'design' as ProjectToolId, label: 'Design systems', icon: Palette },
+          { id: 'analyser' as ProjectToolId, label: 'Prompt analyser', icon: BarChart3 },
         ].map((tool) => {
           const Icon = tool.icon;
           return (
             <button
               key={tool.id}
               type="button"
-              onClick={() => onNavigate(tool.id)}
+              onClick={() => setToolOpen(tool.id)}
               className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[10.5px] font-medium text-[var(--v-muted)] transition-colors hover:bg-[var(--v-surface-2)] hover:text-[var(--v-ink)]"
             >
               <Icon className="h-3.5 w-3.5" /> {tool.label}
@@ -1110,7 +1164,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                       icon={<Palette className="h-3 w-3" />}
                       title="Design system"
                       meta={designSystem?.name || 'None attached'}
-                      onClick={onOpenDesignSystem}
+                      onClick={() => setToolOpen('design')}
                     />
                     <FolderItem
                       icon={<Upload className="h-3 w-3" />}
@@ -1367,6 +1421,19 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
       </div>
 
       {/* Modals */}
+      <ProjectToolsDialog
+        open={toolOpen !== null}
+        tool={toolOpen || 'requirements'}
+        project={{ id: project.id, name: project.name }}
+        sources={toolSources}
+        onToolChange={(next) => setToolOpen(next)}
+        onClose={() => setToolOpen(null)}
+        onOpenFull={(next) => {
+          setToolOpen(null);
+          onNavigate(fullTabForTool[next]);
+        }}
+      />
+
       {artifact && <ArtifactModal artifact={artifact} onClose={() => setArtifact(null)} />}
 
       {promptModal && (
