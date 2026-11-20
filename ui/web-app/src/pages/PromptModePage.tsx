@@ -35,6 +35,7 @@ type SpeechRecognitionLike = {
   start: () => void;
   stop: () => void;
   abort: () => void;
+  onstart: (() => void) | null;
   onresult: ((event: any) => void) | null;
   onerror: ((event: any) => void) | null;
   onend: (() => void) | null;
@@ -287,32 +288,80 @@ export const PromptModePage: React.FC<Props> = ({
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const voiceBaseRef = useRef('');
   const voiceFinalRef = useRef('');
+  const shouldListenRef = useRef(false);
+  const voiceFailedRef = useRef(false);
+  const [voiceSupported] = useState(() => Boolean(speechRecognition()));
   const [listening, setListening] = useState(false);
+  const [voiceState, setVoiceState] = useState<'idle' | 'requesting' | 'listening' | 'error'>('idle');
   const [voiceError, setVoiceError] = useState<string | null>(null);
 
   const stopVoice = () => {
+    shouldListenRef.current = false;
+    voiceFailedRef.current = false;
     try {
-      recognitionRef.current?.stop();
+      recognitionRef.current?.abort();
     } catch {
       // ignore
     }
     recognitionRef.current = null;
     setListening(false);
+    setVoiceState('idle');
   };
 
-  const startVoice = () => {
-    setVoiceError(null);
-    const recognition = speechRecognition();
-    if (!recognition) {
-      setVoiceError('Voice input is not available in this browser. Try Chrome or Edge.');
+  const startVoice = async () => {
+    if (listening || voiceState === 'requesting') {
+      stopVoice();
       return;
     }
+    voiceFailedRef.current = false;
+    setVoiceError(null);
+
+    const recognition = speechRecognition();
+    if (!recognition) {
+      setVoiceState('error');
+      setVoiceError('Voice input needs Chrome, Edge, or another browser with the Web Speech API.');
+      return;
+    }
+
+    // Ask for the microphone explicitly first. This produces actionable
+    // permission errors and makes the browser prompt appear reliably.
+    setVoiceState('requesting');
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setVoiceState('error');
+      setVoiceError('This browser cannot access the microphone. Try Chrome or Edge over HTTPS.');
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach((track) => track.stop());
+    } catch (error) {
+      const name = error instanceof DOMException ? error.name : '';
+      setVoiceState('error');
+      setVoiceError(
+        name === 'NotAllowedError' || name === 'SecurityError'
+          ? 'Microphone permission was blocked. Click the lock icon in the address bar, allow the microphone, and try again.'
+          : name === 'NotFoundError'
+            ? 'No microphone was found. Connect one and try again.'
+            : name === 'NotReadableError'
+              ? 'The microphone is busy in another app. Close it and try again.'
+              : 'The microphone could not start. Check your system microphone settings.'
+      );
+      return;
+    }
+
     voiceBaseRef.current = text;
     voiceFinalRef.current = '';
+    shouldListenRef.current = true;
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = 'en-US';
+    recognition.lang = navigator.language?.startsWith('en') ? navigator.language : 'en-US';
+    recognition.onstart = () => {
+      setListening(true);
+      setVoiceState('listening');
+      setVoiceError(null);
+    };
     recognition.onresult = (event: any) => {
+      setVoiceError(null);
       let interim = '';
       for (let index = event.resultIndex; index < event.results.length; index += 1) {
         const result = event.results[index];
@@ -327,32 +376,59 @@ export const PromptModePage: React.FC<Props> = ({
     };
     recognition.onerror = (event: any) => {
       const code = String(event?.error || 'unknown');
-      setVoiceError(
-        code === 'not-allowed'
-          ? 'Microphone permission was blocked. Allow it in the browser and try again.'
-          : code === 'no-speech'
-            ? 'No speech detected. Try again and speak a little closer to the microphone.'
-            : `Voice capture stopped (${code}).`
-      );
+      if (code === 'aborted' && !shouldListenRef.current) return;
+      if (code === 'no-speech') {
+        // A pause is not a failure. Keep the session alive; onend restarts it.
+        setVoiceError('No speech heard yet — keep speaking.');
+        return;
+      }
+      voiceFailedRef.current = true;
+      shouldListenRef.current = false;
       setListening(false);
+      setVoiceState('error');
+      setVoiceError(
+        code === 'not-allowed' || code === 'service-not-allowed'
+          ? 'Microphone permission was blocked. Allow it in the browser and try again.'
+          : code === 'network'
+            ? 'The browser speech service is unreachable. Check your connection, or use Chrome/Edge and try again.'
+            : code === 'audio-capture'
+              ? 'No working microphone was found. Check your system input device.'
+              : `Voice capture stopped (${code}).`
+      );
       recognitionRef.current = null;
     };
     recognition.onend = () => {
       setListening(false);
-      recognitionRef.current = null;
+      if (!shouldListenRef.current || voiceFailedRef.current) {
+        if (!voiceFailedRef.current) setVoiceState('idle');
+        return;
+      }
+      // Chrome ends a recognition session after a short silence. Restart so the
+      // user can keep speaking without pressing the button again.
+      window.setTimeout(() => {
+        if (!shouldListenRef.current || voiceFailedRef.current) return;
+        try {
+          recognition.start();
+        } catch {
+          shouldListenRef.current = false;
+          setVoiceState('error');
+          setVoiceError('The microphone session ended. Press Speak again to continue.');
+        }
+      }, 280);
     };
     recognitionRef.current = recognition;
-    setListening(true);
     try {
       recognition.start();
     } catch {
-      setListening(false);
-      setVoiceError('The microphone could not start. Close other apps using it and try again.');
+      shouldListenRef.current = false;
+      setVoiceState('error');
+      setVoiceError('The microphone is already in use. Close the other app and try again.');
     }
   };
 
   useEffect(
     () => () => {
+      shouldListenRef.current = false;
       try {
         recognitionRef.current?.abort();
       } catch {
@@ -842,16 +918,25 @@ export const PromptModePage: React.FC<Props> = ({
               <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--v-muted)]">Describe the screen</span>
               <button
                 type="button"
-                onClick={listening ? stopVoice : startVoice}
+                onClick={listening || voiceState === 'requesting' ? stopVoice : () => void startVoice()}
                 className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[10px] font-bold transition-colors ${
-                  listening
-                    ? 'border-[#FF7A59] bg-[#FF7A59]/10 text-[#C2410C]'
-                    : 'border-[var(--v-line)] bg-[var(--v-surface)] text-[var(--v-muted)] hover:border-[var(--v-violet)] hover:text-[var(--v-violet)]'
+                  voiceState === 'requesting'
+                    ? 'border-[#F59E0B] bg-[#F59E0B]/10 text-[#9A6700]'
+                    : listening
+                      ? 'border-[#FF7A59] bg-[#FF7A59]/10 text-[#C2410C]'
+                      : 'border-[var(--v-line)] bg-[var(--v-surface)] text-[var(--v-muted)] hover:border-[var(--v-violet)] hover:text-[var(--v-violet)]'
                 }`}
                 aria-label={listening ? 'Stop voice input' : 'Start voice input'}
+                title={voiceSupported ? 'Capture speech into the prompt' : 'Voice capture needs Chrome or Edge'}
               >
-                {listening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
-                {listening ? 'Stop listening' : 'Speak instead'}
+                {voiceState === 'requesting' ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : listening ? (
+                  <MicOff className="h-3.5 w-3.5" />
+                ) : (
+                  <Mic className="h-3.5 w-3.5" />
+                )}
+                {voiceState === 'requesting' ? 'Allow microphone…' : listening ? 'Stop listening' : 'Speak instead'}
               </button>
             </div>
             <textarea
@@ -862,6 +947,12 @@ export const PromptModePage: React.FC<Props> = ({
               placeholder={'Login page with a blue button saying "Continue", email and password fields, and a logo at the top.'}
               className="mt-1.5 w-full resize-none rounded-xl border border-[var(--v-line)] bg-[var(--v-surface)] px-3 py-2.5 text-[12.5px] leading-relaxed text-[var(--v-ink)] outline-none focus:border-[var(--v-violet)]"
             />
+            {voiceState === 'requesting' && (
+              <p className="mt-1 flex items-center gap-1.5 text-[10px] font-semibold text-[#9A6700]">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Waiting for microphone permission… choose Allow in the browser prompt.
+              </p>
+            )}
             {listening && (
               <p className="mt-1 flex items-center gap-1.5 text-[10px] font-semibold text-[#C2410C]">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#FF7A59]" />
@@ -869,6 +960,11 @@ export const PromptModePage: React.FC<Props> = ({
               </p>
             )}
             {voiceError && <p className="mt-1 text-[10px] font-medium text-[#B94D42]">{voiceError}</p>}
+            {!voiceSupported && !voiceError && (
+              <p className="mt-1 text-[9.5px] leading-relaxed text-[var(--v-faint)]">
+                Voice capture needs Chrome or Edge. You can still type the prompt.
+              </p>
+            )}
           </div>
 
           <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
