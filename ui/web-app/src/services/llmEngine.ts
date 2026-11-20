@@ -66,7 +66,12 @@ function stripCodeFences(content: string): string {
   return c.trim();
 }
 
-async function chatJson(system: string, user: string, settingsOverride?: AppSettings): Promise<any> {
+export async function chatJson(
+  system: string,
+  user: string,
+  settingsOverride?: AppSettings,
+  options?: { maxTokens?: number; jsonMode?: boolean; signal?: AbortSignal }
+): Promise<any> {
   const settings = settingsOverride || loadSettings();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -78,6 +83,7 @@ async function chatJson(system: string, user: string, settingsOverride?: AppSett
   const res = await fetch(`${settings.baseUrl.replace(/\/$/, '')}/chat/completions`, {
     method: 'POST',
     headers,
+    signal: options?.signal,
     body: JSON.stringify({
       model: settings.model,
       messages: [
@@ -85,7 +91,10 @@ async function chatJson(system: string, user: string, settingsOverride?: AppSett
         { role: 'user', content: user },
       ],
       temperature: 0,
-      ...(settings.baseUrl.includes('opencode.ai') || settings.baseUrl.includes('ollama')
+      ...(options?.maxTokens ? { max_tokens: options.maxTokens } : {}),
+      ...(options?.jsonMode ||
+      settings.baseUrl.includes('opencode.ai') ||
+      settings.baseUrl.includes('ollama')
         ? { response_format: { type: 'json_object' } }
         : {}),
     }),

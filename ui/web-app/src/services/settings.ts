@@ -17,10 +17,15 @@ const TEST_API_KEY: string = ENV.VITE_VECTOR_TEST_API_KEY || DEMO.apiKey || '';
 const TEST_BASE_URL: string = ENV.VITE_VECTOR_BASE_URL || DEMO.baseUrl || '';
 const TEST_MODEL: string = ENV.VITE_VECTOR_MODEL || DEMO.model || '';
 
+// Commercial build: a same-origin (or allow-listed) serverless proxy holds the
+// provider key. The browser sends a placeholder key that the proxy ignores.
+const PROXY_URL: string = ENV.VITE_VECTOR_PROXY_URL || '';
+const PROXY_MODEL = TEST_MODEL || 'server model';
+
 export const DEFAULT_SETTINGS: AppSettings = {
-  apiKey: TEST_API_KEY,
-  baseUrl: TEST_BASE_URL || 'https://api.groq.com/openai/v1',
-  model: TEST_MODEL || 'openai/gpt-oss-120b',
+  apiKey: TEST_API_KEY || (PROXY_URL ? 'server-proxy' : ''),
+  baseUrl: TEST_BASE_URL || PROXY_URL || 'https://api.groq.com/openai/v1',
+  model: TEST_MODEL || (PROXY_URL ? PROXY_MODEL : 'openai/gpt-oss-120b'),
   autoDeepScan: true
 };
 
@@ -41,6 +46,13 @@ export function loadSettings(): AppSettings {
       merged.apiKey = TEST_API_KEY;
       merged.baseUrl = DEFAULT_SETTINGS.baseUrl;
       merged.model = DEFAULT_SETTINGS.model;
+      merged.autoDeepScan = true;
+    }
+    // Commercial build: the proxy is authoritative and needs no browser key.
+    if (PROXY_URL && !TEST_API_KEY) {
+      merged.apiKey = 'server-proxy';
+      merged.baseUrl = PROXY_URL;
+      merged.model = PROXY_MODEL;
       merged.autoDeepScan = true;
     }
     return merged;

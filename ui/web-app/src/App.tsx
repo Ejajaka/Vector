@@ -482,6 +482,7 @@ function AppShell() {
               onBack={() => setActiveTab('projects')}
               onOpenCanvas={() => enterProjectCanvas({ fresh: false })}
               onGenerate={() => enterProjectCanvas({ fresh: false })}
+              onOpenAssistant={() => setAssistantOpen(true)}
             />
           )}
 

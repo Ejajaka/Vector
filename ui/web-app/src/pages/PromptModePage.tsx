@@ -20,6 +20,9 @@ import {
 } from '../services/promptCompiler.ts';
 import { refineWithBERT } from '../services/promptRefiner.ts';
 import { loadLearnedLexicon, saveLearnedPhrase } from '../services/lexicon.ts';
+import { loadSettings } from '../services/settings.ts';
+import { isLLMConfigured } from '../services/llmEngine.ts';
+import { parsePromptWithModel, type ModelParseResult } from '../services/semanticParser.ts';
 import { WireframePreview } from '../components/editor/WireframePreview.tsx';
 
 interface Props {
@@ -27,6 +30,7 @@ interface Props {
   onBack: () => void;
   onOpenCanvas: () => void;
   onGenerate: (prompt: string) => void;
+  onOpenAssistant?: () => void;
 }
 
 interface PageRefinement {
@@ -130,7 +134,13 @@ function placementOf(element: CompiledElement, boardWidth: number): string {
   }
 }
 
-export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCanvas, onGenerate }) => {
+export const PromptModePage: React.FC<Props> = ({
+  projectName,
+  onBack,
+  onOpenCanvas,
+  onGenerate,
+  onOpenAssistant,
+}) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [text, setText] = useState('');
   const [submitted, setSubmitted] = useState('');
@@ -142,6 +152,10 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
   const [viewport, setViewport] = useState<Viewport>('desktop');
   const [baselineRisks, setBaselineRisks] = useState<Record<string, number>>({});
   const [lexicon, setLexicon] = useState<LearnedLexicon>(() => loadLearnedLexicon());
+  const [model, setModel] = useState<ModelParseResult | null>(null);
+  const [modelStatus, setModelStatus] = useState<{ running: boolean; error?: string }>({
+    running: false,
+  });
   const [refinedById, setRefinedById] = useState<Record<string, PageRefinement | undefined>>({});
   const [deep, setDeep] = useState<{
     running: boolean;
@@ -151,10 +165,13 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
     rejected?: boolean;
   }>({ running: false, percent: 0, stage: '' });
 
-  const screens = useMemo(
+  const deterministicScreens = useMemo(
     () => compilePromptScreens(submitted, lexicon),
     [submitted, lexicon]
   );
+  const screens = model?.screens ?? deterministicScreens;
+  const modelSettings = loadSettings();
+  const modelReady = isLLMConfigured(modelSettings);
   const pageIndex = Math.max(0, screens.findIndex((screen) => screen.id === activeId));
   const compiled = screens[pageIndex] ?? screens[0];
 
@@ -208,16 +225,19 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
     (sum, page) => sum + page.screen.clarifications.length,
     0
   );
+  const modelHasWarnings = Boolean(model && model.warnings.length > 0);
   const ready =
     submitted.trim().length > 0 &&
     totalOpen === 0 &&
     unrecognised.length === 0 &&
-    pendingClarifications === 0;
+    pendingClarifications === 0 &&
+    !modelHasWarnings;
   const pageReady =
     submitted.trim().length > 0 &&
     open.length === 0 &&
     elements.length > 0 &&
-    compiled.clarifications.length === 0;
+    compiled.clarifications.length === 0 &&
+    !modelHasWarnings;
 
   const confidence = elements.length
     ? Math.round(
@@ -383,6 +403,8 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
     setConfirmed({});
     setBaselineRisks(baselines);
     setRefinedById({});
+    setModel(null);
+    setModelStatus({ running: false });
     setDeep({ running: false, percent: 0, stage: '' });
     setActiveId(next[0]?.id ?? 'screen_1');
     setView('wireframe');
@@ -408,6 +430,8 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
   ) => {
     const next = saveLearnedPhrase(clarification.phrase, option.kind ?? 'ignore');
     setLexicon(next);
+    setModel(null);
+    setModelStatus({ running: false });
     setAnswers({});
     setConfirmed({});
     setRefinedById({});
@@ -468,6 +492,48 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
         error: error instanceof Error ? error.message : 'The local model is unavailable — the deterministic result is kept.',
       });
     }
+  };
+
+  /**
+   * Use a strong hosted model to propose the schema, then let the deterministic
+   * compiler validate, lay out and score it. No pixels come from the model.
+   */
+  const runModelParse = async () => {
+    if (!submitted.trim() || modelStatus.running) return;
+    if (!modelReady) {
+      onOpenAssistant?.();
+      return;
+    }
+
+    setModelStatus({ running: true });
+    try {
+      const result = await parsePromptWithModel(
+        submitted,
+        lexicon,
+        deterministicScreens
+      );
+      setModel(result);
+      setAnswers({});
+      setConfirmed({});
+      setRefinedById({});
+      setBaselineRisks({});
+      setActiveId(result.screens[0]?.id ?? 'screen_1');
+      setModelStatus({ running: false });
+    } catch (error) {
+      setModelStatus({
+        running: false,
+        error: error instanceof Error ? error.message : 'The model parse failed.',
+      });
+    }
+  };
+
+  const useDeterministic = () => {
+    setModel(null);
+    setModelStatus({ running: false });
+    setAnswers({});
+    setConfirmed({});
+    setRefinedById({});
+    setBaselineRisks({});
   };
 
   const copy = async () => {
@@ -545,10 +611,17 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
                 <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--v-muted)]">
                   Analysis{screens.length > 1 ? ` · page ${pageIndex + 1} of ${screens.length}` : ''}
                 </p>
-                <span className="text-[9.5px] text-[var(--v-faint)]">
-                  {compiled.name} · {compiled.archetype} · risk {risk}
-                  {screens.length > 1 ? ` · overall ${overallRisk}` : ''}
-                </span>
+                <div className="flex items-center gap-1">
+                  {model && (
+                    <span className="rounded-full bg-[var(--v-violet)]/10 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-[var(--v-violet)]">
+                      Model
+                    </span>
+                  )}
+                  <span className="text-[9.5px] text-[var(--v-faint)]">
+                    {compiled.name} · {compiled.archetype} · risk {risk}
+                    {screens.length > 1 ? ` · overall ${overallRisk}` : ''}
+                  </span>
+                </div>
               </div>
 
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
@@ -638,6 +711,69 @@ export const PromptModePage: React.FC<Props> = ({ projectName, onBack, onOpenCan
                 )}
                 {deep.error && (
                   <p className="mt-1 text-[9px] text-[#B94D42]">{deep.error}</p>
+                )}
+              </div>
+
+              {/* ------------------------------------------------ model parse */}
+              <div className="mt-2 rounded-lg border border-[var(--v-violet)]/30 bg-[var(--v-surface)] p-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={runModelParse}
+                    disabled={modelStatus.running}
+                    className="flex h-7 items-center gap-1.5 rounded-lg bg-[var(--v-violet)] px-2.5 text-[10px] font-bold text-white disabled:opacity-50"
+                  >
+                    {modelStatus.running ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-3 w-3" />
+                    )}
+                    {modelReady ? (model ? 'Re-run AI parse' : 'AI parse') : 'Connect model'}
+                  </button>
+                  {model && !modelStatus.running && (
+                    <button
+                      type="button"
+                      onClick={useDeterministic}
+                      className="flex h-7 items-center gap-1 rounded-lg px-2 text-[10px] font-semibold text-[var(--v-muted)] hover:text-[var(--v-ink)]"
+                    >
+                      <Undo2 className="h-3 w-3" /> Use deterministic
+                    </button>
+                  )}
+                  <span className="text-[9px] text-[var(--v-faint)]">
+                    {modelReady
+                      ? `${modelSettings.model} · schema validated locally`
+                      : 'A strong model proposes the schema; the compiler draws it.'}
+                  </span>
+                </div>
+
+                {modelStatus.running && (
+                  <p className="mt-1 text-[9px] text-[var(--v-muted)]">
+                    Parsing with the model and validating the schema…
+                  </p>
+                )}
+                {!modelStatus.running && model && (
+                  <p className="mt-1 text-[9px] text-[var(--v-muted)]">
+                    {model.model} · {model.screens.length} screen
+                    {model.screens.length === 1 ? '' : 's'} · {model.ms}ms · risk {model.modelRisk} vs
+                    deterministic {model.deterministicRisk}
+                  </p>
+                )}
+                {!modelStatus.running &&
+                  model?.warnings.slice(0, 2).map((warning) => (
+                    <p key={warning} className="mt-0.5 text-[9px] leading-relaxed text-[#B45309]">
+                      {warning}
+                    </p>
+                  ))}
+                {!modelReady && (
+                  <p className="mt-1 text-[9px] leading-relaxed text-[var(--v-faint)]">
+                    Add an OpenAI-compatible key or proxy in the assistant. For production, point the
+                    base URL at your own proxy so keys never reach the browser.
+                  </p>
+                )}
+                {modelStatus.error && (
+                  <p className="mt-1 text-[9px] leading-relaxed text-[#B94D42]">
+                    {modelStatus.error}
+                  </p>
                 )}
               </div>
 
