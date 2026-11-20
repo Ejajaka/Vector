@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  AlertCircle, ArrowLeft, ArrowRight, Check, Copy, Cpu, HelpCircle, Layers, Loader2, Mic, MicOff, Plus, Sparkles, Undo2,
+  AlertCircle, ArrowLeft, ArrowRight, Check, Copy, Cpu, HelpCircle, Layers, Loader2, Mic, MicOff, Plus, Sparkles, Square, Undo2,
 } from 'lucide-react';
 import {
   REQUIRED_ATTRS,
@@ -23,6 +23,7 @@ import { loadLearnedLexicon, saveLearnedPhrase } from '../services/lexicon.ts';
 import { loadSettings } from '../services/settings.ts';
 import { isLLMConfigured } from '../services/llmEngine.ts';
 import { parsePromptWithModel, type ModelParseResult } from '../services/semanticParser.ts';
+import { transcribeLocally } from '../services/localStt.ts';
 import { SideBySideBuild } from '../components/generators/SideBySideBuild.tsx';
 import { WireframePreview } from '../components/editor/WireframePreview.tsx';
 import type { CanvasItem, CanvasItemType, CanvasPage } from '../data/canvas.ts';
@@ -294,6 +295,12 @@ export const PromptModePage: React.FC<Props> = ({
   const [listening, setListening] = useState(false);
   const [voiceState, setVoiceState] = useState<'idle' | 'requesting' | 'listening' | 'error'>('idle');
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [localVoiceState, setLocalVoiceState] = useState<'idle' | 'recording' | 'transcribing'>('idle');
+  const [localVoiceProgress, setLocalVoiceProgress] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaChunksRef = useRef<Blob[]>([]);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const localStopTimerRef = useRef<number | null>(null);
 
   const stopVoice = () => {
     shouldListenRef.current = false;
@@ -309,6 +316,7 @@ export const PromptModePage: React.FC<Props> = ({
   };
 
   const startVoice = async () => {
+    if (localVoiceState === 'recording') stopLocalVoice();
     if (listening || voiceState === 'requesting') {
       stopVoice();
       return;
@@ -390,7 +398,7 @@ export const PromptModePage: React.FC<Props> = ({
         code === 'not-allowed' || code === 'service-not-allowed'
           ? 'Microphone permission was blocked. Allow it in the browser and try again.'
           : code === 'network'
-            ? 'The browser speech service is unreachable. Check your connection, or use Chrome/Edge and try again.'
+            ? 'The browser speech service is unreachable. Use On-device voice instead — it records and transcribes on this device.'
             : code === 'audio-capture'
               ? 'No working microphone was found. Check your system input device.'
               : `Voice capture stopped (${code}).`
@@ -426,6 +434,96 @@ export const PromptModePage: React.FC<Props> = ({
     }
   };
 
+  const stopLocalVoice = () => {
+    if (localStopTimerRef.current) {
+      window.clearTimeout(localStopTimerRef.current);
+      localStopTimerRef.current = null;
+    }
+    try {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const startLocalVoice = async () => {
+    if (localVoiceState === 'recording') {
+      stopLocalVoice();
+      return;
+    }
+    if (listening || voiceState === 'requesting') stopVoice();
+    if (localVoiceState === 'transcribing') return;
+    if (typeof MediaRecorder === 'undefined') {
+      setVoiceError('This browser cannot record audio. Try Chrome or Edge.');
+      return;
+    }
+    setVoiceError(null);
+    setLocalVoiceState('recording');
+    setLocalVoiceProgress(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+      mediaChunksRef.current = [];
+      const mime = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'].find((type) =>
+        MediaRecorder.isTypeSupported(type)
+      );
+      const recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+      mediaRecorderRef.current = recorder;
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) mediaChunksRef.current.push(event.data);
+      };
+      recorder.onstop = () => {
+        const tracks = mediaStreamRef.current?.getTracks() || [];
+        tracks.forEach((track) => track.stop());
+        mediaStreamRef.current = null;
+        mediaRecorderRef.current = null;
+        setLocalVoiceState('transcribing');
+        setLocalVoiceProgress('Loading the on-device voice model…');
+        const blob = new Blob(mediaChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+        void transcribeLocally(blob, (progress) => {
+          setLocalVoiceProgress(
+            progress.percent >= 100
+              ? 'Transcribing locally…'
+              : `Loading voice model · ${progress.percent}%`
+          );
+        })
+          .then((transcript) => {
+            const clean = transcript.trim();
+            if (!clean) {
+              setVoiceError('No speech was detected in the recording. Try again and speak a little longer.');
+              return;
+            }
+            setText((previous) => [previous.trim(), clean].filter(Boolean).join(' '));
+            setVoiceError(null);
+          })
+          .catch((error) => {
+            setVoiceError(
+              `On-device voice failed: ${
+                error instanceof Error ? error.message : 'the model could not load.'
+              }`
+            );
+          })
+          .finally(() => {
+            setLocalVoiceState('idle');
+            setLocalVoiceProgress(null);
+          });
+      };
+      recorder.start(250);
+      // Safety stop so a forgotten recording cannot grow forever.
+      localStopTimerRef.current = window.setTimeout(() => stopLocalVoice(), 60_000);
+    } catch (error) {
+      const name = error instanceof DOMException ? error.name : '';
+      setLocalVoiceState('idle');
+      setVoiceError(
+        name === 'NotAllowedError'
+          ? 'Microphone permission was blocked. Allow the microphone and try again.'
+          : 'The microphone could not start for the on-device recorder.'
+      );
+    }
+  };
+
   useEffect(
     () => () => {
       shouldListenRef.current = false;
@@ -434,6 +532,15 @@ export const PromptModePage: React.FC<Props> = ({
       } catch {
         // ignore
       }
+      if (localStopTimerRef.current) window.clearTimeout(localStopTimerRef.current);
+      try {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+          mediaRecorderRef.current.stop();
+        }
+      } catch {
+        // ignore
+      }
+      mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
     },
     []
   );
@@ -916,28 +1023,55 @@ export const PromptModePage: React.FC<Props> = ({
           <div className="block">
             <div className="flex items-center justify-between gap-2">
               <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--v-muted)]">Describe the screen</span>
-              <button
-                type="button"
-                onClick={listening || voiceState === 'requesting' ? stopVoice : () => void startVoice()}
-                className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[10px] font-bold transition-colors ${
-                  voiceState === 'requesting'
-                    ? 'border-[#F59E0B] bg-[#F59E0B]/10 text-[#9A6700]'
-                    : listening
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={listening || voiceState === 'requesting' ? stopVoice : () => void startVoice()}
+                  className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[10px] font-bold transition-colors ${
+                    voiceState === 'requesting'
+                      ? 'border-[#F59E0B] bg-[#F59E0B]/10 text-[#9A6700]'
+                      : listening
+                        ? 'border-[#FF7A59] bg-[#FF7A59]/10 text-[#C2410C]'
+                        : 'border-[var(--v-line)] bg-[var(--v-surface)] text-[var(--v-muted)] hover:border-[var(--v-violet)] hover:text-[var(--v-violet)]'
+                  }`}
+                  aria-label={listening ? 'Stop voice input' : 'Start voice input'}
+                  title={voiceSupported ? 'Capture speech with the browser speech service' : 'Browser speech capture needs Chrome or Edge'}
+                >
+                  {voiceState === 'requesting' ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : listening ? (
+                    <MicOff className="h-3.5 w-3.5" />
+                  ) : (
+                    <Mic className="h-3.5 w-3.5" />
+                  )}
+                  {voiceState === 'requesting' ? 'Allow microphone…' : listening ? 'Stop listening' : 'Speak instead'}
+                </button>
+                <button
+                  type="button"
+                  onClick={localVoiceState === 'recording' ? stopLocalVoice : () => void startLocalVoice()}
+                  disabled={localVoiceState === 'transcribing'}
+                  className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[10px] font-bold transition-colors ${
+                    localVoiceState === 'recording'
                       ? 'border-[#FF7A59] bg-[#FF7A59]/10 text-[#C2410C]'
-                      : 'border-[var(--v-line)] bg-[var(--v-surface)] text-[var(--v-muted)] hover:border-[var(--v-violet)] hover:text-[var(--v-violet)]'
-                }`}
-                aria-label={listening ? 'Stop voice input' : 'Start voice input'}
-                title={voiceSupported ? 'Capture speech into the prompt' : 'Voice capture needs Chrome or Edge'}
-              >
-                {voiceState === 'requesting' ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : listening ? (
-                  <MicOff className="h-3.5 w-3.5" />
-                ) : (
-                  <Mic className="h-3.5 w-3.5" />
-                )}
-                {voiceState === 'requesting' ? 'Allow microphone…' : listening ? 'Stop listening' : 'Speak instead'}
-              </button>
+                      : 'border-[var(--v-line)] bg-[var(--v-surface)] text-[var(--v-muted)] hover:border-[var(--v-teal)] hover:text-[var(--v-teal)] disabled:opacity-50'
+                  }`}
+                  title="Record and transcribe on this device — no browser speech service needed"
+                  aria-label={localVoiceState === 'recording' ? 'Stop local recording' : 'Start on-device voice capture'}
+                >
+                  {localVoiceState === 'recording' ? (
+                    <Square className="h-3 w-3 fill-current" />
+                  ) : localVoiceState === 'transcribing' ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Cpu className="h-3.5 w-3.5" />
+                  )}
+                  {localVoiceState === 'recording'
+                    ? 'Stop & transcribe'
+                    : localVoiceState === 'transcribing'
+                      ? 'Transcribing…'
+                      : 'On-device'}
+                </button>
+              </div>
             </div>
             <textarea
               ref={textareaRef}
@@ -959,10 +1093,22 @@ export const PromptModePage: React.FC<Props> = ({
                 Listening… speak naturally. The transcript appears above.
               </p>
             )}
+            {localVoiceState === 'recording' && (
+              <p className="mt-1 flex items-center gap-1.5 text-[10px] font-semibold text-[#C2410C]">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#FF7A59]" />
+                Recording on this device… tap Stop &amp; transcribe when finished.
+              </p>
+            )}
+            {localVoiceState === 'transcribing' && (
+              <p className="mt-1 flex items-center gap-1.5 text-[10px] font-semibold text-[var(--v-muted)]">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                {localVoiceProgress || 'Transcribing on this device…'}
+              </p>
+            )}
             {voiceError && <p className="mt-1 text-[10px] font-medium text-[#B94D42]">{voiceError}</p>}
             {!voiceSupported && !voiceError && (
               <p className="mt-1 text-[9.5px] leading-relaxed text-[var(--v-faint)]">
-                Voice capture needs Chrome or Edge. You can still type the prompt.
+                Browser speech capture needs Chrome or Edge. Use <b>On-device</b> to record and transcribe locally.
               </p>
             )}
           </div>
