@@ -579,6 +579,66 @@ function AppShell() {
     );
   }
 
+  // The project studio owns the full viewport. The global rail and header are
+  // temporarily hidden and return automatically when the user exits.
+  if (activeTab === 'project' && activeProject) {
+    return (
+      <div className="flex h-screen flex-col overflow-hidden v-bg">
+        <div className="min-h-0 flex-1 overflow-y-auto p-2 sm:p-3">
+          {projectView === 'prompt' ? (
+            <PromptModePage
+              key={activeProject.id}
+              projectId={activeProject.id}
+              projectName={activeProject.name}
+              onBack={() => setProjectView('hub')}
+              onOpenCanvas={() => enterProjectCanvas({ fresh: false })}
+              onOpenAssistant={() => setAssistantOpen(true)}
+              onRequireUpgrade={openPricing}
+            />
+          ) : (
+            <ProjectWorkspacePage
+              key={activeProject.id}
+              project={{ id: activeProject.id, name: activeProject.name, description: activeProject.description }}
+              onBack={() => setActiveTab('projects')}
+              onOpenCanvas={() => enterProjectCanvas({ fresh: false })}
+              onBlankCanvas={() => enterProjectCanvas({ fresh: true })}
+              onOptimizePrompt={() => setProjectView('prompt')}
+              onOpenDesignSystem={() => setActiveTab('design')}
+            />
+          )}
+        </div>
+        <AssistantPanel
+          open={assistantOpen}
+          onClose={() => setAssistantOpen(false)}
+          context={getAdvisorContext()}
+          onRequireUpgrade={openPricing}
+        />
+        <PricingDialog
+          open={pricingOpen}
+          onClose={() => setPricingOpen(false)}
+          onLearnMore={() => {
+            setPricingOpen(false);
+            setActiveTab('pricing');
+          }}
+        />
+        <PlanHubDialog
+          open={planHubTab !== null}
+          initialTab={planHubTab ?? 'included'}
+          onClose={() => setPlanHubTab(null)}
+          onSeePlans={() => {
+            setPlanHubTab(null);
+            setPricingOpen(true);
+          }}
+        />
+        <ProjectSetupWizard
+          open={Boolean(setupProject)}
+          project={setupProject ?? { id: '', name: '' }}
+          onComplete={completeProjectSetup}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen v-bg text-[var(--v-ink)] flex flex-col antialiased" style={{ paddingRight: assistantInset, transition: 'padding-right 200ms ease' }}>
       {!showMarketingChrome && (
@@ -676,30 +736,6 @@ function AppShell() {
               onOpenAnalysis={handleOpenAnalysis}
               onViewAllHistory={() => (publicMode ? requestAuth() : setActiveTab('history'))}
               onOpenProjects={() => (publicMode ? requestAuth() : setActiveTab('projects'))}
-            />
-          )}
-
-          {activeTab === 'project' && activeProject && projectView === 'prompt' && (
-            <PromptModePage
-              key={activeProject.id}
-              projectId={activeProject.id}
-              projectName={activeProject.name}
-              onBack={() => setProjectView('hub')}
-              onOpenCanvas={() => enterProjectCanvas({ fresh: false })}
-              onOpenAssistant={() => setAssistantOpen(true)}
-              onRequireUpgrade={openPricing}
-            />
-          )}
-
-          {activeTab === 'project' && activeProject && projectView === 'hub' && (
-            <ProjectWorkspacePage
-              key={activeProject.id}
-              project={{ id: activeProject.id, name: activeProject.name, description: activeProject.description }}
-              onBack={() => setActiveTab('projects')}
-              onOpenCanvas={() => enterProjectCanvas({ fresh: false })}
-              onBlankCanvas={() => enterProjectCanvas({ fresh: true })}
-              onOptimizePrompt={() => setProjectView('prompt')}
-              onOpenDesignSystem={() => setActiveTab('design')}
             />
           )}
 

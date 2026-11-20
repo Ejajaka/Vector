@@ -54,6 +54,9 @@ import {
   type PromptScreen,
   type Question,
 } from '../services/promptCompiler.ts';
+import { TYPE_TO_VARIANT, VARIANTS, variantById } from '../data/styles.ts';
+import { StyledElement } from '../components/editor/StyledElement.tsx';
+import { WireframePreview } from '../components/editor/WireframePreview.tsx';
 import { parseFigmaJson } from '../services/figma.ts';
 import { getActiveDesignSystem } from '../services/designSystems.ts';
 import { readProjectSetup } from '../services/projectSeed.ts';
@@ -226,46 +229,89 @@ function openHtmlWindow(title: string, body: string): void {
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
-function miniColor(type?: string, color?: string): string {
-  if (type === 'text' || type === 'heading') return color || '#0B0E14';
-  if (type === 'image') return '#C9C4DA';
-  if (type === 'button') return color || '#7C5CFF';
-  return color || '#7C5CFF';
+function variantFor(item: CanvasItem) {
+  return (
+    variantById(item.variant || '') ||
+    variantById(TYPE_TO_VARIANT[item.type] || '') ||
+    VARIANTS[0]
+  );
 }
 
-const MiniBoard: React.FC<{
-  items: Array<{ x: number; y: number; w: number; h: number; type?: string; color?: string }>;
-  pageW: number;
-  pageH: number;
-  background: string;
-  empty?: string;
-  className?: string;
-}> = ({ items, pageW, pageH, background, empty = 'Nothing here yet', className = '' }) => {
-  const scale = Math.min(1, 240 / pageW, 140 / pageH);
+/** Renders the real first canvas page, scaled into a PowerPoint-style slide. */
+const ActualBoard: React.FC<{ page?: CanvasPage; empty: string }> = ({ page, empty }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(320);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const measure = () => setWidth(node.clientWidth || 320);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  if (!page) {
+    return (
+      <div ref={ref} className="grid h-[180px] place-items-center rounded-lg border border-[var(--v-line)] bg-[var(--v-surface-2)] px-4 text-center text-[10px] text-[var(--v-faint)]">
+        {empty}
+      </div>
+    );
+  }
+
+  const pageW = page.width || 1200;
+  const pageH = page.height || 800;
+  const scale = Math.min(width / pageW, 180 / pageH);
+
   return (
-    <div
-      className={`relative overflow-hidden rounded-lg border border-[var(--v-line)] ${className}`}
-      style={{ background, height: Math.max(92, pageH * scale) }}
-    >
-      {items.length === 0 ? (
-        <div className="grid h-full place-items-center px-3 text-center text-[10px] text-[var(--v-faint)]">{empty}</div>
-      ) : (
-        items.slice(0, 80).map((item, index) => (
-          <span
-            key={`${item.x}-${item.y}-${index}`}
-            className="absolute"
-            style={{
-              left: item.x * scale,
-              top: item.y * scale,
-              width: Math.max(2, item.w * scale),
-              height: Math.max(2, item.h * scale),
-              background: miniColor(item.type, item.color),
-              opacity: item.type === 'text' || item.type === 'heading' ? 0.55 : 0.85,
-              borderRadius: item.type === 'button' ? '3px' : '1px',
-            }}
-          />
-        ))
-      )}
+    <div ref={ref} className="relative h-[180px] overflow-hidden rounded-lg border border-[var(--v-line)] bg-[var(--v-surface-2)]">
+      <div
+        className="absolute left-1/2 top-1/2"
+        style={{
+          width: pageW * scale,
+          height: pageH * scale,
+          transform: 'translate(-50%, -50%)',
+        }}
+      >
+        <div
+          className="relative shadow-[0_12px_28px_-18px_rgba(20,18,31,.45)]"
+          style={{
+            width: pageW,
+            height: pageH,
+            transform: `scale(${scale})`,
+            transformOrigin: 'top left',
+            background: page.background || '#FFFFFF',
+          }}
+        >
+          {page.items.map((item) => (
+            <div
+              key={item.id}
+              className="pointer-events-none absolute"
+              style={{ left: item.x, top: item.y, width: item.w, height: item.h }}
+            >
+              <StyledElement
+                style={variantFor(item).style}
+                label={item.label}
+                texts={item.texts}
+                color={item.color}
+                src={item.src}
+                fontSize={item.fontSize}
+                fontWeight={item.fontWeight}
+                align={item.align}
+                fill={item.fill}
+                strokeColor={item.strokeColor}
+                strokeWidth={item.strokeWidth}
+                radius={item.radius}
+                fontFamily={item.fontFamily}
+                italic={item.italic}
+                underline={item.underline}
+                tracking={item.tracking}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };
@@ -617,28 +663,6 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     return [];
   }, [activeVersion, doc, analysis]);
 
-  const promptPreview = useMemo(() => {
-    if (activeVersion?.source === 'analysis' && analysis) {
-      return {
-        items: analysis.first.elements.map((element) => ({
-          x: element.x,
-          y: element.y,
-          w: element.w,
-          h: element.h,
-          type: element.kind,
-          color: element.colour,
-        })),
-        pageW: 1200,
-        pageH: 800,
-        background: analysis.first.screen.meta.dark ? '#0B0E14' : '#FFFFFF',
-      };
-    }
-    const page = doc?.pages[0];
-    return page
-      ? { items: page.items, pageW: page.width || 1200, pageH: page.height || 800, background: page.background || '#FFFFFF' }
-      : null;
-  }, [activeVersion, analysis, doc]);
-
   const artifacts = useMemo<Artifact[]>(() => {
     const pages = sourcePages;
     const elements = pages.flatMap((page) =>
@@ -989,9 +1013,9 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   const toggleGroup = (key: string) => setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
 
   return (
-    <div className="mx-auto w-full max-w-[1680px] space-y-3">
+    <div className="mx-auto flex h-full min-h-0 w-full max-w-[1680px] flex-col gap-3">
       {/* Header */}
-      <header className="flex flex-wrap items-center gap-2 rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] px-3 py-2.5">
+      <header className="flex shrink-0 flex-wrap items-center gap-2 rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] px-3 py-2.5">
         <button type="button" onClick={onBack} className="v-icon-btn -ml-1" aria-label="Back to projects">
           <ArrowLeft className="h-4 w-4" />
         </button>
@@ -1018,7 +1042,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
         </div>
       </header>
 
-      <div className="flex min-h-[620px] gap-3 lg:h-[calc(100vh-190px)]">
+      <div className="flex min-h-0 flex-1 gap-3">
         {/* Folder */}
         <aside
           className={`flex min-h-0 shrink-0 flex-col overflow-hidden rounded-2xl border border-[var(--v-line)] bg-[var(--v-surface)] transition-[width] duration-200 ${
@@ -1226,13 +1250,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                 <ArrowRight className="h-4 w-4 text-[var(--v-faint)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--v-violet)]" />
               </div>
               <div className="mt-2.5">
-                <MiniBoard
-                  items={doc?.pages[0]?.items || []}
-                  pageW={doc?.pages[0]?.width || 1200}
-                  pageH={doc?.pages[0]?.height || 800}
-                  background={doc?.pages[0]?.background || '#FFFFFF'}
-                  empty="Open a blank canvas and place elements."
-                />
+                <ActualBoard page={doc?.pages[0]} empty="Open a blank canvas and place elements." />
               </div>
             </button>
 
@@ -1253,14 +1271,27 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                 </div>
                 <ArrowRight className="h-4 w-4 text-[var(--v-faint)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--v-teal)]" />
               </div>
-              <div className="mt-2.5">
-                <MiniBoard
-                  items={promptPreview?.items || []}
-                  pageW={promptPreview?.pageW || 1200}
-                  pageH={promptPreview?.pageH || 800}
-                  background={promptPreview?.background || '#FFFFFF'}
-                  empty="Describe a screen and the wireframe appears here."
-                />
+              <div className="mt-2.5 flex h-[180px] items-center justify-center overflow-hidden rounded-lg border border-[var(--v-line)] bg-[var(--v-surface-2)] p-1">
+                {analysis ? (
+                  <div className="pointer-events-none w-full max-w-[270px]">
+                    <WireframePreview
+                      elements={analysis.first.elements}
+                      dark={analysis.first.screen.meta.dark}
+                      width={1200}
+                      height={800}
+                      maxWidth={270}
+                      empty={
+                        <p className="text-[9px] leading-relaxed text-[var(--v-faint)]">
+                          No UI components yet — describe a wireframe.
+                        </p>
+                      }
+                    />
+                  </div>
+                ) : (
+                  <p className="px-4 text-center text-[9.5px] leading-relaxed text-[var(--v-faint)]">
+                    Write a prompt and the to-scale Page 1 wireframe appears here.
+                  </p>
+                )}
               </div>
             </button>
           </div>
