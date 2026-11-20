@@ -48,7 +48,7 @@ export const PricingDialog: React.FC<PricingDialogProps> = ({ open, onClose, onL
               type="button"
               onClick={() => setBilling(option)}
               className={`rounded-full px-3.5 py-1.5 text-[11.5px] font-semibold capitalize ${
-                billing === option ? 'bg-white text-[#17171A]' : 'text-white/60'
+                billing === option ? 'bg-[#e8e8ea] text-[#08090a]' : 'text-white/60'
               }`}
             >
               {option}
@@ -112,7 +112,7 @@ export const PricingDialog: React.FC<PricingDialogProps> = ({ open, onClose, onL
                     current
                       ? 'cursor-default bg-white/8 text-white/40'
                       : popular
-                        ? 'bg-white text-[#17171A] hover:bg-white/90'
+                        ? 'bg-[#e8e8ea] text-[#08090a] hover:bg-white'
                         : 'border border-white/20 text-white/85 hover:bg-white/10'
                   }`}
                 >

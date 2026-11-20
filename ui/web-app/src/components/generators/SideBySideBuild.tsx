@@ -54,7 +54,7 @@ export const SideBySideBuild: React.FC<SideBySideBuildProps> = ({ open, prompt, 
                 setReloadKey((value) => value + 1);
               }}
               className={`h-7 rounded-md px-2 text-[10px] font-semibold ${
-                toolId === entry.id ? 'bg-white text-[#17171A]' : 'text-white/55 hover:bg-white/10 hover:text-white'
+                toolId === entry.id ? 'bg-[#e8e8ea] text-[#08090a]' : 'text-white/55 hover:bg-white/10 hover:text-white'
               }`}
               title={entry.hint}
             >
@@ -109,7 +109,7 @@ export const SideBySideBuild: React.FC<SideBySideBuildProps> = ({ open, prompt, 
               href={tool.url}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex h-7 items-center gap-1 rounded-md bg-white px-2.5 text-[10px] font-semibold text-[#17171A]"
+              className="inline-flex h-7 items-center gap-1 rounded-md bg-[#e8e8ea] px-2.5 text-[10px] font-semibold text-[#08090a]"
             >
               Open in new tab <ArrowUpRight className="h-3 w-3" />
             </a>

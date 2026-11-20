@@ -2409,7 +2409,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                   event.stopPropagation();
                   setPreview(false);
                 }}
-                className="ml-1 rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold text-[#17171A] hover:bg-white/90"
+                className="ml-1 rounded-full bg-[#e8e8ea] px-2.5 py-1 text-[10px] font-semibold text-[#08090a] hover:bg-white/90"
               >
                 Back to edit
               </button>

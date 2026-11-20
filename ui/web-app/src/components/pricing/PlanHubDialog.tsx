@@ -107,7 +107,7 @@ export const PlanHubDialog: React.FC<PlanHubDialogProps> = ({ open, initialTab =
             <p className="mt-1 text-[10px] leading-relaxed text-white/45">
               {paid ? 'Thank you for supporting Vector.' : `${remaining} of ${TRIAL_PROJECTS} free projects left.`}
             </p>
-            <button type="button" onClick={onSeePlans} className="mt-2 flex w-full items-center justify-center gap-1 rounded-md bg-white px-2 py-1.5 text-[10px] font-semibold text-[#17171A]">
+            <button type="button" onClick={onSeePlans} className="mt-2 flex w-full items-center justify-center gap-1 rounded-md bg-[#e8e8ea] px-2 py-1.5 text-[10px] font-semibold text-[#08090a]">
               See plans <ArrowRight className="h-3 w-3" />
             </button>
           </div>
