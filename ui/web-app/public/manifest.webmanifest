@@ -1,13 +1,13 @@
-{
-  "name": "Vector — UI prompt engineering",
+﻿{
+  "name": "Vector â€” UI prompt engineering",
   "short_name": "Vector",
   "description": "Review, complete and validate UI prompts before you generate. Deterministic wireframe engine; optional on-device model.",
   "start_url": "./?source=pwa",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#F6F4EC",
-  "theme_color": "#2D5D4F",
+  "background_color": "#08090a",
+  "theme_color": "#08090a",
   "categories": ["developer", "productivity", "design"],
   "icons": [
     { "src": "/favicon-32.png", "sizes": "32x32", "type": "image/png" },
@@ -20,3 +20,4 @@
     { "name": "New analysis", "url": "/?tab=new-analysis" }
   ]
 }
+
