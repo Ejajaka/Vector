@@ -23,7 +23,7 @@ import { loadLearnedLexicon, saveLearnedPhrase } from '../services/lexicon.ts';
 import { loadSettings } from '../services/settings.ts';
 import { isLLMConfigured } from '../services/llmEngine.ts';
 import { parsePromptWithModel, type ModelParseResult } from '../services/semanticParser.ts';
-import { transcribeLocally } from '../services/localStt.ts';
+import { preloadLocalSTT, transcribeLocally } from '../services/localStt.ts';
 import { SideBySideBuild } from '../components/generators/SideBySideBuild.tsx';
 import { WireframePreview } from '../components/editor/WireframePreview.tsx';
 import type { CanvasItem, CanvasItemType, CanvasPage } from '../data/canvas.ts';
@@ -480,7 +480,7 @@ export const PromptModePage: React.FC<Props> = ({
         mediaStreamRef.current = null;
         mediaRecorderRef.current = null;
         setLocalVoiceState('transcribing');
-        setLocalVoiceProgress('Loading the on-device voice model…');
+        setLocalVoiceProgress('Transcribing on this device…');
         const blob = new Blob(mediaChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
         void transcribeLocally(blob, (progress) => {
           setLocalVoiceProgress(
@@ -511,6 +511,11 @@ export const PromptModePage: React.FC<Props> = ({
           });
       };
       recorder.start(250);
+      // Warm the model while the user speaks so transcription starts sooner.
+      void preloadLocalSTT((progress) => {
+        if (progress.percent >= 100) return;
+        setLocalVoiceProgress(`On-device model · ${progress.percent}%`);
+      }).catch(() => undefined);
       // Safety stop so a forgotten recording cannot grow forever.
       localStopTimerRef.current = window.setTimeout(() => stopLocalVoice(), 60_000);
     } catch (error) {
@@ -1096,7 +1101,10 @@ export const PromptModePage: React.FC<Props> = ({
             {localVoiceState === 'recording' && (
               <p className="mt-1 flex items-center gap-1.5 text-[10px] font-semibold text-[#C2410C]">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#FF7A59]" />
-                Recording on this device… tap Stop &amp; transcribe when finished.
+                <span>
+                  Recording on this device… tap Stop &amp; transcribe when finished.
+                  {localVoiceProgress ? ` ${localVoiceProgress}` : ''}
+                </span>
               </p>
             )}
             {localVoiceState === 'transcribing' && (

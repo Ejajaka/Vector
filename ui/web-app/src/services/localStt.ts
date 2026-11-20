@@ -29,8 +29,9 @@ function configure(): void {
 }
 
 async function loadASR(onProgress?: LocalSTTProgressHandler): Promise<any> {
+  // The most recent caller owns the progress display.
+  if (onProgress) progressHandler = onProgress;
   if (!asrPromise) {
-    progressHandler = onProgress ?? null;
     configure();
     asrPromise = pipeline('automatic-speech-recognition', MODEL_ID, {
       dtype: 'q8',
