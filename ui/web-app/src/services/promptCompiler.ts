@@ -34,6 +34,12 @@ export interface CompiledElement {
   colourInferred?: boolean;
   action?: string;
   location?: string;
+  /** Explicit direction from words like "vertically" / "in a row". */
+  orientation?: 'vertical' | 'horizontal';
+  /** Explicit side from words like "rightmost" / "on the left". */
+  align?: 'left' | 'right' | 'center';
+  /** Pin to the top or bottom of the content area. */
+  anchor?: 'top' | 'bottom';
   /** Preferred style variant from the editor's catalogue. */
   preset?: string;
   /** Explicit quantity in the prompt ("6 dishes"). */
@@ -124,31 +130,31 @@ const KIND_DEFS: KindDef[] = [
   { kind: 'footer', words: ['footer', 'bottom bar', 'copyright bar'] },
   {
     kind: 'navbar',
-    words: ['navigation bar', 'navbar', 'nav bar', 'top bar', 'app bar', 'site header', 'page header', 'menu bar', 'navigation', 'header'],
+    words: ['navigation bar', 'navbar', 'nav bar', 'top bar', 'app bar', 'site header', 'page header', 'menu bar', 'navigation', 'header', 'navber', 'navigaton', 'navbr'],
   },
   {
     kind: 'input',
-    words: ['filter dropdown', 'filter menu', 'filter bar', 'sort dropdown', 'sort menu', 'sort control', 'text field', 'text box', 'textbox', 'search bar', 'search field', 'search box', 'date picker', 'email address', 'dropdown', 'textarea', 'password', 'username', 'email', 'input', 'field', 'phone number', 'otp'],
+    words: ['filter dropdown', 'filter menu', 'filter bar', 'sort dropdown', 'sort menu', 'sort control', 'text field', 'text box', 'textbox', 'search bar', 'search field', 'search box', 'searchbar', 'date picker', 'email address', 'dropdown', 'textarea', 'password', 'username', 'email', 'input', 'field', 'phone number', 'otp', 'serch bar', 'seach bar', 'serch', 'seach', 'inpt', 'imput', 'feild', 'text feld'],
   },
-  { kind: 'button', words: ['call to action', 'sign in button', 'login button', 'cta', 'button', 'submit'] },
-  { kind: 'link', words: ['hyperlink', 'text link', 'anchor link', 'link', 'anchor'] },
-  { kind: 'tabs', words: ['segmented control', 'tab group', 'tab bar', 'tabs', 'tab'] },
-  { kind: 'badge', words: ['status badge', 'badge', 'pill', 'chip', 'tag'] },
-  { kind: 'progress', words: ['progress indicator', 'progress bar', 'loading bar', 'stepper', 'progress'] },
-  { kind: 'avatar', words: ['profile picture', 'profile photo', 'profile image', 'user photo', 'avatar'] },
-  { kind: 'card', words: ['product card', 'stat card', 'pricing card', 'feature card', 'card', 'tile', 'panel'] },
+  { kind: 'button', words: ['call to action', 'sign in button', 'login button', 'cta', 'button', 'submit', 'buton', 'buttn'] },
+  { kind: 'link', words: ['hyperlink', 'text link', 'anchor link', 'link', 'anchor', 'lnk'] },
+  { kind: 'tabs', words: ['segmented control', 'tab group', 'tab bar', 'tabs', 'tab', 'tabss'] },
+  { kind: 'badge', words: ['status badge', 'badge', 'pill', 'chip', 'tag', 'bage', 'badg'] },
+  { kind: 'progress', words: ['progress indicator', 'progress bar', 'loading bar', 'stepper', 'progress', 'progess'] },
+  { kind: 'avatar', words: ['profile picture', 'profile photo', 'profile image', 'user photo', 'avatar', 'avtar', 'avater'] },
+  { kind: 'card', words: ['product card', 'stat card', 'pricing card', 'feature card', 'card', 'tile', 'panel', 'crd', 'cardd'] },
   {
     kind: 'image',
-    words: ['header image', 'hero image', 'feature image', 'background image', 'illustration', 'screenshot', 'thumbnail', 'picture', 'gallery', 'banner', 'photo', 'image', 'graphic', 'logo', 'map'],
+    words: ['header image', 'hero image', 'feature image', 'background image', 'illustration', 'screenshot', 'thumbnail', 'picture', 'gallery', 'banner', 'photo', 'image', 'graphic', 'logo', 'map', 'imge', 'img', 'pcture'],
   },
-  { kind: 'table', words: ['data grid', 'datagrid', 'list of rows', 'leaderboard', 'table'] },
-  { kind: 'chart', words: ['bar chart', 'line chart', 'pie chart', 'sparkline', 'chart', 'graph', 'analytics'] },
-  { kind: 'modal', words: ['modal', 'dialog', 'popup', 'drawer', 'overlay'] },
-  { kind: 'checkbox', words: ['checkbox', 'check box', 'toggle', 'switch', 'radio button', 'radio'] },
-  { kind: 'heading', words: ['headline', 'heading', 'hero text', 'title', 'h1', 'h2'] },
+  { kind: 'table', words: ['data grid', 'datagrid', 'list of rows', 'leaderboard', 'table', 'tabel', 'tble'] },
+  { kind: 'chart', words: ['bar chart', 'line chart', 'pie chart', 'sparkline', 'chart', 'graph', 'analytics', 'chaart', 'charrt'] },
+  { kind: 'modal', words: ['modal', 'dialog', 'popup', 'drawer', 'overlay', 'modle', 'modl'] },
+  { kind: 'checkbox', words: ['checkbox', 'check box', 'toggle', 'switch', 'radio button', 'radio', 'checkbok', 'chekbox'] },
+  { kind: 'heading', words: ['headline', 'heading', 'hero text', 'title', 'h1', 'h2', 'headng', 'headin', 'heding'] },
   {
     kind: 'text',
-    words: ['body copy', 'paragraph', 'description', 'subheading', 'subtitle', 'caption', 'tagline', 'summary', 'price', 'rating', 'review', 'copy', 'text'],
+    words: ['body copy', 'paragraph', 'description', 'subheading', 'subtitle', 'caption', 'tagline', 'summary', 'price', 'rating', 'review', 'copy', 'text', 'paragraf', 'descriptin'],
   },
 ];
 
@@ -212,11 +218,41 @@ function cleanLabel(raw: string): string {
   value = value.replace(/^["“”'‘’]+|["“”'‘’]+$/g, '');
   value = value.replace(/^(?:a|an|the)\s+/i, '');
   value = value.replace(/^\d+\s+/, '');
+  // Layout instructions are not part of the copy.
+  value = value.replace(
+    /\s+to\s+be\s+(?:placed|positioned|aligned|arranged|stacked|shown|displayed|put)\b.*$/i,
+    ''
+  );
+  value = value.replace(
+    /\s+(?:placed|positioned|aligned|arranged|stacked|shown|displayed|put)\b.*$/i,
+    ''
+  );
+  value = value.replace(
+    /\s+(?:vertically|horizontally|vertical|horizontal|in\s+a\s+column|in\s+a\s+row|side\s+by\s+side)\b.*$/i,
+    ''
+  );
+  value = value.replace(
+    /\s+(?:to|on|at)\s+the\s+(?:far\s+)?(?:right|left|top|bottom)(?:most)?(?:\s+(?:side|hand|corner|edge))?\b.*$/i,
+    ''
+  );
+  value = value.replace(/\s+(?:rightmost|leftmost|topmost|bottommost)\b.*$/i, '');
   value = value.replace(
     /\s+(?:in|at|on|with|that|which|using|colou?red|sized|below|above|under|after|before|next\s+to|beside|inside|outside|near)\s+.*$/i,
     ''
   );
   value = value.replace(/[.,;:]+$/, '');
+
+  // Correct the most common component typos without touching other words.
+  const typos: Record<string, string> = {
+    serch: 'search', seach: 'search', dishs: 'dishes', dishe: 'dishes',
+    emial: 'email', pasword: 'password', passwrod: 'password', usrname: 'username',
+  };
+  value = value.replace(/\b\w+\b/g, (word) => {
+    const fix = typos[word.toLowerCase()];
+    if (!fix) return word;
+    return word[0] === word[0].toUpperCase() ? fix.charAt(0).toUpperCase() + fix.slice(1) : fix;
+  });
+
   value = value.replace(/\s+/g, ' ').trim();
   return value.length > 48 ? `${value.slice(0, 45).trim()}…` : value;
 }
@@ -250,7 +286,7 @@ const WORD_NUMBERS: Record<string, number> = {
 };
 
 function findCount(text: string): number | undefined {
-  const nouns = 'cards?|tiles?|items?|images?|photos?|products?|dishes?|columns?|rows?|buttons?|features?|badges?|avatars?|links?';
+  const nouns = 'cards?|tiles?|items?|images?|photos?|products?|dishes?|dishs?|columns?|rows?|buttons?|features?|badges?|avatars?|links?';
   const gap = '(?:stat|feature|product|pricing|menu|blog|team|profile)?\\s*';
   const numeric = text.match(new RegExp(`\\b(\\d{1,2})\\s+${gap}(?:${nouns})\\b`, 'i'));
   if (numeric) {
@@ -292,11 +328,79 @@ function findAction(text: string): string | undefined {
   return undefined;
 }
 
-function findLocation(text: string): string | undefined {
-  const match = maskQuoted(text).match(
-    /\b(top|bottom|left|right|centre|center|middle|sidebar|above|below|under|after|before|first|last)\b/i
+interface Placement {
+  vertical?: boolean;
+  horizontal?: boolean;
+  align?: 'left' | 'right' | 'center';
+  anchor?: 'top' | 'bottom';
+  relative?: 'above' | 'below';
+}
+
+/** Tolerate the misspellings people actually type in layout instructions. */
+function normaliseLayoutText(text: string): string {
+  return maskQuoted(text)
+    .toLowerCase()
+    .replace(/\brigth(?:most)?\b|\brght\b/g, 'right')
+    .replace(/\blefth?most\b/g, 'leftmost')
+    .replace(/\blft\b/g, 'left')
+    .replace(/\bbotom\b|\bbottm\b/g, 'bottom')
+    .replace(/\btopp\b/g, 'top')
+    .replace(/\bvertcal\b|\bverticle\b|\bverticaly\b/g, 'vertical')
+    .replace(/\bhorizental\b|\bhorizonal\b|\bhorizontaly\b/g, 'horizontal')
+    .replace(/\bcenterd\b|\bcentre\b|\bcentred\b|\bcentered\b/g, 'center');
+}
+
+/**
+ * Read layout instructions independently of component attributes.
+ * "cards … placed vertically to the rightmost side" is direction + side,
+ * not a longer card label.
+ */
+function findPlacement(text: string): Placement {
+  const lower = normaliseLayoutText(text);
+
+  const vertical = /\b(?:vertical(?:ly)?|stack(?:ed|ing)?|in a column|single column|column of|one (?:below|under) (?:the )?other)\b/.test(
+    lower
   );
-  return match ? match[1].toLowerCase() : undefined;
+  const horizontal = /\b(?:horizontal(?:ly)?|in a row|side[- ]by[- ]side|across|row of)\b/.test(lower);
+
+  const align: Placement['align'] = /\b(?:rightmost|right[- ]most|right[- ]hand(?: side)?|right side|on the right|to the right|at the right|far right)\b/.test(
+    lower
+  )
+    ? 'right'
+    : /\b(?:leftmost|left[- ]most|left[- ]hand(?: side)?|left side|on the left|to the left|at the left|far left)\b/.test(
+        lower
+      )
+      ? 'left'
+      : /\b(?:center(?:ed)?|middle)\b/.test(lower)
+        ? 'center'
+        : undefined;
+
+  const anchor: Placement['anchor'] = /\b(?:at\s+(?:the\s+)?(?:very\s+)?bottom|bottom(?:most)?\s+of\s+(?:the\s+)?(?:screen|page|board|app|viewport)|(?:screen|page|board|viewport)\s+bottom|bottom)\b/.test(
+    lower
+  )
+    ? 'bottom'
+    : /\b(?:at\s+(?:the\s+)?(?:very\s+)?top|top(?:most)?\s+of\s+(?:the\s+)?(?:screen|page|board|app|viewport)|(?:screen|page|board|viewport)\s+top|top)\b/.test(
+        lower
+      )
+      ? 'top'
+      : undefined;
+
+  const relative: Placement['relative'] = /\b(?:below|under|beneath|after)\b/.test(lower)
+    ? 'below'
+    : /\b(?:above|before|over)\b/.test(lower)
+      ? 'above'
+      : undefined;
+
+  return { vertical, horizontal, align, anchor, relative };
+}
+
+function locationFromPlacement(placement: Placement): string | undefined {
+  if (placement.anchor) return placement.anchor;
+  if (placement.relative) return placement.relative;
+  if (placement.align === 'right') return 'right';
+  if (placement.align === 'left') return 'left';
+  if (placement.align === 'center') return 'centre';
+  return undefined;
 }
 
 /**
@@ -318,12 +422,12 @@ function findBrand(text: string): string | undefined {
 }
 
 const DEFAULTS: Array<[RegExp, string]> = [
-  [/\bemail\b/i, 'Email'],
-  [/\bpassword\b/i, 'Password'],
-  [/\busername\b/i, 'Username'],
+  [/\b(?:email|emial)\b/i, 'Email'],
+  [/\b(?:password|pasword|passwrod)\b/i, 'Password'],
+  [/\b(?:username|usrname)\b/i, 'Username'],
   [/\bphone|mobile\b/i, 'Phone number'],
   [/\botp\b|verification code/i, 'Verification code'],
-  [/\bsearch\b/i, 'Search'],
+  [/\b(?:search|serch|seach)\b/i, 'Search'],
   [/\bfilter\b/i, 'Filter'],
   [/\bsort\b/i, 'Sort by'],
   [/\bsize\b/i, 'Size'],
@@ -423,7 +527,7 @@ function pickPreset(kind: ElementKind, lower: string, dark: boolean, archetype: 
   switch (kind) {
     case 'navbar': return dark ? 'nav-dark' : 'nav-light';
     case 'input':
-      if (/search|find|filter/.test(lower)) return 'input-search';
+      if (/search|find|filter|serch|seach/.test(lower)) return 'input-search';
       if (/password|otp|code|pin/.test(lower)) return 'input-float';
       return 'input-labelled';
     case 'image':
@@ -834,6 +938,7 @@ function buildElement(
 ): CompiledElement {
   const lower = windowText.toLowerCase();
   const interactive = ['button', 'modal', 'checkbox'].includes(hit.kind);
+  const placement = findPlacement(windowText);
   const label = inferLabel(windowText, hit.kind, unit.section, brand);
   const colour = findColour(windowText) || unitColour;
   // "Book a table" / "Order now" already state their action in the label.
@@ -850,7 +955,14 @@ function buildElement(
       (tokens.statedColour && ACCENT_KINDS.includes(hit.kind) ? tokens.primary : undefined),
     colourInferred: !colour && tokens.statedColour && ACCENT_KINDS.includes(hit.kind),
     action,
-    location: findLocation(windowText),
+    location: locationFromPlacement(placement),
+    orientation: placement.vertical
+      ? 'vertical'
+      : placement.horizontal
+        ? 'horizontal'
+        : undefined,
+    align: placement.align,
+    anchor: placement.anchor,
     preset: pickPreset(hit.kind, lower, tokens.theme === 'dark', archetype),
     count: findCount(windowText),
     confidence: confidenceFor(hit, windowText, label, colour, action, unit.section),
@@ -1551,7 +1663,8 @@ function buildRows(
     if (element.kind === 'image' || element.kind === 'avatar' || element.kind === 'card') {
       const kind = element.kind;
       const items: CompiledElement[] = [];
-      const limit = mobile ? 1 : 3;
+      // "vertically" means one per row, not a 3-up grid.
+      const limit = mobile || element.orientation === 'vertical' ? 1 : 3;
       while (index < body.length && body[index].kind === kind && items.length < limit) {
         items.push(body[index]);
         index += 1;
@@ -1696,6 +1809,56 @@ function layoutHero(
   return top + heroH + gap * 2;
 }
 
+/** Place one row, honouring explicit side alignment for single elements. */
+function placeRow(
+  row: Row,
+  y: number,
+  factor: number,
+  frame: Frame,
+  density: number,
+  out: CompiledElement[]
+): number {
+  const mobile = frame.w === FRAMES.mobile.w;
+  const height = Math.max(24, row.h * factor);
+  const cols = row.items.length;
+  const inner = frame.w - frame.pad * 2;
+  const colW = (inner - frame.gap * (cols - 1)) / cols;
+
+  row.items.forEach((element, index) => {
+    let width = colW;
+
+    if (cols === 1) {
+      if (element.kind === 'button') width = mobile ? inner : Math.min(220, colW);
+      else if (element.kind === 'link') width = Math.min(240, colW);
+      else if (element.kind === 'badge') width = Math.min(140, colW);
+      else if (element.kind === 'input') width = mobile ? inner : Math.min(420, colW);
+      else if (element.kind === 'heading') width = mobile ? inner : Math.min(860, colW);
+      else if (element.kind === 'text') width = mobile ? inner : Math.min(720, colW);
+      else if (element.kind === 'modal') width = Math.min(mobile ? inner : 480, colW);
+      else if (element.kind === 'checkbox') width = Math.min(300, colW);
+      else if (element.kind === 'progress') width = Math.min(360, colW);
+      else if (element.kind === 'avatar') width = Math.min(72 * density, colW);
+      else if (element.kind === 'card' && element.orientation === 'vertical') {
+        width = Math.min(360, colW);
+      } else if (element.kind === 'image' && element.orientation === 'vertical') {
+        width = Math.min(420, colW);
+      }
+    }
+
+    let x = frame.pad + index * (colW + frame.gap);
+    if (cols === 1) {
+      if (element.align === 'right') x = frame.w - frame.pad - width;
+      else if (element.align === 'center') x = (frame.w - width) / 2;
+      else x = frame.pad;
+    }
+    if (element.kind === 'modal') x = (frame.w - width) / 2;
+
+    out.push({ ...element, x, y, w: width, h: height });
+  });
+
+  return height;
+}
+
 function layoutFlow(
   body: CompiledElement[],
   frame: Frame,
@@ -1707,8 +1870,15 @@ function layoutFlow(
 ): void {
   let y = top;
   let flowBody = body;
+  const mobile = frame.w === FRAMES.mobile.w;
+  const viewport: Viewport = mobile ? 'mobile' : 'desktop';
 
-  if (frame.w === FRAMES.desktop.w) {
+  // Explicit position wording beats the canonical hero split.
+  const hasExplicitLayout = body.some(
+    (element) => element.align || element.anchor || element.orientation || element.location
+  );
+
+  if (!mobile && !hasExplicitLayout) {
     const split = splitHero(body, archetype);
     if (split) {
       y = layoutHero(split, frame, density, top, bottom, body.length > 8, out);
@@ -1716,39 +1886,31 @@ function layoutFlow(
     }
   }
 
-  const available = Math.max(120, bottom - y);
-  const rows = buildRows(flowBody, frame.w === FRAMES.mobile.w ? 'mobile' : 'desktop', density);
+  const bottomAnchored = flowBody.filter((element) => element.anchor === 'bottom');
+  const flowing = flowBody.filter((element) => element.anchor !== 'bottom');
+  const bottomRows = buildRows(bottomAnchored, viewport, density);
+  const bottomHeight =
+    bottomRows.reduce((sum, row) => sum + row.h, 0) + Math.max(0, bottomRows.length - 1) * frame.gap;
+
+  const available = Math.max(
+    120,
+    bottom - y - (bottomRows.length ? bottomHeight + frame.gap : 0)
+  );
+  const rows = buildRows(flowing, viewport, density);
   const total = rows.reduce((sum, row) => sum + row.h, 0) + Math.max(0, rows.length - 1) * frame.gap;
   const factor = total > available ? Math.max(0.28, available / total) : 1;
   const gap = frame.gap * factor;
-  const inner = frame.w - frame.pad * 2;
-  const mobile = frame.w === FRAMES.mobile.w;
 
   rows.forEach((row) => {
-    const height = Math.max(24, row.h * factor);
-    const cols = row.items.length;
-    const colW = (inner - frame.gap * (cols - 1)) / cols;
-
-    row.items.forEach((element, index) => {
-      let width = colW;
-      if (cols === 1) {
-        if (element.kind === 'button') width = mobile ? inner : Math.min(220, colW);
-        else if (element.kind === 'link') width = Math.min(240, colW);
-        else if (element.kind === 'badge') width = Math.min(140, colW);
-        else if (element.kind === 'input') width = mobile ? inner : Math.min(420, colW);
-        else if (element.kind === 'heading') width = mobile ? inner : Math.min(860, colW);
-        else if (element.kind === 'text') width = mobile ? inner : Math.min(720, colW);
-        else if (element.kind === 'modal') width = Math.min(mobile ? inner : 480, colW);
-        else if (element.kind === 'checkbox') width = Math.min(300, colW);
-        else if (element.kind === 'progress') width = Math.min(360, colW);
-        else if (element.kind === 'avatar') width = Math.min(72 * density, colW);
-      }
-      const x = element.kind === 'modal' ? (frame.w - width) / 2 : frame.pad + index * (colW + frame.gap);
-      out.push({ ...element, x, y, w: width, h: height });
-    });
-
-    y += height + gap;
+    y += placeRow(row, y, factor, frame, density, out) + gap;
   });
+
+  if (bottomRows.length) {
+    let by = bottom - bottomHeight;
+    bottomRows.forEach((row) => {
+      by += placeRow(row, by, 1, frame, density, out) + frame.gap;
+    });
+  }
 }
 
 export function layoutElements(
