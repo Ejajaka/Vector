@@ -280,7 +280,7 @@ export const VARIANTS: StyleVariant[] = [
 
   { id: 'chart-spark', type: 'chart', name: 'Sparkline', group: 'Data', style: 'chart-line', w: 260, h: 80, label: 'Weekly active users', color: '#5E6AD2', prompt: 'compact sparkline with a subtle area fill' },
   { id: 'chart-funnel', type: 'chart', name: 'Funnel', group: 'Data', style: 'chart-bars', w: 480, h: 260, label: 'Signup funnel', color: '#0D99FF', prompt: 'funnel chart with four labelled stages' },
-  { id: 'chart-usage', type: 'chart', name: 'Usage ring', group: 'Data', style: 'chart-donut', w: 220, h: 220, label: '72%', color: '#5E6AD2', prompt: 'donut chart showing usage against a limit' },
+  { id: 'chart-usage', type: 'chart', name: 'Usage ring', group: 'Data', style: 'chart-donut', w: 220, h: 220, label: 'Plan usage', color: '#5E6AD2', prompt: 'donut chart showing usage against a limit, with a 72% centre label' },
   { id: 'chart-capacity', type: 'chart', name: 'Capacity', group: 'Data', style: 'chart-progress', w: 420, h: 52, label: 'Storage used', color: '#FFC53D', prompt: 'progress bar with a used-of-total label' },
   { id: 'table-compact', type: 'table', name: 'Compact table', group: 'Data', style: 'table-default', w: 760, h: 220, label: 'Invoices', prompt: 'compact table with invoice, date, amount and status' },
   { id: 'table-people', type: 'table', name: 'People table', group: 'Data', style: 'table-default', w: 900, h: 280, label: 'Team members', prompt: 'table of people with avatar, role, status and actions' },

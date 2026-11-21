@@ -478,6 +478,226 @@ export const StyledElement: React.FC<StyledElementProps> = ({
         </div>
       );
 
+    /* -------------------------------------------------- missing variants */
+    case 'chart-donut': {
+      const value = copy('value', '72%');
+      return (
+        <div
+          className="w-full h-full p-3 flex flex-col"
+          style={box('#FFFFFF', 12, { borderStyle: 'solid', borderWidth: `${strokeWidth || 1}px`, borderColor: strokeColor || '#E7E5F0' })}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold" style={text(11)}>{label}</span>
+            <span className="text-[9px] text-[#9B99A6]">{copy('caption', 'of plan')}</span>
+          </div>
+          <div className="mt-1 flex-1 grid place-items-center">
+            <svg viewBox="0 0 120 120" className="h-[82%] w-[82%]">
+              <circle cx="60" cy="60" r="44" fill="none" stroke="#EFEDF6" strokeWidth="12" />
+              <circle
+                cx="60"
+                cy="60"
+                r="44"
+                fill="none"
+                stroke={accent}
+                strokeWidth="12"
+                strokeLinecap="round"
+                strokeDasharray="199 80"
+                transform="rotate(-90 60 60)"
+              />
+              <text x="60" y="58" textAnchor="middle" fontFamily="Inter, sans-serif" fontSize="18" fontWeight="700" fill="#0B0E14">
+                {value}
+              </text>
+              <text x="60" y="74" textAnchor="middle" fontFamily="Inter, sans-serif" fontSize="8" fontWeight="600" fill="#9B99A6">
+                {copy('sub', 'used')}
+              </text>
+            </svg>
+          </div>
+        </div>
+      );
+    }
+    case 'chart-progress': {
+      const value = copy('value', '72%');
+      return (
+        <div
+          className="w-full h-full px-3 py-2 flex flex-col justify-center gap-1.5"
+          style={box('#FFFFFF', 10, { borderStyle: 'solid', borderWidth: `${strokeWidth || 1}px`, borderColor: strokeColor || '#E7E5F0' })}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold" style={text(11)}>{label}</span>
+            <span className="text-[10px] font-semibold" style={{ color: accent }}>{value}</span>
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-[#EFEDF6]">
+            <div className="h-full rounded-full" style={{ width: '72%', background: accent }} />
+          </div>
+          <span className="text-[8.5px] text-[#9B99A6]">{copy('caption', '72 of 100 GB used')}</span>
+        </div>
+      );
+    }
+    case 'badge-count':
+      return (
+        <div className="w-full h-full grid place-items-center rounded-full text-[10px] font-bold text-white" style={box(accent, 999)}>
+          {label}
+        </div>
+      );
+    case 'btn-icon':
+      return (
+        <div className="w-full h-full grid place-items-center rounded-lg text-[16px] font-semibold" style={box(fill || '#F7F7FB', 10, { color: color || '#0B0E14', borderStyle: 'solid', borderWidth: '1px', borderColor: strokeColor || '#E7E5F0' })}>
+          {label}
+        </div>
+      );
+    case 'btn-loading':
+      return (
+        <div className="w-full h-full flex items-center justify-center gap-2 rounded-lg text-[11px] font-semibold text-white opacity-80" style={box(accent, 10)}>
+          <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/35 border-t-white" />
+          {label}
+        </div>
+      );
+    case 'btn-danger':
+      return (
+        <div className="w-full h-full grid place-items-center rounded-lg text-[11px] font-semibold text-white" style={box(fill || '#D14343', 10)}>
+          {label}
+        </div>
+      );
+    case 'btn-split':
+      return (
+        <div className="flex h-full w-full overflow-hidden rounded-lg" style={box(accent, 10)}>
+          <span className="flex-1 grid place-items-center px-2 text-[10.5px] font-semibold text-white">{label}</span>
+          <span className="grid w-8 place-items-center border-l border-white/20 text-white"><ChevronDown className="h-3 w-3" /></span>
+        </div>
+      );
+    case 'card-list':
+      return (
+        <div className="w-full h-full p-3" style={box('#FFFFFF', 12, { borderStyle: 'solid', borderWidth: `${strokeWidth || 1}px`, borderColor: strokeColor || '#E7E5F0' })}>
+          <span className="text-[11px] font-semibold" style={text(11)}>{label}</span>
+          <div className="mt-2 space-y-1.5">
+            {[0, 1, 2].map((row) => (
+              <div key={row} className="flex items-center gap-2 rounded-md border border-[#F1EFF8] px-2 py-1.5">
+                <span className="h-3 w-3 rounded-full" style={{ background: `${accent}33` }} />
+                <span className="h-1.5 flex-1 rounded-full bg-[#EFEDF6]" />
+                <span className="h-1.5 w-6 rounded-full bg-[#F4F2FA]" />
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    case 'card-pricing':
+      return (
+        <div className="w-full h-full p-4 flex flex-col" style={box('#FFFFFF', 12, { borderStyle: 'solid', borderWidth: `${strokeWidth || 1}px`, borderColor: strokeColor || accent })}>
+          <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#9B99A6]">{copy('plan', 'PRO')}</span>
+          <span className="mt-1 text-[24px] font-extrabold tracking-[-0.04em]" style={text(24)}>{label}</span>
+          <div className="mt-2 space-y-1">
+            {[0, 1, 2].map((row) => (
+              <span key={row} className="flex items-center gap-1.5 text-[8.5px] text-[#64626F]">
+                <Check className="h-2.5 w-2.5" style={{ color: accent }} /> Feature included
+              </span>
+            ))}
+          </div>
+          <span className="mt-auto grid h-7 place-items-center rounded-md text-[9px] font-semibold text-white" style={{ background: accent }}>
+            {copy('cta', 'Choose plan')}
+          </span>
+        </div>
+      );
+    case 'card-profile':
+      return (
+        <div className="w-full h-full p-3 flex flex-col items-center justify-center" style={box('#FFFFFF', 12, { borderStyle: 'solid', borderWidth: `${strokeWidth || 1}px`, borderColor: strokeColor || '#E7E5F0' })}>
+          <span className="grid h-10 w-10 place-items-center rounded-full text-[11px] font-bold text-white" style={{ background: accent }}>{label.slice(0, 2).toUpperCase()}</span>
+          <span className="mt-2 text-[11px] font-semibold" style={text(11)}>{label}</span>
+          <span className="text-[8.5px] text-[#9B99A6]">{copy('role', 'Product designer')}</span>
+          <div className="mt-2 flex gap-1.5">
+            <span className="rounded-md px-2 py-1 text-[8px] font-semibold text-white" style={{ background: accent }}>Follow</span>
+            <span className="rounded-md border border-[#E7E5F0] px-2 py-1 text-[8px] font-semibold text-[#64626F]">Message</span>
+          </div>
+        </div>
+      );
+    case 'text-label':
+      return <span className="block uppercase" style={{ ...text(11, '#64626F'), letterSpacing: `${tracking ?? 1.5}px`, fontWeight: fontWeight ?? 700 }}>{label}</span>;
+    case 'text-link':
+      return <span className="block" style={{ ...text(13), color: color || accent, textDecoration: 'underline', textUnderlineOffset: 3 }}>{label}</span>;
+    case 'text-code':
+      return (
+        <div className="w-full h-full rounded-lg bg-[#0B0E14] px-3 py-2 font-mono text-[10px] text-[#B9F6CA]" style={box('#0B0E14', 10)}>
+          <span className="text-[#6B7280]">$ </span>{label}
+        </div>
+      );
+    case 'input-textarea':
+      return (
+        <div className="w-full h-full flex flex-col gap-1" style={box('#FFFFFF', 10, { borderStyle: 'solid', borderWidth: '1px', borderColor: strokeColor || '#E7E5F0', padding: '8px 10px' })}>
+          <span className="text-[8.5px] font-semibold text-[#64626F]">{label}</span>
+          <span className="h-1.5 w-[88%] rounded-full bg-[#F1EFF8]" />
+          <span className="h-1.5 w-[64%] rounded-full bg-[#F7F5FB]" />
+        </div>
+      );
+    case 'input-select':
+      return (
+        <div className="w-full h-full flex flex-col justify-center gap-1" style={box(fill || '#FFFFFF', 10, { borderStyle: 'solid', borderWidth: '1px', borderColor: strokeColor || '#E7E5F0', padding: '0 10px' })}>
+          <span className="text-[8.5px] font-semibold text-[#64626F]">{label}</span>
+          <span className="flex items-center justify-between text-[10px] text-[#0B0E14]">
+            {copy('value', 'Select an option')} <ChevronDown className="h-3 w-3 text-[#9B99A6]" />
+          </span>
+        </div>
+      );
+    case 'input-checkbox':
+      return (
+        <div className="flex h-full w-full items-center gap-2" style={box('transparent', 0, { padding: 0 })}>
+          <span className="grid h-3.5 w-3.5 place-items-center rounded border" style={{ borderColor: accent, background: `${accent}18` }}>
+            <Check className="h-2.5 w-2.5" style={{ color: accent }} />
+          </span>
+          <span className="text-[10px] text-[#0B0E14]" style={text(10)}>{label}</span>
+        </div>
+      );
+    case 'input-toggle':
+      return (
+        <div className="flex h-full w-full items-center justify-between gap-3">
+          <span className="text-[10.5px] font-medium" style={text(10.5)}>{label}</span>
+          <span className="relative h-4 w-7 rounded-full" style={{ background: accent }}>
+            <span className="absolute right-0.5 top-0.5 h-3 w-3 rounded-full bg-white" />
+          </span>
+        </div>
+      );
+    case 'nav-tabs':
+      return (
+        <div className="flex h-full w-full items-center gap-1 rounded-lg border border-[#E7E5F0] bg-[#FFFFFF] px-1.5" style={box('#FFFFFF', 8, { borderStyle: 'solid', borderWidth: '1px', borderColor: strokeColor || '#E7E5F0' })}>
+          {copyList('tabs', 'Projects,Team,Settings').map((tab, index) => (
+            <span key={tab} className="rounded-md px-2.5 py-1.5 text-[9.5px] font-semibold" style={index === 0 ? { background: accent, color: '#FFFFFF' } : { color: '#64626F' }}>
+              {tab}
+            </span>
+          ))}
+        </div>
+      );
+    case 'image-avatar-grid':
+      return (
+        <div className="flex h-full w-full items-center gap-1 overflow-hidden rounded-lg border border-[#E7E5F0] bg-[#FFFFFF] px-2" style={box('#FFFFFF', 10)}>
+          {[0, 1, 2, 3, 4].map((index) => (
+            <span key={index} className="-ml-1.5 grid h-7 w-7 place-items-center rounded-full border-2 border-white text-[8px] font-bold text-white first:ml-0" style={{ background: [accent, '#0D99FF', '#FF7A59', '#22D3EE', '#B8860B'][index] }}>
+              {['RG', 'AM', 'SK', 'JP', '+4'][index]}
+            </span>
+          ))}
+        </div>
+      );
+    case 'divider':
+      return (
+        <div className="flex h-full w-full items-center gap-2">
+          <span className="h-px flex-1 bg-[#E7E5F0]" />
+          <span className="text-[8px] font-semibold uppercase tracking-[0.14em] text-[#9B99A6]">{label}</span>
+          <span className="h-px flex-1 bg-[#E7E5F0]" />
+        </div>
+      );
+    case 'accordion':
+      return (
+        <div className="w-full h-full overflow-hidden" style={box('#FFFFFF', 12, { borderStyle: 'solid', borderWidth: `${strokeWidth || 1}px`, borderColor: strokeColor || '#E7E5F0' })}>
+          <div className="flex items-center justify-between border-b border-[#E7E5F0] px-3 py-2">
+            <span className="text-[10px] font-semibold" style={text(10)}>{label}</span>
+            <ChevronDown className="h-3 w-3 text-[#9B99A6]" />
+          </div>
+          <div className="px-3 py-2 text-[8.5px] leading-relaxed text-[#9B99A6]">{copy('answer', 'This answer stays visible while the other rows stay closed.')}</div>
+          {[0, 1].map((row) => (
+            <div key={row} className="flex items-center justify-between border-t border-[#F1EFF8] px-3 py-2">
+              <span className="h-1.5 w-24 rounded-full bg-[#EFEDF6]" />
+              <ChevronDown className="h-3 w-3 text-[#C3C1CE]" />
+            </div>
+          ))}
+        </div>
+      );
     default:
       return <div className="w-full h-full rounded-lg border border-dashed border-[#E7E5F0] grid place-items-center text-[11px] text-[#9B99A6]">{label}</div>;
   }

@@ -23,7 +23,7 @@ interface PricingPageProps {
 
 const ROWS: Array<{ label: string; values: [string, string] }> = [
   { label: 'Projects', values: ['2 total', 'Unlimited'] },
-  { label: 'Templates', values: ['3', 'All 21'] },
+  { label: 'Templates', values: ['3', 'All 27'] },
   { label: 'Block palette composer', values: ['—', '✓'] },
   { label: 'AI explanations', values: ['—', 'BYO key'] },
   { label: 'One-click deploy', values: ['—', 'Figma export'] },

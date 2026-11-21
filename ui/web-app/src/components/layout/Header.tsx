@@ -336,7 +336,6 @@ export const Header: React.FC<HeaderProps> = ({
                   onNavigate={setActiveTab}
                   onSignOut={() => setConfirmingLogout(true)}
                   onReplayTour={() => onReplayTour?.()}
-                  onOpenNotifications={() => setNotificationsOpen(true)}
                   unreadCount={0}
                 />
               </>

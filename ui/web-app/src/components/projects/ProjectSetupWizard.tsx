@@ -38,6 +38,19 @@ const FEATURES = [
   'Authentication',
 ] as const;
 
+/** Words that describe each setup answer inside a template's name, tags and blocks. */
+const FEATURE_TERMS: Record<string, string[]> = {
+  Navigation: ['nav', 'navbar', 'sidebar', 'menu', 'tabs', 'breadcrumb'],
+  'Hero section': ['hero', 'landing', 'headline', 'display', 'marketing'],
+  Cards: ['card', 'grid', 'kpi', 'stat', 'metric'],
+  'Forms and inputs': ['input', 'form', 'field', 'select', 'checkbox', 'textarea'],
+  Charts: ['chart', 'analytics', 'kpi', 'report', 'dashboard', 'trend', 'graph'],
+  Tables: ['table', 'data', 'crm', 'admin', 'invoice', 'people', 'row'],
+  Pricing: ['pricing', 'plan', 'billing', 'checkout', 'subscription'],
+  Settings: ['settings', 'profile', 'preference', 'account', 'billing', 'danger'],
+  Authentication: ['auth', 'login', 'signup', 'sign in', 'onboarding', 'password', 'sso'],
+};
+
 /** Mandatory project interview: purpose → features → how to start. */
 export const ProjectSetupWizard: React.FC<ProjectSetupWizardProps> = ({ open, project, onComplete }) => {
   const [step, setStep] = useState(0);
@@ -56,16 +69,49 @@ export const ProjectSetupWizard: React.FC<ProjectSetupWizardProps> = ({ open, pr
   }, [open, project.id]);
 
   const suggested = useMemo(() => {
-    const selected = PURPOSES.filter((purpose) => purposes.includes(purpose.id));
-    const categories = new Set(selected.flatMap((purpose) => purpose.categories));
-    if (categories.size === 0) return TEMPLATES.slice(0, 6);
-    const matches = TEMPLATES.filter((template) => categories.has(template.category));
-    return (matches.length ? matches : TEMPLATES).slice(0, 6);
-  }, [purposes]);
+    const selectedPurposes = PURPOSES.filter((purpose) => purposes.includes(purpose.id));
+    const categories = new Set(selectedPurposes.flatMap((purpose) => purpose.categories));
+    const terms = Array.from(new Set(features.flatMap((feature) => FEATURE_TERMS[feature] || [])));
+
+    if (categories.size === 0 && terms.length === 0) return TEMPLATES.slice(0, 6);
+
+    return TEMPLATES.map((template) => {
+      const haystack = [
+        template.name,
+        template.category,
+        template.tagline,
+        template.description,
+        template.tags.join(' '),
+        ...template.blocks.map((block) => `${block.type} ${block.label} ${block.attrs.join(' ')}`),
+      ]
+        .join(' ')
+        .toLowerCase();
+
+      let score = categories.has(template.category) ? 8 : 0;
+      for (const term of terms) {
+        if (haystack.includes(term)) score += 2;
+      }
+      if (features.includes('Pricing') && template.tags.some((tag) => /pricing|checkout|billing/i.test(tag))) score += 3;
+      if (features.includes('Authentication') && template.category === 'Auth') score += 3;
+      if (features.includes('Charts') && template.blocks.some((block) => block.type === 'chart')) score += 3;
+      if (features.includes('Tables') && template.blocks.some((block) => block.type === 'table')) score += 3;
+
+      return { template, score };
+    })
+      .sort((a, b) => b.score - a.score || a.template.name.localeCompare(b.template.name))
+      .slice(0, 6)
+      .map((entry) => entry.template);
+  }, [purposes, features]);
 
   const selectedTemplate = TEMPLATES.find((template) => template.id === templateId) || null;
   const canContinue =
     step === 0 ? purposes.length > 0 : step === 1 ? true : start !== 'template' || Boolean(selectedTemplate);
+
+  useEffect(() => {
+    if (step !== 2 || start !== 'template') return;
+    if (templateId && suggested.some((template) => template.id === templateId)) return;
+    if (suggested[0]) setTemplateId(suggested[0].id);
+  }, [step, start, templateId, suggested]);
 
   if (!open) return null;
 
@@ -117,7 +163,10 @@ export const ProjectSetupWizard: React.FC<ProjectSetupWizardProps> = ({ open, pr
                 <button
                   key={purpose.id}
                   type="button"
-                  onClick={() => setPurposes((current) => toggle(current, purpose.id))}
+                  onClick={() => {
+                    setPurposes((current) => toggle(current, purpose.id));
+                    setTemplateId(null);
+                  }}
                   className={`flex items-start gap-2.5 rounded-xl border p-3 text-left transition-colors ${
                     active ? 'border-[var(--v-violet)] bg-[var(--v-violet)]/8' : 'border-[var(--v-line)] bg-[var(--v-surface-2)] hover:border-[var(--v-violet)]/50'
                   }`}
@@ -143,7 +192,10 @@ export const ProjectSetupWizard: React.FC<ProjectSetupWizardProps> = ({ open, pr
                 <button
                   key={feature}
                   type="button"
-                  onClick={() => setFeatures((current) => toggle(current, feature))}
+                  onClick={() => {
+                    setFeatures((current) => toggle(current, feature));
+                    setTemplateId(null);
+                  }}
                   className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-[11px] font-semibold transition-colors ${
                     active ? 'border-[var(--v-violet)] bg-[var(--v-violet)]/8 text-[var(--v-ink)]' : 'border-[var(--v-line)] bg-[var(--v-surface-2)] text-[var(--v-muted)] hover:border-[var(--v-violet)]/50'
                   }`}
@@ -247,6 +299,15 @@ export const ProjectSetupWizard: React.FC<ProjectSetupWizardProps> = ({ open, pr
             )}
           </div>
           <div className="flex gap-1.5">
+            {step < 2 && (
+              <button
+                type="button"
+                onClick={() => setStep((value) => value + 1)}
+                className="v-btn v-btn-ghost h-9 px-3 text-[11px] text-[var(--v-muted)]"
+              >
+                Skip
+              </button>
+            )}
             {step < 2 ? (
               <button
                 type="button"

@@ -972,6 +972,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
       elements: items.map((item) => ({
         name: variantFor(item).name,
         label: item.label,
+        notes: item.notes,
       })),
       colors: Array.from(new Set(items.map((item) => item.color).filter(Boolean))) as string[],
     });
@@ -996,6 +997,31 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   const commit = (next: CanvasItem[]) => setPageItems(activePage.id, next);
   const update = (id: string, patch: Partial<CanvasItem>) =>
     setPageItems(activePage.id, (prev) => prev.map((item) => (item.id === id ? { ...item, ...patch } : item)), false);
+
+  /** Notes are appended with a functional update so two quick notes never
+   * overwrite each other, and the prompt always sees the latest list. */
+  const addNote = () => {
+    const next = noteDraft.trim();
+    if (!next || !selected) return;
+    setPageItems(
+      activePage.id,
+      (prev) => prev.map((item) => (item.id === selected.id ? { ...item, notes: [...(item.notes || []), next] } : item)),
+      false
+    );
+    setNoteDraft('');
+  };
+
+  const removeNote = (index: number) => {
+    if (!selected) return;
+    setPageItems(
+      activePage.id,
+      (prev) =>
+        prev.map((item) =>
+          item.id === selected.id ? { ...item, notes: (item.notes || []).filter((_, entryIndex) => entryIndex !== index) } : item
+        ),
+      false
+    );
+  };
 
   /** Grow the box with the type so large labels never clip or spill. */
   const changeFontSize = (size: number) => {
@@ -4008,22 +4034,14 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                     onKeyDown={(event) => {
                       if (event.key !== 'Enter') return;
                       event.preventDefault();
-                      const next = noteDraft.trim();
-                      if (!next) return;
-                      update(selected.id, { notes: [...(selected.notes || []), next] });
-                      setNoteDraft('');
+                      addNote();
                     }}
-                    placeholder="Add a note for the final promptâ€¦"
+                    placeholder="Add a note for the final prompt…"
                     className="h-7 min-w-0 flex-1 rounded-md bg-[#383838] px-2 text-[10.5px] outline-none placeholder:text-white/25 focus:ring-1 focus:ring-[#0D99FF]"
                   />
                   <button
                     type="button"
-                    onClick={() => {
-                      const next = noteDraft.trim();
-                      if (!next) return;
-                      update(selected.id, { notes: [...(selected.notes || []), next] });
-                      setNoteDraft('');
-                    }}
+                    onClick={addNote}
                     disabled={!noteDraft.trim()}
                     className="grid h-7 w-7 place-items-center rounded bg-[#0D99FF] text-white disabled:opacity-30"
                     aria-label="Add note"
@@ -4040,11 +4058,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                         <span className="min-w-0 flex-1 text-[10px] leading-relaxed text-white/70">{note}</span>
                         <button
                           type="button"
-                          onClick={() =>
-                            update(selected.id, {
-                              notes: (selected.notes || []).filter((_, entryIndex) => entryIndex !== index),
-                            })
-                          }
+                          onClick={() => removeNote(index)}
                           className="grid h-4 w-4 place-items-center rounded text-white/35 hover:text-white"
                           aria-label={`Remove note ${index + 1}`}
                         >
@@ -4054,8 +4068,10 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                     ))}
                   </ul>
                 )}
-                <p className="text-[9.5px] leading-relaxed text-white/30">
-                  Click behaviour and every note are written into the INTERACTIONS section of the generated prompt under this page and element.
+                <p className={`text-[9.5px] leading-relaxed ${(selected.notes || []).length ? 'text-[#B9A8FF]' : 'text-white/30'}`}>
+                  {(selected.notes || []).length
+                    ? `${(selected.notes || []).length} note${(selected.notes || []).length === 1 ? '' : 's'} included in the prompt's INTERACTIONS section.`
+                    : 'Add a note to pin behaviour to the generated prompt under this element.'}
                 </p>
               </Section>
             </>

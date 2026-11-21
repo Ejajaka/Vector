@@ -20,7 +20,7 @@ export interface AdvisorContext {
   summary?: string;
   /** Palette / visual character of the surface, when useful. */
   appearance?: string;
-  elements?: Array<{ name: string; label: string }>;
+  elements?: Array<{ name: string; label: string; notes?: string[] }>;
   colors?: string[];
   /** Page the user is editing. */
   pageName?: string;
@@ -407,7 +407,7 @@ function contextPrompt(question: string, ctx: AdvisorContext): string {
     lines.push(`Frame: ${ctx.frame ? `${ctx.frame.width}×${ctx.frame.height}` : 'unknown'}`);
     lines.push(`Background: ${ctx.background || 'unknown'}`);
     lines.push(`Selected: ${ctx.selected ? `${ctx.selected.name} “${ctx.selected.label}” (${ctx.selected.w}×${ctx.selected.h})` : 'nothing'}`);
-    lines.push(`Canvas elements: ${ctx.elements?.map((element) => `${element.name} (“${element.label}”)`).join(', ') || 'none'}`);
+    lines.push(`Canvas elements: ${ctx.elements?.map((element) => `${element.name} (“${element.label}”${element.notes?.length ? ` — notes: ${element.notes.join('; ')}` : ''})`).join(', ') || 'none'}`);
     lines.push(`Accent colours: ${ctx.colors?.join(', ') || 'none'}`);
     lines.push(`Prompt:\n${ctx.prompt || '(empty)'}`);
   } else if (ctx.kind === 'prompt') {
