@@ -1,4 +1,4 @@
-# Vector demo video
+﻿# Vector demo video
 
 A 3 minute 10 second narrated product film for Vector, built from real
 screenshots of the live app.
@@ -7,15 +7,15 @@ screenshots of the live app.
 
 | File | Use |
 | --- | --- |
-| `vector-demo-1080p.mp4` | Master, 1920×1080, 30 fps, AAC stereo |
-| `vector-demo-web.mp4` | 1280×720, 18 MB, for LinkedIn, WhatsApp and web embeds |
+| `vector-demo-1080p.mp4` | Master, 1920Ã—1080, 30 fps, AAC stereo |
+| `vector-demo-web.mp4` | 1280Ã—720, 18 MB, for LinkedIn, WhatsApp and web embeds |
 | `poster.jpg` | Thumbnail / cover frame |
 | `captions.srt` | English captions with per-chapter timings |
 | `build/` | Generator script, narration script and source screenshots |
 
 ## 60-second promo
 
-`promo-60s/` holds the high-energy one-minute promo: kinetic type, a 12-second
+`promo-60s/` holds the high-energy one-minute promo (4K master, 1080p and 720p): kinetic type, a 12-second
 live canvas demo, original score and sound design, captions, poster and the
 animation source.
 
@@ -39,7 +39,7 @@ animation source.
 ## Regenerating
 
 The screenshots in `build/screens/` were captured from the live GitHub Pages
-deployment at 1296×886. Replace a screenshot and re-run the builder to refresh
+deployment at 1296Ã—886. Replace a screenshot and re-run the builder to refresh
 the corresponding chapter.
 
 ```bash
