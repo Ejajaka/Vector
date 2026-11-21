@@ -84,7 +84,7 @@ export const TemplatesPage: React.FC<TemplatesPageProps> = ({
           <p className="v-eyebrow">Template library</p>
           <h1 className="v-display mt-1 text-[26px] text-[var(--v-ink)]">Start from something real</h1>
           <p className="mt-1 max-w-[640px] text-[13px] text-[var(--v-muted)]">
-            Ten production-shaped starting points. Preview the exact attributes each one fills in before you commit.
+            Twenty-one production-shaped starting points. Preview the exact attributes each one fills in before you commit.
           </p>
         </div>
         <div className="relative w-full sm:w-[280px]">

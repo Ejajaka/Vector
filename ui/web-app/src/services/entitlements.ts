@@ -53,7 +53,7 @@ export const PLANS: PlanDefinition[] = [
     annualInr: 1990,
     highlights: [
       'Unlimited projects',
-      'All 10+ templates with previews',
+      'All 21 templates with previews',
       'Block palette prompt composer',
       'AI explanations (bring your own key)',
       'Export to Figma-format JSON, Markdown, Spec Kit',
