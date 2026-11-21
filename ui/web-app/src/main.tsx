@@ -1,8 +1,14 @@
 import {createRoot} from 'react-dom/client';
+import { Analytics } from '@vercel/analytics/react';
 import App from './App.tsx';
 import './index.css';
 
-createRoot(document.getElementById('root')!).render(<App />);
+createRoot(document.getElementById('root')!).render(
+  <>
+    <App />
+    <Analytics />
+  </>
+);
 
 // Offline shell: production only, so development never serves stale modules.
 // The deterministic wireframe engine needs no network or model; this makes the

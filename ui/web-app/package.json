@@ -19,6 +19,7 @@
     "@huggingface/transformers": "^4.3.2",
     "@supabase/supabase-js": "^2.119.0",
     "@tailwindcss/vite": "^4.3.3",
+    "@vercel/analytics": "^2.0.1",
     "@vitejs/plugin-react": "^6.1.1",
     "@xyflow/react": "^12.12.1",
     "jszip": "^3.10.2",
