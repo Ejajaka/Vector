@@ -48,6 +48,39 @@ const DEFAULT_TOKENS: DesignTokens = {
   spacing: 8,
 };
 
+const STARTERS: Array<{ name: string; note: string; tokens: DesignTokens }> = [
+  {
+    name: 'Midnight',
+    note: 'Deep dark surfaces, violet primary, soft blue accent.',
+    tokens: { primary: '#7170FF', accent: '#6EA8FE', surface: '#08090A', ink: '#F7F8F8', font: 'jakarta', radius: 10, spacing: 8 },
+  },
+  {
+    name: 'Paper',
+    note: 'Clean white surfaces with a confident indigo primary and warm coral accent.',
+    tokens: { primary: '#5E6AD2', accent: '#FF7A59', surface: '#FFFFFF', ink: '#17171A', font: 'bricolage', radius: 14, spacing: 8 },
+  },
+  {
+    name: 'Editorial',
+    note: 'Warm paper, serif display type and a restrained rust accent.',
+    tokens: { primary: '#1C1917', accent: '#C2410C', surface: '#F7F3EC', ink: '#1C1917', font: 'georgia', radius: 6, spacing: 8 },
+  },
+  {
+    name: 'Cobalt',
+    note: 'Bright blue primary with a golden secondary for dashboards.',
+    tokens: { primary: '#0D99FF', accent: '#FFC53D', surface: '#FFFFFF', ink: '#0B1220', font: 'jakarta', radius: 12, spacing: 8 },
+  },
+  {
+    name: 'Mauve',
+    note: 'Soft violet with a rose accent and generous corners.',
+    tokens: { primary: '#8B5CF6', accent: '#F472B6', surface: '#FCFAFF', ink: '#211A2E', font: 'bricolage', radius: 16, spacing: 10 },
+  },
+  {
+    name: 'Mono',
+    note: 'Monochrome, square corners and monospace type for technical products.',
+    tokens: { primary: '#111111', accent: '#6B6B6B', surface: '#FAFAFA', ink: '#111111', font: 'mono', radius: 2, spacing: 8 },
+  },
+];
+
 interface FormState {
   id?: string;
   name: string;
@@ -85,6 +118,12 @@ export const DesignSystemsPage: React.FC<DesignSystemsPageProps> = ({ onOpenEdit
 
   const useForPrompts = (system: DesignSystem) => {
     setActiveDesignSystem(system.id);
+    refresh();
+  };
+
+  const useStarter = (preset: (typeof STARTERS)[number]) => {
+    const created = saveDesignSystem({ name: preset.name, note: preset.note, tokens: preset.tokens });
+    setActiveDesignSystem(created.id);
     refresh();
   };
 
@@ -134,6 +173,39 @@ export const DesignSystemsPage: React.FC<DesignSystemsPageProps> = ({ onOpenEdit
       </section>
 
       {error && <p className="text-[11.5px] text-[var(--v-coral)]">{error}</p>}
+
+      {/* Starter token sets */}
+      <section className="rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] p-4">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="text-[12.5px] font-semibold text-[var(--v-ink)]">Start from a token set</p>
+            <p className="mt-0.5 text-[10.5px] text-[var(--v-muted)]">
+              Generic starters. Rename and edit any of them; they stay private to this workspace.
+            </p>
+          </div>
+          <Sparkles className="h-4 w-4 shrink-0 text-[var(--v-violet)]" />
+        </div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {STARTERS.map((preset) => (
+            <button
+              key={preset.name}
+              type="button"
+              onClick={() => useStarter(preset)}
+              className="rounded-lg border border-[var(--v-line)] bg-[var(--v-surface-2)] p-2.5 text-left transition-colors hover:border-[var(--v-violet)]"
+            >
+              <span className="flex items-center justify-between gap-2">
+                <span className="text-[11.5px] font-semibold text-[var(--v-ink)]">{preset.name}</span>
+                <span className="flex gap-1">
+                  {[preset.tokens.primary, preset.tokens.accent, preset.tokens.surface].map((colour) => (
+                    <span key={colour} className="h-3.5 w-3.5 rounded-full border border-[var(--v-line)]" style={{ background: colour }} />
+                  ))}
+                </span>
+              </span>
+              <span className="mt-1 block text-[9.5px] leading-relaxed text-[var(--v-muted)]">{preset.note}</span>
+            </button>
+          ))}
+        </div>
+      </section>
 
       {/* Active */}
       {active && (

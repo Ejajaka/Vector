@@ -1287,6 +1287,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
         </aside>
 
         {/* Workspace */}
+        <div className="relative flex min-h-0 min-w-0 flex-1">
         <section className="v-scroll flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto pr-1">
           <div className="grid gap-3 sm:grid-cols-2">
             <button
@@ -1452,22 +1453,24 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
             </div>
           </div>
         </section>
+
+        <ProjectToolsDialog
+          inline
+          open={toolOpen !== null}
+          tool={toolOpen || 'requirements'}
+          project={{ id: project.id, name: project.name }}
+          sources={toolSources}
+          onToolChange={(next) => setToolOpen(next)}
+          onClose={() => setToolOpen(null)}
+          onOpenFull={(next) => {
+            setToolOpen(null);
+            onNavigate(fullTabForTool[next]);
+          }}
+        />
+        </div>
       </div>
 
       {/* Modals */}
-      <ProjectToolsDialog
-        open={toolOpen !== null}
-        tool={toolOpen || 'requirements'}
-        project={{ id: project.id, name: project.name }}
-        sources={toolSources}
-        onToolChange={(next) => setToolOpen(next)}
-        onClose={() => setToolOpen(null)}
-        onOpenFull={(next) => {
-          setToolOpen(null);
-          onNavigate(fullTabForTool[next]);
-        }}
-      />
-
       {artifact && <ArtifactModal artifact={artifact} onClose={() => setArtifact(null)} />}
 
       {promptModal && (

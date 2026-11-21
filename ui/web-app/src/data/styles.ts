@@ -217,6 +217,83 @@ export const VARIANTS: StyleVariant[] = [
   /* More structure ------------------------------------------------ */
   { id: 'divider', type: 'card', name: 'Divider', group: 'Structure', style: 'divider', w: 520, h: 32, label: 'OR', prompt: 'horizontal divider with a centred label' },
   { id: 'accordion', type: 'card', name: 'Accordion', group: 'Structure', style: 'accordion', w: 480, h: 160, label: 'Frequently asked', prompt: 'accordion list with one expanded row and three collapsed rows' },
+
+  /* Expanded palette ---------------------------------------------- */
+  { id: 'btn-coral', type: 'button', name: 'Coral CTA', group: 'Buttons', style: 'btn-solid', w: 196, h: 48, label: 'Book a demo', color: '#FF7A59', prompt: 'coral primary button for a warm secondary action' },
+  { id: 'btn-amber', type: 'button', name: 'Amber CTA', group: 'Buttons', style: 'btn-solid', w: 188, h: 48, label: 'Upgrade', color: '#FFC53D', prompt: 'amber primary button for an upgrade action' },
+  { id: 'btn-blue', type: 'button', name: 'Blue CTA', group: 'Buttons', style: 'btn-solid', w: 180, h: 48, label: 'Continue', color: '#0D99FF', prompt: 'blue primary button for the next step' },
+  { id: 'btn-quiet', type: 'button', name: 'Quiet', group: 'Buttons', style: 'btn-ghost', w: 150, h: 40, label: 'Learn more', color: '#0B0E14', prompt: 'quiet text button for a low-priority action' },
+  { id: 'btn-compact', type: 'button', name: 'Compact', group: 'Buttons', style: 'btn-outline', w: 132, h: 36, label: 'Edit', prompt: 'compact outline button that fits a table row' },
+  { id: 'btn-wide', type: 'button', name: 'Full width', group: 'Buttons', style: 'btn-solid', w: 320, h: 52, label: 'Continue to payment', color: '#5E6AD2', prompt: 'full-width primary button for a checkout step' },
+  { id: 'btn-soft', type: 'button', name: 'Soft tint', group: 'Buttons', style: 'btn-pill', w: 168, h: 40, label: 'Invite team', color: '#5E6AD2', prompt: 'soft tinted pill button for a supportive action' },
+  { id: 'btn-inverse', type: 'button', name: 'Inverse', group: 'Buttons', style: 'btn-dark', w: 184, h: 48, label: 'Open workspace', color: '#0B0E14', prompt: 'dark inverse button for the strongest action on a light surface' },
+  { id: 'btn-loading-wide', type: 'button', name: 'Saving', group: 'Buttons', style: 'btn-loading', w: 240, h: 48, label: 'Saving changes', color: '#5E6AD2', prompt: 'wide loading button with spinner and disabled state' },
+  { id: 'btn-icon-ghost', type: 'button', name: 'Icon ghost', group: 'Buttons', style: 'btn-icon', w: 40, h: 40, label: '+', color: '#0B0E14', prompt: 'ghost square icon button for a toolbar' },
+
+  { id: 'card-testimonial', type: 'card', name: 'Testimonial', group: 'Cards', style: 'card-outline', w: 360, h: 220, label: '“It cut our review from four rounds to one.”', prompt: 'testimonial card with quote, avatar and attribution' },
+  { id: 'card-feature', type: 'card', name: 'Feature', group: 'Cards', style: 'card-elevated', w: 320, h: 200, label: 'Everything in one place', prompt: 'feature card with icon, title and two-line description' },
+  { id: 'card-onboarding', type: 'card', name: 'Onboarding', group: 'Cards', style: 'card-list', w: 360, h: 240, label: 'Get set up', prompt: 'onboarding checklist card with three steps' },
+  { id: 'card-dark', type: 'card', name: 'Dark card', group: 'Cards', style: 'card-gradient', w: 340, h: 200, label: 'Pro workspace', prompt: 'dark gradient card for a highlighted plan' },
+  { id: 'card-media-wide', type: 'card', name: 'Media wide', group: 'Cards', style: 'card-media', w: 420, h: 260, label: 'Case study', prompt: 'wide media card with a cover image and caption' },
+  { id: 'card-metric-large', type: 'card', name: 'Metric', group: 'Cards', style: 'card-stat', w: 280, h: 160, label: '$48,200', prompt: 'large metric card with a label and positive delta' },
+  { id: 'card-pricing-mini', type: 'card', name: 'Pricing mini', group: 'Cards', style: 'card-pricing', w: 240, h: 280, label: 'Pro', prompt: 'compact pricing card with three features and a CTA' },
+  { id: 'card-empty', type: 'card', name: 'Empty state', group: 'Cards', style: 'card-outline', w: 360, h: 200, label: 'Nothing here yet', prompt: 'empty state card with an illustration, title and action' },
+
+  { id: 'text-hero', type: 'text', name: 'Hero', group: 'Text', style: 'text-display', w: 720, h: 128, label: 'Build the whole screen', prompt: 'hero headline, 64px, tight tracking, extrabold' },
+  { id: 'text-eyebrow', type: 'text', name: 'Eyebrow', group: 'Text', style: 'text-caption', w: 240, h: 22, label: 'NEW FEATURE', prompt: 'eyebrow caption above a heading, uppercase tracking' },
+  { id: 'text-kicker', type: 'text', name: 'Kicker', group: 'Text', style: 'text-label', w: 260, h: 24, label: 'Why it matters', prompt: 'small kicker label above a section heading' },
+  { id: 'text-large-body', type: 'text', name: 'Large paragraph', group: 'Text', style: 'text-body', w: 560, h: 88, label: 'A longer supporting paragraph that explains the value in two or three sentences.', prompt: 'large body paragraph, 18px, comfortable line height' },
+  { id: 'text-small', type: 'text', name: 'Small print', group: 'Text', style: 'text-caption', w: 360, h: 20, label: 'Prices include GST. Cancel any time.', prompt: 'small print caption under a form or price' },
+  { id: 'text-price', type: 'text', name: 'Price', group: 'Text', style: 'text-display', w: 260, h: 56, label: '₹1,990', prompt: 'large price numeral with a small period label' },
+  { id: 'text-stat', type: 'text', name: 'Stat number', group: 'Text', style: 'text-display', w: 220, h: 64, label: '48k', prompt: 'large metric number above a short label' },
+  { id: 'text-feature', type: 'text', name: 'Feature title', group: 'Text', style: 'text-h3', w: 320, h: 32, label: 'Everything resolved', prompt: 'feature title, 20px, semibold' },
+  { id: 'text-testimonial', type: 'text', name: 'Testimonial', group: 'Text', style: 'text-quote', w: 480, h: 88, label: '“The brief was complete before the kickoff.”', prompt: 'testimonial quote with attribution below' },
+  { id: 'text-code-block', type: 'text', name: 'Code block', group: 'Text', style: 'text-code', w: 360, h: 80, label: 'npm run dev', prompt: 'code block on a tinted surface with a copy control' },
+  { id: 'text-step', type: 'text', name: 'Step number', group: 'Text', style: 'text-label', w: 80, h: 24, label: '01', prompt: 'numbered step marker above a title' },
+  { id: 'text-footer', type: 'text', name: 'Footer line', group: 'Text', style: 'text-caption', w: 420, h: 20, label: '© 2026 Vector. All rights reserved.', prompt: 'footer legal line, 11px, muted' },
+
+  { id: 'input-email', type: 'input', name: 'Email field', group: 'Inputs', style: 'input-labelled', w: 340, h: 64, label: 'Email address', prompt: 'email field with a visible label and browser validation' },
+  { id: 'input-password', type: 'input', name: 'Password field', group: 'Inputs', style: 'input-float', w: 340, h: 56, label: 'Password', prompt: 'password field with a reveal control and strength hint' },
+  { id: 'input-phone', type: 'input', name: 'Phone field', group: 'Inputs', style: 'input-labelled', w: 340, h: 64, label: 'Phone number', prompt: 'phone field with a country selector and formatting' },
+  { id: 'input-otp', type: 'input', name: 'OTP field', group: 'Inputs', style: 'input-labelled', w: 300, h: 64, label: '6-digit code', prompt: 'one-time code field with six separated digits' },
+  { id: 'input-search-large', type: 'input', name: 'Command search', group: 'Inputs', style: 'input-search', w: 460, h: 48, label: 'Search projects', prompt: 'command search field with a keyboard shortcut hint' },
+  { id: 'input-message', type: 'input', name: 'Message', group: 'Inputs', style: 'input-textarea', w: 380, h: 120, label: 'Your message', prompt: 'message text area with a character count' },
+  { id: 'input-country', type: 'input', name: 'Country', group: 'Inputs', style: 'input-select', w: 320, h: 56, label: 'Country', prompt: 'country selector with a searchable menu' },
+  { id: 'input-consent', type: 'input', name: 'Consent', group: 'Inputs', style: 'input-checkbox', w: 320, h: 28, label: 'I agree to the terms', prompt: 'consent checkbox with links to the policy pages' },
+
+  { id: 'nav-marketing', type: 'navbar', name: 'Marketing nav', group: 'Navigation', style: 'nav-light', w: 1120, h: 64, label: 'Acme', color: '#5E6AD2', prompt: 'marketing navigation with logo, five links and a sign-up CTA' },
+  { id: 'nav-app', type: 'navbar', name: 'App bar', group: 'Navigation', style: 'nav-dark', w: 1120, h: 56, label: 'Workspace', color: '#5E6AD2', prompt: 'app top bar with workspace switcher, search and avatar' },
+  { id: 'nav-breadcrumb', type: 'navbar', name: 'Breadcrumb', group: 'Navigation', style: 'nav-tabs', w: 560, h: 36, label: 'Projects / Checkout', color: '#5E6AD2', prompt: 'breadcrumb trail with the current page highlighted' },
+  { id: 'nav-sidebar', type: 'navbar', name: 'Sidebar nav', group: 'Navigation', style: 'nav-dark', w: 240, h: 640, label: 'Workspace', color: '#5E6AD2', prompt: 'vertical sidebar navigation with sections and a footer action' },
+
+  { id: 'badge-beta', type: 'badge', name: 'Beta', group: 'Badges', style: 'badge-soft', w: 72, h: 26, label: 'Beta', color: '#5E6AD2', prompt: 'soft beta badge next to a feature name' },
+  { id: 'badge-new', type: 'badge', name: 'New', group: 'Badges', style: 'badge-solid', w: 64, h: 24, label: 'New', color: '#5E6AD2', prompt: 'solid new badge for a recently shipped feature' },
+  { id: 'badge-offline', type: 'badge', name: 'Offline', group: 'Badges', style: 'badge-dot', w: 108, h: 26, label: 'Offline', color: '#FF7A59', prompt: 'status badge with a coral dot for an offline state' },
+  { id: 'badge-count-large', type: 'badge', name: '99+', group: 'Badges', style: 'badge-count', w: 32, h: 24, label: '99+', color: '#FF7A59', prompt: 'count badge that caps at 99+' },
+
+  { id: 'image-hero', type: 'image', name: 'Hero image', group: 'Images', style: 'image-bleed', w: 640, h: 360, label: 'Hero visual', color: '#5E6AD2', prompt: 'full-bleed hero image with a gradient scrim' },
+  { id: 'image-product', type: 'image', name: 'Product shot', group: 'Images', style: 'image-rounded', w: 420, h: 420, label: 'Product', color: '#FF7A59', prompt: 'square product image with a soft background' },
+  { id: 'image-screenshot', type: 'image', name: 'Screenshot', group: 'Images', style: 'image-framed', w: 560, h: 360, label: 'App screenshot', color: '#0D99FF', prompt: 'browser-framed app screenshot with a caption' },
+  { id: 'image-portrait', type: 'image', name: 'Portrait', group: 'Images', style: 'image-framed', w: 280, h: 360, label: 'Portrait', color: '#8B5CF6', prompt: 'portrait image with a rounded frame and caption' },
+  { id: 'image-gallery', type: 'image', name: 'Gallery', group: 'Images', style: 'image-rounded', w: 620, h: 300, label: 'Gallery', color: '#FFC53D', prompt: 'image gallery with four thumbnails and a lightbox' },
+  { id: 'image-team', type: 'image', name: 'Team avatars', group: 'Images', style: 'image-avatar-grid', w: 280, h: 120, label: 'Team', color: '#5E6AD2', prompt: 'row of team avatars with a +N indicator' },
+
+  { id: 'chart-spark', type: 'chart', name: 'Sparkline', group: 'Data', style: 'chart-line', w: 260, h: 80, label: 'Weekly active users', color: '#5E6AD2', prompt: 'compact sparkline with a subtle area fill' },
+  { id: 'chart-funnel', type: 'chart', name: 'Funnel', group: 'Data', style: 'chart-bars', w: 480, h: 260, label: 'Signup funnel', color: '#0D99FF', prompt: 'funnel chart with four labelled stages' },
+  { id: 'chart-usage', type: 'chart', name: 'Usage ring', group: 'Data', style: 'chart-donut', w: 220, h: 220, label: '72%', color: '#5E6AD2', prompt: 'donut chart showing usage against a limit' },
+  { id: 'chart-capacity', type: 'chart', name: 'Capacity', group: 'Data', style: 'chart-progress', w: 420, h: 52, label: 'Storage used', color: '#FFC53D', prompt: 'progress bar with a used-of-total label' },
+  { id: 'table-compact', type: 'table', name: 'Compact table', group: 'Data', style: 'table-default', w: 760, h: 220, label: 'Invoices', prompt: 'compact table with invoice, date, amount and status' },
+  { id: 'table-people', type: 'table', name: 'People table', group: 'Data', style: 'table-default', w: 900, h: 280, label: 'Team members', prompt: 'table of people with avatar, role, status and actions' },
+
+  { id: 'footer-compact', type: 'footer', name: 'Compact footer', group: 'Structure', style: 'footer-default', w: 1120, h: 68, label: 'Acme', prompt: 'compact footer with a wordmark, links and a legal line' },
+  { id: 'modal-confirm', type: 'modal', name: 'Confirm modal', group: 'Structure', style: 'modal-default', w: 420, h: 260, label: 'Delete project?', prompt: 'confirmation modal with destructive and cancel actions' },
+  { id: 'avatar-group', type: 'avatar', name: 'Avatar group', group: 'Structure', style: 'avatar-ring', w: 160, h: 48, label: 'RG', prompt: 'overlapping avatar group with a +4 indicator' },
+  { id: 'divider-light', type: 'card', name: 'Hairline', group: 'Structure', style: 'divider', w: 640, h: 24, label: 'OR', prompt: 'thin hairline divider with a centred label' },
+  { id: 'accordion-faq', type: 'card', name: 'FAQ', group: 'Structure', style: 'accordion', w: 560, h: 200, label: 'Frequently asked questions', prompt: 'FAQ accordion with one open answer and three closed questions' },
+
+  { id: 'shape-square', type: 'card', name: 'Square', group: 'Shapes', style: 'rect', w: 240, h: 240, label: 'Square', prompt: 'square surface with a fill and optional border' },
+  { id: 'shape-panel', type: 'card', name: 'Panel', group: 'Shapes', style: 'rect', w: 400, h: 260, label: 'Panel', prompt: 'rounded panel surface for grouping content' },
+  { id: 'shape-strip', type: 'card', name: 'Strip', group: 'Shapes', style: 'rect', w: 640, h: 96, label: 'Banner', prompt: 'full-width banner strip with a fill' },
 ];
 
 export const PALETTE_GROUPS = ['Buttons', 'Cards', 'Shapes', 'Text', 'Inputs', 'Navigation', 'Badges', 'Images', 'Data', 'Structure'];

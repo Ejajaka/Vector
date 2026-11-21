@@ -11,10 +11,16 @@ import {
   ChevronRight,
   CircleHelp,
   Copy,
+  CreditCard,
   Crown,
+  Database,
   Download,
   ExternalLink,
+  FileText,
   Frame,
+  Github,
+  Globe,
+  Heart,
   Image as ImageIcon,
   Italic,
   Layers,
@@ -37,6 +43,7 @@ import {
   Smartphone,
   Sparkles,
   Square,
+  MessageSquare,
   Table2,
   Tablet,
   Trash2,
@@ -44,6 +51,7 @@ import {
   Underline,
   Undo2,
   Upload,
+  Zap,
   X,
 } from 'lucide-react';
 import {
@@ -142,6 +150,28 @@ const PANEL_TABS: Array<{ id: PanelTab; label: string; icon: React.ElementType }
   { id: 'media', label: 'Media', icon: ImageIcon },
   { id: 'pages', label: 'Pages', icon: Copy },
   { id: 'apps', label: 'Apps', icon: Rocket },
+];
+
+const APPS: Array<{
+  id: string;
+  name: string;
+  description: string;
+  icon: React.ElementType;
+  url?: string;
+}> = [
+  { id: 'base44', name: 'Base44', description: 'Generate and publish the interface', icon: Rocket },
+  { id: 'figma', name: 'Figma', description: 'Import a Figma JSON export', icon: Frame },
+  { id: 'v0', name: 'v0', description: 'Generate UI from a prompt', icon: Sparkles, url: 'https://v0.dev' },
+  { id: 'bolt', name: 'Bolt', description: 'Full-stack app builder', icon: Zap, url: 'https://bolt.new' },
+  { id: 'lovable', name: 'Lovable', description: 'Prompt-to-app builder', icon: Heart, url: 'https://lovable.dev' },
+  { id: 'framer', name: 'Framer', description: 'Design and publish sites', icon: Frame, url: 'https://framer.com' },
+  { id: 'webflow', name: 'Webflow', description: 'Visual web builder', icon: Globe, url: 'https://webflow.com' },
+  { id: 'github', name: 'GitHub', description: 'Push the prompt bundle', icon: Github, url: 'https://github.com' },
+  { id: 'supabase', name: 'Supabase', description: 'Auth, data and storage', icon: Database, url: 'https://supabase.com' },
+  { id: 'stripe', name: 'Stripe', description: 'Payments and billing', icon: CreditCard, url: 'https://stripe.com' },
+  { id: 'notion', name: 'Notion', description: 'Docs and product specs', icon: FileText, url: 'https://notion.so' },
+  { id: 'slack', name: 'Slack', description: 'Share the brief with the team', icon: MessageSquare, url: 'https://slack.com' },
+  { id: 'linear', name: 'Linear', description: 'Turn the brief into issues', icon: Layers, url: 'https://linear.app' },
 ];
 
 /** Representative variant used as a category thumbnail. */
@@ -2274,7 +2304,17 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                 </button>
               )}
               <span className="text-[12.5px] font-semibold truncate">
-                {category && !showingSearch ? category : panel === 'pages' ? 'Pages' : 'Assets'}
+                {category && !showingSearch
+                ? category
+                : panel === 'pages'
+                  ? 'Pages'
+                  : panel === 'apps'
+                    ? 'Apps'
+                    : panel === 'text'
+                      ? 'Text'
+                      : panel === 'templates'
+                        ? 'Templates'
+                        : 'Assets'}
               </span>
             </div>
             <div className="flex items-center gap-1">
@@ -2470,11 +2510,67 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                     );
                   })}
                 </div>
+
+                <p className="mb-2 mt-4 text-[10.5px] font-medium text-white/45">Start a new page</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {CONTENT_CATEGORIES.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => addContentCategory(item)}
+                      className="rounded-lg border border-white/10 bg-[#333] p-2 text-left transition-colors hover:border-[#0D99FF] hover:bg-white/5"
+                    >
+                      <span className="flex items-center justify-between gap-1">
+                        <span className="truncate text-[10.5px] font-semibold text-white/85">{item.name}</span>
+                        {item.premium && <Crown className="h-3 w-3 shrink-0 text-[#FFC53D]" />}
+                      </span>
+                      <span className="mt-0.5 block text-[8.5px] text-white/35">
+                        {item.width}×{item.height}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Apps tab: the tools around the canvas */}
+            {!showingSearch && !category && panel === 'apps' && (
+              <div className="pt-1">
+                <p className="mb-2 text-[10.5px] font-medium text-white/45">Apps & integrations</p>
+                <div className="space-y-1.5">
+                  {APPS.map((app) => {
+                    const Icon = app.icon;
+                    return (
+                      <button
+                        key={app.id}
+                        type="button"
+                        onClick={() => {
+                          if (app.id === 'base44') setConnectOpen(true);
+                          else if (app.id === 'figma') figmaRef.current?.click();
+                          else if (app.url) window.open(app.url, '_blank', 'noopener,noreferrer');
+                        }}
+                        className="flex w-full items-center gap-2.5 rounded-lg bg-[#383838] p-2 text-left transition-colors hover:bg-white/15"
+                      >
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-white/10 bg-[#2C2C2C] text-white/70">
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[11px] font-semibold text-white/85">{app.name}</span>
+                          <span className="block truncate text-[9.5px] text-white/40">{app.description}</span>
+                        </span>
+                        <ChevronRight className="h-3.5 w-3.5 text-white/30" />
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="mt-3 text-[9.5px] leading-relaxed text-white/30">
+                  Connect the tools you already use. Nothing is sent anywhere until you open one.
+                </p>
               </div>
             )}
 
             {/* Category list (Figma-style) */}
-            {!showingSearch && !category && panel !== 'text' && panel !== 'templates' && panel !== 'pages' &&
+            {!showingSearch && !category && panel !== 'apps' && panel !== 'text' && panel !== 'templates' && panel !== 'pages' &&
               groups.map((group) => {
                 return (
                   <button

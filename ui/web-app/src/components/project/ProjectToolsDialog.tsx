@@ -47,6 +47,8 @@ export interface ProjectToolSource {
 
 interface ProjectToolsDialogProps {
   open: boolean;
+  /** Keep the panel inside its parent (the workspace) instead of covering the app. */
+  inline?: boolean;
   tool: ProjectToolId;
   project: { id: string; name: string };
   sources: ProjectToolSource[];
@@ -725,6 +727,7 @@ const AnalyserView: React.FC<{
 
 export const ProjectToolsDialog: React.FC<ProjectToolsDialogProps> = ({
   open,
+  inline = false,
   tool,
   project,
   sources,
@@ -812,8 +815,17 @@ export const ProjectToolsDialog: React.FC<ProjectToolsDialogProps> = ({
   const activeTool = TOOLS.find((entry) => entry.id === tool) || TOOLS[0];
 
   return (
-    <div className="fixed inset-0 z-[95] flex justify-end" role="dialog" aria-modal="true" aria-label={`${activeTool.label} — ${project.name}`}>
-      <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
+    <div
+      className={`${inline ? 'absolute inset-0 z-30 rounded-lg' : 'fixed inset-0 z-[95]'} flex justify-end`}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${activeTool.label} — ${project.name}`}
+    >
+      <div
+        className={`absolute inset-0 ${inline ? 'bg-black/40' : 'bg-black/55 backdrop-blur-sm'}`}
+        onClick={onClose}
+        aria-hidden="true"
+      />
       <div className="drawer-panel relative flex h-full w-full max-w-[720px] flex-col overflow-hidden border-l border-[var(--v-line)] bg-[var(--v-surface)] shadow-[-30px_0_120px_-40px_rgba(0,0,0,0.9)]">
         <div className="flex flex-wrap items-start gap-2 border-b border-[var(--v-line)] px-4 py-3">
           <div className="min-w-0 flex-1">
