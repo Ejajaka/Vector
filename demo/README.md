@@ -19,6 +19,12 @@ screenshots of the live app.
 live canvas demo, original score and sound design, captions, poster and the
 animation source.
 
+## Product tour
+
+`site-tour/` holds the 72-second slideshow-style walkthrough, cut from real
+screenshots of the live app: workspace, analyse, clarify, canvas, templates,
+Learn, Vector AI, live sharing, Base44 and pricing. 4K master, 1080p and 720p.
+
 ## Chapters
 
 | Time | Chapter |
