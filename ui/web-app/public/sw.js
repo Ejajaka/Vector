@@ -9,7 +9,7 @@
  * assets never change, so cache-first is safe for them. The optional local
  * BERT model is cached on first use and then available offline as well.
  */
-const CACHE = 'vector-shell-v22';
+const CACHE = 'vector-shell-v23';
 
 /**
  * Static assets are stored without transport headers:
@@ -108,8 +108,12 @@ self.addEventListener('fetch', (event) => {
         const fallback = await caches.match(new URL('index.html', self.registration.scope).href);
         try {
           const response = await fetch(request);
+          // A real 404 must stay a 404 so the branded not-found page is shown
+          // instead of an old cached app shell.
+          if (response.status === 404) return response;
           // A proxy or captive portal can return 5xx instead of failing the
-          // fetch. Treat any non-OK navigation as offline and prefer the shell.
+          // fetch. Treat any other non-OK navigation as offline and prefer the
+          // shell.
           if (!response.ok) return cached || fallback || response;
           const cache = await caches.open(CACHE);
           cache.put(request, await cacheable(response.clone()));

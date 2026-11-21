@@ -31,7 +31,7 @@ export const PricingDialog: React.FC<PricingDialogProps> = ({ open, onClose, onL
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#B9A8FF]">
               {paid ? `${PLANS.find((plan) => plan.code === state.plan)?.name || 'Current'} plan` : 'Starter hub'}
             </p>
-            <h2 className="mt-1 text-[20px] font-semibold sm:text-[24px]">Which plan and seats would you like?</h2>
+            <h2 className="mt-1 text-[20px] font-semibold sm:text-[24px]">Which plan would you like?</h2>
             <p className="mt-1 text-[11.5px] text-white/45">
               Compare the plans here, then continue to the detailed page for checkout and seat selection.
             </p>
@@ -52,7 +52,7 @@ export const PricingDialog: React.FC<PricingDialogProps> = ({ open, onClose, onL
               }`}
             >
               {option}
-              {option === 'annual' && <span className="ml-1 text-[9px] font-semibold text-[#22C55E]">save 17%</span>}
+              {option === 'annual' && <span className="ml-1 text-[9px] font-semibold text-[#6ea8fe]">save 17%</span>}
             </button>
           ))}
         </div>
@@ -98,7 +98,7 @@ export const PricingDialog: React.FC<PricingDialogProps> = ({ open, onClose, onL
                 <ul className="mt-3 flex-1 space-y-1.5">
                   {plan.highlights.slice(0, 4).map((highlight) => (
                     <li key={highlight} className="flex items-start gap-1.5 text-[10px] leading-relaxed text-white/65">
-                      <Check className="mt-0.5 h-3 w-3 shrink-0 text-[#22C55E]" />
+                      <Check className="mt-0.5 h-3 w-3 shrink-0 text-[#6ea8fe]" />
                       {highlight}
                     </li>
                   ))}

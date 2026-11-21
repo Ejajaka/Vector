@@ -115,7 +115,7 @@ const ShapeBlock: React.FC<{ element: CompiledElement; dark: boolean }> = ({ ele
 
 const BackdropBlock: React.FC<{ element: CompiledElement }> = ({ element }) => {
   const first = element.colour || '#FFC53D';
-  const second = element.colour2 || '#28C76F';
+  const second = element.colour2 || '#6ea8fe';
   const diagonal = element.preset === 'split-diagonal';
   const gradient = element.preset === 'gradient';
 

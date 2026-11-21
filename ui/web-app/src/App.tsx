@@ -7,6 +7,7 @@ import { ProjectProvider, useProject } from './context/ProjectContext.tsx';
 import { Sidebar } from './components/layout/Sidebar.tsx';
 import { Header } from './components/layout/Header.tsx';
 import { PublicHeader } from './components/layout/PublicHeader.tsx';
+import { Logo } from './components/ui/Logo.tsx';
 import { PublicFooter } from './components/layout/PublicFooter.tsx';
 import { AuthPage } from './components/auth/AuthPage.tsx';
 import { ResetPasswordPage } from './components/auth/ResetPasswordPage.tsx';
@@ -46,7 +47,7 @@ import type { TemplateDefinition } from './data/templates.ts';
 import { canCreateProject, isPaid, readEntitlements, type PlanCode } from './services/entitlements.ts';
 import { notificationService } from './services/notifications.ts';
 
-const PUBLIC_TABS: ActiveTab[] = ['about', 'privacy', 'pricing', 'learn', 'terms', 'contact'];
+const PUBLIC_TABS: ActiveTab[] = ['about', 'privacy', 'pricing', 'learn', 'manual', 'terms', 'contact'];
 
 /** Pages that always carry the commercial header and footer. */
 const MARKETING_TABS: ActiveTab[] = ['about', 'privacy', 'pricing', 'terms', 'contact'];
@@ -367,9 +368,13 @@ function AppShell() {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   }, [activeTab]);
 
-  // Guests cannot open authenticated areas.
+  // Guests cannot open authenticated areas. Send them to sign-in instead of
+  // silently dropping them back on the home page.
   useEffect(() => {
-    if (!signedIn && !PUBLIC_TABS.includes(activeTab)) setActiveTab('about');
+    if (!signedIn && !PUBLIC_TABS.includes(activeTab)) {
+      setShowAuth(true);
+      setActiveTab('about');
+    }
     if (signedIn && activeTab === 'overview') setActiveTab('dashboard');
   }, [signedIn, activeTab]);
 
@@ -463,6 +468,43 @@ function AppShell() {
 
   if (configured && passwordRecovery) {
     return <ResetPasswordPage />;
+  }
+
+  const knownPath =
+    typeof window === 'undefined' ||
+    window.location.pathname === '/' ||
+    window.location.pathname === '/index.html';
+  if (!knownPath) {
+    return (
+      <div className="flex min-h-screen flex-col v-bg text-[var(--v-ink)]">
+        <header className="mx-auto flex h-16 w-full max-w-[1200px] items-center px-4 sm:px-6 lg:px-8">
+          <button
+            type="button"
+            onClick={() => window.location.assign('/')}
+            className="flex items-center gap-2 text-[15px] font-semibold tracking-[-0.02em]"
+          >
+            <Logo size={24} /> Vector
+          </button>
+        </header>
+        <main className="grid flex-1 place-items-center px-4 py-16">
+          <div className="max-w-[460px] text-center">
+            <p className="v-eyebrow">404</p>
+            <h1 className="mt-2 text-[30px] font-semibold tracking-[-0.03em]">This page does not exist.</h1>
+            <p className="mt-2 text-[12.5px] leading-relaxed text-[var(--v-muted)]">
+              The link may be old, or the address may have a typo. Everything in Vector lives in your workspace.
+            </p>
+            <div className="mt-5 flex flex-wrap justify-center gap-2">
+              <button type="button" onClick={() => window.location.assign('/')} className="v-btn v-btn-primary h-9 px-4 text-[11.5px]">
+                Back to home
+              </button>
+              <a href="mailto:hello@vector.is-a.dev" className="v-btn v-btn-ghost h-9 px-4 text-[11.5px]">
+                Contact us
+              </a>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
   }
 
   if (!user && showAuth) {
@@ -748,6 +790,7 @@ function AppShell() {
           <PublicHeader
             onRequestSignIn={handleRequestSignIn}
             onOpenApp={signedIn ? () => setActiveTab('dashboard') : undefined}
+            onHome={() => setActiveTab('about')}
           />
         )}
 

@@ -396,8 +396,8 @@ body {
   box-shadow: none;
 }
 [data-app="true"] .v-btn-primary:hover {
-  background: var(--v-accent-hover);
-  border-color: var(--v-accent-hover);
+  background: #4f59c8;
+  border-color: #4f59c8;
 }
 
 /* Tighter app geometry. */

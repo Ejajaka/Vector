@@ -138,7 +138,7 @@ export const ConnectDialog: React.FC<ConnectDialogProps> = ({ open, onClose, pro
                   {locked ? (
                     <Lock className="h-3.5 w-3.5 text-[#FFC53D]" />
                   ) : copiedId === generator.id ? (
-                    <Check className="h-3.5 w-3.5 text-[#28C76F]" />
+                    <Check className="h-3.5 w-3.5 text-[#6ea8fe]" />
                   ) : (
                     <ArrowUpRight className="h-3.5 w-3.5" />
                   )}
@@ -165,7 +165,7 @@ export const ConnectDialog: React.FC<ConnectDialogProps> = ({ open, onClose, pro
             }}
             className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-white/15 px-2.5 text-[10.5px] font-semibold text-white/85 hover:bg-white/5"
           >
-            {copiedId === 'prompt' ? <Check className="h-3 w-3 text-[#28C76F]" /> : <Copy className="h-3 w-3" />} Copy prompt
+            {copiedId === 'prompt' ? <Check className="h-3 w-3 text-[#6ea8fe]" /> : <Copy className="h-3 w-3" />} Copy prompt
           </button>
         </div>
       </div>

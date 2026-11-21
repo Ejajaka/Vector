@@ -34,28 +34,28 @@ type Tab = (typeof TABS)[number];
 
 const LESSONS: Record<Tab, Lesson[]> = {
   'Get started': [
-    { title: 'Your first project in 4 minutes', summary: 'Create a project, write one sentence, and let the analyzer tell you what is missing.', minutes: 4, level: 'Beginner', icon: Compass, from: '#0FA3A3', to: '#4F7DF3' },
+    { title: 'Your first project in 4 minutes', summary: 'Create a project, write one sentence, and let the analyzer tell you what is missing.', minutes: 4, level: 'Beginner', icon: Compass, from: '#5E6AD2', to: '#4F7DF3' },
     { title: 'A tour of the workspace', summary: 'Home, projects, templates and the prompt studio — where everything lives.', minutes: 3, level: 'Beginner', icon: Play, from: '#FFC53D', to: '#FF8A6B' },
     { title: 'Reading the risk score', summary: 'What 0–100 means, the four components, and when to ignore it.', minutes: 2, level: 'Beginner', icon: ScanLine, from: '#4F7DF3', to: '#8B5CF6' },
     { title: 'Answering clarification questions', summary: 'Why the final prompt is blocked until every gap is resolved.', minutes: 5, level: 'Beginner', icon: Sparkles, from: '#FF6B8A', to: '#8B5CF6' },
   ],
   Prompting: [
-    { title: 'The four attributes every button needs', summary: 'Label, action, colour and location — the checklist behind the schema.', minutes: 3, level: 'Beginner', icon: Layers, from: '#0FA3A3', to: '#22C1A6' },
+    { title: 'The four attributes every button needs', summary: 'Label, action, colour and location — the checklist behind the schema.', minutes: 3, level: 'Beginner', icon: Layers, from: '#5E6AD2', to: '#A78BFA' },
     { title: 'Vague is worse than missing', summary: '“Some nice colour” occupies an attribute without resolving it.', minutes: 4, level: 'Intermediate', icon: ScanLine, from: '#FFC53D', to: '#FF8A6B' },
-    { title: 'Why attribute linking matters', summary: 'Two colours, two elements — which one is red?', minutes: 5, level: 'Intermediate', icon: Layers, from: '#4F7DF3', to: '#0FA3A3' },
+    { title: 'Why attribute linking matters', summary: 'Two colours, two elements — which one is red?', minutes: 5, level: 'Intermediate', icon: Layers, from: '#4F7DF3', to: '#5E6AD2' },
     { title: 'Building a prompt with blocks', summary: 'Search the palette, click an element, watch the prompt assemble itself.', minutes: 6, level: 'Intermediate', icon: Sparkles, from: '#FF6B8A', to: '#FF8A6B' },
   ],
   Elements: [
     { title: 'The 10 supported elements', summary: 'Button, navbar, input, card, modal, image, dropdown, sidebar, footer, checkbox.', minutes: 5, level: 'Beginner', icon: BookOpen, from: '#4F7DF3', to: '#8B5CF6' },
-    { title: 'Customising the schema', summary: 'Add required attributes for your design system (Team plan).', minutes: 7, level: 'Advanced', icon: Layers, from: '#0FA3A3', to: '#4F7DF3' },
+    { title: 'Customising the schema', summary: 'Add required attributes for your design system (Pro plan).', minutes: 7, level: 'Advanced', icon: Layers, from: '#5E6AD2', to: '#4F7DF3' },
   ],
   Templates: [
     { title: 'Using a template without inheriting its opinions', summary: 'Preview the attributes, keep what applies, delete the rest.', minutes: 3, level: 'Beginner', icon: Layers, from: '#8B5CF6', to: '#FF6B8A' },
-    { title: 'How a template becomes a prompt', summary: 'Blocks → attributes → prose → score, step by step.', minutes: 4, level: 'Intermediate', icon: Sparkles, from: '#0FA3A3', to: '#4F7DF3' },
+    { title: 'How a template becomes a prompt', summary: 'Blocks → attributes → prose → score, step by step.', minutes: 4, level: 'Intermediate', icon: Sparkles, from: '#5E6AD2', to: '#4F7DF3' },
   ],
   Billing: [
     { title: 'How the two-project trial works', summary: 'What counts as a project, what happens at zero, how to restore access.', minutes: 2, level: 'Beginner', icon: Wallet, from: '#FFC53D', to: '#FF8A6B' },
-    { title: 'Invoices, GST and refunds', summary: 'Where receipts live, what is taxed, and the refund window.', minutes: 3, level: 'Beginner', icon: BookOpen, from: '#4F7DF3', to: '#0FA3A3' },
+    { title: 'Invoices, GST and refunds', summary: 'Where receipts live, what is taxed, and the refund window.', minutes: 3, level: 'Beginner', icon: BookOpen, from: '#4F7DF3', to: '#5E6AD2' },
   ],
 };
 

@@ -215,7 +215,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           <button
             type="button"
             onClick={onRequestSignIn}
-            className="mt-5 inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#D1B653] hover:bg-[#bda241] text-[#283638] text-sm font-semibold transition-all"
+            className="mt-5 inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#D1B653] hover:bg-[#bda241] text-black text-sm font-semibold transition-all"
           >
             <LogIn className="w-4 h-4" />
             Sign in to Vector

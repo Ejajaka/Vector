@@ -38,7 +38,7 @@ type Message =
   | { type: 'request'; from: string }
   | { type: 'doc'; name: string; pages: CanvasPage[]; by: string };
 
-const PEER_COLOURS = ['#7C5CFF', '#0D99FF', '#22D3EE', '#FF7A59', '#FFC53D', '#28C76F', '#FF5C8A'];
+const PEER_COLOURS = ['#7C5CFF', '#0D99FF', '#A78BFA', '#FF7A59', '#FFC53D', '#E879F9', '#FF5C8A'];
 const STALE_MS = 12_000;
 
 export function sharingMode(): 'cloud' | 'local' {

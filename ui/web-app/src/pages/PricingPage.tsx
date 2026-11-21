@@ -27,7 +27,6 @@ const ROWS: Array<{ label: string; values: [string, string] }> = [
   { label: 'Block palette composer', values: ['—', '✓'] },
   { label: 'AI explanations', values: ['—', 'BYO key'] },
   { label: 'One-click deploy', values: ['—', 'Figma export'] },
-  { label: 'Seats', values: ['1', '1'] },
   { label: 'Support', values: ['Community', 'Email'] },
 ];
 

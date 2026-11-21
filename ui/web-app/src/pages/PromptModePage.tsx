@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle, ArrowLeft, ArrowRight, Check, Copy, Cpu, HelpCircle, Layers, Loader2, Mic, MicOff, Plus, Sparkles, Square, Undo2,
 } from 'lucide-react';
@@ -398,7 +398,7 @@ export const PromptModePage: React.FC<Props> = ({
         code === 'not-allowed' || code === 'service-not-allowed'
           ? 'Microphone permission was blocked. Allow it in the browser and try again.'
           : code === 'network'
-            ? 'The browser speech service is unreachable. Use On-device voice instead — it records and transcribes on this device.'
+            ? 'The browser speech service is unreachable. Use Speak instead — it records and transcribes on this device.'
             : code === 'audio-capture'
               ? 'No working microphone was found. Check your system input device.'
               : `Voice capture stopped (${code}).`
@@ -500,7 +500,7 @@ export const PromptModePage: React.FC<Props> = ({
           })
           .catch((error) => {
             setVoiceError(
-              `On-device voice failed: ${
+              `Voice input failed: ${
                 error instanceof Error ? error.message : 'the model could not load.'
               }`
             );
@@ -514,7 +514,7 @@ export const PromptModePage: React.FC<Props> = ({
       // Warm the model while the user speaks so transcription starts sooner.
       void preloadLocalSTT((progress) => {
         if (progress.percent >= 100) return;
-        setLocalVoiceProgress(`On-device model · ${progress.percent}%`);
+        setLocalVoiceProgress(`Voice model · ${progress.percent}%`);
       }).catch(() => undefined);
       // Safety stop so a forgotten recording cannot grow forever.
       localStopTimerRef.current = window.setTimeout(() => stopLocalVoice(), 60_000);
@@ -524,7 +524,7 @@ export const PromptModePage: React.FC<Props> = ({
       setVoiceError(
         name === 'NotAllowedError'
           ? 'Microphone permission was blocked. Allow the microphone and try again.'
-          : 'The microphone could not start for the on-device recorder.'
+          : 'The microphone could not start.'
       );
     }
   };

@@ -62,6 +62,11 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
     if (!value) return;
     onInvite(value, role);
     setEmail('');
+    // Hand the invite to the mail app with the live link already in the body,
+    // so the person actually receives access instead of a silent local entry.
+    const subject = encodeURIComponent('Edit this project with me on Vector');
+    const body = encodeURIComponent(`Open this project in Vector and sign in with this link:\n\n${link}`);
+    window.location.href = `mailto:${value}?subject=${subject}&body=${body}`;
   };
 
   return (
@@ -107,6 +112,9 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
               <UserPlus className="w-3.5 h-3.5" /> Invite
             </button>
           </div>
+          <p className="mt-1.5 text-[9.5px] leading-relaxed text-white/40">
+            Invite opens your mail app with the share link. Only Pro members can join the room.
+          </p>
         </form>
 
         {/* People */}
@@ -126,8 +134,8 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
                   <span className="block text-[9.5px] text-white/40">{person.role}</span>
                 </span>
                 {person.online ? (
-                  <span className="flex items-center gap-1 text-[9.5px] font-semibold text-[#28C76F]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#28C76F]" /> Online
+                  <span className="flex items-center gap-1 text-[9.5px] font-semibold text-[#6ea8fe]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#6ea8fe]" /> Online
                   </span>
                 ) : (
                   <span className="text-[9.5px] text-white/30">Invited</span>
@@ -147,7 +155,7 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
               onClick={() => void copy(link, 'link')}
               className="inline-flex h-8 items-center gap-1.5 rounded-md border border-white/15 px-2.5 text-[10.5px] font-semibold text-white/85 hover:bg-white/5"
             >
-              {copied === 'link' ? <Check className="h-3 w-3 text-[#28C76F]" /> : <Copy className="h-3 w-3" />} Copy
+              {copied === 'link' ? <Check className="h-3 w-3 text-[#6ea8fe]" /> : <Copy className="h-3 w-3" />} Copy
             </button>
           </div>
 
@@ -164,8 +172,8 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
           <div className="min-w-0">
             {mode === 'cloud' ? (
               <>
-                <p className="flex items-center gap-1.5 text-[10.5px] font-semibold text-[#28C76F]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#28C76F]" /> Live across devices
+                <p className="flex items-center gap-1.5 text-[10.5px] font-semibold text-[#6ea8fe]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#6ea8fe]" /> Live across devices
                 </p>
                 <p className="mt-0.5 text-[10px] leading-relaxed text-white/45">
                   Anyone who opens this link edits the same canvas in real time — cursors, selections and pages included.

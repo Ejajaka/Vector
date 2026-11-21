@@ -100,10 +100,10 @@
   --v-surface-2: #161719;
   --v-ink: #f7f8f8;
   --v-muted: #8a8f98;
-  --v-faint: #62666d;
+  --v-faint: #7c828b;
   --v-line: #1e1f22;
   --v-line-strong: #2a2b2f;
-  --v-accent: #7170ff;
+  --v-accent: #5e6ad2;
   --v-accent-hover: #828fff;
   --v-accent-soft: #17172b;
   --v-violet: #7170ff;
@@ -245,7 +245,7 @@ code, kbd, samp, pre {
 }
 
 .dark .hover\:bg-\[\#30494B\]:hover {
-  background-color: var(--v-accent-hover) !important;
+  background-color: #4f59c8 !important;
 }
 
 .dark .bg-\[\#FFF7ED\] {

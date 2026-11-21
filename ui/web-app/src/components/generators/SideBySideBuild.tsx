@@ -77,7 +77,7 @@ export const SideBySideBuild: React.FC<SideBySideBuildProps> = ({ open, prompt, 
               onClick={copy}
               className="ml-auto inline-flex h-7 items-center gap-1.5 rounded-md border border-white/15 px-2 text-[10px] font-semibold text-white/75 hover:bg-white/10"
             >
-              {copied ? <Check className="h-3 w-3 text-[#28C76F]" /> : <Copy className="h-3 w-3" />}
+              {copied ? <Check className="h-3 w-3 text-[#6ea8fe]" /> : <Copy className="h-3 w-3" />}
               {copied ? 'Copied' : 'Copy prompt'}
             </button>
           </div>

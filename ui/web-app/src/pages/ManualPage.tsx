@@ -290,7 +290,7 @@ export const ManualPage: React.FC<ManualPageProps> = ({ onOpenProjects }) => {
               <button
                 type="button"
                 onClick={onOpenProjects}
-                className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#D1B653] hover:bg-[#bda241] text-[#283638] text-sm font-semibold transition-all"
+                className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#D1B653] hover:bg-[#bda241] text-black text-sm font-semibold transition-all"
               >
                 Go to Projects
                 <ArrowRight className="w-4 h-4" />

@@ -91,7 +91,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis, onOpenTem
             <span className="rounded-full bg-[var(--v-accent-soft)] px-2 py-0.5 text-[10.5px] font-semibold text-[var(--v-accent-hover)] dark:text-[#a5a8ff]">
               New
             </span>
-            On-device voice capture is live
+            Voice input is live
             <ChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
           </button>
 

@@ -134,7 +134,7 @@ export const PlanHubDialog: React.FC<PlanHubDialogProps> = ({ open, initialTab =
               <ul className="grid gap-1.5 sm:grid-cols-2">
                 {plan.highlights.map((highlight) => (
                   <li key={highlight} className="flex items-start gap-1.5 rounded-lg bg-[#2B2B2B] px-2.5 py-2 text-[10.5px] leading-relaxed text-white/70">
-                    <Check className="mt-0.5 h-3 w-3 shrink-0 text-[#22C55E]" />
+                    <Check className="mt-0.5 h-3 w-3 shrink-0 text-[#6ea8fe]" />
                     {highlight}
                   </li>
                 ))}

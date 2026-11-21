@@ -7,9 +7,11 @@ interface PublicHeaderProps {
   onRequestSignIn: () => void;
   /** Present when the visitor already has a workspace. */
   onOpenApp?: () => void;
+  /** Navigate back to the home page from any public page. */
+  onHome?: () => void;
 }
 
-export const PublicHeader: React.FC<PublicHeaderProps> = ({ onRequestSignIn, onOpenApp }) => {
+export const PublicHeader: React.FC<PublicHeaderProps> = ({ onRequestSignIn, onOpenApp, onHome }) => {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -30,7 +32,10 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ onRequestSignIn, onO
       <div className="mx-auto flex h-16 w-full max-w-[1200px] items-center gap-1 px-4 sm:px-6 lg:px-8">
         <button
           type="button"
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          onClick={() => {
+            if (onHome) onHome();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
           className="flex shrink-0 items-center gap-2 pr-2"
           aria-label="Vector home"
         >
