@@ -7,6 +7,12 @@ import {
   readEntitlements,
   trialRemaining,
 } from '../../services/entitlements.ts';
+import {
+  cancelBillingSubscription,
+  fetchBillingSubscription,
+  type BillingSubscription,
+} from '../../services/billing.ts';
+import { useAuth } from '../../context/AuthContext.tsx';
 
 export type PlanHubTab = 'included' | 'usage';
 
@@ -34,11 +40,44 @@ function usagePercent(used: number, limit: number | null): number {
 
 /** Starter hub: what is included in the current plan and how much is used. */
 export const PlanHubDialog: React.FC<PlanHubDialogProps> = ({ open, initialTab = 'included', onClose, onSeePlans }) => {
+  const { user } = useAuth();
   const [tab, setTab] = React.useState<PlanHubTab>(initialTab);
+  const [sub, setSub] = React.useState<BillingSubscription | null>(null);
+  const [subLoading, setSubLoading] = React.useState(false);
+  const [cancelOpen, setCancelOpen] = React.useState(false);
+  const [cancelBusy, setCancelBusy] = React.useState(false);
+  const [cancelMsg, setCancelMsg] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (open) setTab(initialTab);
   }, [open, initialTab]);
+
+  React.useEffect(() => {
+    if (!open || !user?.id) {
+      setSub(null);
+      setSubLoading(false);
+      return;
+    }
+    let active = true;
+    setSubLoading(true);
+    fetchBillingSubscription(user.id)
+      .then((next) => {
+        if (active) setSub(next);
+      })
+      .finally(() => {
+        if (active) setSubLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [open, user?.id]);
+
+  React.useEffect(() => {
+    if (!open) {
+      setCancelOpen(false);
+      setCancelMsg(null);
+    }
+  }, [open]);
 
   if (!open) return null;
 
@@ -48,6 +87,31 @@ export const PlanHubDialog: React.FC<PlanHubDialogProps> = ({ open, initialTab =
   const projects = readProjectCount();
   const projectLimit = plan.limits.projects === 'unlimited' ? null : plan.limits.projects;
   const remaining = trialRemaining(state);
+
+  const formatDate = (value: string | null): string =>
+    value
+      ? new Date(value).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+      : '';
+
+  const cancelAutoPay = async () => {
+    if (!sub) return;
+    setCancelBusy(true);
+    setCancelMsg(null);
+    try {
+      const result = await cancelBillingSubscription(sub.subscriptionId);
+      setSub({ ...sub, status: 'cancelled', currentEnd: result.currentEnd || sub.currentEnd });
+      setCancelOpen(false);
+      setCancelMsg(
+        result.currentEnd
+          ? `AutoPay cancelled. Pro stays active until ${formatDate(result.currentEnd)}.`
+          : 'AutoPay cancelled. No further charges.',
+      );
+    } catch (error) {
+      setCancelMsg(error instanceof Error ? error.message : 'Could not cancel AutoPay. Try again.');
+    } finally {
+      setCancelBusy(false);
+    }
+  };
 
   const rows = [
     {
@@ -110,6 +174,65 @@ export const PlanHubDialog: React.FC<PlanHubDialogProps> = ({ open, initialTab =
             <button type="button" onClick={onSeePlans} className="mt-2 flex w-full items-center justify-center gap-1 rounded-md bg-[#e8e8ea] px-2 py-1.5 text-[10px] font-semibold text-[#08090a]">
               See plans <ArrowRight className="h-3 w-3" />
             </button>
+
+            {paid && (
+              <div className="mt-2 border-t border-white/10 pt-2">
+                {subLoading ? (
+                  <p className="text-[9px] text-white/35">Checking AutoPay…</p>
+                ) : sub ? (
+                  sub.status === 'active' ? (
+                    <div>
+                      <p className="text-[9px] font-semibold uppercase tracking-wider text-[#9cc4ff]">AutoPay on</p>
+                      <p className="mt-0.5 text-[9px] leading-relaxed text-white/45">
+                        {sub.currentEnd ? `Renews ${formatDate(sub.currentEnd)}` : 'Renews automatically'}
+                      </p>
+                      {cancelOpen ? (
+                        <div className="mt-1.5">
+                          <p className="text-[9px] leading-relaxed text-white/55">
+                            Stop future charges. Pro stays active until the paid date.
+                          </p>
+                          <div className="mt-1.5 flex gap-1">
+                            <button
+                              type="button"
+                              onClick={() => setCancelOpen(false)}
+                              className="flex-1 rounded border border-white/15 px-1 py-1 text-[9px] font-semibold text-white/70 hover:bg-white/5"
+                            >
+                              Keep it
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void cancelAutoPay()}
+                              disabled={cancelBusy}
+                              className="flex-1 rounded border border-[#FF8A8A]/40 bg-[#3A2424] px-1 py-1 text-[9px] font-semibold text-[#FFB4B4] disabled:opacity-60"
+                            >
+                              {cancelBusy ? 'Cancelling…' : 'Yes, cancel'}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setCancelOpen(true)}
+                          className="mt-1.5 w-full rounded border border-[#FF8A8A]/30 px-1 py-1 text-[9px] font-semibold text-[#FFB4B4] hover:bg-[#FF8A8A]/10"
+                        >
+                          Cancel AutoPay
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-[9px] font-semibold uppercase tracking-wider text-[#FFB4B4]">Renewal cancelled</p>
+                      <p className="mt-0.5 text-[9px] leading-relaxed text-white/45">
+                        {sub.currentEnd ? `Pro until ${formatDate(sub.currentEnd)}` : 'No further charges.'}
+                      </p>
+                    </div>
+                  )
+                ) : (
+                  <p className="text-[9px] leading-relaxed text-white/40">Complimentary Pro · no renewal</p>
+                )}
+                {cancelMsg && <p className="mt-1.5 text-[9px] leading-relaxed text-[#9cc4ff]">{cancelMsg}</p>}
+              </div>
+            )}
           </div>
         </aside>
 
