@@ -248,7 +248,7 @@ const ActualBoard: React.FC<{ page?: CanvasPage; empty: string }> = ({ page, emp
 
   if (!page) {
     return (
-      <div ref={ref} className="grid h-[180px] place-items-center rounded-lg border border-[var(--v-line)] bg-[var(--v-surface-2)] px-4 text-center text-[10px] text-[var(--v-faint)]">
+      <div ref={ref} aria-hidden="true" className="grid h-[180px] place-items-center rounded-lg border border-[var(--v-line)] bg-[var(--v-surface-2)] px-4 text-center text-[10px] text-[var(--v-faint)]">
         {empty}
       </div>
     );
@@ -259,7 +259,7 @@ const ActualBoard: React.FC<{ page?: CanvasPage; empty: string }> = ({ page, emp
   const scale = Math.min(width / pageW, 180 / pageH);
 
   return (
-    <div ref={ref} className="relative h-[180px] overflow-hidden rounded-lg border border-[var(--v-line)] bg-[var(--v-surface-2)]">
+    <div ref={ref} aria-hidden="true" className="relative h-[180px] overflow-hidden rounded-lg border border-[var(--v-line)] bg-[var(--v-surface-2)]">
       <div
         className="absolute left-1/2 top-1/2"
         style={{

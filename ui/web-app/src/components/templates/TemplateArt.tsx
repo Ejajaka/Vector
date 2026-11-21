@@ -14,6 +14,7 @@ export const TemplateArt: React.FC<{ template: TemplateDefinition; detail?: bool
 
   const shell = (children: React.ReactNode) => (
     <div
+      aria-hidden="true"
       className="template-art w-full h-full relative overflow-hidden"
       style={{ backgroundImage: `radial-gradient(120% 100% at 15% 0%, ${accent}26, transparent 55%), linear-gradient(160deg, #141519, #0a0b0d)` }}
     >
