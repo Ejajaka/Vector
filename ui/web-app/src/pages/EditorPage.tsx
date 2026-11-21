@@ -85,7 +85,8 @@ import { notificationService } from '../services/notifications.ts';
 import { setAdvisorContext } from '../services/aiAdvisor.ts';
 import { addAsset } from '../services/library.ts';
 import { isPaid, readEntitlements } from '../services/entitlements.ts';
-import { designSystemPrompt, getActiveDesignSystem } from '../services/designSystems.ts';
+import { applySystemToItems, designSystemPrompt, getActiveDesignSystem } from '../services/designSystems.ts';
+import { readBase44PageUrl } from '../services/base44.ts';
 import {
   CollabSession,
   addInvite,
@@ -545,6 +546,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   rightOffset = 0,
 }) => {
   const projectDocKey = projectId ? `vector_project_doc_${projectId}` : null;
+  const base44OpenUrl = useMemo(() => readBase44PageUrl(projectId || ''), [projectId]);
 
   // Editors opened from a template or a design system have no project id. Give
   // them their own draft so closing or reloading the tab does not lose edits,
@@ -690,8 +692,8 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   const [room] = useState(() => roomFromUrl() || (projectId ? projectRoom(projectId) : currentRoom()));
   const sharedMode = useMemo(() => {
     if (typeof window === 'undefined') return false;
-    return Boolean(projectId) || new URLSearchParams(window.location.search).get('share') === '1';
-  }, [projectId]);
+    return new URLSearchParams(window.location.search).get('share') === '1';
+  }, []);
   const sharedOwner = useMemo(() => {
     if (typeof window === 'undefined') return null;
     return new URLSearchParams(window.location.search).get('owner');
@@ -821,6 +823,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   }, [name, pages]);
 
   useEffect(() => {
+    if (!sharedMode) return;
     const session = new CollabSession(room, makePeer(displayName), {
       onPeers: setPeers,
       onDoc: (doc) => {
@@ -843,7 +846,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
       session.close();
       sessionRef.current = null;
     };
-  }, [room, displayName]);
+  }, [room, displayName, sharedMode]);
 
   // Shared rooms persist to Supabase, so edits survive after everyone closes the tab.
   useEffect(() => {
@@ -1562,7 +1565,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
       // ignore
     }
     setBase44(true);
-    window.open('https://app.base44.com', '_blank', 'noopener,noreferrer');
+    window.open(base44OpenUrl, '_blank', 'noopener,noreferrer');
     notificationService.push({
       kind: 'deploy',
       title: 'Prompt sent to Base44',
@@ -2872,7 +2875,10 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                       <div
                         key={animationKey}
                         className={`h-full w-full ${animationClass}`}
-                        style={animationStyle}
+                        style={{
+                          ...animationStyle,
+                          fontFamily: item.fontFamily ? FONT_STACKS[item.fontFamily] : undefined,
+                        }}
                       >
                         <StyledElement
                           style={variant.style}
@@ -4306,7 +4312,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
               <div className="rounded-lg bg-[#383838] p-3">
                 <p className="text-[11px] font-semibold mb-1">2. Open Base44 and paste</p>
                 <p className="text-[10.5px] text-white/50">Base44's own sign-in is required — Vector does not hold your credentials.</p>
-                <a href="https://app.base44.com" target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-[11px] font-semibold text-white" style={{ background: '#0D99FF' }}>
+                <a href={base44OpenUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-[11px] font-semibold text-white" style={{ background: '#0D99FF' }}>
                   Open Base44 <ExternalLink className="w-3 h-3" />
                 </a>
               </div>
@@ -4320,7 +4326,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                 </div>
                 <iframe
                   title="Base44"
-                  src="https://app.base44.com"
+                  src={base44OpenUrl}
                   className="w-full h-[420px] canvas-surface"
                   sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-modals"
                   allow="clipboard-read; clipboard-write"

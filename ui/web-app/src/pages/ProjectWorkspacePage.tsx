@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import {
   buildPagesPrompt,
+  FONT_STACKS,
   type CanvasItem,
   type CanvasPage,
 } from '../data/canvas.ts';
@@ -57,7 +58,7 @@ import { TYPE_TO_VARIANT, VARIANTS, variantById } from '../data/styles.ts';
 import { StyledElement } from '../components/editor/StyledElement.tsx';
 import { WireframePreview } from '../components/editor/WireframePreview.tsx';
 import { parseFigmaJson } from '../services/figma.ts';
-import { getActiveDesignSystem, type DesignSystem } from '../services/designSystems.ts';
+import { designSystemPrompt, getActiveDesignSystem, type DesignSystem } from '../services/designSystems.ts';
 import { DesignSystemPickerDialog } from '../components/project/DesignSystemPickerDialog.tsx';
 import { readProjectSetup } from '../services/projectSeed.ts';
 import { readBase44PageUrl, saveBase44PageUrl } from '../services/base44.ts';
@@ -278,7 +279,13 @@ const ActualBoard: React.FC<{ page?: CanvasPage; empty: string }> = ({ page, emp
             <div
               key={item.id}
               className="pointer-events-none absolute"
-              style={{ left: item.x, top: item.y, width: item.w, height: item.h }}
+              style={{
+                left: item.x,
+                top: item.y,
+                width: item.w,
+                height: item.h,
+                fontFamily: item.fontFamily ? FONT_STACKS[item.fontFamily] : undefined,
+              }}
             >
               <StyledElement
                 style={variantFor(item).style}
@@ -470,6 +477,8 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   // room so the project folder reflects their latest canvas.
   useEffect(() => {
     let cancelled = false;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('share') !== '1') return;
     void loadSharedDoc(projectRoom(project.id)).then((shared) => {
       if (cancelled || !shared || !shared.pages.length) return;
       const local = readJson<SavedDoc>(`vector_project_doc_${project.id}`);
@@ -527,11 +536,12 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   const versions = useMemo<PromptVersion[]>(() => {
     const next: PromptVersion[] = [];
     if (doc && doc.pages.length) {
+      const base = buildPagesPrompt(project.name, doc.pages);
       next.push({
         id: 'canvas',
         label: 'Canvas prompt',
         source: 'canvas',
-        prompt: buildPagesPrompt(project.name, doc.pages),
+        prompt: designSystem ? `${base}\n\n${designSystemPrompt(designSystem)}` : base,
         updatedAt: doc.updatedAt || new Date().toISOString(),
         pages: doc.pages.length,
         elements: doc.pages.reduce((sum, page) => sum + page.items.length, 0),
@@ -550,7 +560,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
       });
     }
     return next.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-  }, [doc, project.name, revised]);
+  }, [doc, project.name, revised, designSystem]);
 
   const toolSources = useMemo<ProjectToolSource[]>(() => {
     const list: ProjectToolSource[] = versions.map((version) => ({
@@ -733,22 +743,22 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     list.forEach((file) => {
       const reader = new FileReader();
       reader.onload = () => {
-        const next = [
-          ...files,
-          {
-            id: `f_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-            name: file.name,
-            type: file.type || 'application/octet-stream',
-            size: file.size,
-            dataUrl: String(reader.result || ''),
-          },
-        ];
-        setFiles(next);
-        try {
-          localStorage.setItem(`vector_project_files_${project.id}`, JSON.stringify(next));
-        } catch {
-          // ignore
-        }
+        const entry = {
+          id: `f_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          name: file.name,
+          type: file.type || 'application/octet-stream',
+          size: file.size,
+          dataUrl: String(reader.result || ''),
+        };
+        setFiles((previous) => {
+          const next = [...previous, entry];
+          try {
+            localStorage.setItem(`vector_project_files_${project.id}`, JSON.stringify(next));
+          } catch {
+            // ignore
+          }
+          return next;
+        });
       };
       reader.readAsDataURL(file);
     });
@@ -943,8 +953,9 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
         criteria: savedCriteria,
         designSystem,
         analysis: requirementAnalysis,
+        referenceFiles: files.map((file) => ({ name: file.name, type: file.type })),
       }),
-    [project.name, requirementDocs, requirements, savedCriteria, designSystem, requirementAnalysis],
+    [project.name, requirementDocs, requirements, savedCriteria, designSystem, requirementAnalysis, files],
   );
 
   const activePromptLabel = activeVersion?.label || 'No prompt yet';
@@ -1189,7 +1200,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                     <FolderItem
                       icon={<Upload className="h-3 w-3" />}
                       title="Import a design"
-                      meta="Figma JSON or reference files"
+                      meta="Figma JSON → editable canvas"
                       onClick={() => setImportOpen(true)}
                     />
                     {filteredFiles.map((file) => (
@@ -1350,7 +1361,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
               <div className="min-w-0 flex-1">
                 <p className="text-[11.5px] font-semibold text-[var(--v-ink)]">Base44 builder</p>
                 <p className="text-[9px] text-[var(--v-faint)]">
-                  Sign in or sign up using email and password inside the frame. Paste the exact page URL to open it in a new tab.
+                  Sign in or sign up using email and password inside the frame. The frame and the new tab use the same exact page URL.
                 </p>
               </div>
               <button type="button" onClick={reloadBase44} className="v-btn v-btn-ghost h-7 px-2 text-[9.5px]">
@@ -1460,8 +1471,8 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                   </div>
                 )}
                 <iframe
-                  key={base44Key}
-                  src="https://app.base44.com"
+                  key={`${base44Key}:${base44PageUrl}`}
+                  src={base44PageUrl}
                   title="Base44 builder"
                   className="h-full w-full flex-1 border-0 bg-white"
                   allow="clipboard-read; clipboard-write"
@@ -1779,11 +1790,11 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
             </div>
             <button type="button" onClick={() => figmaRef.current?.click()} className="mt-3 flex w-full items-center gap-2.5 rounded-xl border border-[var(--v-line)] bg-[var(--v-surface-2)] p-3 text-left hover:border-[var(--v-violet)]">
               <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--v-surface)] text-[var(--v-violet)]"><Upload className="h-4 w-4" /></span>
-              <span><span className="block text-[11.5px] font-semibold text-[var(--v-ink)]">Import a Figma JSON export</span><span className="block text-[9.5px] text-[var(--v-muted)]">Pages and elements become editable canvas pages.</span></span>
+              <span><span className="block text-[11.5px] font-semibold text-[var(--v-ink)]">Import a Figma JSON export</span><span className="block text-[9.5px] text-[var(--v-muted)]">Pages and elements become editable canvas pages. Use this for design files, not requirement documents.</span></span>
             </button>
             <button type="button" onClick={() => fileRef.current?.click()} className="mt-2 flex w-full items-center gap-2.5 rounded-xl border border-[var(--v-line)] bg-[var(--v-surface-2)] p-3 text-left hover:border-[var(--v-violet)]">
               <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--v-surface)] text-[var(--v-coral)]"><Paperclip className="h-4 w-4" /></span>
-              <span><span className="block text-[11.5px] font-semibold text-[var(--v-ink)]">Attach reference files</span><span className="block text-[9.5px] text-[var(--v-muted)]">Briefs, screenshots or brand files kept with this project.</span></span>
+              <span><span className="block text-[11.5px] font-semibold text-[var(--v-ink)]">Attach reference files</span><span className="block text-[9.5px] text-[var(--v-muted)]">Briefs, screenshots or brand files kept in Sources, included in the ZIP and listed in the document prompt.</span></span>
             </button>
             {importError && <p className="mt-2 text-[10px] text-[#B94D42]">{importError}</p>}
           </div>

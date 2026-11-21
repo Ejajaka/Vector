@@ -427,6 +427,9 @@ export function buildPagesPrompt(name: string, pages: CanvasPage[]): string {
       `${Math.round(item.w)}×${Math.round(item.h)}px`,
     ];
     if (item.color) bits.push(`accent ${item.color}`);
+    if (item.fill) bits.push(`surface ${item.fill}`);
+    if (item.strokeColor) bits.push(`border ${item.strokeColor}`);
+    if (item.radius != null) bits.push(`${Math.round(item.radius)}px radius`);
     if (item.fontSize) bits.push(`font size ${item.fontSize}px`);
     if (item.fontWeight) bits.push(`weight ${item.fontWeight}`);
     if (item.fontFamily) bits.push(`${item.fontFamily} typeface`);

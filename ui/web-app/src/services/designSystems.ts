@@ -174,6 +174,7 @@ export function designSystemPrompt(system: DesignSystem): string {
     `- Type: ${tokens.font}; radius ${tokens.radius}px; spacing base ${tokens.spacing}px.`,
     system.note ? `- Notes: ${system.note}` : '',
     '- Use only these tokens. Do not introduce new colours or radii.',
+    '- Element-level colours, fills, borders and type in the canvas override these tokens where specified.',
   ]
     .filter(Boolean)
     .join('\n');
@@ -293,7 +294,7 @@ export function applySystemToItems(items: CanvasItem[], system: DesignSystem): C
     const next: CanvasItem = {
       ...item,
       radius: tokens.radius,
-      fontFamily: item.type === 'text' || item.type === 'heading' ? tokens.font : item.fontFamily,
+      fontFamily: tokens.font,
     };
 
     if (['navbar', 'card', 'input', 'table', 'modal', 'footer'].includes(item.type)) {

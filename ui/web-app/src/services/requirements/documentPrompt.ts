@@ -9,6 +9,7 @@ export interface DocumentPromptInput {
   criteria: AcceptanceCriterion[];
   designSystem: DesignSystem | null;
   analysis: RequirementAnalysisResult | null;
+  referenceFiles?: Array<{ name: string; type: string }>;
 }
 
 export function buildDocumentPrompt({
@@ -18,6 +19,7 @@ export function buildDocumentPrompt({
   criteria,
   designSystem,
   analysis,
+  referenceFiles = [],
 }: DocumentPromptInput): string {
   const approved = requirements.filter((requirement) => requirement.status === 'approved');
   const approvedCriteria = criteria.filter((criterion) => criterion.status === 'approved');
@@ -28,6 +30,11 @@ export function buildDocumentPrompt({
     ...(documentNames.length
       ? documentNames.map((name) => `- ${name}`)
       : ['- No document uploaded. This prompt is based on approved project requirements.']),
+    '',
+    'REFERENCE FILES',
+    ...(referenceFiles.length
+      ? referenceFiles.map((file) => `- ${file.name} (${file.type || 'file'})`)
+      : ['- None attached.']),
     '',
     'DESIGN SYSTEM',
     designSystem ? designSystemPrompt(designSystem) : '- No design system attached. Use a neutral system and state every colour explicitly.',

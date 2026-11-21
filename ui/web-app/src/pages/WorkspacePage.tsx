@@ -340,7 +340,7 @@ export const WorkspacePage: React.FC = () => {
                 </div>
                 {builderLoaded ? (
                   <iframe
-                    src="https://app.base44.com"
+                    src={base44OpenUrl}
                     title="Base44 app builder"
                     className="flex-1 w-full min-h-[600px] bg-white"
                     allow="clipboard-read; clipboard-write; fullscreen; popups"

@@ -202,8 +202,8 @@ const BuildView: React.FC<{ text: string; projectId: string }> = ({ text, projec
           </div>
         )}
         <iframe
-          key={key}
-          src="https://app.base44.com"
+          key={`${key}:${base44Url}`}
+          src={base44Url}
           title="Base44 builder"
           className="h-full min-h-[400px] w-full flex-1 border-0 bg-white"
           allow="clipboard-read; clipboard-write"
