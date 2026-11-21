@@ -129,6 +129,15 @@ function AppShell() {
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [pendingTab, setPendingTab] = useState<ActiveTab | null>(null);
   const [tabHydrated, setTabHydrated] = useState(false);
+  const [, setEntitlementTick] = useState(0);
+
+  // Re-render the shell when the plan changes, including after the billing
+  // reconcile that runs on sign-in.
+  useEffect(() => {
+    const sync = () => setEntitlementTick((value) => value + 1);
+    window.addEventListener('vector:entitlements', sync);
+    return () => window.removeEventListener('vector:entitlements', sync);
+  }, []);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [analysisToInspect, setAnalysisToInspect] = useState<AnalysisResult | null>(null);

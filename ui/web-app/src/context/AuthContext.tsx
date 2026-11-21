@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { isSupabaseConfigured, supabase } from '../services/supabase/client.ts';
+import { reconcileEntitlements } from '../services/billing.ts';
 
 interface AuthContextValue {
   user: User | null;
@@ -51,6 +52,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       data.subscription.unsubscribe();
     };
   }, []);
+
+  // A plan is only real when the billing table confirms it.
+  useEffect(() => {
+    if (!user) return;
+    void reconcileEntitlements(user.id);
+  }, [user]);
 
   const signIn = useCallback(async (email: string, password: string) => {
     if (!supabase) throw new Error('Connect Supabase to enable accounts.');

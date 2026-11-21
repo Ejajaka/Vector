@@ -100,8 +100,17 @@ export async function startCheckout(options: CheckoutOptions): Promise<void> {
       email: options.email || '',
     },
     notes: { product: 'vector', plan: options.plan, billing: options.billing },
-    theme: { color: '#7170FF' },
-    modal: { ondismiss: () => options.onDismiss?.() },
+    theme: {
+      color: '#5E6AD2',
+      backdrop_color: '#08090A',
+      hide_topbar: false,
+    },
+    modal: {
+      ondismiss: () => options.onDismiss?.(),
+      backdropclose: false,
+      escape: true,
+      confirm_close: true,
+    },
     handler: async (response: {
       razorpay_payment_id?: string;
       razorpay_subscription_id?: string;

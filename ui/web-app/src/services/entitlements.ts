@@ -153,6 +153,20 @@ export function resetEntitlements(): EntitlementState {
   return write({ ...DEFAULT_STATE });
 }
 
+/**
+ * Apply the plan that the billing server reports. Project counters are kept,
+ * so a reconcile never resets usage or the trial start.
+ */
+export function setPlanState(plan: PlanCode, paymentId: string | null = null): EntitlementState {
+  const state = readEntitlements();
+  return write({
+    ...state,
+    plan,
+    upgradedAt: plan === 'free' ? null : state.upgradedAt || new Date().toISOString(),
+    paymentId: plan === 'free' ? null : paymentId ?? state.paymentId,
+  });
+}
+
 export function hasFeature(feature: 'templates' | 'integrations' | 'deployments' | 'aiExplanations'): boolean {
   const state = readEntitlements();
   return isPaid(state);
