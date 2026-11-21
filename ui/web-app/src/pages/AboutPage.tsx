@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   AlertTriangle,
   ArrowRight,
@@ -17,7 +17,7 @@ import {
   UserPlus,
   Wand2,
 } from 'lucide-react';
-import { WINDOWS_INSTALLER_URL } from '../data/downloads.ts';
+import { WindowsDownloadDialog } from '../components/downloads/WindowsDownloadDialog.tsx';
 
 interface AboutPageProps {
   onStartAnalysis: () => void;
@@ -73,6 +73,7 @@ const FINDINGS = [
 ];
 
 export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis, onOpenTemplates, auth }) => {
+  const [downloadOpen, setDownloadOpen] = useState(false);
   const scrollToWorkflow = () => {
     document.getElementById('workflow-section')?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -591,12 +592,13 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis, onOpenTem
                   >
                     <UserPlus className="h-3.5 w-3.5" /> Create an account
                   </button>
-                  <a
-                    href={WINDOWS_INSTALLER_URL}
+                  <button
+                    type="button"
+                    onClick={() => setDownloadOpen(true)}
                     className="v-btn h-9 rounded-full border border-white/15 bg-white/[0.04] px-4 text-[13px] text-white hover:bg-white/[0.08]"
                   >
                     <Download className="h-3.5 w-3.5" /> Download for Windows
-                  </a>
+                  </button>
                 </>
               ) : (
                 <>
@@ -622,6 +624,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onStartAnalysis, onOpenTem
           <div className="v-orb -left-16 top-0 h-[240px] w-[240px] bg-[#00b8cc]/30" aria-hidden="true" />
         </div>
       </section>
+      <WindowsDownloadDialog open={downloadOpen} onClose={() => setDownloadOpen(false)} />
     </div>
   );
 };
