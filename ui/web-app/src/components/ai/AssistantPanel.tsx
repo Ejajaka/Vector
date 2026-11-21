@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import { ArrowUp, Check, Crown, KeyRound, Mic, Plus, Server, Sparkles, X } from 'lucide-react';
 import {
   aiConfigured,
@@ -351,7 +351,7 @@ export const AssistantPanel: React.FC<AssistantPanelProps> = ({ open, onClose, c
                 with this page
               </h2>
               <p className="mt-2 text-[12px] text-[var(--v-muted)]">
-                {modelLive ? 'Live model chat, grounded in your canvas.' : 'Fast answers from the local reviewer.'}
+                {modelLive ? 'Live model chat, aware of your canvas when it helps.' : 'Fast answers from the local reviewer.'}
               </p>
 
               <div className="mt-5 space-y-1.5 text-left">
@@ -393,7 +393,7 @@ export const AssistantPanel: React.FC<AssistantPanelProps> = ({ open, onClose, c
                         {message.source === 'ai' ? (
                           <>
                             <Check className="h-2.5 w-2.5 text-[var(--v-teal)]" />
-                            {mode === 'hosted' ? "Vector's model" : 'Your model'} · grounded in this page
+                            {mode === 'hosted' ? "Vector's model" : 'Your model'} · screen-aware
                           </>
                         ) : (
                           'Local reviewer · no model configured'

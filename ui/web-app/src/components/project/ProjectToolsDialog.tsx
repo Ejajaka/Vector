@@ -812,9 +812,9 @@ export const ProjectToolsDialog: React.FC<ProjectToolsDialogProps> = ({
   const activeTool = TOOLS.find((entry) => entry.id === tool) || TOOLS[0];
 
   return (
-    <div className="fixed inset-0 z-[95] grid place-items-center p-2 sm:p-4" role="dialog" aria-modal="true" aria-label={`${activeTool.label} — ${project.name}`}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
-      <div className="relative flex h-[92vh] w-full max-w-[1120px] flex-col overflow-hidden rounded-xl border border-[var(--v-line)] bg-[var(--v-surface)] shadow-[0_30px_120px_-40px_rgba(0,0,0,0.9)]">
+    <div className="fixed inset-0 z-[95] flex justify-end" role="dialog" aria-modal="true" aria-label={`${activeTool.label} — ${project.name}`}>
+      <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
+      <div className="drawer-panel relative flex h-full w-full max-w-[720px] flex-col overflow-hidden border-l border-[var(--v-line)] bg-[var(--v-surface)] shadow-[-30px_0_120px_-40px_rgba(0,0,0,0.9)]">
         <div className="flex flex-wrap items-start gap-2 border-b border-[var(--v-line)] px-4 py-3">
           <div className="min-w-0 flex-1">
             <p className="v-eyebrow">Project tools · {project.name}</p>
@@ -916,7 +916,7 @@ export const ProjectToolsDialog: React.FC<ProjectToolsDialogProps> = ({
             })}
           </div>
 
-          <div className="v-scroll min-h-0 overflow-y-auto p-4">
+          <div key={tool} className="tool-swap v-scroll min-h-0 overflow-y-auto p-4">
             {!source && (
               <Empty title="No source to analyse yet" body="Create a canvas or write a prompt in this project. The tools will then analyse it here, without changing anything." />
             )}

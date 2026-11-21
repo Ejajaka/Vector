@@ -21,7 +21,6 @@ import {
   GitBranch,
   Image as ImageIcon,
   Layers,
-  Link2,
   Loader2,
   Palette,
   PanelLeftClose,
@@ -222,25 +221,6 @@ function downloadBlob(blob: Blob, filename: string): void {
   anchor.download = filename;
   anchor.click();
   window.setTimeout(() => URL.revokeObjectURL(url), 4000);
-}
-
-function openHtmlWindow(title: string, body: string): void {
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
-  <style>
-    :root{color-scheme:light dark}
-    body{font-family:Inter,system-ui,sans-serif;margin:0;padding:32px;background:#f7f7fb;color:#17171a}
-    main{max-width:1000px;margin:0 auto;background:#fff;border:1px solid #e7e5f0;border-radius:18px;padding:28px}
-    h1{font-size:24px;margin:0 0 4px} h2{font-size:16px;margin:22px 0 8px} h3{font-size:13px;margin:14px 0 4px}
-    p,li{font-size:13px;line-height:1.55;color:#4b4b55} ul{padding-left:20px}
-    .pill{display:inline-block;border-radius:999px;background:#f1eff8;color:#5b4bd6;padding:3px 9px;font-size:11px;font-weight:700}
-    .muted{color:#8a8f98;font-size:11px}
-    table{width:100%;border-collapse:collapse} td,th{border-bottom:1px solid #efedf6;padding:7px 6px;text-align:left;font-size:12px}
-    svg{max-width:100%;height:auto}
-  </style></head><body><main><h1>${escapeHtml(title)}</h1>${body}</main></body></html>`;
-  const blob = new Blob([html], { type: 'text/html' });
-  const url = URL.createObjectURL(blob);
-  window.open(url, '_blank', 'noopener,noreferrer');
-  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 function variantFor(item: CanvasItem) {
@@ -455,13 +435,6 @@ const ArtifactModal: React.FC<{
         )}
       </div>
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-t border-[var(--v-line)] px-4 py-3">
-        <button
-          type="button"
-          onClick={() => openHtmlWindow(artifact.label, artifact.graphSvg || artifact.bodyHtml)}
-          className="v-btn v-btn-primary h-8 px-3 text-[10.5px]"
-        >
-          <Link2 className="h-3.5 w-3.5" /> Open in new window
-        </button>
         <button
           type="button"
           onClick={() =>

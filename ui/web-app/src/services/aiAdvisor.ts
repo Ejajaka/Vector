@@ -110,6 +110,19 @@ function localAnswer(question: string, ctx: AdvisorContext): string {
   const review = reviewPrompt(ctx.prompt, ctx);
   const elCount = ctx.elements?.length || 0;
 
+  const screenTopic =
+    /colou?r|palette|theme|brand|access|contrast|a11y|screen reader|wcag|keyboard|label|copy|word|text|wording|cta|button|layout|structure|order|section|spacing|grid|responsive|mobile|desktop|tablet|device|breakpoint|adapt|missing|gap|incomplete|forgot|what else|what.*add|improve|fix|change|next|screen|page|prompt|canvas|element|design|state/.test(
+      q,
+    );
+
+  if (!screenTopic) {
+    return [
+      "I can't reach the live model right now, so I can only review the current screen.",
+      '',
+      'Ask me about its copy, labels, layout, colours, states, accessibility or what is missing — or reconnect your model in the AI panel to ask general questions.',
+    ].join('\n');
+  }
+
   if (/colou?r|palette|theme|brand/.test(q)) {
     const palette = review.colours.length
       ? review.colours
@@ -260,12 +273,15 @@ function localAnswer(question: string, ctx: AdvisorContext): string {
 /* Remote model                                                        */
 /* ------------------------------------------------------------------ */
 
-const SYSTEM = `You are Vector's in-product UI prompt coach.
+const SYSTEM = `You are Vector AI, the assistant inside Vector.
 
-You can see the user's current screen prompt and canvas. Answer in at most 160 words.
-Be concrete: name the element, the attribute, and the fix. Use short bullet points.
-Never invent content the user did not provide; if something is unknown, ask for it.
-Do not restate the whole prompt. Do not use markdown headings.`;
+Answer the user's actual question directly, in plain language, in at most 160 words.
+
+A "Current screen context" block may be provided. Use it only when it genuinely helps answer the question. The user is allowed to ask general questions, product questions, or anything else; answer those normally and do not turn them into canvas instructions. Never pretend the user asked to add, move or edit an element.
+
+When the question is about the current screen or prompt, be concrete: name the element, the attribute, and the fix. When it is general, answer it as a helpful general assistant and leave the screen out.
+
+If something is unknown, say so or ask for the missing detail. Do not invent content. Do not restate the whole prompt. Do not use markdown headings.`;
 
 export function aiConfigured(): boolean {
   const settings = loadSettings();
@@ -293,7 +309,8 @@ function endpointFor(mode: AiMode): { baseUrl: string; key: string; model: strin
 }
 
 function contextPrompt(question: string, ctx: AdvisorContext): string {
-  return `Screen: ${ctx.title}
+  return `Current screen context (use only when it helps answer the question):
+Screen: ${ctx.title}
 Page: ${ctx.pageName || 'Page 1'}${ctx.pageCount ? ` of ${ctx.pageCount}` : ''}
 Frame: ${ctx.frame ? `${ctx.frame.width}×${ctx.frame.height}` : 'unknown'}
 Background: ${ctx.background || '#FFFFFF'}
@@ -303,7 +320,7 @@ Accent colours: ${ctx.colors?.join(', ') || 'none'}
 Prompt:
 ${ctx.prompt || '(empty)'}
 
-Question: ${question}`;
+User question: ${question}`;
 }
 
 function requestHeadersUnused(): void {}
