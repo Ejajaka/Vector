@@ -521,23 +521,31 @@ code, kbd, samp, pre {
   to { opacity: 1; transform: translateY(0); }
 }
 .lesson-step { animation: lesson-step-in .45s ease-out both; }
-@keyframes lesson-row-glow {
-  0%, 100% { border-color: var(--v-line); }
-  45% { border-color: var(--v-violet); box-shadow: 0 0 0 2px rgba(124,92,255,.12); }
+@keyframes lesson-scene-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-.lesson-demo-row { animation: lesson-row-glow 3.2s ease-in-out infinite; }
-@keyframes lesson-cursor-move {
-  0%, 100% { transform: translate(0, 0); }
-  30% { transform: translate(-44px, -20px); }
-  60% { transform: translate(-20px, -54px); }
-  80% { transform: translate(-60px, -8px); }
+.lesson-scene { animation: lesson-scene-in .32s ease-out both; }
+
+@keyframes demo-focus-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(113, 112, 255, 0); }
+  50% { box-shadow: 0 0 0 3px rgba(113, 112, 255, .18); }
 }
-.lesson-cursor { animation: lesson-cursor-move 4.2s ease-in-out infinite; }
-@keyframes lesson-ring-pulse {
-  0% { transform: scale(.6); opacity: .55; }
-  100% { transform: scale(1.8); opacity: 0; }
+.demo-focus { animation: demo-focus-pulse 2s ease-in-out infinite; }
+
+@keyframes demo-caret-blink {
+  50% { opacity: 0; }
 }
-.lesson-ring { border: 1px solid var(--v-violet); animation: lesson-ring-pulse 1.9s ease-out infinite; }
+.demo-caret {
+  display: inline-block;
+  width: 1px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -2px;
+  background: var(--v-violet);
+  animation: demo-caret-blink 1s steps(1) infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .lesson-panel, .lesson-step, .lesson-demo-row, .lesson-cursor, .lesson-ring { animation: none !important; }
+  .lesson-panel, .lesson-step, .lesson-scene, .demo-focus, .demo-caret { animation: none !important; }
 }

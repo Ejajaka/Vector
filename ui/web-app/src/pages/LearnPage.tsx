@@ -69,6 +69,7 @@ const GUIDES: Record<Tab, LessonGuide> = {
       'Write one plain sentence about the screen you want.',
       'Read the questions, answer them, then generate the prompt.',
     ],
+    demo: 'project',
     action: { label: 'Open projects', tab: 'projects' },
   },
   Prompting: {
@@ -79,6 +80,7 @@ const GUIDES: Record<Tab, LessonGuide> = {
       'Answer the short questions the analyser asks.',
       'Copy the finished prompt into Base44, v0, Bolt or Figma.',
     ],
+    demo: 'prompt',
     action: { label: 'Try the analyser', tab: 'new-analysis' },
   },
   Elements: {
@@ -89,6 +91,7 @@ const GUIDES: Record<Tab, LessonGuide> = {
       'Give it a label, an action and a colour.',
       'Check the empty, loading and error states.',
     ],
+    demo: 'elements',
     action: { label: 'Open projects', tab: 'projects' },
   },
   Templates: {
@@ -99,6 +102,7 @@ const GUIDES: Record<Tab, LessonGuide> = {
       'Choose Open to create a project already filled in.',
       'Edit only the blocks that do not apply to you.',
     ],
+    demo: 'templates',
     action: { label: 'Browse templates', tab: 'templates' },
   },
   Billing: {
@@ -109,6 +113,7 @@ const GUIDES: Record<Tab, LessonGuide> = {
       'Pay through Razorpay. The plan activates after verification.',
       'Find receipts under Settings when you need them.',
     ],
+    demo: 'billing',
     action: { label: 'See plans', tab: 'pricing' },
   },
 };

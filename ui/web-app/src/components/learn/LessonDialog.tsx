@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ArrowRight, Clock3, Play, X } from 'lucide-react';
 import type { ActiveTab } from '../../types/analysis.ts';
+import { LessonDemo, type DemoKind } from './LessonDemo.tsx';
 
 export interface LearnLesson {
   title: string;
@@ -15,6 +16,7 @@ export interface LearnLesson {
 export interface LessonGuide {
   intro: string;
   steps: string[];
+  demo: DemoKind;
   action: { label: string; tab: ActiveTab };
 }
 
@@ -27,6 +29,11 @@ interface LessonDialogProps {
 
 export const LessonDialog: React.FC<LessonDialogProps> = ({ lesson, guide, onClose, onTry }) => {
   const Icon = lesson.icon;
+  const [activeStep, setActiveStep] = useState(0);
+
+  useEffect(() => {
+    setActiveStep(0);
+  }, [lesson.title]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -63,40 +70,41 @@ export const LessonDialog: React.FC<LessonDialogProps> = ({ lesson, guide, onClo
           <div>
             <p className="text-[12.5px] leading-relaxed text-[var(--v-muted)]">{guide.intro}</p>
             <div className="mt-4 space-y-2.5">
-              {guide.steps.map((step, index) => (
-                <div
-                  key={step}
-                  className="lesson-step flex items-start gap-2.5 rounded-lg border border-[var(--v-line)] bg-[var(--v-surface-2)] px-3 py-2.5"
-                  style={{ animationDelay: `${0.08 + index * 0.09}s` }}
-                >
-                  <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[var(--v-violet)]/15 text-[10px] font-semibold text-[var(--v-violet)]">
-                    {index + 1}
-                  </span>
-                  <p className="text-[11.5px] leading-relaxed text-[var(--v-ink)]">{step}</p>
-                </div>
-              ))}
+              {guide.steps.map((step, index) => {
+                const active = index === activeStep;
+                return (
+                  <button
+                    key={step}
+                    type="button"
+                    onClick={() => setActiveStep(index)}
+                    aria-current={active ? 'step' : undefined}
+                    className={`lesson-step flex w-full items-start gap-2.5 rounded-lg border px-3 py-2.5 text-left transition-colors ${
+                      active
+                        ? 'border-[var(--v-violet)]/60 bg-[var(--v-violet)]/[0.07]'
+                        : 'border-[var(--v-line)] bg-[var(--v-surface-2)] hover:border-[var(--v-line-strong)]'
+                    }`}
+                    style={{ animationDelay: `${0.08 + index * 0.09}s` }}
+                  >
+                    <span
+                      className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-semibold ${
+                        active
+                          ? 'bg-[var(--v-violet)] text-white'
+                          : 'bg-[var(--v-violet)]/15 text-[var(--v-violet)]'
+                      }`}
+                    >
+                      {index + 1}
+                    </span>
+                    <p className="text-[11.5px] leading-relaxed text-[var(--v-ink)]">{step}</p>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          <div className="lesson-demo relative overflow-hidden rounded-xl border border-[var(--v-line)] bg-[var(--v-bg)] p-3">
-            <div className="flex items-center gap-1.5 border-b border-[var(--v-line)] pb-2">
-              <span className="h-2 w-2 rounded-full bg-[#3a3d44]" />
-              <span className="h-2 w-2 rounded-full bg-[#3a3d44]" />
-              <span className="h-2 w-2 rounded-full bg-[#3a3d44]" />
-              <span className="ml-1 text-[8.5px] text-[var(--v-faint)]">vector — guided step</span>
-            </div>
-            <div className="mt-3 space-y-2">
-              <div className="h-2 w-2/3 rounded-full bg-[var(--v-surface-2)]" />
-              <div className="lesson-demo-row h-8 rounded-md border border-[var(--v-line)] bg-[var(--v-surface)]" />
-              <div className="lesson-demo-row h-8 rounded-md border border-[var(--v-line)] bg-[var(--v-surface)]" style={{ animationDelay: '.8s' }} />
-              <div className="lesson-demo-row h-8 rounded-md border border-[var(--v-line)] bg-[var(--v-surface)]" style={{ animationDelay: '1.6s' }} />
-            </div>
-            <div className="absolute bottom-3 right-3">
-              <span className="lesson-ring absolute inset-0 rounded-full" />
-              <span className="lesson-cursor relative block h-3 w-3 rounded-full bg-[var(--v-violet)] shadow-[0_0_0_4px_rgba(124,92,255,.2)]" />
-            </div>
-            <p className="mt-3 text-[9px] leading-relaxed text-[var(--v-faint)]">
-              We highlight the next control for you. Nothing here changes your project.
+          <div>
+            <LessonDemo kind={guide.demo} activeStep={activeStep} onStep={setActiveStep} />
+            <p className="mt-2 text-[9px] leading-relaxed text-[var(--v-faint)]">
+              This follows the exact step you are reading. Nothing here changes your project.
             </p>
           </div>
         </div>
