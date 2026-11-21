@@ -1,31 +1,39 @@
 1
-00:00:01,380 --> 00:00:06,262
-Every AI-built interface starts with a prompt. But most prompts are missing something.
+00:00:01,500 --> 00:00:05,104
+Every AI build starts with a prompt. Most are missing something.
 
 2
-00:00:09,080 --> 00:00:15,594
-Vector reads the request and finds the gaps: the missing action, the colour, the state nobody designed.
+00:00:06,400 --> 00:00:09,908
+Vector finds every gap, before your generator guesses.
 
 3
-00:00:16,580 --> 00:00:22,446
-Answer a few short questions, and a vague idea becomes a complete, reviewed interface brief.
+00:00:12,400 --> 00:00:14,972
+Answer a few questions. Lock the brief.
 
 4
-00:00:24,080 --> 00:00:29,730
-Compose the real screen with blocks, assets, templates, and your own design tokens.
+00:00:18,400 --> 00:00:20,948
+Then build it for real, on the canvas.
 
 5
-00:00:31,580 --> 00:00:36,342
-Start from a template, or follow short guided lessons that show exactly what to do.
+00:00:22,600 --> 00:00:27,908
+Drop in blocks. Add pages. Apply your design system. Drag, snap, done.
 
 6
-00:00:39,080 --> 00:00:44,034
-Share with another Pro. Edit together with live cursors, or send a view-only link.
+00:00:30,400 --> 00:00:33,380
+Start from twenty-one templates. Or learn by doing.
 
 7
-00:00:46,580 --> 00:00:53,166
-Send the finished prompt to Base44, ask Vector AI what's missing, or work offline on Windows.
+00:00:36,400 --> 00:00:40,556
+Share live with another Pro. Edit together, or send a view-only link.
 
 8
-00:00:54,080 --> 00:00:59,994
-Vector. Two projects free. Pro is just one ninety-nine a month. Start at vectorco dot in.
+00:00:42,400 --> 00:00:46,868
+Ship it to Base44. Ask Vector AI. Or work offline on Windows.
+
+9
+00:00:48,400 --> 00:00:51,596
+Two projects free. Pro is one ninety-nine a month.
+
+10
+00:00:54,600 --> 00:00:56,692
+Start at vectorco dot in.

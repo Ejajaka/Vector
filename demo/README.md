@@ -13,6 +13,12 @@ screenshots of the live app.
 | `captions.srt` | English captions with per-chapter timings |
 | `build/` | Generator script, narration script and source screenshots |
 
+## 60-second promo
+
+`promo-60s/` holds the high-energy one-minute promo: kinetic type, a 12-second
+live canvas demo, original score and sound design, captions, poster and the
+animation source.
+
 ## Chapters
 
 | Time | Chapter |
