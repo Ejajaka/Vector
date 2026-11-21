@@ -21,7 +21,8 @@ const COMPED_PRO_EMAILS = new Set([
  * table so a plan is never active just because localStorage says so.
  *
  * - A live active subscription upgrades the browser.
- * - No active subscription downgrades a stale Pro state to free.
+ * - A cancelled subscription keeps Pro until its paid period ends.
+ * - No current subscription downgrades a stale Pro state to free.
  * - Network or RLS failures keep the local state (offline tolerance).
  */
 export async function reconcileEntitlements(userId: string, email?: string | null): Promise<void> {
@@ -38,7 +39,7 @@ export async function reconcileEntitlements(userId: string, email?: string | nul
     .from('billing_subscriptions')
     .select('plan, status, current_end')
     .eq('user_id', userId)
-    .eq('status', 'active')
+    .in('status', ['active', 'cancelled'])
     .order('updated_at', { ascending: false })
     .limit(1);
 
@@ -46,8 +47,12 @@ export async function reconcileEntitlements(userId: string, email?: string | nul
 
   const row = (data?.[0] || null) as SubscriptionRow | null;
   const currentEnd = row?.current_end ? new Date(row.current_end).getTime() : null;
+  // A cancelled subscription was paid through current_end, so it keeps Pro
+  // until that date. An active subscription with no end is treated as live.
   const validEnd =
-    currentEnd === null || (Number.isFinite(currentEnd) && currentEnd > Date.now());
+    currentEnd === null
+      ? row?.status === 'active'
+      : Number.isFinite(currentEnd) && currentEnd > Date.now();
   const active = Boolean(row?.plan) && validEnd;
 
   if (active && row?.plan) {
