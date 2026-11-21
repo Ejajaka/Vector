@@ -1,0 +1,31 @@
+1
+00:00:01,380 --> 00:00:06,262
+Every AI-built interface starts with a prompt. But most prompts are missing something.
+
+2
+00:00:09,080 --> 00:00:15,594
+Vector reads the request and finds the gaps: the missing action, the colour, the state nobody designed.
+
+3
+00:00:16,580 --> 00:00:22,446
+Answer a few short questions, and a vague idea becomes a complete, reviewed interface brief.
+
+4
+00:00:24,080 --> 00:00:29,730
+Compose the real screen with blocks, assets, templates, and your own design tokens.
+
+5
+00:00:31,580 --> 00:00:36,342
+Start from a template, or follow short guided lessons that show exactly what to do.
+
+6
+00:00:39,080 --> 00:00:44,034
+Share with another Pro. Edit together with live cursors, or send a view-only link.
+
+7
+00:00:46,580 --> 00:00:53,166
+Send the finished prompt to Base44, ask Vector AI what's missing, or work offline on Windows.
+
+8
+00:00:54,080 --> 00:00:59,994
+Vector. Two projects free. Pro is just one ninety-nine a month. Start at vectorco dot in.

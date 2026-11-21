@@ -1,0 +1,483 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vector — 60 second promo</title>
+<style>
+  :root{
+    --bg:#08090a; --surface:#101113; --surface2:#161719; --line:#24262c; --line2:#32353d;
+    --ink:#f7f8f8; --muted:#a3a8b2; --faint:#7c828b;
+    --violet:#7170ff; --violet2:#8f8dff; --blue:#6ea8fe; --warm:#ffb86b; --coral:#ff8a7a;
+  }
+  *{box-sizing:border-box}
+  html,body{width:100%;height:100%;margin:0;overflow:hidden;background:var(--bg);}
+  body{font-family:Inter,"Segoe UI",system-ui,-apple-system,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;}
+  #stage{position:absolute;inset:0;overflow:hidden;background:
+    radial-gradient(900px 600px at 82% 10%, rgba(113,112,255,.16), transparent 62%),
+    radial-gradient(800px 700px at 10% 100%, rgba(110,168,254,.08), transparent 66%),
+    linear-gradient(180deg,#08090a,#090a0d 60%,#07080a);}
+  #stage:before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:64px 64px;mask-image:linear-gradient(180deg,rgba(0,0,0,.65),transparent 78%);opacity:.55;}
+  #stage:after{content:"";position:absolute;inset:0;background:radial-gradient(1200px 700px at 50% -10%,rgba(255,255,255,.055),transparent 55%);pointer-events:none;}
+  .brand{position:absolute;left:76px;top:56px;display:flex;align-items:center;gap:12px;z-index:20}
+  .mark{position:relative;width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 33% 28%,#cfd0ff,#7170ff 55%,#3a3a9c);box-shadow:0 0 0 1px rgba(255,255,255,.18) inset,0 0 28px rgba(113,112,255,.35)}
+  .mark:after{content:"";position:absolute;right:7px;bottom:5px;width:7px;height:7px;border-radius:50%;background:#ffcf7a;box-shadow:0 0 14px rgba(255,207,122,.7)}
+  .wordmark{font-size:21px;font-weight:800;letter-spacing:-.035em}
+  .topmeta{position:absolute;right:76px;top:63px;z-index:20;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--faint);font-weight:700}
+  .topmeta b{color:var(--muted);font-weight:700}
+  .progress{position:absolute;left:76px;right:76px;bottom:38px;height:2px;background:rgba(255,255,255,.10);z-index:30;overflow:hidden;border-radius:2px}
+  .progress span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--violet),var(--blue));box-shadow:0 0 14px rgba(113,112,255,.6)}
+  .scenes{position:absolute;inset:0;z-index:10}
+  .scene{position:absolute;inset:0;padding:0 76px;opacity:0;pointer-events:none;transition:opacity .45s ease;display:flex;align-items:center}
+  .scene.active{opacity:1}
+  .scene .copy{max-width:760px}
+  .eyebrow{font-size:12px;font-weight:800;letter-spacing:.24em;text-transform:uppercase;color:var(--violet);margin:0 0 18px;display:flex;align-items:center;gap:12px}
+  .eyebrow:before{content:"";width:26px;height:2px;background:var(--violet);border-radius:2px;display:inline-block}
+  h1{margin:0;font-size:76px;line-height:.98;letter-spacing:-.055em;font-weight:800;max-width:860px;text-wrap:balance}
+  h1 .dim{color:#8f949e}
+  .sub{font-size:22px;line-height:1.45;color:var(--muted);max-width:720px;margin-top:26px;font-weight:450}
+  .label{font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--faint)}
+  .panel{background:linear-gradient(180deg,rgba(22,23,26,.94),rgba(14,15,18,.96));border:1px solid var(--line);border-radius:18px;box-shadow:0 30px 90px -40px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.02) inset}
+  .chrome{display:flex;align-items:center;gap:7px;padding:14px 16px;border-bottom:1px solid var(--line)}
+  .dot{width:7px;height:7px;border-radius:50%;background:#393c43}
+  .chrome .name{margin-left:8px;font-size:11px;color:var(--faint);font-weight:600}
+  .chip{display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.035);font-size:12px;font-weight:700;color:var(--muted)}
+  .chip.violet{border-color:rgba(113,112,255,.45);background:rgba(113,112,255,.13);color:#c9c7ff}
+  .chip.warm{border-color:rgba(255,184,107,.35);background:rgba(255,184,107,.10);color:var(--warm)}
+  .chip.blue{border-color:rgba(110,168,254,.38);background:rgba(110,168,254,.11);color:var(--blue)}
+  .chip .pd{width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 10px currentColor}
+  .num{font-variant-numeric:tabular-nums}
+
+  /* splash */
+  .splash{position:absolute;inset:0;display:grid;place-items:center;background:radial-gradient(700px 500px at 50% 40%,rgba(113,112,255,.18),transparent 65%),#08090a;z-index:40}
+  .splash .inner{display:flex;flex-direction:column;align-items:center;gap:22px;opacity:0;transform:scale(.94)}
+  .splash .bigmark{width:88px;height:88px;border-radius:50%;background:radial-gradient(circle at 33% 28%,#d7d8ff,#7170ff 55%,#34349a);box-shadow:0 0 0 1px rgba(255,255,255,.2) inset,0 0 80px rgba(113,112,255,.45);position:relative}
+  .splash .bigmark:after{content:"";position:absolute;right:22px;bottom:16px;width:21px;height:21px;border-radius:50%;background:#ffcf7a;box-shadow:0 0 26px rgba(255,207,122,.8)}
+  .splash .sname{font-size:54px;font-weight:800;letter-spacing:-.05em}
+  .splash .stag{font-size:11px;font-weight:800;letter-spacing:.3em;text-transform:uppercase;color:var(--faint)}
+
+  .stage-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center;width:100%}
+  .card{background:linear-gradient(180deg,#17181c,#101115);border:1px solid var(--line);border-radius:16px;box-shadow:0 20px 50px -30px rgba(0,0,0,.8)}
+
+  /* scene 0 */
+  .promptbox{padding:24px 26px 26px}
+  .promptline{font-size:23px;line-height:1.5;color:#e8e9ee;letter-spacing:-.02em;min-height:76px}
+  .caret{display:inline-block;width:2px;height:24px;margin-left:3px;vertical-align:-4px;background:var(--violet);animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+  .missing{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+  .riskbig{position:absolute;right:76px;bottom:110px;display:flex;align-items:center;gap:14px;z-index:5}
+  .riskbig .n{font-size:46px;font-weight:800;letter-spacing:-.04em}
+  .riskbig .l{font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--coral)}
+  .glowline{height:1px;background:linear-gradient(90deg,transparent,rgba(113,112,255,.7),transparent);width:100%;margin:26px 0;opacity:.5}
+
+  /* scene 1 */
+  .review{position:relative}
+  .scanline{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--violet),transparent);filter:blur(.5px);box-shadow:0 0 18px rgba(113,112,255,.8);top:0;animation:scan 3.4s ease-in-out infinite}
+  @keyframes scan{0%{top:8%;opacity:0}15%{opacity:.9}85%{opacity:.9}100%{top:92%;opacity:0}}
+  .finding{display:flex;gap:14px;padding:16px 18px;border-bottom:1px solid var(--line);align-items:flex-start}
+  .finding:last-child{border-bottom:0}
+  .finding .ico{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:rgba(255,184,107,.11);border:1px solid rgba(255,184,107,.28);color:var(--warm);font-size:14px;font-weight:800;flex:none}
+  .finding .ico.v{background:rgba(113,112,255,.12);border-color:rgba(113,112,255,.32);color:#c9c7ff}
+  .finding .t{font-size:15px;font-weight:750;letter-spacing:-.01em}
+  .finding .b{font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.45}
+  .finding .r{margin-left:auto;font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);white-space:nowrap;padding-top:3px}
+
+  /* scene 2 */
+  .brief{display:flex;flex-direction:column;gap:11px;padding:20px}
+  .brief .row{display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.025);font-size:12.5px;color:var(--muted)}
+  .brief .row b{color:var(--ink);font-weight:700}
+  .brief .row .tick{margin-left:auto;color:#a9b6ff;font-weight:800}
+  .qcard{padding:22px}
+  .qcard .q{font-size:18px;font-weight:700;line-height:1.4;letter-spacing:-.015em}
+  .answers{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px}
+  .answers .a{padding:10px 13px;border-radius:9px;border:1px solid var(--line);font-size:12px;color:var(--muted);font-weight:650}
+  .answers .a.on{border-color:rgba(113,112,255,.6);background:rgba(113,112,255,.14);color:#d8d6ff}
+  .qprogress{height:4px;border-radius:4px;background:rgba(255,255,255,.08);margin-top:20px;overflow:hidden}
+  .qprogress i{display:block;height:100%;width:75%;background:linear-gradient(90deg,var(--violet),var(--blue))}
+  .bigcheck{width:66px;height:66px;border-radius:50%;display:grid;place-items:center;border:1px solid rgba(113,112,255,.5);background:rgba(113,112,255,.13);color:#c9c7ff;font-size:30px;box-shadow:0 0 40px rgba(113,112,255,.18)}
+
+  /* scene 3 canvas */
+  .canvas-wrap{position:relative;width:100%;display:flex;gap:28px;align-items:center}
+  .palette{width:210px;flex:none;padding:18px;display:flex;flex-direction:column;gap:10px}
+  .palette .p{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;background:rgba(255,255,255,.035);border:1px solid transparent;font-size:12px;color:var(--muted);font-weight:650}
+  .palette .p.hot{border-color:rgba(113,112,255,.45);background:rgba(113,112,255,.13);color:#d4d2ff}
+  .artboard{flex:1;background:#f7f7f8;border-radius:12px;padding:34px;box-shadow:0 30px 80px -30px rgba(0,0,0,.8);color:#0b0e14;position:relative;overflow:hidden}
+  .artboard .nav{display:flex;align-items:center;gap:12px;padding-bottom:18px;border-bottom:1px solid #e4e5e9;font-size:11px;font-weight:700;color:#5c6069}
+  .artboard .nav .logo{width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#5e6ad2,#828fff)}
+  .artboard .nav .right{margin-left:auto;display:flex;gap:9px;align-items:center}
+  .artboard .pill{background:#0b0e14;color:#fff;border-radius:7px;padding:7px 11px;font-size:9px;font-weight:700}
+  .artboard h3{font-size:38px;line-height:1.02;letter-spacing:-.05em;margin:28px 0 8px;max-width:420px}
+  .artboard p{font-size:12px;line-height:1.5;color:#71757e;max-width:400px;margin:0}
+  .artboard .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:22px}
+  .artboard .g{background:#fff;border:1px solid #e6e7ea;border-radius:9px;padding:12px;min-height:92px}
+  .artboard .g .bar{height:6px;border-radius:4px;background:#e9eaee;margin-bottom:7px}
+  .artboard .g .bar.w{width:64%}
+  .artboard .g .btn{display:inline-block;margin-top:10px;background:#5e6ad2;color:#fff;border-radius:5px;padding:5px 9px;font-size:8px;font-weight:700}
+  .inspector{width:190px;flex:none;padding:18px;display:flex;flex-direction:column;gap:12px}
+  .swatch{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--muted)}
+  .swatch i{width:16px;height:16px;border-radius:5px;background:#7170ff;box-shadow:0 0 0 1px rgba(255,255,255,.15) inset}
+  .floaty{position:absolute;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#c9c7ff;background:rgba(17,18,22,.85);border:1px solid rgba(113,112,255,.35);padding:7px 10px;border-radius:999px;backdrop-filter:blur(6px)}
+
+  /* scene 4 templates */
+  .tgrid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .tcard{padding:14px;border-radius:12px;background:linear-gradient(180deg,#17181c,#111216);border:1px solid var(--line)}
+  .tcard .prev{height:128px;border-radius:8px;background:linear-gradient(140deg,#242638,#101115);position:relative;overflow:hidden}
+  .tcard .prev:before{content:"";position:absolute;left:14px;top:14px;width:58%;height:8px;border-radius:5px;background:rgba(255,255,255,.4)}
+  .tcard .prev:after{content:"";position:absolute;left:14px;top:34px;width:34%;height:5px;border-radius:4px;background:rgba(113,112,255,.55)}
+  .tcard .meta{display:flex;align-items:center;justify-content:space-between;margin-top:11px;font-size:11px;color:var(--muted)}
+  .tcard .meta b{color:var(--ink);font-size:12px;font-weight:700}
+  .lesson{position:absolute;right:76px;top:180px;width:520px;z-index:12}
+  .lesson .head{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line)}
+  .lesson .steps{padding:14px 18px;display:flex;flex-direction:column;gap:7px}
+  .lesson .s{display:flex;gap:10px;align-items:center;padding:9px 10px;border-radius:8px;border:1px solid var(--line);font-size:11px;color:var(--muted)}
+  .lesson .s.on{border-color:rgba(113,112,255,.55);background:rgba(113,112,255,.10);color:var(--ink)}
+  .lesson .s .n{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;background:rgba(113,112,255,.16);color:#c9c7ff;font-size:9px;font-weight:800;flex:none}
+  .lesson .s.on .n{background:var(--violet);color:#fff}
+
+  /* scene 5 sharing */
+  .sharecv{position:relative;height:500px}
+  .sharecv .board{position:absolute;left:0;top:0;right:0;bottom:0;background:#f6f6f7;border-radius:16px;padding:30px;color:#0b0e14;overflow:hidden}
+  .sharecv .board .b1{height:10px;width:34%;border-radius:6px;background:#1a1c22;margin-bottom:12px}
+  .sharecv .board .b2{height:7px;width:56%;border-radius:5px;background:#c7cad1;margin-bottom:24px}
+  .sharecv .board .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .sharecv .board .c{background:#fff;border:1px solid #e5e6ea;border-radius:10px;height:130px;position:relative}
+  .sharecv .board .c:before{content:"";position:absolute;left:12px;top:12px;width:42%;height:7px;border-radius:4px;background:#dfe0e5}
+  .sharecv .board .c:after{content:"";position:absolute;left:12px;top:28px;width:68%;height:5px;border-radius:4px;background:#eceef2}
+  .cursor{position:absolute;display:flex;align-items:flex-start;gap:5px;z-index:5;filter:drop-shadow(0 6px 12px rgba(0,0,0,.3))}
+  .cursor .arrow{width:0;height:0;border-left:11px solid #7170ff;border-bottom:16px solid transparent;transform:rotate(-18deg)}
+  .cursor .tag{font-size:10px;font-weight:800;color:#fff;background:#5e6ad2;padding:4px 7px;border-radius:5px;margin-top:9px;white-space:nowrap}
+  .cursor.b .arrow{border-left-color:#0d99ff}.cursor.b .tag{background:#0d99ff}
+  .sharecard{position:absolute;right:-12px;bottom:-18px;width:380px;z-index:6}
+  .sharecard .body{padding:18px}
+  .seg{display:inline-flex;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:8px;padding:3px}
+  .seg b{font-size:10px;padding:7px 10px;border-radius:6px;color:var(--muted);font-weight:750}
+  .seg b.on{background:var(--violet);color:#fff}
+  .linkrow{display:flex;align-items:center;gap:8px;margin-top:13px;border:1px solid var(--line);border-radius:8px;padding:9px 11px;background:rgba(255,255,255,.03);font-size:10px;color:var(--faint)}
+  .linkrow span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  /* scene 6 build */
+  .buildgrid{display:grid;grid-template-columns:1fr 1fr;gap:22px;width:100%}
+  .builder{padding:0;overflow:hidden}
+  .builder .body{padding:18px}
+  .builder .out{height:230px;border-radius:10px;background:linear-gradient(140deg,#1c1e2a,#0d0e12);border:1px solid var(--line);position:relative;overflow:hidden}
+  .builder .out:before{content:"";position:absolute;left:24px;top:24px;width:44%;height:12px;border-radius:6px;background:rgba(255,255,255,.55)}
+  .builder .out:after{content:"";position:absolute;left:24px;top:48px;width:26%;height:7px;border-radius:4px;background:rgba(113,112,255,.7)}
+  .builder .out .uibtn{position:absolute;left:24px;bottom:24px;background:#7170ff;color:#fff;font-size:9px;font-weight:800;border-radius:6px;padding:8px 12px}
+  .airow{display:flex;gap:10px;align-items:flex-start;margin-top:10px}
+  .airow .who{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;background:rgba(113,112,255,.15);color:#c9c7ff;font-size:11px;font-weight:800;flex:none}
+  .airow .msg{font-size:11.5px;line-height:1.5;color:var(--muted);background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:9px;padding:10px 12px}
+  .airow .msg b{color:var(--ink)}
+  .desktopchip{display:flex;align-items:center;gap:11px;margin-top:16px;padding:12px 14px;border:1px solid rgba(110,168,254,.28);background:rgba(110,168,254,.07);border-radius:10px;font-size:11px;color:var(--blue);font-weight:700}
+
+  /* scene 7 pricing */
+  .plans{display:grid;grid-template-columns:1fr 1fr;gap:18px;width:100%;max-width:820px;margin:0 auto}
+  .plan{padding:24px;border-radius:16px;background:linear-gradient(180deg,#17181c,#101115);border:1px solid var(--line)}
+  .plan.pro{border-color:rgba(113,112,255,.55);background:linear-gradient(180deg,rgba(113,112,255,.15),#101115);box-shadow:0 0 60px rgba(113,112,255,.12)}
+  .plan .t{font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+  .plan .price{font-size:46px;font-weight:800;letter-spacing:-.05em;margin-top:12px}
+  .plan .per{font-size:11px;color:var(--faint);margin-top:2px}
+  .plan ul{list-style:none;padding:0;margin:20px 0 0;display:flex;flex-direction:column;gap:8px;font-size:11.5px;color:var(--muted)}
+  .plan li{display:flex;gap:8px;align-items:flex-start}
+  .plan li:before{content:"✓";color:#c9c7ff;font-weight:800}
+  .cta{display:inline-flex;align-items:center;gap:10px;margin-top:26px;background:var(--violet);color:#fff;font-size:13px;font-weight:800;border-radius:10px;padding:13px 18px;box-shadow:0 12px 30px -12px rgba(113,112,255,.8)}
+  .final{position:absolute;right:76px;bottom:96px;text-align:right;z-index:6}
+  .final .u{font-size:34px;font-weight:800;letter-spacing:-.04em;color:#c9c7ff}
+  .final .tag{font-size:11px;color:var(--faint);margin-top:6px}
+
+  .scene.active .anim{animation:rise .7s cubic-bezier(.22,.61,.36,1) both}
+  .scene.active .anim.d1{animation-delay:.12s}.scene.active .anim.d2{animation-delay:.22s}.scene.active .anim.d3{animation-delay:.34s}.scene.active .anim.d4{animation-delay:.46s}.scene.active .anim.d5{animation-delay:.58s}
+  @keyframes rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+  .scene.active .splash .inner{animation:splashIn .8s cubic-bezier(.22,.61,.36,1) both .1s}
+  .scene.active .splash{animation:splashOut .55s ease .95s both}
+  @keyframes splashIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+  @keyframes splashOut{to{opacity:0;visibility:hidden}}
+  .scene.active .scanline{animation-delay:.4s}
+  .scene.active .cursor.a{animation:curA 4.8s ease-in-out infinite}
+  .scene.active .cursor.b{animation:curB 5.2s ease-in-out infinite}
+  @keyframes curA{0%,100%{transform:translate(160px,160px)}30%{transform:translate(360px,120px)}65%{transform:translate(300px,280px)}}
+  @keyframes curB{0%,100%{transform:translate(760px,250px)}35%{transform:translate(560px,310px)}70%{transform:translate(700px,130px)}}
+  .scene.active .floaty.f1{animation:float1 3.4s ease-in-out infinite}
+  .scene.active .floaty.f2{animation:float1 3.8s ease-in-out infinite reverse}
+  @keyframes float1{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+  @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="brand"><span class="mark"></span><span class="wordmark">Vector</span></div>
+  <div class="topmeta"><b>THE REVIEW LAYER</b> &nbsp;/&nbsp; 60 SECONDS</div>
+  <div class="progress"><span id="bar"></span></div>
+  <div id="flash" style="position:fixed;inset:0;background:#fff;opacity:0;z-index:999;pointer-events:none"></div>
+
+  <div class="scenes">
+    <!-- 0 -->
+    <section class="scene" data-scene="0">
+      <div class="splash"><div class="inner"><div class="bigmark"></div><div class="sname">Vector</div><div class="stag">Know what your prompt forgot</div></div></div>
+      <div class="stage-grid">
+        <div class="copy">
+          <p class="eyebrow anim">The problem</p>
+          <h1 class="anim d1">Every AI-built interface starts with a prompt.</h1>
+          <p class="sub anim d2">Most prompts are missing something. Vector finds it before your generator builds the wrong screen.</p>
+        </div>
+        <div class="panel promptbox anim d2">
+          <div class="label">YOUR PROMPT</div>
+          <div class="promptline">Build a checkout page with a red button labelled “Pay now”.<span class="caret"></span></div>
+          <div class="glowline"></div>
+          <div class="missing">
+            <span class="chip warm"><span class="pd"></span> Missing action</span>
+            <span class="chip warm"><span class="pd"></span> No colour</span>
+            <span class="chip warm"><span class="pd"></span> No error state</span>
+          </div>
+        </div>
+      </div>
+      <div class="riskbig anim d4"><div class="n">72</div><div class="l">Risk<br>High</div></div>
+    </section>
+
+    <!-- 1 -->
+    <section class="scene" data-scene="1">
+      <div class="stage-grid">
+        <div class="copy">
+          <p class="eyebrow anim">Prompt review</p>
+          <h1 class="anim d1">Vector finds the gaps.</h1>
+          <p class="sub anim d2">A deterministic review against the same requirement model your generator needs — no guessing.</p>
+          <div class="anim d3" style="display:flex;gap:10px;margin-top:26px;flex-wrap:wrap">
+            <span class="chip violet"><span class="pd"></span> Missing actions</span>
+            <span class="chip warm"><span class="pd"></span> Unresolved attributes</span>
+            <span class="chip warm"><span class="pd"></span> Unlinked states</span>
+          </div>
+        </div>
+        <div class="panel review anim d2" style="overflow:hidden">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="name">vector — prompt review</span><span style="margin-left:auto" class="chip violet">22 · Medium</span></div>
+          <div class="scanline"></div>
+          <div class="finding"><div class="ico">!</div><div><div class="t">Missing action</div><div class="b">What should “Continue” do when clicked?</div></div><div class="r">Required</div></div>
+          <div class="finding"><div class="ico">!</div><div><div class="t">Unresolved attribute</div><div class="b">No colour is specified for the primary button.</div></div><div class="r">Medium</div></div>
+          <div class="finding"><div class="ico v">↺</div><div><div class="t">Unlinked state</div><div class="b">The password field has no error or disabled state.</div></div><div class="r">Low</div></div>
+          <div style="padding:16px 18px;display:flex;align-items:center;gap:14px">
+            <div style="font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)">Coverage</div>
+            <div style="flex:1;height:5px;border-radius:5px;background:rgba(255,255,255,.08);overflow:hidden"><i style="display:block;height:100%;width:68%;background:linear-gradient(90deg,var(--warm),var(--violet))"></i></div>
+            <div class="num" style="font-size:13px;font-weight:800">68%</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="scene" data-scene="2">
+      <div class="stage-grid">
+        <div class="copy">
+          <p class="eyebrow anim">Clarify</p>
+          <h1 class="anim d1">Answer four questions.<br><span class="dim">Leave with a brief.</span></h1>
+          <p class="sub anim d2">Every gap becomes a short, answerable question. Every answer becomes a testable requirement.</p>
+          <div class="panel qcard anim d3" style="margin-top:26px">
+            <div class="label">QUESTION 3 OF 4</div>
+            <div class="q" style="margin-top:8px">What should “Continue” do after payment?</div>
+            <div class="answers"><span class="a">Go back</span><span class="a on">Go to confirmation</span><span class="a">Close</span></div>
+            <div class="qprogress"><i></i></div>
+          </div>
+        </div>
+        <div class="panel anim d2" style="padding:22px">
+          <div style="display:flex;align-items:center;gap:16px">
+            <div class="bigcheck">✓</div>
+            <div><div class="label">THE RESULT</div><div style="font-size:23px;font-weight:800;letter-spacing:-.03em;margin-top:4px">A complete, reviewed brief</div><div style="font-size:11px;color:var(--muted);margin-top:3px">Ready for any generator.</div></div>
+          </div>
+          <div class="brief" style="padding:18px 0 0">
+            <div class="row"><b>Intent</b> &nbsp;Checkout with a confident primary action <span class="tick">✓</span></div>
+            <div class="row"><b>Elements</b> &nbsp;Button, input, summary, states <span class="tick">✓</span></div>
+            <div class="row"><b>Attributes</b> &nbsp;Red #E5484D, labelled “Pay now” <span class="tick">✓</span></div>
+            <div class="row"><b>States</b> &nbsp;Empty, loading, success, error <span class="tick">✓</span></div>
+            <div class="row"><b>Acceptance</b> &nbsp;6 testable criteria <span class="tick">✓</span></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;margin-top:16px"><span class="chip violet">Risk 5 · Low</span><span style="font-size:10px;color:var(--faint)">Prompt ready to copy</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="scene" data-scene="3">
+      <div style="width:100%">
+        <div class="copy" style="max-width:900px">
+          <p class="eyebrow anim">Canvas</p>
+          <h1 class="anim d1">Compose the real screen.</h1>
+          <p class="sub anim d2">Blocks, assets, pages and your own design tokens. The same system in the canvas and the prompt.</p>
+        </div>
+        <div class="canvas-wrap anim d3" style="margin-top:24px">
+          <div class="panel palette">
+            <div class="label">ASSETS</div>
+            <div class="p">Buttons</div><div class="p hot">Cards</div><div class="p">Text</div><div class="p">Media</div><div class="p">Pages</div><div class="p">Apps</div>
+            <div style="height:8px"></div><div class="label">DESIGN SYSTEM</div><div class="p hot">Midnight</div>
+          </div>
+          <div class="artboard">
+            <div class="nav"><span class="logo"></span><b>Acme</b><span style="color:#a4a7ae;font-weight:500">Product</span><span style="color:#a4a7ae;font-weight:500">Pricing</span><span class="right"><span style="color:#a4a7ae;font-weight:500">Log in</span><span class="pill">Start free</span></span></div>
+            <h3>Interfaces that hold up.</h3>
+            <p>A complete brief becomes a real screen, with every label, action and state already decided.</p>
+            <div class="grid">
+              <div class="g"><div class="bar w"></div><div class="bar"></div><div class="bar"></div><span class="btn">Primary</span></div>
+              <div class="g"><div class="bar w"></div><div class="bar"></div><div class="bar"></div><span class="btn">Secondary</span></div>
+              <div class="g"><div class="bar w"></div><div class="bar"></div><div class="bar"></div><span class="btn">Ghost</span></div>
+            </div>
+          </div>
+          <div class="panel inspector">
+            <div class="label">INSPECTOR</div>
+            <div class="swatch"><i></i> Primary <span style="margin-left:auto;color:var(--ink)">#7170FF</span></div>
+            <div class="swatch"><i style="background:#0b0e14"></i> Ink <span style="margin-left:auto;color:var(--ink)">#F7F8F8</span></div>
+            <div class="swatch"><i style="background:#23252a"></i> Surface <span style="margin-left:auto;color:var(--ink)">#101113</span></div>
+            <div style="height:1px;background:var(--line);margin:4px 0"></div>
+            <div class="label">TYPE</div><div style="font-size:11px;color:var(--muted)">Inter · 40 / 28 / 14</div>
+            <div class="label" style="margin-top:4px">RADIUS</div><div style="font-size:11px;color:var(--muted)">10px · 8px grid</div>
+          </div>
+          <span class="floaty f1" style="left:260px;top:-18px">21 page starters</span>
+          <span class="floaty f2" style="right:220px;bottom:-12px">Design tokens</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4 -->
+    <section class="scene" data-scene="4">
+      <div style="width:100%;display:grid;grid-template-columns:1fr 1.05fr;gap:44px;align-items:center">
+        <div>
+          <p class="eyebrow anim">Templates + Learn</p>
+          <h1 class="anim d1">Start ahead.<br><span class="dim">Learn by doing.</span></h1>
+          <p class="sub anim d2">21 production-shaped templates. Short guided lessons that show the exact next move.</p>
+          <div class="tgrid anim d3" style="margin-top:26px;grid-template-columns:1fr 1fr">
+            <div class="tcard"><div class="prev"></div><div class="meta"><b>Booking Flow</b><span>Marketing</span></div></div>
+            <div class="tcard"><div class="prev"></div><div class="meta"><b>CRM Contacts</b><span>Data</span></div></div>
+            <div class="tcard"><div class="prev"></div><div class="meta"><b>Kanban Board</b><span>Collab</span></div></div>
+            <div class="tcard"><div class="prev"></div><div class="meta"><b>Help Center</b><span>Marketing</span></div></div>
+          </div>
+        </div>
+        <div class="panel lesson anim d2" style="position:relative;right:auto;top:auto;width:100%">
+          <div class="head"><span style="width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:rgba(113,112,255,.16);color:#c9c7ff;font-weight:800">L</span><div><div style="font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)">Learn · Beginner</div><div style="font-size:17px;font-weight:750;letter-spacing:-.02em;margin-top:3px">Your first project in 4 minutes</div></div></div>
+          <div class="steps">
+            <div class="s"><span class="n">1</span> Open Projects and choose New project.</div>
+            <div class="s on"><span class="n">2</span> Pick a template, or start with a blank canvas.</div>
+            <div class="s"><span class="n">3</span> Write one plain sentence about the screen.</div>
+            <div class="s"><span class="n">4</span> Answer the questions, then generate.</div>
+          </div>
+          <div style="margin:0 18px 18px;border-top:1px solid var(--line);padding-top:14px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:10px;color:var(--faint)">Step 2 · Pick a template</span><span class="chip violet" style="font-size:10px;padding:6px 9px">Try it</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5 -->
+    <section class="scene" data-scene="5">
+      <div style="width:100%">
+        <div class="copy" style="max-width:980px">
+          <p class="eyebrow anim">Pro sharing</p>
+          <h1 class="anim d1">One project. Two people.<br><span class="dim">Zero refresh.</span></h1>
+          <p class="sub anim d2">Share with another Pro. Edit together with live cursors, or send a view-only link.</p>
+        </div>
+        <div class="sharecv anim d3" style="margin-top:24px">
+          <div class="board">
+            <div class="b1"></div><div class="b2"></div>
+            <div class="cards"><div class="c"></div><div class="c"></div><div class="c"></div></div>
+            <div class="cursor a"><span class="arrow"></span><span class="tag">You</span></div>
+            <div class="cursor b"><span class="arrow"></span><span class="tag">Roshna · editing</span></div>
+          </div>
+          <div class="panel sharecard">
+            <div class="chrome"><span class="chip violet" style="font-size:10px;padding:5px 8px">Share this project</span><span style="margin-left:auto;font-size:9px;color:var(--faint)">LIVE</span></div>
+            <div class="body">
+              <div style="font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)">Link access</div>
+              <div class="seg" style="margin-top:8px"><b class="on">Can edit</b><b>Can view</b></div>
+              <div class="linkrow">vectorco.in/?room=project_a782…<span style="margin-left:auto;color:var(--violet2);font-weight:700">Copy</span></div>
+              <div style="font-size:10px;color:var(--faint);line-height:1.5;margin-top:10px">Changes are saved to the project holder’s project. No refresh, no lost work.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6 -->
+    <section class="scene" data-scene="6">
+      <div style="width:100%">
+        <div class="copy" style="max-width:980px">
+          <p class="eyebrow anim">Build</p>
+          <h1 class="anim d1">From brief to a running app.</h1>
+          <p class="sub anim d2">Copy the finished prompt into Base44, ask Vector AI what is still missing, or work offline on Windows.</p>
+        </div>
+        <div class="buildgrid anim d3" style="margin-top:24px">
+          <div class="panel builder">
+            <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="name">Base44 builder</span><span class="chip violet" style="margin-left:auto;font-size:9px;padding:5px 8px">Prompt copied</span></div>
+            <div class="body"><div class="out"><span class="uibtn">Generate app</span></div><div style="font-size:10px;color:var(--faint);margin-top:10px">Paste the brief, then build the live UI.</div></div>
+          </div>
+          <div>
+            <div class="panel" style="padding:18px">
+              <div style="display:flex;align-items:center;gap:10px"><span style="width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:rgba(113,112,255,.16);color:#c9c7ff;font-weight:800">AI</span><div><div style="font-size:12px;font-weight:750">Vector AI</div><div style="font-size:9px;color:var(--faint)">Knows the current canvas</div></div><span class="chip blue" style="margin-left:auto;font-size:9px;padding:5px 8px"><span class="pd"></span> Live</span></div>
+              <div class="airow"><span class="who">You</span><span class="msg">What is still missing on this page?</span></div>
+              <div class="airow"><span class="who">V</span><span class="msg"><b>Two things:</b> the empty state is not described, and the primary button has no focus ring. Add both before generating.</span></div>
+              <div class="desktopchip">▣ Vector for Windows <span style="margin-left:auto;font-weight:600">Download</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7 -->
+    <section class="scene" data-scene="7">
+      <div style="width:100%">
+        <div class="copy" style="text-align:center;max-width:1000px;margin:0 auto">
+          <p class="eyebrow anim" style="justify-content:center">Pricing</p>
+          <h1 class="anim d1">Two projects free.<br><span class="dim">Pro when you’re ready.</span></h1>
+          <p class="sub anim d2" style="margin-left:auto;margin-right:auto">No card required. Cancel any time.</p>
+        </div>
+        <div class="plans anim d3">
+          <div class="plan">
+            <div class="t">Free</div><div class="price">₹0</div><div class="per">forever</div>
+            <ul><li>2 full projects</li><li>Rules engine on-device</li><li>3 starter templates</li><li>Clarification questions + risk score</li></ul>
+          </div>
+          <div class="plan pro">
+            <div class="t" style="color:#c9c7ff">Pro</div><div class="price">₹199</div><div class="per">per month · ₹1,990 per year</div>
+            <ul><li>Unlimited projects</li><li>All 21 templates</li><li>Live Pro-to-Pro collaboration</li><li>Design systems + exports</li><li>Vector AI + Windows desktop</li></ul>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:center;margin-top:26px"><span class="cta anim d4">Start at vectorco.in <span style="font-size:16px">→</span></span></div>
+      </div>
+      <div class="final anim d5"><div class="u">vectorco.in</div><div class="tag">Know what your prompt forgot.</div></div>
+    </section>
+  </div>
+</div>
+<script>
+  const scenes = [...document.querySelectorAll('.scene')];
+  const times = [0, 8.5, 16, 23.5, 31, 38.5, 46, 53.5];
+  const bar = document.getElementById('bar');
+  let started = false, startTs = 0, current = -1;
+  function setScene(i){
+    scenes.forEach((s,j)=>s.classList.toggle('active', j===i));
+    current = i;
+  }
+  function tick(now){
+    if(!started) return;
+    const t = Math.min(60, (now - startTs) / 1000);
+    bar.style.width = (t/60*100).toFixed(2) + '%';
+    let i = 0;
+    for(let k=0;k<times.length;k++) if(t >= times[k]) i = k;
+    if(i !== current) setScene(i);
+    if(t < 60) requestAnimationFrame(tick);
+    else window.__promoDone = true;
+  }
+  window.startPromo = () => {
+    if(started) return;
+    started = true;
+    startTs = performance.now();
+    setScene(0);
+    requestAnimationFrame(tick);
+  };
+  // For recording: load with ?wait=1 and call startPromo() explicitly.
+  const params = new URLSearchParams(location.search);
+  if(params.has('sync')){
+    // Pre-roll marker: solid magenta while the page settles, then start the
+    // 60s timeline exactly when it disappears. Trim the marker in post.
+    const sync = document.createElement('div');
+    sync.style.cssText = 'position:fixed;inset:0;background:#ff00ff;z-index:10000';
+    document.body.appendChild(sync);
+    window.addEventListener('load', () => setTimeout(() => {
+      sync.remove();
+      window.startPromo();
+    }, 1400));
+  } else if(!params.has('wait')){
+    window.addEventListener('load', () => setTimeout(window.startPromo, 250));
+  } else {
+    setScene(0);
+  }
+</script>
+</body>
+</html>
