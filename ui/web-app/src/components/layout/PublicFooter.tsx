@@ -1,8 +1,8 @@
-﻿import React from 'react';
+﻿import React, { useState } from 'react';
 import { ArrowUp, Download, Mail } from 'lucide-react';
 import type { ActiveTab } from '../../types/analysis.ts';
 import { Logo } from '../ui/Logo.tsx';
-import { WINDOWS_INSTALLER_URL } from '../../data/downloads.ts';
+import { WindowsDownloadDialog } from '../downloads/WindowsDownloadDialog.tsx';
 
 interface PublicFooterProps {
   activeTab: ActiveTab;
@@ -37,6 +37,7 @@ const COLUMNS: Array<{ title: string; links: Array<{ label: string; tab: ActiveT
 ];
 
 export const PublicFooter: React.FC<PublicFooterProps> = ({ activeTab, onNavigate }) => {
+  const [downloadOpen, setDownloadOpen] = useState(false);
   const go = (tab: ActiveTab) => {
     onNavigate(tab);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -60,12 +61,13 @@ export const PublicFooter: React.FC<PublicFooterProps> = ({ activeTab, onNavigat
             >
               <Mail className="h-3 w-3" /> hobbyhive52@gmail.com
             </a>
-            <a
-              href={WINDOWS_INSTALLER_URL}
+            <button
+              type="button"
+              onClick={() => setDownloadOpen(true)}
               className="mt-2 flex items-center gap-1.5 text-[11.5px] font-medium text-[var(--v-muted)] transition-colors hover:text-[var(--v-ink)]"
             >
               <Download className="h-3 w-3" /> Download for Windows
-            </a>
+            </button>
           </div>
 
           {COLUMNS.map((column) => (
@@ -114,6 +116,7 @@ export const PublicFooter: React.FC<PublicFooterProps> = ({ activeTab, onNavigat
           </div>
         </div>
       </div>
+      <WindowsDownloadDialog open={downloadOpen} onClose={() => setDownloadOpen(false)} />
     </footer>
   );
 };

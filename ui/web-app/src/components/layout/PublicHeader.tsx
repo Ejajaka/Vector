@@ -1,7 +1,7 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { ArrowRight, Download, LogIn } from 'lucide-react';
 import { Logo } from '../ui/Logo.tsx';
-import { WINDOWS_INSTALLER_URL } from '../../data/downloads.ts';
+import { WindowsDownloadDialog } from '../downloads/WindowsDownloadDialog.tsx';
 
 interface PublicHeaderProps {
   onRequestSignIn: () => void;
@@ -13,6 +13,7 @@ interface PublicHeaderProps {
 
 export const PublicHeader: React.FC<PublicHeaderProps> = ({ onRequestSignIn, onOpenApp, onHome }) => {
   const [scrolled, setScrolled] = useState(false);
+  const [downloadOpen, setDownloadOpen] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -44,12 +45,13 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ onRequestSignIn, onO
         </button>
 
         <div className="ml-auto flex items-center gap-1.5">
-          <a
-            href={WINDOWS_INSTALLER_URL}
+          <button
+            type="button"
+            onClick={() => setDownloadOpen(true)}
             className="hidden h-8 items-center gap-1.5 rounded-md px-3 text-[12.5px] font-medium text-[var(--v-muted)] transition-colors hover:text-[var(--v-ink)] md:inline-flex"
           >
             <Download className="h-3.5 w-3.5" /> Windows
-          </a>
+          </button>
           {onOpenApp ? (
             <button
               type="button"
@@ -78,6 +80,7 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ onRequestSignIn, onO
           )}
         </div>
       </div>
+      <WindowsDownloadDialog open={downloadOpen} onClose={() => setDownloadOpen(false)} />
     </header>
   );
 };
