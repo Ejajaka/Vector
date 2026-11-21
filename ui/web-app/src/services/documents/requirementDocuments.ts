@@ -7,6 +7,13 @@ import type {
 import { compileRequirements } from '../requirements/compiler.ts';
 import { extractDocumentText } from '../documents/parseDocument.ts';
 import { supabase } from '../supabase/client.ts';
+import {
+  listLocalDocuments,
+  listLocalRequirements,
+  removeLocalDocument,
+  saveLocalDocument,
+  saveLocalRequirements,
+} from './localRequirements.ts';
 
 const BUCKET = 'requirement-documents';
 
@@ -56,26 +63,42 @@ function mapRequirement(row: RequirementRow): RequirementRecord {
 }
 
 export async function listRequirementDocuments(projectId: string): Promise<RequirementDocument[]> {
-  const client = requireClient();
-  const { data, error } = await client
-    .from('requirement_documents')
-    .select('*')
-    .eq('project_id', projectId)
-    .order('created_at', { ascending: false });
-  if (error) throw new Error(error.message);
-  return (data || []).map(mapDocument);
+  const local = listLocalDocuments(projectId);
+  if (!supabase) return local;
+  try {
+    const client = requireClient();
+    const { data, error } = await client
+      .from('requirement_documents')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return [...local, ...(data || []).map(mapDocument)].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+  } catch {
+    return local;
+  }
 }
 
 export async function listRequirements(projectId: string): Promise<RequirementRecord[]> {
-  const client = requireClient();
-  const { data, error } = await client
-    .from('requirements')
-    .select('*')
-    .eq('project_id', projectId)
-    .order('created_at', { ascending: true })
-    .order('requirement_code', { ascending: true });
-  if (error) throw new Error(error.message);
-  return (data || []).map((row) => mapRequirement(row as RequirementRow));
+  const local = listLocalRequirements(projectId);
+  if (!supabase) return local;
+  try {
+    const client = requireClient();
+    const { data, error } = await client
+      .from('requirements')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: true })
+      .order('requirement_code', { ascending: true });
+    if (error) throw new Error(error.message);
+    return [...local, ...(data || []).map((row) => mapRequirement(row as RequirementRow))].sort((a, b) =>
+      a.requirementCode.localeCompare(b.requirementCode),
+    );
+  } catch {
+    return local;
+  }
 }
 
 export interface UploadResult {
@@ -83,12 +106,48 @@ export interface UploadResult {
   requirements: RequirementRecord[];
 }
 
-export async function uploadRequirementDocument(
+async function uploadRequirementDocumentInner(
   projectId: string,
   userId: string,
   file: File,
   onProgress?: (stage: 'uploading' | 'parsing' | 'saving', message?: string) => void,
+  forceLocal = false,
 ): Promise<UploadResult> {
+  if (forceLocal || !supabase) {
+    const documentId = crypto.randomUUID();
+    onProgress?.('parsing', 'Reading the document...');
+    const extracted = await extractDocumentText(file);
+    const prefix = `REQ-${documentId.slice(0, 6).toUpperCase()}`;
+    const drafts = compileRequirements(extracted, { codePrefix: prefix });
+    const createdAt = new Date().toISOString();
+    const document: RequirementDocument = {
+      id: documentId,
+      projectId,
+      fileName: file.name,
+      mimeType: file.type || null,
+      storagePath: `local://${documentId}`,
+      extractedText: extracted.text,
+      pageCount: extracted.pageCount,
+      status: 'parsed',
+      errorMessage: null,
+      createdAt,
+    };
+    const requirements: RequirementRecord[] = drafts.map((draft) => ({
+      ...draft,
+      id: crypto.randomUUID(),
+      projectId,
+      documentId,
+      status: 'pending_review',
+      priority: 'medium',
+      priorityReason: null,
+      createdAt,
+    }));
+    saveLocalDocument(document);
+    saveLocalRequirements(projectId, requirements);
+    onProgress?.('saving', `Saved ${requirements.length} requirements in this browser.`);
+    return { document, requirements };
+  }
+
   const client = requireClient();
   const documentId = crypto.randomUUID();
   const storagePath = `${projectId}/${documentId}/${safeFileName(file.name)}`;
@@ -186,7 +245,36 @@ export async function uploadRequirementDocument(
   };
 }
 
+export async function uploadRequirementDocument(
+  projectId: string,
+  userId: string,
+  file: File,
+  onProgress?: (stage: 'uploading' | 'parsing' | 'saving', message?: string) => void,
+): Promise<UploadResult> {
+  if (!supabase) {
+    return uploadRequirementDocumentInner(projectId, userId, file, onProgress, true);
+  }
+  try {
+    return await uploadRequirementDocumentInner(projectId, userId, file, onProgress);
+  } catch (error) {
+    // Keep the review flow usable if Storage or Postgres is unavailable.
+    try {
+      return await uploadRequirementDocumentInner(projectId, userId, file, onProgress, true);
+    } catch {
+      throw error;
+    }
+  }
+}
+
 export async function deleteRequirementDocument(document: RequirementDocument): Promise<void> {
+  if (document.storagePath.startsWith('local://')) {
+    removeLocalDocument(document.projectId, document.id);
+    return;
+  }
+  if (!supabase) {
+    removeLocalDocument(document.projectId, document.id);
+    return;
+  }
   const client = requireClient();
   const { error: storageError } = await client.storage.from(BUCKET).remove([document.storagePath]);
   if (storageError && !/not found/i.test(storageError.message)) throw new Error(storageError.message);

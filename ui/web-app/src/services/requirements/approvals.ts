@@ -1,5 +1,6 @@
 import { supabase } from '../supabase/client.ts';
 import type { RequirementStatus } from '../../types/requirements.ts';
+import { updateLocalRequirementStatus } from '../documents/localRequirements.ts';
 
 export async function recordRequirementDecision(
   projectId: string,
@@ -8,7 +9,8 @@ export async function recordRequirementDecision(
   decision: Exclude<RequirementStatus, 'pending_review'>,
   reason = '',
 ): Promise<void> {
-  if (!supabase) throw new Error('Connect Supabase to record approvals.');
+  updateLocalRequirementStatus(projectId, [requirementId], decision);
+  if (!supabase) return;
   const { error: updateError } = await supabase
     .from('requirements')
     .update({ status: decision })
@@ -34,7 +36,7 @@ export async function recordCriterionDecision(
   decision: 'approved' | 'rejected',
   reason = '',
 ): Promise<void> {
-  if (!supabase) throw new Error('Connect Supabase to record approvals.');
+  if (!supabase) return;
   const { error } = await supabase.from('approvals').insert({
     project_id: projectId,
     entity_type: 'acceptance_criterion',
@@ -54,7 +56,8 @@ export async function recordRequirementDecisions(
   reason = '',
 ): Promise<void> {
   if (!requirementIds.length) return;
-  if (!supabase) throw new Error('Connect Supabase to record approvals.');
+  updateLocalRequirementStatus(projectId, requirementIds, decision);
+  if (!supabase) return;
 
   const { error: updateError } = await supabase
     .from('requirements')
@@ -84,7 +87,7 @@ export async function recordCriterionDecisions(
   reason = '',
 ): Promise<void> {
   if (!criterionIds.length) return;
-  if (!supabase) throw new Error('Connect Supabase to record approvals.');
+  if (!supabase) return;
   const { error } = await supabase.from('approvals').insert(
     criterionIds.map((criterionId) => ({
       project_id: projectId,

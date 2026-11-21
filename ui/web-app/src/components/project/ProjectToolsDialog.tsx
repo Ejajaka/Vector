@@ -19,7 +19,15 @@ import {
   X,
 } from 'lucide-react';
 import { auditElements, auditQuality, compilePromptScreens, roughRisk } from '../../services/promptCompiler.ts';
-import { getActiveDesignSystem } from '../../services/designSystems.ts';
+import {
+  applySystemToProject,
+  getActiveDesignSystem,
+  listDesignSystems,
+  saveDesignSystem,
+  setActiveDesignSystem,
+  type DesignSystem,
+  type DesignTokens,
+} from '../../services/designSystems.ts';
 import { readProjectSetup } from '../../services/projectSeed.ts';
 import { readBase44PageUrl } from '../../services/base44.ts';
 
@@ -57,7 +65,6 @@ const TOOLS: Array<{ id: ProjectToolId; label: string; icon: React.ComponentType
   { id: 'graph', label: 'Requirement graph', icon: GitBranch, hint: 'From uploaded requirement documents' },
   { id: 'review', label: 'Review & acceptance', icon: ClipboardCheck, hint: 'From uploaded requirement documents' },
   { id: 'prompt', label: 'Prompt studio', icon: Sparkles, hint: 'The six-section brief' },
-  { id: 'build', label: 'Build workspace', icon: Rocket, hint: 'Base44, embedded' },
   { id: 'design', label: 'Design systems', icon: Palette, hint: 'Tokens this project uses' },
   { id: 'analyser', label: 'Prompt analyser', icon: BarChart3, hint: 'Risk and readiness' },
 ];
@@ -214,26 +221,94 @@ const BuildView: React.FC<{ text: string; projectId: string }> = ({ text, projec
   );
 };
 
-const DesignView: React.FC<{ projectId: string }> = ({ projectId }) => {
-  const system = useMemo(() => getActiveDesignSystem(), []);
+const DesignView: React.FC<{ projectId: string; onOpenPage: () => void }> = ({ projectId, onOpenPage }) => {
   const setup = useMemo(() => readProjectSetup(projectId), [projectId]);
-  const tokens = system?.tokens;
-  const colours = tokens
-    ? [
-        { label: 'Primary', value: tokens.primary },
-        { label: 'Accent', value: tokens.accent },
-        { label: 'Surface', value: tokens.surface },
-        { label: 'Ink', value: tokens.ink },
-      ]
-    : [
-        { label: 'Primary', value: DEFAULT_TOKENS.primary },
-        { label: 'Accent', value: DEFAULT_TOKENS.accent },
-        { label: 'Surface', value: DEFAULT_TOKENS.surface },
-        { label: 'Ink', value: DEFAULT_TOKENS.ink },
-      ];
+  const [system, setSystem] = useState<DesignSystem | null>(() => getActiveDesignSystem());
+  const [systems] = useState<DesignSystem[]>(() => listDesignSystems());
+  const [name, setName] = useState(system?.name || '');
+  const [tokens, setTokens] = useState<DesignTokens>(
+    system?.tokens || {
+      primary: DEFAULT_TOKENS.primary,
+      accent: DEFAULT_TOKENS.accent,
+      surface: DEFAULT_TOKENS.surface,
+      ink: DEFAULT_TOKENS.ink,
+      font: 'jakarta',
+      radius: 12,
+      spacing: 8,
+    },
+  );
+  const [saved, setSaved] = useState(false);
 
   const purposes = Array.isArray(setup?.purposes) ? (setup?.purposes as string[]) : [];
   const features = Array.isArray(setup?.features) ? (setup?.features as string[]) : [];
+
+  const choose = (next: DesignSystem) => {
+    setActiveDesignSystem(next.id);
+    setSystem(next);
+    setName(next.name);
+    setTokens(next.tokens);
+    applySystemToProject(projectId, next);
+    setSaved(true);
+  };
+
+  const save = () => {
+    if (!system) return;
+    const next = saveDesignSystem({ id: system.id, name, note: system.note, tokens });
+    setSystem(next);
+    setName(next.name);
+    setTokens(next.tokens);
+    applySystemToProject(projectId, next);
+    setSaved(true);
+    window.setTimeout(() => setSaved(false), 1600);
+  };
+
+  const update = (key: keyof DesignTokens, value: string | number) =>
+    setTokens((current) => ({ ...current, [key]: value }));
+
+  if (!system) {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-lg border border-[var(--v-line)] bg-[var(--v-surface-2)] p-3">
+          <div className="flex items-center gap-2">
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-[var(--v-violet)]/10 text-[var(--v-violet)]">
+              <Palette className="h-4 w-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-semibold text-[var(--v-ink)]">No design system active</p>
+              <p className="text-[9px] text-[var(--v-faint)]">Pick one to apply its colours to this project.</p>
+            </div>
+            <button type="button" onClick={onOpenPage} className="v-btn v-btn-ghost h-7 px-2 text-[9px]">
+              <ArrowUpRight className="h-3 w-3" /> Open page
+            </button>
+          </div>
+        </div>
+        {systems.length === 0 ? (
+          <Empty title="No design systems yet" body="Create one on the Design systems page, then return here." />
+        ) : (
+          <div className="grid gap-2">
+            {systems.map((entry) => (
+              <button
+                key={entry.id}
+                type="button"
+                onClick={() => choose(entry)}
+                className="flex items-center gap-2 rounded-lg border border-[var(--v-line)] bg-[var(--v-surface-2)] p-2.5 text-left hover:border-[var(--v-violet)]"
+              >
+                <span className="flex gap-1">
+                  {[entry.tokens.primary, entry.tokens.accent, entry.tokens.surface].map((colour) => (
+                    <span key={colour} className="h-4 w-4 rounded-full border border-[var(--v-line)]" style={{ background: colour }} />
+                  ))}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[11px] font-semibold text-[var(--v-ink)]">{entry.name}</span>
+                  <span className="block truncate text-[9px] text-[var(--v-faint)]">{entry.tokens.font} · {entry.tokens.radius}px</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -242,45 +317,79 @@ const DesignView: React.FC<{ projectId: string }> = ({ projectId }) => {
           <Palette className="h-4 w-4" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold text-[var(--v-ink)]">{system?.name || 'Workspace default'}</p>
-          <p className="text-[9px] text-[var(--v-faint)]">
-            {system ? `Updated ${new Date(system.updatedAt).toLocaleDateString()}` : 'No design system is active for this workspace.'}
-          </p>
+          <p className="text-[11px] font-semibold text-[var(--v-ink)]">Active design system</p>
+          <p className="text-[9px] text-[var(--v-faint)]">Edit the tokens; saving recolours this project's canvas.</p>
         </div>
-        <span className="rounded-full border border-[var(--v-line)] px-2 py-0.5 text-[8px] uppercase tracking-wider text-[var(--v-faint)]">
-          Read-only
-        </span>
+        <button type="button" onClick={onOpenPage} className="v-btn v-btn-ghost h-7 px-2 text-[9px]">
+          <ArrowUpRight className="h-3 w-3" /> Open page
+        </button>
       </div>
+
+      <label className="block">
+        <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--v-faint)]">Name</span>
+        <input
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          className="mt-1 h-8 w-full rounded-md border border-[var(--v-line)] bg-[var(--v-surface)] px-2 text-[11px] text-[var(--v-ink)] outline-none focus:border-[var(--v-violet)]"
+        />
+      </label>
 
       <div>
         <SectionHeading title="Colour" />
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {colours.map((colour) => (
-            <div key={colour.label} className="rounded-lg border border-[var(--v-line)] bg-[var(--v-surface-2)] p-2">
-              <span className="block h-10 w-full rounded-md border border-white/10" style={{ background: colour.value }} />
-              <p className="mt-1.5 text-[9px] font-semibold text-[var(--v-ink)]">{colour.label}</p>
-              <p className="font-mono text-[8.5px] text-[var(--v-faint)]">{colour.value}</p>
-            </div>
+          {([
+            ['primary', 'Primary'],
+            ['accent', 'Accent'],
+            ['surface', 'Surface'],
+            ['ink', 'Ink'],
+          ] as const).map(([key, label]) => (
+            <label key={key} className="rounded-lg border border-[var(--v-line)] bg-[var(--v-surface-2)] p-2">
+              <span className="block h-9 w-full rounded-md border border-white/10" style={{ background: tokens[key] }} />
+              <span className="mt-1.5 flex items-center gap-1.5">
+                <input
+                  type="color"
+                  value={tokens[key]}
+                  onChange={(event) => update(key, event.target.value)}
+                  className="h-4 w-4 cursor-pointer rounded border-0 bg-transparent p-0"
+                  aria-label={label}
+                />
+                <span className="text-[9px] font-semibold text-[var(--v-ink)]">{label}</span>
+              </span>
+              <span className="block font-mono text-[8.5px] text-[var(--v-faint)]">{tokens[key]}</span>
+            </label>
           ))}
         </div>
       </div>
 
       <div className="grid gap-2 sm:grid-cols-3">
-        <div className="rounded-lg border border-[var(--v-line)] bg-[var(--v-surface-2)] p-2.5">
-          <p className="text-[9px] uppercase tracking-[0.1em] text-[var(--v-faint)]">Typography</p>
-          <p className="mt-1 text-[13px] font-semibold text-[var(--v-ink)]">{tokens?.font || DEFAULT_TOKENS.font}</p>
-          <p className="text-[9px] text-[var(--v-muted)]">Display 40 · H1 28 · Body 14 · Mono 9</p>
-        </div>
-        <div className="rounded-lg border border-[var(--v-line)] bg-[var(--v-surface-2)] p-2.5">
-          <p className="text-[9px] uppercase tracking-[0.1em] text-[var(--v-faint)]">Radius</p>
-          <p className="mt-1 text-[13px] font-semibold text-[var(--v-ink)]">{tokens?.radius ? `${tokens.radius}px` : DEFAULT_TOKENS.radius}</p>
-          <p className="text-[9px] text-[var(--v-muted)]">Controls 6 · Cards 8 · Panels 12</p>
-        </div>
-        <div className="rounded-lg border border-[var(--v-line)] bg-[var(--v-surface-2)] p-2.5">
-          <p className="text-[9px] uppercase tracking-[0.1em] text-[var(--v-faint)]">Spacing</p>
-          <p className="mt-1 text-[13px] font-semibold text-[var(--v-ink)]">{tokens?.spacing ?? DEFAULT_TOKENS.spacing}</p>
-          <p className="text-[9px] text-[var(--v-muted)]">4 px base scale</p>
-        </div>
+        <label className="rounded-lg border border-[var(--v-line)] bg-[var(--v-surface-2)] p-2.5">
+          <span className="text-[9px] uppercase tracking-[0.1em] text-[var(--v-faint)]">Typeface</span>
+          <select
+            value={tokens.font}
+            onChange={(event) => update('font', event.target.value)}
+            className="mt-1 h-7 w-full rounded border border-[var(--v-line)] bg-[var(--v-surface)] px-1 text-[10px] text-[var(--v-ink)]"
+          >
+            {['jakarta', 'bricolage', 'georgia', 'mono'].map((font) => (
+              <option key={font} value={font}>{font}</option>
+            ))}
+          </select>
+        </label>
+        <label className="rounded-lg border border-[var(--v-line)] bg-[var(--v-surface-2)] p-2.5">
+          <span className="text-[9px] uppercase tracking-[0.1em] text-[var(--v-faint)]">Radius · {tokens.radius}px</span>
+          <input type="range" min={0} max={32} value={tokens.radius} onChange={(event) => update('radius', Number(event.target.value))} className="mt-3 w-full accent-[var(--v-violet)]" />
+        </label>
+        <label className="rounded-lg border border-[var(--v-line)] bg-[var(--v-surface-2)] p-2.5">
+          <span className="text-[9px] uppercase tracking-[0.1em] text-[var(--v-faint)]">Spacing · {tokens.spacing}px</span>
+          <input type="range" min={2} max={16} value={tokens.spacing} onChange={(event) => update('spacing', Number(event.target.value))} className="mt-3 w-full accent-[var(--v-violet)]" />
+        </label>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <button type="button" onClick={save} className="v-btn v-btn-primary h-8 px-3 text-[10.5px]">
+          {saved ? <Check className="h-3.5 w-3.5" /> : null}
+          {saved ? 'Saved to canvas' : 'Save and apply to canvas'}
+        </button>
+        <span className="text-[9px] text-[var(--v-faint)]">This changes the saved canvas colours for this project.</span>
       </div>
 
       {(purposes.length > 0 || features.length > 0) && (
@@ -442,9 +551,9 @@ export const ProjectToolsDialog: React.FC<ProjectToolsDialogProps> = ({
             <p className="mt-0.5 text-[9.5px] text-[var(--v-faint)]">{activeTool.hint}</p>
           </div>
           <span className="hidden rounded-full border border-[var(--v-line)] bg-[var(--v-surface-2)] px-2 py-0.5 text-[8.5px] font-semibold uppercase tracking-wider text-[var(--v-faint)] sm:inline-flex">
-            {tool === 'build' || tool === 'design' ? 'Read-only' : documentTool ? 'From documents' : 'Read-only analysis'}
+            {tool === 'build' ? 'Read-only' : tool === 'design' ? 'Editable' : documentTool ? 'From documents' : 'Read-only analysis'}
           </span>
-          {tool !== 'build' && tool !== 'design' && (
+          {tool !== 'build' && (
             <button type="button" onClick={() => onOpenFull(tool)} className="v-btn v-btn-ghost h-7 px-2 text-[9.5px]">
               <ArrowUpRight className="h-3 w-3" /> Open page
             </button>
@@ -570,7 +679,7 @@ export const ProjectToolsDialog: React.FC<ProjectToolsDialogProps> = ({
 
             {source && tool === 'build' && <BuildView text={source.text} projectId={project.id} />}
 
-            {tool === 'design' && <DesignView projectId={project.id} />}
+            {tool === 'design' && <DesignView projectId={project.id} onOpenPage={() => onOpenFull('design')} />}
 
             {source && tool === 'analyser' && (
               compiled ? (

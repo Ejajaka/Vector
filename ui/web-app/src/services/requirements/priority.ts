@@ -1,5 +1,6 @@
 import type { RequirementPriority, RequirementRecord } from '../../types/requirements.ts';
 import { supabase } from '../supabase/client.ts';
+import { updateLocalRequirementPriorities } from '../documents/localRequirements.ts';
 
 export interface PriorityResult {
   priority: RequirementPriority;
@@ -52,6 +53,15 @@ export async function applyRequirementPriorities(
     const result = classifyRequirementPriority(requirement);
     return { ...requirement, priority: result.priority, priorityReason: result.reason };
   });
+
+  updateLocalRequirementPriorities(
+    projectId,
+    classified.map((requirement) => ({
+      id: requirement.id,
+      priority: requirement.priority,
+      priorityReason: requirement.priorityReason || '',
+    })),
+  );
 
   if (supabase) {
     for (const requirement of classified) {

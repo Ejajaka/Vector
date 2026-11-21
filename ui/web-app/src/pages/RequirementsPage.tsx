@@ -66,7 +66,7 @@ export const RequirementsPage: React.FC = () => {
   const [deletingDocument, setDeletingDocument] = useState(false);
 
   const load = useCallback(async () => {
-    if (!currentProject || localMode) {
+    if (!currentProject) {
       setDocuments([]);
       setRequirements([]);
       return;
@@ -96,12 +96,12 @@ export const RequirementsPage: React.FC = () => {
   }, [currentProject?.id]);
 
   const handleFile = async (file: File | null) => {
-    if (!file || !currentProject || !user) return;
+    if (!file || !currentProject) return;
     setUploading(true);
     setError('');
     setProgress('Uploading…');
     try {
-      const result = await uploadRequirementDocument(currentProject.id, user.id, file, (stage, message) => {
+      const result = await uploadRequirementDocument(currentProject.id, user?.id || 'local', file, (stage, message) => {
         setProgress(message || stage);
       });
       await load();
@@ -122,7 +122,7 @@ export const RequirementsPage: React.FC = () => {
   };
 
   const handlePrioritize = async () => {
-    if (!currentProject || localMode) return;
+    if (!currentProject) return;
     setPrioritizing(true);
     try {
       setRequirements(await applyRequirementPriorities(currentProject.id, requirements));
@@ -135,9 +135,9 @@ export const RequirementsPage: React.FC = () => {
   };
 
   const handleDecision = async (requirement: RequirementRecord, decision: 'approved' | 'rejected') => {
-    if (!currentProject || !user) return;
+    if (!currentProject) return;
     try {
-      await recordRequirementDecision(currentProject.id, requirement.id, user.id, decision);
+      await recordRequirementDecision(currentProject.id, requirement.id, user?.id || 'local', decision);
       setRequirements((prev) => prev.map((item) => item.id === requirement.id ? { ...item, status: decision } : item));
       toast(decision === 'approved' ? 'Requirement approved' : 'Requirement rejected', 'info');
     } catch (e: any) {
@@ -155,11 +155,11 @@ export const RequirementsPage: React.FC = () => {
   };
 
   const applyBulkDecision = async (decision: 'approved' | 'rejected') => {
-    if (!currentProject || !user || !selectedIds.size) return;
+    if (!currentProject || !selectedIds.size) return;
     setBulkBusy(true);
     try {
       const ids = [...selectedIds];
-      await recordRequirementDecisions(currentProject.id, ids, user.id, decision);
+      await recordRequirementDecisions(currentProject.id, ids, user?.id || 'local', decision);
       const idSet = new Set(ids);
       setRequirements((prev) => prev.map((item) => (idSet.has(item.id) ? { ...item, status: decision } : item)));
       setSelectedIds(new Set());
@@ -226,7 +226,7 @@ export const RequirementsPage: React.FC = () => {
           <button
             type="button"
             onClick={() => void handlePrioritize()}
-            disabled={prioritizing || localMode || !requirements.length}
+            disabled={prioritizing || !requirements.length}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E5E2D8] bg-white text-xs font-semibold text-[#49686C] hover:bg-[#F6F4EC] disabled:opacity-60"
           >
             {prioritizing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
@@ -236,8 +236,8 @@ export const RequirementsPage: React.FC = () => {
       </div>
 
       {localMode && (
-        <div className="rounded-xl border border-[#FED7AA] bg-[#FFF7ED] p-4 text-xs text-[#9C4A28]">
-          Requirement uploads need Supabase Storage and Postgres. Add the public Supabase env values to enable this page.
+        <div className="rounded-xl border border-[#CFDFE1] bg-[#F0F5F5] p-4 text-xs text-[#49686C]">
+          Stored in this browser. Upload works locally; connect Supabase to share documents and requirements across devices.
         </div>
       )}
 
@@ -259,7 +259,7 @@ export const RequirementsPage: React.FC = () => {
             <div className="flex flex-wrap items-center gap-2 mt-3">
               <button
                 type="button"
-                disabled={uploading || localMode || !user}
+                disabled={uploading}
                 onClick={() => inputRef.current?.click()}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#49686C] hover:bg-[#30494B] disabled:opacity-60 text-white text-xs font-semibold"
               >

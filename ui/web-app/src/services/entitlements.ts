@@ -108,7 +108,9 @@ function write(state: EntitlementState): EntitlementState {
   } catch {
     // Best effort: private mode or storage disabled.
   }
-  window.dispatchEvent(new CustomEvent('vector:entitlements', { detail: state }));
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('vector:entitlements', { detail: state }));
+  }
   return state;
 }
 

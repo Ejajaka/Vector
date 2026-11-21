@@ -271,7 +271,7 @@ export function pagesFromDesignSystem(system: DesignSystem): CanvasPage[] {
     {
       id: newId(),
       name: 'Page 1',
-      items,
+      items: applySystemToItems(items, system),
       width: 1200,
       height: 800,
       background: tokens.surface,
@@ -282,15 +282,66 @@ export function pagesFromDesignSystem(system: DesignSystem): CanvasPage[] {
 /** Apply the system's tokens to every element on a page. */
 export function applySystemToItems(items: CanvasItem[], system: DesignSystem): CanvasItem[] {
   const { tokens } = system;
+  const surfaceIsDark = (() => {
+    const hex = tokens.surface.replace('#', '');
+    if (hex.length !== 6) return false;
+    const [r, g, b] = [0, 2, 4].map((offset) => parseInt(hex.slice(offset, offset + 2), 16));
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 < 0.45;
+  })();
+
   return items.map((item) => {
     const next: CanvasItem = {
       ...item,
-      radius: item.radius ?? tokens.radius,
-      fontFamily: item.type === 'text' ? tokens.font : item.fontFamily,
+      radius: tokens.radius,
+      fontFamily: item.type === 'text' || item.type === 'heading' ? tokens.font : item.fontFamily,
     };
-    if (item.type === 'button' || item.type === 'badge') next.color = tokens.primary;
-    if (item.type === 'text' && !item.color) next.color = tokens.ink;
-    if (item.variant === 'card-outline' && !item.strokeColor) next.strokeColor = `${tokens.ink}18`;
+
+    if (['navbar', 'card', 'input', 'table', 'modal', 'footer'].includes(item.type)) {
+      next.fill = tokens.surface;
+      next.strokeColor = `${tokens.ink}${surfaceIsDark ? '33' : '22'}`;
+      next.strokeWidth = item.strokeWidth || 1;
+    }
+    if (item.type === 'button') {
+      next.color = tokens.primary;
+      if (item.variant !== 'btn-outline' && item.variant !== 'btn-ghost') next.fill = tokens.primary;
+    }
+    if (item.type === 'badge') next.color = tokens.accent;
+    if (item.type === 'text' || item.type === 'heading') next.color = tokens.ink;
+    if (item.type === 'chart') next.color = tokens.primary;
+    if (item.type === 'avatar') next.fill = tokens.accent;
+    if (item.type === 'navbar') next.color = tokens.primary;
+    if (item.type === 'table') next.color = tokens.primary;
+    if (item.type === 'input') next.color = tokens.ink;
+    if (item.type === 'footer') next.color = tokens.ink;
+    if (item.type === 'card') next.color = item.variant?.includes('stat') ? tokens.accent : tokens.primary;
+    if (item.variant?.includes('stat') || item.variant?.includes('accent')) next.color = tokens.accent;
+    if (item.variant?.includes('outline')) {
+      next.fill = tokens.surface;
+      next.strokeColor = `${tokens.ink}22`;
+    }
+
     return next;
   });
+}
+
+/** Recolour this project's saved canvas with the active design system. */
+export function applySystemToProject(projectId: string, system: DesignSystem): CanvasPage[] | null {
+  try {
+    const key = `vector_project_doc_${projectId}`;
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const doc = JSON.parse(raw) as { pages?: CanvasPage[]; [key: string]: unknown };
+    const pages = (doc.pages || []).map((page) => ({
+      ...page,
+      background: system.tokens.surface,
+      items: applySystemToItems(page.items || [], system),
+    }));
+    localStorage.setItem(
+      key,
+      JSON.stringify({ ...doc, pages, updatedAt: new Date().toISOString() }),
+    );
+    return pages;
+  } catch {
+    return null;
+  }
 }

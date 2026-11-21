@@ -10,7 +10,7 @@ const STORAGE_KEY = 'prompt_linter_settings_v2';
 
 // Demo builds: tools/inject-demo-config.js writes a gitignored
 // public/engine/demo-config.js exposing window.VECTOR_DEMO_SETTINGS. The
-// build-time VITE key still wins when both are present. Never commit a key.
+// build-time VITE key still wins when both are present.
 const DEMO = (typeof window !== 'undefined' && (window as any).VECTOR_DEMO_SETTINGS) || {};
 const ENV = (import.meta as any).env || {};
 const TEST_API_KEY: string = ENV.VITE_VECTOR_TEST_API_KEY || DEMO.apiKey || '';

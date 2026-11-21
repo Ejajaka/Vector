@@ -13,6 +13,7 @@ import {
   X,
 } from 'lucide-react';
 import {
+  applySystemToProject,
   deleteDesignSystem,
   designSystemPrompt,
   downloadSystem,
@@ -26,6 +27,7 @@ import {
   type DesignTokens,
 } from '../services/designSystems.ts';
 import type { CanvasPage } from '../data/canvas.ts';
+import { useProject } from '../context/ProjectContext.tsx';
 
 interface DesignSystemsPageProps {
   onOpenEditor: (name: string, pages: CanvasPage[]) => void;
@@ -48,37 +50,25 @@ const DEFAULT_TOKENS: DesignTokens = {
   spacing: 8,
 };
 
-const STARTERS: Array<{ name: string; note: string; tokens: DesignTokens }> = [
-  {
-    name: 'Midnight',
-    note: 'Deep dark surfaces, violet primary, soft blue accent.',
-    tokens: { primary: '#7170FF', accent: '#6EA8FE', surface: '#08090A', ink: '#F7F8F8', font: 'jakarta', radius: 10, spacing: 8 },
-  },
-  {
-    name: 'Paper',
-    note: 'Clean white surfaces with a confident indigo primary and warm coral accent.',
-    tokens: { primary: '#5E6AD2', accent: '#FF7A59', surface: '#FFFFFF', ink: '#17171A', font: 'bricolage', radius: 14, spacing: 8 },
-  },
-  {
-    name: 'Editorial',
-    note: 'Warm paper, serif display type and a restrained rust accent.',
-    tokens: { primary: '#1C1917', accent: '#C2410C', surface: '#F7F3EC', ink: '#1C1917', font: 'georgia', radius: 6, spacing: 8 },
-  },
-  {
-    name: 'Cobalt',
-    note: 'Bright blue primary with a golden secondary for dashboards.',
-    tokens: { primary: '#0D99FF', accent: '#FFC53D', surface: '#FFFFFF', ink: '#0B1220', font: 'jakarta', radius: 12, spacing: 8 },
-  },
-  {
-    name: 'Mauve',
-    note: 'Soft violet with a rose accent and generous corners.',
-    tokens: { primary: '#8B5CF6', accent: '#F472B6', surface: '#FCFAFF', ink: '#211A2E', font: 'bricolage', radius: 16, spacing: 10 },
-  },
-  {
-    name: 'Mono',
-    note: 'Monochrome, square corners and monospace type for technical products.',
-    tokens: { primary: '#111111', accent: '#6B6B6B', surface: '#FAFAFA', ink: '#111111', font: 'mono', radius: 2, spacing: 8 },
-  },
+const DOMAIN_PRESETS: Array<{ domain: string; name: string; note: string; tokens: DesignTokens }> = [
+  { domain: 'Fintech', name: 'Ledger Blue', note: 'Trustworthy blue with a green confirmation accent for balances and payments.', tokens: { primary: '#1D4ED8', accent: '#22C55E', surface: '#F8FAFC', ink: '#0F172A', font: 'jakarta', radius: 8, spacing: 8 } },
+  { domain: 'Fintech', name: 'Private Bank', note: 'Deep navy and restrained gold for wealth, private banking and premium accounts.', tokens: { primary: '#0B1F3A', accent: '#C6A45C', surface: '#F7F5F0', ink: '#101828', font: 'georgia', radius: 4, spacing: 8 } },
+  { domain: 'Entertainment', name: 'Cinema Night', note: 'Dark violet and hot pink for streaming catalogues and watch pages.', tokens: { primary: '#7C3AED', accent: '#F43F5E', surface: '#0B0714', ink: '#F8FAFC', font: 'bricolage', radius: 14, spacing: 8 } },
+  { domain: 'Entertainment', name: 'Streaming Pop', note: 'High-energy coral and gold on black for music, video and creator apps.', tokens: { primary: '#FF4D6D', accent: '#FFD166', surface: '#111111', ink: '#FFFFFF', font: 'bricolage', radius: 18, spacing: 10 } },
+  { domain: 'Healthcare', name: 'Care Teal', note: 'Calm teal and mint for patient portals, bookings and clinical dashboards.', tokens: { primary: '#0F766E', accent: '#14B8A6', surface: '#F7FDFC', ink: '#0F172A', font: 'jakarta', radius: 12, spacing: 8 } },
+  { domain: 'Healthcare', name: 'Clinical Blue', note: 'Clear blue and sky accents for records, scheduling and telehealth.', tokens: { primary: '#2563EB', accent: '#38BDF8', surface: '#F8FAFF', ink: '#0F172A', font: 'jakarta', radius: 10, spacing: 8 } },
+  { domain: 'E-commerce', name: 'Retail Coral', note: 'Warm coral and orange for storefronts, checkout and seasonal campaigns.', tokens: { primary: '#E11D48', accent: '#FB923C', surface: '#FFF7F4', ink: '#231815', font: 'bricolage', radius: 16, spacing: 8 } },
+  { domain: 'E-commerce', name: 'Marketplace', note: 'Ink and marketplace amber for catalogues, offers and seller tools.', tokens: { primary: '#111827', accent: '#F59E0B', surface: '#FFFFFF', ink: '#111827', font: 'jakarta', radius: 8, spacing: 8 } },
+  { domain: 'SaaS', name: 'Indigo Stack', note: 'The familiar product-led SaaS indigo with a cyan data accent.', tokens: { primary: '#5E6AD2', accent: '#22D3EE', surface: '#FFFFFF', ink: '#17171A', font: 'jakarta', radius: 12, spacing: 8 } },
+  { domain: 'SaaS', name: 'Dark Ops', note: 'Dark console surfaces with violet and cyan for technical operators.', tokens: { primary: '#7170FF', accent: '#22D3EE', surface: '#0B0C10', ink: '#F7F8FA', font: 'mono', radius: 6, spacing: 8 } },
+  { domain: 'Education', name: 'Campus', note: 'Friendly academic blue and amber for courses, grades and enrolments.', tokens: { primary: '#1D4ED8', accent: '#F59E0B', surface: '#F8FAFC', ink: '#1E293B', font: 'jakarta', radius: 12, spacing: 8 } },
+  { domain: 'Travel', name: 'Sunset Route', note: 'Warm sunset orange with sky blue for itineraries and destination cards.', tokens: { primary: '#EA580C', accent: '#0EA5E9', surface: '#FFFBF5', ink: '#1C1917', font: 'bricolage', radius: 16, spacing: 8 } },
+  { domain: 'Real estate', name: 'Property Sage', note: 'Grounded sage and olive for listings, floor plans and neighbourhood guides.', tokens: { primary: '#3F6212', accent: '#A3A380', surface: '#FAFAF7', ink: '#1C1917', font: 'georgia', radius: 6, spacing: 8 } },
+  { domain: 'Gaming', name: 'Arcade Neon', note: 'Neon purple and cyan on black for game hubs, lobbies and leaderboards.', tokens: { primary: '#A855F7', accent: '#22D3EE', surface: '#09090B', ink: '#FAFAFA', font: 'mono', radius: 8, spacing: 8 } },
+  { domain: 'Food', name: 'Appetite', note: 'Tomato red and butter yellow for menus, delivery and reservations.', tokens: { primary: '#DC2626', accent: '#FBBF24', surface: '#FFFBF5', ink: '#1C1917', font: 'bricolage', radius: 18, spacing: 10 } },
+  { domain: 'Luxury', name: 'Atelier', note: 'Black, ivory and muted gold for fashion, jewellery and hospitality.', tokens: { primary: '#111111', accent: '#B08D57', surface: '#F7F3EC', ink: '#111111', font: 'georgia', radius: 2, spacing: 8 } },
+  { domain: 'AI / Developer', name: 'Terminal', note: 'Terminal green and blue on near-black for developer tools and agents.', tokens: { primary: '#22C55E', accent: '#38BDF8', surface: '#0A0A0A', ink: '#E5E7EB', font: 'mono', radius: 4, spacing: 8 } },
+  { domain: 'Social', name: 'Community', note: 'Friendly indigo and pink for feeds, communities and creator profiles.', tokens: { primary: '#6366F1', accent: '#EC4899', surface: '#FFFFFF', ink: '#111827', font: 'jakarta', radius: 14, spacing: 8 } },
 ];
 
 interface FormState {
@@ -89,6 +79,7 @@ interface FormState {
 }
 
 export const DesignSystemsPage: React.FC<DesignSystemsPageProps> = ({ onOpenEditor }) => {
+  const { currentProject } = useProject();
   const [systems, setSystems] = useState<DesignSystem[]>(() => listDesignSystems());
   const [activeId, setActiveIdState] = useState<string | null>(() => getActiveId());
   const [form, setForm] = useState<FormState | null>(null);
@@ -110,7 +101,8 @@ export const DesignSystemsPage: React.FC<DesignSystemsPageProps> = ({ onOpenEdit
       setError('Give the system a name.');
       return;
     }
-    saveDesignSystem({ id: form.id, name: form.name, note: form.note, tokens: form.tokens });
+    const saved = saveDesignSystem({ id: form.id, name: form.name, note: form.note, tokens: form.tokens });
+    if (saved.id === activeId && currentProject) applySystemToProject(currentProject.id, saved);
     setForm(null);
     setError('');
     refresh();
@@ -118,12 +110,14 @@ export const DesignSystemsPage: React.FC<DesignSystemsPageProps> = ({ onOpenEdit
 
   const useForPrompts = (system: DesignSystem) => {
     setActiveDesignSystem(system.id);
+    if (currentProject) applySystemToProject(currentProject.id, system);
     refresh();
   };
 
-  const useStarter = (preset: (typeof STARTERS)[number]) => {
+  const useStarter = (preset: (typeof DOMAIN_PRESETS)[number]) => {
     const created = saveDesignSystem({ name: preset.name, note: preset.note, tokens: preset.tokens });
     setActiveDesignSystem(created.id);
+    if (currentProject) applySystemToProject(currentProject.id, created);
     refresh();
   };
 
@@ -141,7 +135,7 @@ export const DesignSystemsPage: React.FC<DesignSystemsPageProps> = ({ onOpenEdit
       <section className="rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] px-4 py-3 text-[11.5px] leading-relaxed text-[var(--v-muted)]">
         <b className="text-[var(--v-ink)]">Private to this workspace.</b> Design systems here belong to your organisation. They are not published to
         any public library, and only members of this workspace can open or attach them. There are no third-party brand
-        presets.
+        presets. Domain starters are generic colour combinations, not third-party brand presets.
       </section>
 
       {/* Header */}
@@ -178,23 +172,26 @@ export const DesignSystemsPage: React.FC<DesignSystemsPageProps> = ({ onOpenEdit
       <section className="rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] p-4">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <p className="text-[12.5px] font-semibold text-[var(--v-ink)]">Start from a token set</p>
+            <p className="text-[12.5px] font-semibold text-[var(--v-ink)]">Popular colour combinations by domain</p>
             <p className="mt-0.5 text-[10.5px] text-[var(--v-muted)]">
-              Generic starters. Rename and edit any of them; they stay private to this workspace.
+              Proven starting points for fintech, entertainment, healthcare, commerce and more. Pick one, then edit every token.
             </p>
           </div>
           <Sparkles className="h-4 w-4 shrink-0 text-[var(--v-violet)]" />
         </div>
         <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {STARTERS.map((preset) => (
+          {DOMAIN_PRESETS.map((preset) => (
             <button
-              key={preset.name}
+              key={`${preset.domain}-${preset.name}`}
               type="button"
               onClick={() => useStarter(preset)}
               className="rounded-lg border border-[var(--v-line)] bg-[var(--v-surface-2)] p-2.5 text-left transition-colors hover:border-[var(--v-violet)]"
             >
               <span className="flex items-center justify-between gap-2">
-                <span className="text-[11.5px] font-semibold text-[var(--v-ink)]">{preset.name}</span>
+                <span className="min-w-0">
+                  <span className="block text-[8px] font-semibold uppercase tracking-[0.12em] text-[var(--v-faint)]">{preset.domain}</span>
+                  <span className="block truncate text-[11.5px] font-semibold text-[var(--v-ink)]">{preset.name}</span>
+                </span>
                 <span className="flex gap-1">
                   {[preset.tokens.primary, preset.tokens.accent, preset.tokens.surface].map((colour) => (
                     <span key={colour} className="h-3.5 w-3.5 rounded-full border border-[var(--v-line)]" style={{ background: colour }} />

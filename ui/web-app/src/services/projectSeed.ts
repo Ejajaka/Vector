@@ -1,5 +1,6 @@
 import type { TemplateDefinition } from '../data/templates.ts';
 import { itemsFromTemplate, newId, type CanvasPage } from '../data/canvas.ts';
+import { applySystemToItems, getActiveDesignSystem } from './designSystems.ts';
 import {
   DEVICE_FRAMES,
   LAYOUT_ACCENTS,
@@ -42,15 +43,23 @@ export function seedProjectFromTemplate(
   template: TemplateDefinition
 ): CanvasPage[] {
   const pages = pagesFromTemplate(template);
+  const active = getActiveDesignSystem();
+  const themed = active
+    ? pages.map((page) => ({
+        ...page,
+        background: active.tokens.surface,
+        items: applySystemToItems(page.items, active),
+      }))
+    : pages;
   try {
     localStorage.setItem(
       `vector_project_doc_${projectId}`,
-      JSON.stringify({ name: projectName, pages, updatedAt: new Date().toISOString() })
+      JSON.stringify({ name: projectName, pages: themed, updatedAt: new Date().toISOString() })
     );
   } catch {
     // Storage is best effort; the user can still start from a blank canvas.
   }
-  return pages;
+  return themed;
 }
 
 export function readProjectSetup(projectId: string): Record<string, unknown> | null {

@@ -56,7 +56,7 @@ export const RequirementReviewPage: React.FC = () => {
   const [confirmReject, setConfirmReject] = useState<null | 'suggestions' | 'criteria'>(null);
 
   const load = useCallback(async () => {
-    if (!currentProject || localMode) {
+    if (!currentProject) {
       setRequirements([]);
       setSuggestions([]);
       setCriteria([]);
@@ -204,8 +204,8 @@ export const RequirementReviewPage: React.FC = () => {
       </div>
 
       {localMode && (
-        <div className="rounded-xl border border-[#FED7AA] bg-[#FFF7ED] p-4 text-xs text-[#9C4A28]">
-          Connect Supabase to persist suggestions and acceptance criteria.
+        <div className="rounded-xl border border-[#CFDFE1] bg-[#F0F5F5] p-4 text-xs text-[#49686C]">
+          Review data is stored in this browser. Connect Supabase to share approvals across devices.
         </div>
       )}
       {error && <div className="rounded-xl border border-[#F0C4BF] bg-[#FDF2F0] p-4 text-xs text-[#B94D42]">{error}</div>}

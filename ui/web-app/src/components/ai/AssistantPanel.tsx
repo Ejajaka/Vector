@@ -33,7 +33,7 @@ const MODE_KEY = 'vector_ai_mode_v1';
 
 function readMode(): AiMode {
   try {
-    return localStorage.getItem(MODE_KEY) === 'hosted' ? 'hosted' : 'byo';
+    return localStorage.getItem(MODE_KEY) === 'hosted' && hostedConfigured() ? 'hosted' : 'byo';
   } catch {
     return 'byo';
   }

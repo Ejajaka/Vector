@@ -62,6 +62,10 @@ import { readProjectSetup } from '../services/projectSeed.ts';
 import { readBase44PageUrl, saveBase44PageUrl } from '../services/base44.ts';
 import { loadProjectMemory } from '../services/projectMemory.ts';
 import { MEMORY_KEYS } from '../services/generation/memory.ts';
+import { analyzeRequirements } from '../services/requirements/intelligence.ts';
+import { generateAcceptanceCriteria } from '../services/requirements/acceptance.ts';
+import { listRequirementDocuments, listRequirements } from '../services/documents/requirementDocuments.ts';
+import type { RequirementDocument, RequirementRecord } from '../types/requirements.ts';
 import { currentRoom, projectRoom, shareLink } from '../services/collab.ts';
 import { loadSharedDoc, saveSharedDoc } from '../services/sharedDocs.ts';
 import { isPaid, readEntitlements } from '../services/entitlements.ts';
@@ -431,6 +435,9 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   const [base44PageDraft, setBase44PageDraft] = useState(() => readBase44PageUrl(project.id));
   const [base44PageError, setBase44PageError] = useState('');
   const [generatedAt, setGeneratedAt] = useState(new Date().toISOString());
+  const [requirementDocs, setRequirementDocs] = useState<RequirementDocument[]>([]);
+  const [requirements, setRequirements] = useState<RequirementRecord[]>([]);
+  const [uploadPrompt, setUploadPrompt] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const figmaRef = useRef<HTMLInputElement>(null);
 
@@ -888,6 +895,37 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     setBase44Key((value) => value + 1);
   };
 
+  useEffect(() => {
+    let active = true;
+    void Promise.all([
+      listRequirementDocuments(project.id),
+      listRequirements(project.id),
+    ])
+      .then(([docs, reqs]) => {
+        if (!active) return;
+        setRequirementDocs(docs);
+        setRequirements(reqs);
+      })
+      .catch(() => {
+        if (!active) return;
+        setRequirementDocs([]);
+        setRequirements([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [project.id]);
+
+  const requirementAnalysis = useMemo(
+    () => (requirements.length ? analyzeRequirements(requirements) : null),
+    [requirements],
+  );
+  const requirementCriteria = useMemo(
+    () => (requirements.length ? generateAcceptanceCriteria(requirements, project.id) : []),
+    [requirements, project.id],
+  );
+  const hasRequirementDocument = requirementDocs.length > 0;
+
   const activePromptLabel = activeVersion?.label || 'No prompt yet';
   const activeMeta = activeVersion
     ? `${activeVersion.pages} page${activeVersion.pages === 1 ? '' : 's'} · ${activeVersion.elements} elements${activeVersion.risk != null ? ` · risk ${activeVersion.risk}` : ''}`
@@ -897,7 +935,42 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   const filteredVersions = versions.filter((version) => filtered(version.label));
   const filteredPages = (doc?.pages || []).filter((page) => filtered(page.name));
   const filteredFiles = files.filter((file) => filtered(file.name));
-  const filteredArtifacts = artifacts.filter((entry) => filtered(entry.label));
+  const generatedItems = [
+    {
+      id: 'graph',
+      label: 'Requirement graph',
+      summary: requirementAnalysis
+        ? `${requirementAnalysis.graph.nodes.length} nodes · ${requirementAnalysis.graph.edges.length} relations`
+        : hasRequirementDocument
+          ? 'No requirements found in the document'
+          : 'Requires a project document',
+      tab: 'intelligence' as ActiveTab,
+      ready: !!requirementAnalysis,
+    },
+    {
+      id: 'review',
+      label: 'Review findings',
+      summary: requirementAnalysis
+        ? `${requirementAnalysis.findings.length} findings`
+        : hasRequirementDocument
+          ? 'No requirements found in the document'
+          : 'Requires a project document',
+      tab: 'review' as ActiveTab,
+      ready: !!requirementAnalysis,
+    },
+    {
+      id: 'acceptance',
+      label: 'Acceptance criteria',
+      summary: requirementAnalysis
+        ? `${requirementCriteria.length} criteria`
+        : hasRequirementDocument
+          ? 'No requirements found in the document'
+          : 'Requires a project document',
+      tab: 'review' as ActiveTab,
+      ready: !!requirementAnalysis,
+    },
+  ];
+  const filteredGenerated = generatedItems.filter((entry) => filtered(entry.label));
   const sourceMatches = !search.trim() || filtered('design system') || filtered('import');
 
   const projectSearchVocab = useMemo(() => [
@@ -907,8 +980,8 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     ]),
     ...versions.map((version) => ({ value: version.label, kind: 'prompt' as const, detail: 'Prompt version', tab: 'project' as const })),
     ...files.map((file) => ({ value: file.name, kind: 'file' as const, detail: 'Project file', tab: 'project' as const })),
-    ...artifacts.map((entry) => ({ value: entry.label, kind: 'element' as const, detail: 'Generated item', tab: 'project' as const })),
-  ].filter((item) => item.value && item.value.trim().length > 1), [doc, versions, files, artifacts]);
+    ...generatedItems.map((entry) => ({ value: entry.label, kind: 'element' as const, detail: entry.ready ? 'Generated from the project document' : 'Requires a project document', tab: 'project' as const })),
+  ].filter((item) => item.value && item.value.trim().length > 1), [doc, versions, files, generatedItems]);
   const autocomplete = useSearchAutocomplete(projectSearchVocab, search, setSearch);
 
   const toggleGroup = (key: string) => setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -960,7 +1033,6 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
           { id: 'graph' as ProjectToolId, label: 'Requirement graph', icon: GitBranch },
           { id: 'review' as ProjectToolId, label: 'Review & acceptance', icon: ClipboardCheck },
           { id: 'prompt' as ProjectToolId, label: 'Prompt studio', icon: Sparkles },
-          { id: 'build' as ProjectToolId, label: 'Build workspace', icon: Rocket },
           { id: 'design' as ProjectToolId, label: 'Design systems', icon: Palette },
           { id: 'analyser' as ProjectToolId, label: 'Prompt analyser', icon: BarChart3 },
         ].map((tool) => {
@@ -1126,26 +1198,37 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                   </FolderGroup>
                 )}
 
-                {(!search.trim() || filteredArtifacts.length > 0) && (
-                  <FolderGroup title="Generated" count={filteredArtifacts.length} open={!collapsed.generated} onToggle={() => toggleGroup('generated')}>
-                    {filteredArtifacts.map((entry) => (
+                {(!search.trim() || filteredGenerated.length > 0) && (
+                  <FolderGroup title="Generated" count={filteredGenerated.length} open={!collapsed.generated} onToggle={() => toggleGroup('generated')}>
+                    {filteredGenerated.map((entry) => (
                       <FolderItem
                         key={entry.id}
-                        icon={<BarChart3 className="h-3 w-3" />}
+                        icon={
+                          entry.id === 'graph' ? (
+                            <GitBranch className="h-3 w-3" />
+                          ) : entry.id === 'review' ? (
+                            <AlertTriangle className="h-3 w-3" />
+                          ) : (
+                            <ClipboardCheck className="h-3 w-3" />
+                          )
+                        }
                         title={entry.label}
-                        meta={`${relativeTime(generatedAt)} · ${entry.summary}`}
-                        badge="auto"
-                        onClick={() => setArtifact(entry)}
+                        meta={entry.ready ? `${relativeTime(generatedAt)} - ${entry.summary}` : entry.summary}
+                        badge={entry.ready ? 'auto' : 'locked'}
+                        onClick={() => (entry.ready ? onNavigate(entry.tab) : setUploadPrompt(entry.label))}
                       />
                     ))}
                   </FolderGroup>
                 )}
               </div>
               <div className="flex shrink-0 gap-1 border-t border-[var(--v-line)] p-2">
-                <button type="button" onClick={() => fileRef.current?.click()} className="v-btn v-btn-ghost h-7 flex-1 px-2 text-[9.5px]">
-                  <Upload className="h-3 w-3" /> Upload
+                <button type="button" onClick={() => fileRef.current?.click()} className="v-btn v-btn-ghost h-7 flex-1 px-1.5 text-[8.5px]">
+                  <Paperclip className="h-3 w-3" /> Files
                 </button>
-                <button type="button" onClick={onBlankCanvas} className="v-btn v-btn-ghost h-7 flex-1 px-2 text-[9.5px]">
+                <button type="button" onClick={() => onNavigate('requirements')} className="v-btn v-btn-ghost h-7 flex-1 px-1.5 text-[8.5px]">
+                  <Upload className="h-3 w-3" /> Req. doc
+                </button>
+                <button type="button" onClick={onBlankCanvas} className="v-btn v-btn-ghost h-7 flex-1 px-1.5 text-[8.5px]">
                   <Plus className="h-3 w-3" /> Canvas
                 </button>
               </div>
@@ -1248,7 +1331,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
               <div className="min-w-0 flex-1">
                 <p className="text-[11.5px] font-semibold text-[var(--v-ink)]">Base44 builder</p>
                 <p className="text-[9px] text-[var(--v-faint)]">
-                  Embedded at app.base44.com. Paste the exact page URL to open it in a new tab.
+                  Sign in or sign up using email and password inside the frame. Paste the exact page URL to open it in a new tab.
                 </p>
               </div>
               <button type="button" onClick={reloadBase44} className="v-btn v-btn-ghost h-7 px-2 text-[9.5px]">
@@ -1389,6 +1472,40 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
 
       {/* Modals */}
       {artifact && <ArtifactModal artifact={artifact} onClose={() => setArtifact(null)} />}
+
+      {uploadPrompt && (
+        <div className="fixed inset-0 z-[97] grid place-items-center p-3" role="dialog" aria-modal="true" aria-label="Upload a project document">
+          <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" onClick={() => setUploadPrompt(null)} aria-hidden="true" />
+          <div className="relative w-full max-w-[440px] rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] p-5 shadow-[var(--v-shadow-lg)]">
+            <span className="grid h-10 w-10 place-items-center rounded-lg bg-[var(--v-violet)]/10 text-[var(--v-violet)]">
+              <FileText className="h-5 w-5" />
+            </span>
+            <h2 className="mt-3 text-[16px] font-semibold text-[var(--v-ink)]">Upload a project document</h2>
+            <p className="mt-1.5 text-[11.5px] leading-relaxed text-[var(--v-muted)]">
+              {hasRequirementDocument
+                ? 'The uploaded document did not produce requirement statements. Upload a clearer requirement document to get '
+                : 'Upload a requirement document to get '}
+              <b className="text-[var(--v-ink)]">{uploadPrompt}</b>. Prompts and
+              canvas pages are not used for requirement analysis.
+            </p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button type="button" onClick={() => setUploadPrompt(null)} className="v-btn v-btn-ghost h-8 px-3 text-[10.5px]">
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setUploadPrompt(null);
+                  onNavigate('requirements');
+                }}
+                className="v-btn v-btn-primary h-8 px-3 text-[10.5px]"
+              >
+                <Upload className="h-3.5 w-3.5" /> Upload document
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {promptModal && (
         <div className="fixed inset-0 z-[96] grid place-items-center p-3" role="dialog" aria-modal="true" aria-label={promptModal.label}>

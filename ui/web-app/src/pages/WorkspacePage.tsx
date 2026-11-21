@@ -329,7 +329,7 @@ export const WorkspacePage: React.FC = () => {
             {rightTab === 'builder' ? (
               <div className="flex-1 flex flex-col">
                 <div className="px-3 py-2 border-b border-[#E5E2D8] bg-[#FAFAF8] flex flex-wrap items-center gap-2 text-[10px] text-[#737A72]">
-                  <span>Sign in inside this panel. If Base44 blocks framing or sign-in, open it in a new tab.</span>
+                  <span>Sign in or sign up using email and password inside this panel. If Base44 blocks framing or sign-in, open it in a new tab.</span>
                   <button
                     type="button"
                     onClick={() => window.open(base44OpenUrl, '_blank', 'noopener,noreferrer')}

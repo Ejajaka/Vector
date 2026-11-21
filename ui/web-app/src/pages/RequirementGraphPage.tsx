@@ -190,7 +190,7 @@ export const RequirementGraphPage: React.FC = () => {
   const [findingTab, setFindingTab] = useState<FindingTab>('all');
 
   const load = useCallback(async () => {
-    if (!currentProject || localMode) {
+    if (!currentProject) {
       setRequirements([]);
       return;
     }
