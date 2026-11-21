@@ -15,7 +15,7 @@ screenshots of the live app.
 
 ## 60-second promo
 
-`promo-60s/` holds the high-energy one-minute promo (4K master, 1080p and 720p): kinetic type, a 12-second
+`promo-60s/` holds the high-energy one-minute promo (1080p run-through): kinetic type, a 12-second
 live canvas demo, original score and sound design, captions, poster and the
 animation source.
 

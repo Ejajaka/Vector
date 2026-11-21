@@ -1,39 +1,35 @@
 1
-00:00:01,500 --> 00:00:05,104
-Every AI build starts with a prompt. Most are missing something.
+00:00:00,450 --> 00:00:04,222
+Start a project. Pick from twenty-one templates, or start blank.
 
 2
-00:00:06,400 --> 00:00:09,908
-Vector finds every gap, before your generator guesses.
+00:00:07,300 --> 00:00:10,688
+Now type the prompt. Vector catches the gaps as you type.
 
 3
-00:00:12,400 --> 00:00:14,972
+00:00:13,300 --> 00:00:15,872
 Answer a few questions. Lock the brief.
 
 4
-00:00:18,400 --> 00:00:20,948
+00:00:19,300 --> 00:00:21,848
 Then build it for real, on the canvas.
 
 5
-00:00:20,900 --> 00:00:26,208
+00:00:21,800 --> 00:00:27,108
 Drop in blocks. Add pages. Apply your design system. Drag, snap, done.
 
 6
-00:00:30,400 --> 00:00:33,380
-Start from twenty-one templates. Or learn by doing.
-
-7
-00:00:36,400 --> 00:00:40,556
+00:00:31,300 --> 00:00:35,456
 Share live with another Pro. Edit together, or send a view-only link.
 
-8
-00:00:42,400 --> 00:00:46,868
+7
+00:00:37,300 --> 00:00:41,768
 Ship it to Base44. Ask Vector AI. Or work offline on Windows.
 
-9
-00:00:48,400 --> 00:00:51,596
+8
+00:00:43,300 --> 00:00:46,496
 Two projects free. Pro is one ninety-nine a month.
 
-10
-00:00:54,600 --> 00:00:56,692
+9
+00:00:51,000 --> 00:00:53,092
 Start at vectorco dot in.
