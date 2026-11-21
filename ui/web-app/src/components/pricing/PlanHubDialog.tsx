@@ -103,8 +103,8 @@ export const PlanHubDialog: React.FC<PlanHubDialogProps> = ({ open, initialTab =
       setCancelOpen(false);
       setCancelMsg(
         result.currentEnd
-          ? `AutoPay cancelled. Pro stays active until ${formatDate(result.currentEnd)}.`
-          : 'AutoPay cancelled. No further charges.',
+          ? `AutoPay cancelled. Pro stays active until ${formatDate(result.currentEnd)}. Your UPI app may still show the mandate until the bank syncs.`
+          : 'AutoPay cancelled. No further charges. Your UPI app may still show the mandate until the bank syncs.',
       );
     } catch (error) {
       setCancelMsg(error instanceof Error ? error.message : 'Could not cancel AutoPay. Try again.');
@@ -189,7 +189,8 @@ export const PlanHubDialog: React.FC<PlanHubDialogProps> = ({ open, initialTab =
                       {cancelOpen ? (
                         <div className="mt-1.5">
                           <p className="text-[9px] leading-relaxed text-white/55">
-                            Stop future charges. Pro stays active until the paid date.
+                            Stop future charges. Pro stays active until the paid date. This closes the Razorpay
+                            subscription too, not just one debit.
                           </p>
                           <div className="mt-1.5 flex gap-1">
                             <button
