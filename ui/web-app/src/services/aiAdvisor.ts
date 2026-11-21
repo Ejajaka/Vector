@@ -14,6 +14,12 @@ export interface AdvisorContext {
   title: string;
   prompt: string;
   kind: 'canvas' | 'prompt' | 'general';
+  /** The app surface the user is on, e.g. "Home dashboard" or "Editor canvas". */
+  surface?: string;
+  /** Plain-language description of what is actually visible on this screen. */
+  summary?: string;
+  /** Palette / visual character of the surface, when useful. */
+  appearance?: string;
   elements?: Array<{ name: string; label: string }>;
   colors?: string[];
   /** Page the user is editing. */
@@ -24,10 +30,22 @@ export interface AdvisorContext {
   selected?: { name: string; label: string; w: number; h: number };
 }
 
-let context: AdvisorContext = { title: 'Workspace', prompt: '', kind: 'general' };
+let context: AdvisorContext = {
+  title: 'Vector',
+  prompt: '',
+  kind: 'general',
+  surface: 'App',
+  summary: 'No page-specific context has been shared yet.',
+  appearance: 'Dark graphite interface with white type and a violet accent.',
+};
 
+/**
+ * Replace the advisor context. This deliberately does not merge: when the user
+ * moves from the canvas to the dashboard, stale page/element details must not
+ * survive and make the assistant describe a canvas that is no longer open.
+ */
 export function setAdvisorContext(next: Partial<AdvisorContext>): void {
-  context = { ...context, ...next };
+  context = { title: 'Vector', prompt: '', kind: 'general', ...next };
 }
 
 export function getAdvisorContext(): AdvisorContext {
@@ -78,6 +96,32 @@ export function reviewPrompt(prompt: string, ctx: AdvisorContext): PromptReview 
 export function suggestedQuestions(ctx: AdvisorContext): string[] {
   const review = reviewPrompt(ctx.prompt, ctx);
   const chips: string[] = [];
+
+  if (ctx.kind === 'prompt') {
+    if (review.vague.length) chips.push('Rewrite the vague words for me');
+    if (review.buttonsWithoutAction > 0) chips.push('Which buttons are missing a clear action?');
+    chips.push('What is still missing from this prompt?');
+    chips.push('Name the states this prompt forgot');
+    chips.push('Suggest a colour palette that fits this screen');
+    return chips.slice(0, 4);
+  }
+
+  if (ctx.kind !== 'canvas') {
+    const surface = (ctx.surface || '').toLowerCase();
+    if (surface.includes('home')) {
+      return ['What can I do on this page?', 'How do I start a project?', 'Which template should I start with?', 'What is Vector AI good at?'];
+    }
+    if (surface.includes('project')) {
+      return ['What is missing from my latest project?', 'How should I organise projects?', 'How does a project workspace work?', 'What should I build next?'];
+    }
+    if (surface.includes('template')) {
+      return ['Which template fits a checkout flow?', 'How do templates fill the prompt?', 'Templates or a blank canvas?', 'What is included in a template?'];
+    }
+    if (surface.includes('learn')) {
+      return ['Where should I start learning?', 'What does the 60-second tour cover?', 'How do I read a lesson?', 'What is the fastest path to a first project?'];
+    }
+    return ['What is on this screen?', 'What can you help me with here?', 'Where do I start?', 'What is Vector AI good at?'];
+  }
   const width = ctx.frame?.width || 1200;
 
   if (ctx.selected) chips.push(`What should this ${ctx.selected.name.toLowerCase()} say?`);
@@ -106,9 +150,41 @@ function bullets(lines: string[]): string {
 }
 
 function localAnswer(question: string, ctx: AdvisorContext): string {
-  const q = question.toLowerCase();
+  const q = question.toLowerCase().trim();
   const review = reviewPrompt(ctx.prompt, ctx);
   const elCount = ctx.elements?.length || 0;
+
+  if (/^(hi|hello|hey|yo|sup|good (morning|afternoon|evening)|how are you|how's it going)\b/i.test(question.trim())) {
+    const where =
+      ctx.kind === 'canvas'
+        ? `You're in ${ctx.title}${ctx.pageName ? `, on ${ctx.pageName}` : ''}.`
+        : ctx.surface
+          ? `You're on the ${ctx.surface} screen.`
+          : '';
+    return [
+      `Hey. ${where}`.trim(),
+      '',
+      "I'm in local mode right now, so I can't take general-knowledge questions. Add your own model key in the AI panel for open chat.",
+      'On this screen I can still review copy, labels, layout, colour, states, accessibility, or tell you what is missing.',
+    ].join('\n');
+  }
+
+  if (/^(thanks|thank you|ty|cheers)\b/i.test(question.trim())) {
+    return 'Anytime. Ask me about this screen whenever you want a second pair of eyes.';
+  }
+
+  if (/what.*(on my|on this) (screen|page)|what am i looking at|describe (this|my) (screen|page)|what.*(screen|page).*show/i.test(q)) {
+    if (ctx.summary) {
+      return [
+        "Here's what is on screen:",
+        '',
+        ctx.summary,
+        '',
+        ctx.kind === 'canvas' ? 'Ask me about any element, label or state on this page.' : 'Ask me about the copy, layout or what is missing.',
+      ].join('\n');
+    }
+    return 'I do not have a page summary yet. Open a canvas or refresh the screen, then ask again.';
+  }
 
   const screenTopic =
     /colou?r|palette|theme|brand|access|contrast|a11y|screen reader|wcag|keyboard|label|copy|word|text|wording|cta|button|layout|structure|order|section|spacing|grid|responsive|mobile|desktop|tablet|device|breakpoint|adapt|missing|gap|incomplete|forgot|what else|what.*add|improve|fix|change|next|screen|page|prompt|canvas|element|design|state/.test(
@@ -117,9 +193,9 @@ function localAnswer(question: string, ctx: AdvisorContext): string {
 
   if (!screenTopic) {
     return [
-      "I can't reach the live model right now, so I can only review the current screen.",
+      "I'm in local mode, so I can't answer open-ended or general questions.",
       '',
-      'Ask me about its copy, labels, layout, colours, states, accessibility or what is missing — or reconnect your model in the AI panel to ask general questions.',
+      'I can still review this screen — ask about its copy, labels, layout, colours, states, accessibility or what is missing. Add a model key in the AI panel for full chat.',
     ].join('\n');
   }
 
@@ -245,6 +321,14 @@ function localAnswer(question: string, ctx: AdvisorContext): string {
     return [`${gaps.length} gap${gaps.length === 1 ? '' : 's'} I would close before generating:`, '', bullets(gaps)].join('\n');
   }
 
+  if (ctx.kind !== 'canvas') {
+    return [
+      ctx.summary || `You're on the ${ctx.surface || ctx.title} screen.`,
+      '',
+      'I can review the copy, labels, layout, colour, states or accessibility here. What should I look at?',
+    ].join('\n');
+  }
+
   // Default: a short review + three concrete next steps.
   const pageLabel = ctx.pageName ? `“${ctx.pageName}”` : `“${ctx.title}”`;
   const frame = ctx.frame ? ` (${ctx.frame.width}×${ctx.frame.height})` : '';
@@ -309,18 +393,32 @@ function endpointFor(mode: AiMode): { baseUrl: string; key: string; model: strin
 }
 
 function contextPrompt(question: string, ctx: AdvisorContext): string {
-  return `Current screen context (use only when it helps answer the question):
-Screen: ${ctx.title}
-Page: ${ctx.pageName || 'Page 1'}${ctx.pageCount ? ` of ${ctx.pageCount}` : ''}
-Frame: ${ctx.frame ? `${ctx.frame.width}×${ctx.frame.height}` : 'unknown'}
-Background: ${ctx.background || '#FFFFFF'}
-Selected: ${ctx.selected ? `${ctx.selected.name} “${ctx.selected.label}” (${ctx.selected.w}×${ctx.selected.h})` : 'nothing'}
-Canvas elements: ${ctx.elements?.map((element) => `${element.name} (“${element.label}”)`).join(', ') || 'none'}
-Accent colours: ${ctx.colors?.join(', ') || 'none'}
-Prompt:
-${ctx.prompt || '(empty)'}
+  const lines = [
+    'Current screen context (use only when it helps answer the question):',
+    `Surface: ${ctx.surface || 'App'}`,
+    `Screen: ${ctx.title}`,
+  ];
 
-User question: ${question}`;
+  if (ctx.summary) lines.push(`What is actually visible: ${ctx.summary}`);
+  if (ctx.appearance) lines.push(`Appearance: ${ctx.appearance}`);
+
+  if (ctx.kind === 'canvas') {
+    lines.push(`Page: ${ctx.pageName || 'Page 1'}${ctx.pageCount ? ` of ${ctx.pageCount}` : ''}`);
+    lines.push(`Frame: ${ctx.frame ? `${ctx.frame.width}×${ctx.frame.height}` : 'unknown'}`);
+    lines.push(`Background: ${ctx.background || 'unknown'}`);
+    lines.push(`Selected: ${ctx.selected ? `${ctx.selected.name} “${ctx.selected.label}” (${ctx.selected.w}×${ctx.selected.h})` : 'nothing'}`);
+    lines.push(`Canvas elements: ${ctx.elements?.map((element) => `${element.name} (“${element.label}”)`).join(', ') || 'none'}`);
+    lines.push(`Accent colours: ${ctx.colors?.join(', ') || 'none'}`);
+    lines.push(`Prompt:\n${ctx.prompt || '(empty)'}`);
+  } else if (ctx.kind === 'prompt') {
+    lines.push(`Prompt being reviewed:\n${ctx.prompt || '(empty)'}`);
+  } else {
+    lines.push('This screen is not a canvas editor. Do not describe a page frame, canvas background, selected element or canvas elements unless the user asks about a canvas that is actually open.');
+    if (ctx.prompt) lines.push(`Related prompt:\n${ctx.prompt}`);
+  }
+
+  lines.push('', `User question: ${question}`);
+  return lines.join('\n');
 }
 
 function requestHeadersUnused(): void {}

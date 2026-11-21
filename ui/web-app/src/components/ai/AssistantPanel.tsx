@@ -158,9 +158,7 @@ export const AssistantPanel: React.FC<AssistantPanelProps> = ({ open, onClose, c
             note:
               mode === 'hosted' && !paid
                 ? "Vector's model is part of Pro — this answer came from the local reviewer."
-                : mode === 'byo' && !modelReady
-                  ? 'Add your API key to chat with a model.'
-                  : result.note,
+                : result.note,
           },
         ]);
       }
@@ -396,7 +394,7 @@ export const AssistantPanel: React.FC<AssistantPanelProps> = ({ open, onClose, c
                             {mode === 'hosted' ? "Vector's model" : 'Your model'} · screen-aware
                           </>
                         ) : (
-                          'Local reviewer · no model configured'
+                          'Local reviewer · using this screen'
                         )}
                       </p>
                     </div>

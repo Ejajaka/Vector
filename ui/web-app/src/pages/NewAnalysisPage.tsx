@@ -305,7 +305,14 @@ export const NewAnalysisPage: React.FC<NewAnalysisPageProps> = ({ initialResult,
 
   // Keep the AI help panel aware of the prompt being analysed.
   useEffect(() => {
-    setAdvisorContext({ title: currentProject?.name || 'Prompt analysis', prompt: text, kind: 'prompt' });
+    setAdvisorContext({
+      title: currentProject?.name || 'Prompt analysis',
+      prompt: text,
+      kind: 'prompt',
+      surface: 'Prompt analysis',
+      summary: 'The prompt analysis screen: the user is writing or reviewing a prompt, with coverage, clarification and risk results below. No canvas editor is open.',
+      appearance: 'Dark graphite interface with white type and a violet accent.',
+    });
   }, [text, currentProject?.name]);
 
   // Boot Pyodide on mount.

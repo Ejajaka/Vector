@@ -411,11 +411,118 @@ function AppShell() {
   }, [user]);
 
   // Keep the assistant's context honest: only the editor and the analysis page
-  // carry a live prompt, every other tab gets a general workspace context.
+  // carry a live prompt, every other tab gets a description of what is actually
+  // on that screen. Replacing the context (rather than merging) is important so
+  // page and element details from a previous canvas do not leak into the home
+  // dashboard or the project workspace.
   useEffect(() => {
     if (activeTab === 'editor' || activeTab === 'new-analysis') return;
-    setAdvisorContext({ title: activeTab === 'templates' ? 'Templates' : activeTab === 'projects' ? 'Projects' : 'Workspace', prompt: '', kind: 'general' });
-  }, [activeTab]);
+
+    const projectLabel = currentProject?.name ? `“${currentProject.name}”` : 'the current project';
+    const recent = projects.slice(0, 4).map((project) => project.name).join(', ');
+    const count = projects.length;
+    const homeSummary = count
+      ? `The home dashboard. Hero: “What will you build today?”, a search field, plan status, a Continue row with ${count} project${count === 1 ? '' : 's'}${recent ? ` (${recent})` : ''}, a template strip and a Learn card. No canvas editor is open.`
+      : 'The home dashboard. Hero: “What will you build today?”, a search field, plan status, an empty Continue row with a New project card, a template strip and a Learn card. No canvas editor is open.';
+
+    const screens: Record<string, { title: string; surface: string; summary: string }> = {
+      dashboard: { title: 'Home', surface: 'Home dashboard', summary: homeSummary },
+      projects: {
+        title: 'Projects',
+        surface: 'Projects list',
+        summary: `The projects list. ${count ? `${count} saved project${count === 1 ? '' : 's'}${recent ? `, including ${recent}` : ''}.` : 'No projects saved yet.'} Each card opens a project workspace. No canvas editor is open.`,
+      },
+      templates: {
+        title: 'Templates',
+        surface: 'Templates gallery',
+        summary: 'The template gallery with category filters and production-shaped template previews. Each preview opens a starter project. No canvas editor is open.',
+      },
+      learn: {
+        title: 'Learn',
+        surface: 'Learn hub',
+        summary: 'The Learn hub with guided lessons and the 60-second product tour. No canvas editor is open.',
+      },
+      design: {
+        title: 'Design systems',
+        surface: 'Design systems',
+        summary: 'The design-systems screen with saved brand tokens, colour palettes and typography. No canvas editor is open.',
+      },
+      library: {
+        title: 'Library',
+        surface: 'Library',
+        summary: 'The saved library of prompts, elements and reusable assets. No canvas editor is open.',
+      },
+      history: {
+        title: 'History',
+        surface: 'History',
+        summary: 'The analysis and prompt history for the workspace. No canvas editor is open.',
+      },
+      settings: {
+        title: 'Settings',
+        surface: 'Settings',
+        summary: 'Account and workspace settings, including the AI model configuration. No canvas editor is open.',
+      },
+      project: {
+        title: currentProject?.name || 'Project workspace',
+        surface: 'Project workspace',
+        summary: `The workspace for ${projectLabel}: the project folder, prompt versions, artifact pages, Base44 tools and sharing controls. The canvas editor is not open here; open the canvas to inspect elements.`,
+      },
+      workspace: {
+        title: currentProject?.name || 'Prompt workspace',
+        surface: 'Prompt workspace',
+        summary: `The prompt workspace for ${projectLabel}: a split view of requirements, suggestions, acceptance criteria and the generated prompt or build preview. The canvas editor is not open here.`,
+      },
+      requirements: {
+        title: currentProject?.name || 'Requirements',
+        surface: 'Requirements',
+        summary: `The requirements screen for ${projectLabel}. No canvas editor is open.`,
+      },
+      intelligence: {
+        title: currentProject?.name || 'Requirement graph',
+        surface: 'Requirement intelligence',
+        summary: `The requirement graph for ${projectLabel}, showing links and dependencies between requirements. No canvas editor is open.`,
+      },
+      review: {
+        title: currentProject?.name || 'Review',
+        surface: 'Requirement review',
+        summary: `The review screen for ${projectLabel}, showing edge cases, ambiguity and quality findings. No canvas editor is open.`,
+      },
+      prompt: {
+        title: currentProject?.name || 'Prompt studio',
+        surface: 'Prompt studio',
+        summary: `The prompt studio for ${projectLabel}. No canvas editor is open.`,
+      },
+      pricing: {
+        title: 'Pricing',
+        surface: 'Pricing page',
+        summary: 'The public pricing page with Free and Pro plans, monthly and annual prices. No canvas editor is open.',
+      },
+      manual: {
+        title: 'Manual',
+        surface: 'Manual',
+        summary: 'The product manual and documentation. No canvas editor is open.',
+      },
+      about: { title: 'About', surface: 'About page', summary: 'The public About page. No canvas editor is open.' },
+      privacy: { title: 'Privacy', surface: 'Privacy page', summary: 'The public privacy policy. No canvas editor is open.' },
+      terms: { title: 'Terms', surface: 'Terms page', summary: 'The public terms page. No canvas editor is open.' },
+      contact: { title: 'Contact', surface: 'Contact page', summary: 'The public contact page. No canvas editor is open.' },
+    };
+
+    const chosen = screens[activeTab] || {
+      title: 'Vector',
+      surface: 'App',
+      summary: 'A Vector app screen. No canvas editor is open.',
+    };
+
+    setAdvisorContext({
+      title: chosen.title,
+      prompt: '',
+      kind: 'general',
+      surface: chosen.surface,
+      summary: chosen.summary,
+      appearance: 'Dark graphite interface with white type and a violet accent. No canvas editor is open.',
+    });
+  }, [activeTab, projects, currentProject?.name]);
 
   // Browser back/forward support: every tab change is a history entry, so the
   // back button (and the editor's back arrow) return where the user came from.
