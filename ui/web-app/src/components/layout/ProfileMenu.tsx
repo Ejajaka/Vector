@@ -111,7 +111,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
         onClick={() => setOpen((value) => !value)}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label="Account menu"
+        aria-label={`Account menu (${initials(displayName)})`}
         className={`relative w-8 h-8 rounded-full grid place-items-center text-[11px] font-semibold text-white transition-transform hover:scale-105 ${
           open ? 'ring-2 ring-[#49686C] ring-offset-2 ring-offset-[#FFFFFF] dark:ring-offset-[#1B2426]' : ''
         }`}
