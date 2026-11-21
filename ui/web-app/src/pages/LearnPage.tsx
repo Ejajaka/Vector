@@ -12,6 +12,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import type { ActiveTab } from '../types/analysis.ts';
+import { LessonDialog, type LessonGuide } from '../components/learn/LessonDialog.tsx';
 
 interface LearnPageProps {
   onNavigate: (tab: ActiveTab) => void;
@@ -58,8 +59,63 @@ const LESSONS: Record<Tab, Lesson[]> = {
   ],
 };
 
+
+const GUIDES: Record<Tab, LessonGuide> = {
+  'Get started': {
+    intro: 'A project is one workspace for one screen or flow. Everything you write, review and generate stays inside it.',
+    steps: [
+      'Open Projects and choose New project.',
+      'Pick a template, or start with a blank canvas.',
+      'Write one plain sentence about the screen you want.',
+      'Read the questions, answer them, then generate the prompt.',
+    ],
+    action: { label: 'Open projects', tab: 'projects' },
+  },
+  Prompting: {
+    intro: 'A prompt is just a clear description of what should appear, what it does, and when it changes.',
+    steps: [
+      'Open a project and choose Prompt mode.',
+      'Describe the screen the way you would explain it to a teammate.',
+      'Answer the short questions the analyser asks.',
+      'Copy the finished prompt into Base44, v0, Bolt or Figma.',
+    ],
+    action: { label: 'Try the analyser', tab: 'new-analysis' },
+  },
+  Elements: {
+    intro: 'An element is one piece of the screen: a button, card, input, table or menu.',
+    steps: [
+      'Open the canvas editor.',
+      'Choose an element type from the palette.',
+      'Give it a label, an action and a colour.',
+      'Check the empty, loading and error states.',
+    ],
+    action: { label: 'Open projects', tab: 'projects' },
+  },
+  Templates: {
+    intro: 'A template is a ready-made set of blocks. You keep the useful parts and delete the rest.',
+    steps: [
+      'Open Templates.',
+      'Preview a template to see every block and attribute.',
+      'Choose Open to create a project already filled in.',
+      'Edit only the blocks that do not apply to you.',
+    ],
+    action: { label: 'Browse templates', tab: 'templates' },
+  },
+  Billing: {
+    intro: 'Two full projects are free. Pro is ?199 per month or ?1,990 per year, and you can cancel any time.',
+    steps: [
+      'Open Plans and pricing from the account menu.',
+      'Choose Pro and pick monthly or yearly.',
+      'Pay through Razorpay. The plan activates after verification.',
+      'Find receipts under Settings when you need them.',
+    ],
+    action: { label: 'See plans', tab: 'pricing' },
+  },
+};
+
 export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onStartTour }) => {
   const [tab, setTab] = useState<Tab>('Get started');
+  const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
   const lessons = LESSONS[tab];
 
   return (
@@ -94,7 +150,14 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onStartTour })
         {lessons.map((lesson) => {
           const Icon = lesson.icon;
           return (
-            <article key={lesson.title} className="v-card v-card-lift rounded-lg p-4 cursor-pointer group">
+            <article
+              key={lesson.title}
+              role="button"
+              tabIndex={0}
+              onClick={() => setActiveLesson(lesson)}
+              onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setActiveLesson(lesson); } }}
+              className="v-card v-card-lift rounded-lg p-4 cursor-pointer group focus:outline-none focus:ring-2 focus:ring-[var(--v-violet)]"
+            >
               <div className="flex items-start justify-between">
                 <span
                   className="w-11 h-11 rounded-lg grid place-items-center text-white"
@@ -148,6 +211,18 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onStartTour })
           Open manual
         </button>
       </section>
+
+      {activeLesson && (
+        <LessonDialog
+          lesson={activeLesson}
+          guide={GUIDES[tab]}
+          onClose={() => setActiveLesson(null)}
+          onTry={(target) => {
+            setActiveLesson(null);
+            onNavigate(target);
+          }}
+        />
+      )}
     </div>
   );
 };

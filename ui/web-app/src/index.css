@@ -509,3 +509,35 @@ code, kbd, samp, pre {
     transform: none !important;
   }
 }
+
+/* Learn lesson dialog */
+@keyframes lesson-panel-in {
+  from { opacity: 0; transform: translateY(10px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.lesson-panel { animation: lesson-panel-in .3s ease-out both; }
+@keyframes lesson-step-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.lesson-step { animation: lesson-step-in .45s ease-out both; }
+@keyframes lesson-row-glow {
+  0%, 100% { border-color: var(--v-line); }
+  45% { border-color: var(--v-violet); box-shadow: 0 0 0 2px rgba(124,92,255,.12); }
+}
+.lesson-demo-row { animation: lesson-row-glow 3.2s ease-in-out infinite; }
+@keyframes lesson-cursor-move {
+  0%, 100% { transform: translate(0, 0); }
+  30% { transform: translate(-44px, -20px); }
+  60% { transform: translate(-20px, -54px); }
+  80% { transform: translate(-60px, -8px); }
+}
+.lesson-cursor { animation: lesson-cursor-move 4.2s ease-in-out infinite; }
+@keyframes lesson-ring-pulse {
+  0% { transform: scale(.6); opacity: .55; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+.lesson-ring { border: 1px solid var(--v-violet); animation: lesson-ring-pulse 1.9s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .lesson-panel, .lesson-step, .lesson-demo-row, .lesson-cursor, .lesson-ring { animation: none !important; }
+}

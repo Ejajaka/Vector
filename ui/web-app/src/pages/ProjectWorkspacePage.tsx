@@ -60,8 +60,11 @@ import { WireframePreview } from '../components/editor/WireframePreview.tsx';
 import { parseFigmaJson } from '../services/figma.ts';
 import { getActiveDesignSystem } from '../services/designSystems.ts';
 import { readProjectSetup } from '../services/projectSeed.ts';
-import { currentRoom, shareLink } from '../services/collab.ts';
+import { currentRoom, projectRoom, shareLink } from '../services/collab.ts';
+import { loadSharedDoc, saveSharedDoc } from '../services/sharedDocs.ts';
+import { isPaid, readEntitlements } from '../services/entitlements.ts';
 import type { ActiveTab } from '../types/analysis.ts';
+import { useAuth } from '../context/AuthContext.tsx';
 import { useSearchAutocomplete } from '../hooks/useSearchAutocomplete.ts';
 import { SearchSuggestions } from '../components/ui/SearchSuggestions.tsx';
 import {
@@ -485,6 +488,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   onOptimizePrompt,
   onNavigate,
 }) => {
+  const { user } = useAuth();
   const [doc, setDoc] = useState<SavedDoc | null>(null);
   const [draft, setDraft] = useState<PromptDraft>({});
   const [revised, setRevised] = useState<RevisedPrompt | null>(null);
@@ -500,6 +504,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   const [artifact, setArtifact] = useState<Artifact | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [shareGateOpen, setShareGateOpen] = useState(false);
   const [zipBusy, setZipBusy] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
@@ -528,6 +533,31 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
   }, [loadProject]);
+
+  // A collaborator may have edited while the holder was away. Pull the shared
+  // room so the project folder reflects their latest canvas.
+  useEffect(() => {
+    let cancelled = false;
+    void loadSharedDoc(projectRoom(project.id)).then((shared) => {
+      if (cancelled || !shared || !shared.pages.length) return;
+      const local = readJson<SavedDoc>(`vector_project_doc_${project.id}`);
+      if (local && JSON.stringify(local.pages) === JSON.stringify(shared.pages)) return;
+      const next: SavedDoc = {
+        name: shared.name || project.name,
+        pages: shared.pages,
+        updatedAt: new Date().toISOString(),
+      };
+      try {
+        localStorage.setItem(`vector_project_doc_${project.id}`, JSON.stringify(next));
+      } catch {
+        // ignore quota errors
+      }
+      setDoc(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [project.id, project.name]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -632,6 +662,15 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
 
   const activeVersion = versions.find((version) => version.id === activeVersionId) || versions[0];
   const base44Version = versions.find((version) => version.id === base44VersionId) || activeVersion;
+  const collabRoom = useMemo(() => projectRoom(project.id), [project.id]);
+  const shareUrl = useMemo(() => {
+    const url = new URL(shareLink(collabRoom));
+    url.searchParams.set('project', project.id);
+    url.searchParams.set('name', project.name);
+    url.searchParams.set('share', '1');
+    if (user?.id) url.searchParams.set('owner', user.id);
+    return url.toString();
+  }, [collabRoom, project.id, project.name, user?.id]);
 
   const sourcePages = useMemo(() => {
     if (activeVersion?.source === 'canvas' && doc) {
@@ -886,9 +925,21 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   };
 
   const copyShare = async () => {
-    const link = `${window.location.origin}${window.location.pathname}?project=${encodeURIComponent(project.id)}`;
+    // Seed the room with the project holder's canvas only when the room has no
+    // document yet: never overwrite a collaborator's newer work.
+    if (doc && doc.pages.length) {
+      void loadSharedDoc(collabRoom).then((existing) => {
+        if (existing) return;
+        void saveSharedDoc(collabRoom, {
+          name: doc.name || project.name,
+          pages: doc.pages,
+          ownerId: user?.id || null,
+          projectId: project.id,
+        });
+      });
+    }
     try {
-      await navigator.clipboard.writeText(link);
+      await navigator.clipboard.writeText(shareUrl);
       setShareCopied(true);
       window.setTimeout(() => setShareCopied(false), 1600);
     } catch {
@@ -1024,7 +1075,17 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
           <button type="button" onClick={() => void zipProject()} disabled={zipBusy} className="v-btn v-btn-ghost h-8 px-2.5 text-[10.5px]">
             {zipBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />} Zip
           </button>
-          <button type="button" onClick={() => setShareOpen(true)} className="v-btn v-btn-ghost h-8 px-2.5 text-[10.5px]">
+          <button
+            type="button"
+            onClick={() => {
+              if (!isPaid(readEntitlements())) {
+                setShareGateOpen(true);
+                return;
+              }
+              setShareOpen(true);
+            }}
+            className="v-btn v-btn-ghost h-8 px-2.5 text-[10.5px]"
+          >
             <Share2 className="h-3.5 w-3.5" /> Share
           </button>
         </div>
@@ -1476,6 +1537,44 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
         </div>
       )}
 
+      {shareGateOpen && (
+        <div className="fixed inset-0 z-[94] grid place-items-center p-3" role="dialog" aria-modal="true" aria-label="Sharing needs Pro">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShareGateOpen(false)} aria-hidden="true" />
+          <div className="relative w-full max-w-[440px] rounded-xl border border-[var(--v-line)] bg-[var(--v-surface)] p-5">
+            <span className="grid h-10 w-10 place-items-center rounded-lg bg-[var(--v-violet)]/12 text-[var(--v-violet)]">
+              <Sparkles className="h-5 w-5" />
+            </span>
+            <p className="v-eyebrow mt-3">Pro feature</p>
+            <h2 className="mt-0.5 text-[18px] font-semibold text-[var(--v-ink)]">Share this project live</h2>
+            <p className="mt-1.5 text-[11.5px] leading-relaxed text-[var(--v-muted)]">
+              Invite another Pro member to edit the same canvas at the same time. Cursors, selections and every change stay in sync.
+            </p>
+            <ul className="mt-3 space-y-1.5 text-[11px] text-[var(--v-muted)]">
+              {['Live cursors and selections', 'Both people edit at once', "Changes saved to the project holder's project"].map((item) => (
+                <li key={item} className="flex items-start gap-2">
+                  <Check className="mt-0.5 h-3 w-3 shrink-0 text-[var(--v-violet)]" /> {item}
+                </li>
+              ))}
+            </ul>
+            <div className="mt-4 flex justify-end gap-2">
+              <button type="button" onClick={() => setShareGateOpen(false)} className="v-btn v-btn-ghost h-8 px-3 text-[10.5px]">
+                Not now
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShareGateOpen(false);
+                  onNavigate('pricing');
+                }}
+                className="v-btn v-btn-primary h-8 px-3 text-[10.5px]"
+              >
+                Upgrade to Pro <ArrowRight className="h-3 w-3" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {shareOpen && (
         <div className="fixed inset-0 z-[94] grid place-items-center p-3" role="dialog" aria-modal="true" aria-label="Share project">
           <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" onClick={() => setShareOpen(false)} aria-hidden="true" />
@@ -1485,7 +1584,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                 <p className="v-eyebrow">Share</p>
                 <h2 className="mt-0.5 text-[17px] font-semibold text-[var(--v-ink)]">Share this project</h2>
                 <p className="mt-1 text-[10px] leading-relaxed text-[var(--v-muted)]">
-                  The link opens this project folder. In local mode the data stays in this browser; connect Supabase for multi-user access.
+                  Only Pro members can open this room. They sign in, then edit the same canvas live with you. Changes are saved to your project.
                 </p>
               </div>
               <button type="button" onClick={() => setShareOpen(false)} className="v-icon-btn" aria-label="Close share">
@@ -1495,7 +1594,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
             <div className="mt-3 flex gap-1.5">
               <input
                 readOnly
-                value={`${window.location.origin}${window.location.pathname}?project=${project.id}`}
+                value={shareUrl}
                 className="h-8 min-w-0 flex-1 rounded-md border border-[var(--v-line)] bg-[var(--v-surface-2)] px-2 text-[10px] text-[var(--v-muted)]"
               />
               <button type="button" onClick={() => void copyShare()} className="v-btn v-btn-primary h-8 px-3 text-[10.5px]">

@@ -83,6 +83,8 @@ import {
   addInvite,
   currentRoom,
   makePeer,
+  projectRoom,
+  roomFromUrl,
   readInvites,
   shareLink,
   sharingMode,
@@ -90,6 +92,7 @@ import {
   type Peer,
 } from '../services/collab.ts';
 import { ShareDialog } from '../components/collab/ShareDialog.tsx';
+import { loadSharedDoc, saveSharedDoc } from '../services/sharedDocs.ts';
 import { PagePickerModal } from '../components/projects/PagePickerModal.tsx';
 import { ConnectDialog } from '../components/generators/ConnectDialog.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
@@ -654,7 +657,20 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     (user?.user_metadata?.display_name as string | undefined) ||
     user?.email?.split('@')[0] ||
     'You';
-  const [room] = useState(() => currentRoom());
+  const [room] = useState(() => roomFromUrl() || (projectId ? projectRoom(projectId) : currentRoom()));
+  const sharedMode = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return Boolean(projectId) || new URLSearchParams(window.location.search).get('share') === '1';
+  }, [projectId]);
+  const sharedOwner = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    return new URLSearchParams(window.location.search).get('owner');
+  }, []);
+  const sharedProject = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    return new URLSearchParams(window.location.search).get('project');
+  }, []);
+  const sharedReady = useRef(false);
   const [peers, setPeers] = useState<Peer[]>([]);
   const [me, setMe] = useState<Peer | null>(null);
   const [invites, setInvites] = useState<Invite[]>(() => readInvites());
@@ -788,6 +804,42 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     };
   }, [room, displayName]);
 
+  // Shared rooms persist to Supabase, so edits survive after everyone closes the tab.
+  useEffect(() => {
+    if (!sharedMode) return;
+    let cancelled = false;
+    void loadSharedDoc(room).then((doc) => {
+      if (cancelled) return;
+      if (doc) {
+        applyingRemote.current = true;
+        setName(doc.name);
+        setPages(doc.pages);
+        setActivePageId(doc.pages[0]?.id || '');
+        setSelectedId(null);
+        window.setTimeout(() => {
+          applyingRemote.current = false;
+        }, 60);
+      }
+      sharedReady.current = true;
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [room, sharedMode]);
+
+  useEffect(() => {
+    if (!sharedMode || !sharedReady.current) return;
+    const timer = window.setTimeout(() => {
+      void saveSharedDoc(room, {
+        name,
+        pages,
+        ownerId: sharedOwner || user?.id || null,
+        projectId: sharedProject || projectId || null,
+      });
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [name, pages, room, sharedMode, sharedOwner, sharedProject, projectId]);
+
   // Broadcast local edits, but never echo a document that came from a peer.
   useEffect(() => {
     if (applyingRemote.current) return;
@@ -908,6 +960,27 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     onRequireUpgrade?.();
     return true;
   };
+
+  // Sharing is a Pro feature: free accounts see the upgrade chooser instead.
+  const openShare = () => {
+    if (!paid) {
+      onRequireUpgrade?.();
+      return;
+    }
+    setShareOpen(true);
+  };
+
+  // The invite link has to carry the room, the project and its holder, or the
+  // recipient would land on their own workspace instead of this canvas.
+  const inviteLink = useMemo(() => {
+    const url = new URL(shareLink(room));
+    if (projectId) url.searchParams.set('project', projectId);
+    url.searchParams.set('name', projectName || name || 'Shared project');
+    url.searchParams.set('share', '1');
+    const owner = sharedOwner || user?.id;
+    if (owner) url.searchParams.set('owner', owner);
+    return url.toString();
+  }, [room, projectId, projectName, name, sharedOwner, user?.id]);
 
   const addTextPreset = (preset: TextPreset) => {
     if (blockedByPlan(preset.premium)) return;
@@ -1952,7 +2025,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                 <div className="fixed inset-0 z-[38]" onClick={() => setWorkspaceMenu(false)} aria-hidden="true" />
                 <div className="absolute right-0 top-9 z-[39] w-[220px] rounded-lg border border-white/10 bg-[#333] p-1.5 shadow-[0_24px_50px_-20px_rgba(0,0,0,.9)]">
                   {[
-                    { label: 'Share and invite', action: () => setShareOpen(true) },
+                    { label: 'Share and invite', action: openShare },
                     { label: 'Generate with an app', action: () => setConnectOpen(true) },
                     { label: 'Design system', action: () => onNavigate?.('design') },
                     { label: 'Templates', action: () => onNavigate?.('templates') },
@@ -1988,7 +2061,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => setShareOpen(true)}
+            onClick={openShare}
             className="h-8 whitespace-nowrap rounded-md border border-white/20 px-3 text-[11.5px] font-semibold text-white/85 hover:bg-white/5"
           >
             Share
@@ -3968,7 +4041,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
         open={shareOpen}
         onClose={() => setShareOpen(false)}
         room={room}
-        link={shareLink(room)}
+        link={inviteLink}
         peers={peers}
         me={me || makePeer(displayName)}
         invites={invites}

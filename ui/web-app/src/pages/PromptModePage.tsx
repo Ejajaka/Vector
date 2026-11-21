@@ -1031,28 +1031,6 @@ export const PromptModePage: React.FC<Props> = ({
               <div className="flex items-center gap-1">
                 <button
                   type="button"
-                  onClick={listening || voiceState === 'requesting' ? stopVoice : () => void startVoice()}
-                  className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[10px] font-semibold transition-colors ${
-                    voiceState === 'requesting'
-                      ? 'border-[#F59E0B] bg-[#F59E0B]/10 text-[#9A6700]'
-                      : listening
-                        ? 'border-[#FF7A59] bg-[#FF7A59]/10 text-[#C2410C]'
-                        : 'border-[var(--v-line)] bg-[var(--v-surface)] text-[var(--v-muted)] hover:border-[var(--v-violet)] hover:text-[var(--v-violet)]'
-                  }`}
-                  aria-label={listening ? 'Stop voice input' : 'Start voice input'}
-                  title={voiceSupported ? 'Capture speech with the browser speech service' : 'Browser speech capture needs Chrome or Edge'}
-                >
-                  {voiceState === 'requesting' ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : listening ? (
-                    <MicOff className="h-3.5 w-3.5" />
-                  ) : (
-                    <Mic className="h-3.5 w-3.5" />
-                  )}
-                  {voiceState === 'requesting' ? 'Allow microphone…' : listening ? 'Stop listening' : 'Speak instead'}
-                </button>
-                <button
-                  type="button"
                   onClick={localVoiceState === 'recording' ? stopLocalVoice : () => void startLocalVoice()}
                   disabled={localVoiceState === 'transcribing'}
                   className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[10px] font-semibold transition-colors ${
@@ -1060,21 +1038,21 @@ export const PromptModePage: React.FC<Props> = ({
                       ? 'border-[#FF7A59] bg-[#FF7A59]/10 text-[#C2410C]'
                       : 'border-[var(--v-line)] bg-[var(--v-surface)] text-[var(--v-muted)] hover:border-[var(--v-teal)] hover:text-[var(--v-teal)] disabled:opacity-50'
                   }`}
-                  title="Record and transcribe on this device — no browser speech service needed"
-                  aria-label={localVoiceState === 'recording' ? 'Stop local recording' : 'Start on-device voice capture'}
+                  title="Speak your prompt — recorded and transcribed on this device"
+                  aria-label={localVoiceState === 'recording' ? 'Stop recording' : 'Speak your prompt'}
                 >
                   {localVoiceState === 'recording' ? (
                     <Square className="h-3 w-3 fill-current" />
                   ) : localVoiceState === 'transcribing' ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   ) : (
-                    <Cpu className="h-3.5 w-3.5" />
+                    <Mic className="h-3.5 w-3.5" />
                   )}
                   {localVoiceState === 'recording'
                     ? 'Stop & transcribe'
                     : localVoiceState === 'transcribing'
                       ? 'Transcribing…'
-                      : 'On-device'}
+                      : 'Speak'}
                 </button>
               </div>
             </div>
@@ -1116,7 +1094,7 @@ export const PromptModePage: React.FC<Props> = ({
             {voiceError && <p className="mt-1 text-[10px] font-medium text-[#B94D42]">{voiceError}</p>}
             {!voiceSupported && !voiceError && (
               <p className="mt-1 text-[9.5px] leading-relaxed text-[var(--v-faint)]">
-                Browser speech capture needs Chrome or Edge. Use <b>On-device</b> to record and transcribe locally.
+                Browser speech capture needs Chrome or Edge. Use <b>Speak</b> to record and transcribe locally.
               </p>
             )}
           </div>

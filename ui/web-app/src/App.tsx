@@ -43,7 +43,7 @@ import { PricingDialog } from './components/pricing/PricingDialog.tsx';
 import { PlanHubDialog, type PlanHubTab } from './components/pricing/PlanHubDialog.tsx';
 import { getAdvisorContext, setAdvisorContext } from './services/aiAdvisor.ts';
 import type { TemplateDefinition } from './data/templates.ts';
-import { canCreateProject, readEntitlements, type PlanCode } from './services/entitlements.ts';
+import { canCreateProject, isPaid, readEntitlements, type PlanCode } from './services/entitlements.ts';
 import { notificationService } from './services/notifications.ts';
 
 const PUBLIC_TABS: ActiveTab[] = ['about', 'privacy', 'pricing', 'learn', 'terms', 'contact'];
@@ -242,10 +242,13 @@ function AppShell() {
     setActiveTab('project');
   };
 
-  // Shared project links use ?project=<id>. Resolve them once projects load.
+  // Project links use ?project=<id>. Resolve them once projects load. A live
+  // share link is handled by the editor deep link above instead.
   useEffect(() => {
     if (projectLoading || !projects.length) return;
-    const projectId = new URLSearchParams(window.location.search).get('project');
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('share') === '1' && params.get('room')) return;
+    const projectId = params.get('project');
     if (!projectId) return;
     const project = projects.find((entry) => entry.id === projectId);
     if (!project) return;
@@ -313,19 +316,39 @@ function AppShell() {
   // rail and header never disappear when it is opened from the sidebar.
   const showMarketingChrome = MARKETING_TABS.includes(activeTab);
 
-  // Restore the current tab for this browser session.
+  // Restore the current tab for this browser session. A Pro share link wins
+  // over the stored tab: it opens the shared canvas straight away.
   useEffect(() => {
     let next: ActiveTab = signedIn ? 'dashboard' : 'about';
-    try {
-      const saved = sessionStorage.getItem(tabSessionKey(user?.id));
-      if (isKnownTab(saved)) next = saved;
-    } catch {
-      // ignore storage failures
+    const params = new URLSearchParams(window.location.search);
+    const shareProject = params.get('project');
+    const isShareLink = params.get('share') === '1' && !!params.get('room') && !!shareProject;
+    // A recipient who is not signed in goes straight to sign-in.
+    if (isShareLink && !signedIn) setShowAuth(true);
+    const shareLink = signedIn && isShareLink;
+    if (shareLink && shareProject) {
+      if (!isPaid(readEntitlements())) {
+        openPricing();
+      } else {
+        setEditorProject({
+          id: shareProject,
+          name: params.get('name') || 'Shared project',
+        });
+        setEditorOrigin('project');
+        next = 'editor';
+      }
+    } else {
+      try {
+        const saved = sessionStorage.getItem(tabSessionKey(user?.id));
+        if (isKnownTab(saved)) next = saved;
+      } catch {
+        // ignore storage failures
+      }
     }
     if (!signedIn && !PUBLIC_TABS.includes(next)) next = 'about';
     setActiveTab(next);
     setTabHydrated(true);
-  }, [user?.id, signedIn]);
+  }, [user?.id, signedIn, openPricing]);
 
   // Persist the active tab for refreshes during this page session.
   useEffect(() => {

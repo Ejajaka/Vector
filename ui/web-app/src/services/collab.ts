@@ -250,6 +250,12 @@ export function currentRoom(): string {
   }
 }
 
+
+/** Stable room for a project, shared by every collaborator link. */
+export function projectRoom(projectId: string): string {
+  return `project_${projectId}`;
+}
+
 export function shareLink(room: string): string {
   const url = new URL(window.location.href);
   url.search = '';
