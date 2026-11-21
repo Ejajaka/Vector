@@ -11,7 +11,10 @@ interface SubscriptionRow {
  * Owner/testing accounts that keep Pro without a Razorpay subscription.
  * Matched against the authenticated Supabase email, never user input.
  */
-const COMPED_PRO_EMAILS = new Set(['sanjeev.vakalapudi@gmail.com']);
+const COMPED_PRO_EMAILS = new Set([
+  'sanjeev.vakalapudi@gmail.com',
+  'bl.sc.u4cse24043@bl.students.amrita.edu',
+]);
 
 /**
  * The browser plan is a cache. On every sign-in, compare it with the billing
