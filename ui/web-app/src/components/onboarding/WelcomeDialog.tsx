@@ -26,7 +26,7 @@ export const WelcomeDialog: React.FC<WelcomeDialogProps> = ({
 }) => {
   if (!open) return null;
 
-  const plans = PLANS.filter((plan) => plan.code === 'free' || plan.code === 'pro' || plan.code === 'team');
+  const plans = PLANS;
 
   return (
     <div className="fixed inset-0 z-[98] grid place-items-center overflow-y-auto p-4" role="dialog" aria-modal="true" aria-label="Welcome to Vector">
@@ -80,7 +80,7 @@ export const WelcomeDialog: React.FC<WelcomeDialogProps> = ({
             </button>
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-3">
+          <div className="grid gap-2 sm:grid-cols-2">
             {plans.map((plan) => {
               const featured = plan.code === 'pro';
               return (

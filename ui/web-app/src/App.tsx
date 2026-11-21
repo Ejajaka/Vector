@@ -43,7 +43,7 @@ import { PricingDialog } from './components/pricing/PricingDialog.tsx';
 import { PlanHubDialog, type PlanHubTab } from './components/pricing/PlanHubDialog.tsx';
 import { getAdvisorContext, setAdvisorContext } from './services/aiAdvisor.ts';
 import type { TemplateDefinition } from './data/templates.ts';
-import { canCreateProject, readEntitlements } from './services/entitlements.ts';
+import { canCreateProject, readEntitlements, type PlanCode } from './services/entitlements.ts';
 import { notificationService } from './services/notifications.ts';
 
 const PUBLIC_TABS: ActiveTab[] = ['about', 'privacy', 'pricing', 'learn', 'terms', 'contact'];
@@ -122,6 +122,7 @@ function AppShell() {
   }, []);
   const [activeTab, setActiveTab] = useState<ActiveTab>('about');
   const [pricingOpen, setPricingOpen] = useState(false);
+  const [pricingIntent, setPricingIntent] = useState<{ plan: PlanCode; billing: 'monthly' | 'annual'; auto: boolean } | null>(null);
   const [planHubTab, setPlanHubTab] = useState<PlanHubTab | null>(null);
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
@@ -788,7 +789,7 @@ function AppShell() {
           )}
 
           {activeTab === 'pricing' && (
-            <PricingPage onNavigate={(tab) => setActiveTab(tab as ActiveTab)} />
+            <PricingPage intent={pricingIntent} onIntentConsumed={() => setPricingIntent(null)} onNavigate={(tab) => setActiveTab(tab as ActiveTab)} />
           )}
 
           {activeTab === 'overview' && (
@@ -923,9 +924,10 @@ function AppShell() {
           closeWelcome();
           openPricing();
         }}
-        onChoosePlan={() => {
+        onChoosePlan={(plan) => {
           closeWelcome();
-          openPricing();
+          setPricingIntent({ plan, billing: 'monthly', auto: true });
+          setActiveTab('pricing');
         }}
       />
     </div>

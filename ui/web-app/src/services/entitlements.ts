@@ -61,37 +61,7 @@ export const PLANS: PlanDefinition[] = [
     ],
     limits: { projects: 'unlimited', templates: 'all', integrations: 2, seats: 1, aiExplanations: true, deployments: true },
   },
-  {
-    code: 'team',
-    name: 'Team',
-    tagline: 'Shared rubrics and gates for design-system teams.',
-    monthlyInr: 1499,
-    annualInr: 14990,
-    highlights: [
-      'Everything in Pro',
-      'Custom element schema & required attributes',
-      'Shared template library',
-      'Risk thresholds and CI gates',
-      'Audit log, 10 seats',
-      'All integrations',
-    ],
-    limits: { projects: 'unlimited', templates: 'all', integrations: 'all', seats: 10, aiExplanations: true, deployments: true },
-  },
-  {
-    code: 'business',
-    name: 'Business',
-    tagline: 'Governance, deployment and support.',
-    monthlyInr: 3999,
-    annualInr: 39990,
-    highlights: [
-      'Everything in Team',
-      'One-click deploy to Vercel / Netlify',
-      'SSO, 25 seats',
-      'Self-hosted Docker option',
-      'Priority support & onboarding',
-    ],
-    limits: { projects: 'unlimited', templates: 'all', integrations: 'all', seats: 25, aiExplanations: true, deployments: true },
-  },
+
 ];
 
 const STORAGE_KEY = 'vector_entitlements_v1';

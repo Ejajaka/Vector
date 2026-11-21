@@ -57,7 +57,7 @@ export const PricingDialog: React.FC<PricingDialogProps> = ({ open, onClose, onL
           ))}
         </div>
 
-        <div className="mt-4 grid gap-2.5 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-4 grid gap-2.5 md:grid-cols-2">
           {PLANS.map((plan) => {
             const price = billing === 'annual' ? plan.annualInr : plan.monthlyInr;
             const perMonth = plan.code === 'free' ? 0 : billing === 'annual' ? Math.round(plan.annualInr / 12) : plan.monthlyInr;
@@ -116,7 +116,7 @@ export const PricingDialog: React.FC<PricingDialogProps> = ({ open, onClose, onL
                         : 'border border-white/20 text-white/85 hover:bg-white/10'
                   }`}
                 >
-                  {current ? 'Current plan' : plan.code === 'business' ? 'Contact sales' : `Choose ${plan.name}`}
+                  {current ? 'Current plan' : `Choose ${plan.name}`}
                 </button>
               </div>
             );

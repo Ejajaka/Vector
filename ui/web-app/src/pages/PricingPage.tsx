@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight, BadgeCheck, Check, Crown, Minus, ShieldCheck, Sparkles, Wallet, X } from 'lucide-react';
 import {
   PLANS,
@@ -17,25 +17,26 @@ import { useAuth } from '../context/AuthContext.tsx';
 
 interface PricingPageProps {
   onNavigate: (tab: 'dashboard' | 'projects' | 'settings') => void;
+  intent?: { plan: PlanCode; billing: 'monthly' | 'annual'; auto: boolean } | null;
+  onIntentConsumed?: () => void;
 }
 
-const ROWS: Array<{ label: string; values: [string, string, string, string] }> = [
-  { label: 'Projects', values: ['2 total', 'Unlimited', 'Unlimited', 'Unlimited'] },
-  { label: 'Templates', values: ['3', 'All 10+', 'All + shared', 'All + shared'] },
-  { label: 'Block palette composer', values: ['—', '✓', '✓', '✓'] },
-  { label: 'AI explanations', values: ['—', 'BYO key', 'BYO key', 'Managed'] },
-  { label: 'Custom element schema', values: ['—', '—', '✓', '✓'] },
-  { label: 'CI gates & audit log', values: ['—', '—', '✓', '✓'] },
-  { label: 'One-click deploy', values: ['—', 'Figma export', 'Vercel / Netlify', 'Vercel / Netlify'] },
-  { label: 'Seats', values: ['1', '1', '10', '25'] },
-  { label: 'Support', values: ['Community', 'Email', 'Priority', 'Dedicated'] },
+const ROWS: Array<{ label: string; values: [string, string] }> = [
+  { label: 'Projects', values: ['2 total', 'Unlimited'] },
+  { label: 'Templates', values: ['3', 'All 10+'] },
+  { label: 'Block palette composer', values: ['—', '✓'] },
+  { label: 'AI explanations', values: ['—', 'BYO key'] },
+  { label: 'One-click deploy', values: ['—', 'Figma export'] },
+  { label: 'Seats', values: ['1', '1'] },
+  { label: 'Support', values: ['Community', 'Email'] },
 ];
 
-export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
+export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate, intent, onIntentConsumed }) => {
   const { user } = useAuth();
-  const [billing, setBilling] = useState<'monthly' | 'annual'>('monthly');
+  const [billing, setBilling] = useState<'monthly' | 'annual'>(intent?.billing || 'monthly');
   const [state, setState] = useState<EntitlementState>(readEntitlements());
-  const [selected, setSelected] = useState<PlanCode>('pro');
+  const [selected, setSelected] = useState<PlanCode>(intent?.plan || 'pro');
+  const autoOpened = useRef(false);
   const [busy, setBusy] = useState(false);
   const [flash, setFlash] = useState<{ tone: 'ok' | 'err'; text: string } | null>(null);
 
@@ -83,6 +84,18 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onNavigate }) => {
       },
     });
   };
+
+  useEffect(() => {
+    if (!intent?.auto || autoOpened.current) return;
+    autoOpened.current = true;
+    const timer = window.setTimeout(() => {
+      onIntentConsumed?.();
+      void buy();
+    }, 450);
+    return () => window.clearTimeout(timer);
+    // The intent is consumed once; buy reads the initialized selection above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [intent]);
 
   return (
     <div className="space-y-6 v-fade-up">
