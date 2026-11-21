@@ -15,7 +15,7 @@ Answer a few questions. Lock the brief.
 Then build it for real, on the canvas.
 
 5
-00:00:22,600 --> 00:00:27,908
+00:00:20,900 --> 00:00:26,208
 Drop in blocks. Add pages. Apply your design system. Drag, snap, done.
 
 6
