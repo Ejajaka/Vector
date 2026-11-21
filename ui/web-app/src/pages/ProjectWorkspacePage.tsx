@@ -1396,6 +1396,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                   <select
                     value={base44Version?.id || ''}
                     onChange={(event) => setBase44VersionId(event.target.value)}
+                    aria-label="Prompt source for Base44"
                     className="mt-2 h-7 w-full rounded-md border border-[var(--v-line)] bg-[var(--v-surface)] px-2 text-[10px] text-[var(--v-ink)] outline-none"
                   >
                     {versions.map((version) => (

@@ -649,7 +649,7 @@ function AppShell() {
   // The editor owns the whole viewport: no rail, no top bar, no page padding.
   if (activeTab === 'editor') {
     return (
-      <div className="min-h-screen v-bg">
+      <main className="min-h-screen v-bg">
         <EditorPage
           template={editorTemplate}
           seed={editorSeed}
@@ -691,7 +691,7 @@ function AppShell() {
           project={setupProject ?? { id: '', name: '' }}
           onComplete={completeProjectSetup}
         />
-      </div>
+      </main>
     );
   }
 
@@ -700,7 +700,7 @@ function AppShell() {
   if (activeTab === 'project' && activeProject) {
     return (
       <div className="flex h-screen flex-col overflow-hidden v-bg" data-app="true">
-        <div className="min-h-0 flex-1 overflow-y-auto p-2 sm:p-3">
+        <main className="min-h-0 flex-1 overflow-y-auto p-2 sm:p-3">
           {projectView === 'prompt' ? (
             <PromptModePage
               key={`${activeProject.id}-${projectDocVersion}`}
@@ -722,7 +722,7 @@ function AppShell() {
               onNavigate={setActiveTab}
             />
           )}
-        </div>
+        </main>
         <AssistantPanel
           open={assistantOpen}
           onClose={() => setAssistantOpen(false)}
