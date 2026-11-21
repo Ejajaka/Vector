@@ -64,9 +64,6 @@ const TOOLS: Array<{ id: ProjectToolId; label: string; icon: React.ComponentType
   { id: 'requirements', label: 'Requirements', icon: FileText, hint: 'From uploaded requirement documents' },
   { id: 'graph', label: 'Requirement graph', icon: GitBranch, hint: 'From uploaded requirement documents' },
   { id: 'review', label: 'Review & acceptance', icon: ClipboardCheck, hint: 'From uploaded requirement documents' },
-  { id: 'prompt', label: 'Prompt studio', icon: Sparkles, hint: 'The six-section brief' },
-  { id: 'design', label: 'Design systems', icon: Palette, hint: 'Tokens this project uses' },
-  { id: 'analyser', label: 'Prompt analyser', icon: BarChart3, hint: 'Risk and readiness' },
 ];
 
 /** Requirement analysis is document-first; prompts and canvas files are not a source. */

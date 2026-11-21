@@ -57,15 +57,18 @@ import { TYPE_TO_VARIANT, VARIANTS, variantById } from '../data/styles.ts';
 import { StyledElement } from '../components/editor/StyledElement.tsx';
 import { WireframePreview } from '../components/editor/WireframePreview.tsx';
 import { parseFigmaJson } from '../services/figma.ts';
-import { getActiveDesignSystem } from '../services/designSystems.ts';
+import { getActiveDesignSystem, type DesignSystem } from '../services/designSystems.ts';
+import { DesignSystemPickerDialog } from '../components/project/DesignSystemPickerDialog.tsx';
 import { readProjectSetup } from '../services/projectSeed.ts';
 import { readBase44PageUrl, saveBase44PageUrl } from '../services/base44.ts';
 import { loadProjectMemory } from '../services/projectMemory.ts';
 import { MEMORY_KEYS } from '../services/generation/memory.ts';
 import { analyzeRequirements } from '../services/requirements/intelligence.ts';
 import { generateAcceptanceCriteria } from '../services/requirements/acceptance.ts';
+import { buildDocumentPrompt } from '../services/requirements/documentPrompt.ts';
+import { listAcceptanceCriteria } from '../services/requirements/acceptanceRepository.ts';
 import { listRequirementDocuments, listRequirements } from '../services/documents/requirementDocuments.ts';
-import type { RequirementDocument, RequirementRecord } from '../types/requirements.ts';
+import type { AcceptanceCriterion, RequirementDocument, RequirementRecord } from '../types/requirements.ts';
 import { currentRoom, projectRoom, shareLink } from '../services/collab.ts';
 import { loadSharedDoc, saveSharedDoc } from '../services/sharedDocs.ts';
 import { isPaid, readEntitlements } from '../services/entitlements.ts';
@@ -437,12 +440,16 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   const [generatedAt, setGeneratedAt] = useState(new Date().toISOString());
   const [requirementDocs, setRequirementDocs] = useState<RequirementDocument[]>([]);
   const [requirements, setRequirements] = useState<RequirementRecord[]>([]);
+  const [savedCriteria, setSavedCriteria] = useState<AcceptanceCriterion[]>([]);
   const [uploadPrompt, setUploadPrompt] = useState<string | null>(null);
+  const [designSystemOpen, setDesignSystemOpen] = useState(false);
+  const [documentPromptOpen, setDocumentPromptOpen] = useState(false);
+  const [documentPromptCopied, setDocumentPromptCopied] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const figmaRef = useRef<HTMLInputElement>(null);
 
   const setup = useMemo(() => readProjectSetup(project.id), [project.id]);
-  const designSystem = useMemo(() => getActiveDesignSystem(), []);
+  const [designSystem, setDesignSystem] = useState<DesignSystem | null>(() => getActiveDesignSystem());
 
   const loadProject = useCallback(() => {
     const savedDoc = readJson<SavedDoc>(`vector_project_doc_${project.id}`);
@@ -843,10 +850,6 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     analyser: 'new-analysis',
   };
 
-  // Requirement analysis is document-first. These tools open the dedicated
-  // pages, which only read requirements compiled from uploaded documents.
-  const documentToolIds = new Set<ProjectToolId>(['requirements', 'graph', 'review']);
-
   const copyBase44Prompt = async () => {
     if (!base44Version) return;
     try {
@@ -901,15 +904,19 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
       listRequirementDocuments(project.id),
       listRequirements(project.id),
     ])
-      .then(([docs, reqs]) => {
+      .then(async ([docs, reqs]) => {
         if (!active) return;
         setRequirementDocs(docs);
         setRequirements(reqs);
+        const codeMap = new Map(reqs.map((requirement) => [requirement.id, requirement.requirementCode]));
+        const criteria = await listAcceptanceCriteria(project.id, codeMap).catch(() => []);
+        if (active) setSavedCriteria(criteria);
       })
       .catch(() => {
         if (!active) return;
         setRequirementDocs([]);
         setRequirements([]);
+        setSavedCriteria([]);
       });
     return () => {
       active = false;
@@ -925,6 +932,20 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     [requirements, project.id],
   );
   const hasRequirementDocument = requirementDocs.length > 0;
+  const approvedRequirements = requirements.filter((requirement) => requirement.status === 'approved');
+  const approvedCriteria = savedCriteria.filter((criterion) => criterion.status === 'approved');
+  const documentPrompt = useMemo(
+    () =>
+      buildDocumentPrompt({
+        projectName: project.name,
+        documentNames: requirementDocs.map((document) => document.fileName),
+        requirements,
+        criteria: savedCriteria,
+        designSystem,
+        analysis: requirementAnalysis,
+      }),
+    [project.name, requirementDocs, requirements, savedCriteria, designSystem, requirementAnalysis],
+  );
 
   const activePromptLabel = activeVersion?.label || 'No prompt yet';
   const activeMeta = activeVersion
@@ -1032,28 +1053,26 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
           { id: 'requirements' as ProjectToolId, label: 'Requirements', icon: FileText },
           { id: 'graph' as ProjectToolId, label: 'Requirement graph', icon: GitBranch },
           { id: 'review' as ProjectToolId, label: 'Review & acceptance', icon: ClipboardCheck },
-          { id: 'prompt' as ProjectToolId, label: 'Prompt studio', icon: Sparkles },
-          { id: 'design' as ProjectToolId, label: 'Design systems', icon: Palette },
-          { id: 'analyser' as ProjectToolId, label: 'Prompt analyser', icon: BarChart3 },
         ].map((tool) => {
           const Icon = tool.icon;
           return (
             <button
               key={tool.id}
               type="button"
-              onClick={() => {
-                if (documentToolIds.has(tool.id)) {
-                  onNavigate(fullTabForTool[tool.id]);
-                  return;
-                }
-                setToolOpen(tool.id);
-              }}
+              onClick={() => onNavigate(fullTabForTool[tool.id])}
               className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[10.5px] font-medium text-[var(--v-muted)] transition-colors hover:bg-[var(--v-surface-2)] hover:text-[var(--v-ink)]"
             >
               <Icon className="h-3.5 w-3.5" /> {tool.label}
             </button>
           );
         })}
+        <button
+          type="button"
+          onClick={() => setDocumentPromptOpen(true)}
+          className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[10.5px] font-medium text-[var(--v-violet)] transition-colors hover:bg-[var(--v-violet)]/10"
+        >
+          <FileJson className="h-3.5 w-3.5" /> Document prompt
+        </button>
       </nav>
 
       <div className="flex min-h-0 flex-1 gap-3">
@@ -1165,7 +1184,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                       icon={<Palette className="h-3 w-3" />}
                       title="Design system"
                       meta={designSystem?.name || 'None attached'}
-                      onClick={() => setToolOpen('design')}
+                      onClick={() => setDesignSystemOpen(true)}
                     />
                     <FolderItem
                       icon={<Upload className="h-3 w-3" />}
@@ -1472,6 +1491,132 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
 
       {/* Modals */}
       {artifact && <ArtifactModal artifact={artifact} onClose={() => setArtifact(null)} />}
+
+      <DesignSystemPickerDialog
+        open={designSystemOpen}
+        projectId={project.id}
+        onClose={() => setDesignSystemOpen(false)}
+        onApplied={(system, pages) => {
+          setDesignSystem(system);
+          if (pages.length) {
+            setDoc((current) =>
+              current
+                ? { ...current, pages, updatedAt: new Date().toISOString() }
+                : current,
+            );
+            setGeneratedAt(new Date().toISOString());
+          }
+        }}
+      />
+
+      {documentPromptOpen && (
+        <div className="fixed inset-0 z-[97] grid place-items-center p-3" role="dialog" aria-modal="true" aria-label="Document prompt">
+          <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" onClick={() => setDocumentPromptOpen(false)} aria-hidden="true" />
+          <div className="relative flex max-h-[92vh] w-full max-w-[920px] flex-col overflow-hidden rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] shadow-[var(--v-shadow-lg)]">
+            <div className="flex shrink-0 items-start gap-3 border-b border-[var(--v-line)] px-5 py-3.5">
+              <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--v-violet)]/10 text-[var(--v-violet)]">
+                <FileJson className="h-4 w-4" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="v-eyebrow">Project tools</p>
+                <h2 className="mt-0.5 text-[16px] font-semibold text-[var(--v-ink)]">Document prompt</h2>
+                <p className="mt-0.5 text-[10px] text-[var(--v-faint)]">
+                  {approvedRequirements.length} approved requirement{approvedRequirements.length === 1 ? '' : 's'} ·{' '}
+                  {approvedCriteria.length} approved {approvedCriteria.length === 1 ? 'criterion' : 'criteria'} ·{' '}
+                  {designSystem?.name || 'No design system'}
+                </p>
+              </div>
+              <button type="button" onClick={() => setDocumentPromptOpen(false)} className="v-icon-btn" aria-label="Close document prompt">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="v-scroll min-h-0 flex-1 overflow-y-auto p-4">
+              {approvedRequirements.length === 0 ? (
+                <div className="grid min-h-[280px] place-items-center rounded-lg border border-dashed border-[var(--v-line)] p-6 text-center">
+                  <div className="max-w-[420px]">
+                    <FileText className="mx-auto h-7 w-7 text-[var(--v-faint)]" />
+                    <p className="mt-2 text-[13px] font-semibold text-[var(--v-ink)]">Approve requirements first</p>
+                    <p className="mt-1 text-[11px] leading-relaxed text-[var(--v-muted)]">
+                      This prompt is built from approved requirements, approved acceptance criteria, the active design
+                      system and the review findings. Approve the source statements, then come back.
+                    </p>
+                    <div className="mt-3 flex flex-wrap justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDocumentPromptOpen(false);
+                          onNavigate('requirements');
+                        }}
+                        className="v-btn v-btn-primary h-8 px-3 text-[10.5px]"
+                      >
+                        Open Requirements
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDocumentPromptOpen(false);
+                          onNavigate('review');
+                        }}
+                        className="v-btn v-btn-ghost h-8 px-3 text-[10.5px]"
+                      >
+                        Open Review & acceptance
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {approvedCriteria.length === 0 && (
+                    <div className="mb-2 flex flex-wrap items-center gap-2 rounded-lg border border-[#FED7AA] bg-[#FFF7ED] px-3 py-2 text-[10.5px] text-[#9C4A28]">
+                      No acceptance criteria are approved yet.
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDocumentPromptOpen(false);
+                          onNavigate('review');
+                        }}
+                        className="font-semibold underline"
+                      >
+                        Approve criteria
+                      </button>
+                    </div>
+                  )}
+                  <pre className="whitespace-pre-wrap rounded-lg border border-[var(--v-line)] bg-[var(--v-surface-2)] p-4 font-mono text-[10.5px] leading-relaxed text-[var(--v-ink)]">
+                    {documentPrompt}
+                  </pre>
+                </>
+              )}
+            </div>
+
+            <div className="flex shrink-0 flex-wrap items-center gap-2 border-t border-[var(--v-line)] px-4 py-3">
+              <span className="text-[9.5px] text-[var(--v-faint)]">
+                Only approved requirements and criteria are copied. Review notes are included as constraints.
+              </span>
+              <button
+                type="button"
+                disabled={approvedRequirements.length === 0}
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(documentPrompt);
+                    setDocumentPromptCopied(true);
+                    window.setTimeout(() => setDocumentPromptCopied(false), 1600);
+                  } catch {
+                    setDocumentPromptCopied(false);
+                  }
+                }}
+                className="v-btn v-btn-primary ml-auto h-8 px-3 text-[10.5px] disabled:opacity-40"
+              >
+                {documentPromptCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                {documentPromptCopied ? 'Copied' : 'Copy prompt'}
+              </button>
+              <button type="button" onClick={() => setDocumentPromptOpen(false)} className="v-btn v-btn-ghost h-8 px-3 text-[10.5px]">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {uploadPrompt && (
         <div className="fixed inset-0 z-[97] grid place-items-center p-3" role="dialog" aria-modal="true" aria-label="Upload a project document">

@@ -27,6 +27,7 @@ import {
   type DesignTokens,
 } from '../services/designSystems.ts';
 import type { CanvasPage } from '../data/canvas.ts';
+import { DOMAIN_PRESETS } from '../data/designPresets.ts';
 import { useProject } from '../context/ProjectContext.tsx';
 
 interface DesignSystemsPageProps {
@@ -49,27 +50,6 @@ const DEFAULT_TOKENS: DesignTokens = {
   radius: 12,
   spacing: 8,
 };
-
-const DOMAIN_PRESETS: Array<{ domain: string; name: string; note: string; tokens: DesignTokens }> = [
-  { domain: 'Fintech', name: 'Ledger Blue', note: 'Trustworthy blue with a green confirmation accent for balances and payments.', tokens: { primary: '#1D4ED8', accent: '#22C55E', surface: '#F8FAFC', ink: '#0F172A', font: 'jakarta', radius: 8, spacing: 8 } },
-  { domain: 'Fintech', name: 'Private Bank', note: 'Deep navy and restrained gold for wealth, private banking and premium accounts.', tokens: { primary: '#0B1F3A', accent: '#C6A45C', surface: '#F7F5F0', ink: '#101828', font: 'georgia', radius: 4, spacing: 8 } },
-  { domain: 'Entertainment', name: 'Cinema Night', note: 'Dark violet and hot pink for streaming catalogues and watch pages.', tokens: { primary: '#7C3AED', accent: '#F43F5E', surface: '#0B0714', ink: '#F8FAFC', font: 'bricolage', radius: 14, spacing: 8 } },
-  { domain: 'Entertainment', name: 'Streaming Pop', note: 'High-energy coral and gold on black for music, video and creator apps.', tokens: { primary: '#FF4D6D', accent: '#FFD166', surface: '#111111', ink: '#FFFFFF', font: 'bricolage', radius: 18, spacing: 10 } },
-  { domain: 'Healthcare', name: 'Care Teal', note: 'Calm teal and mint for patient portals, bookings and clinical dashboards.', tokens: { primary: '#0F766E', accent: '#14B8A6', surface: '#F7FDFC', ink: '#0F172A', font: 'jakarta', radius: 12, spacing: 8 } },
-  { domain: 'Healthcare', name: 'Clinical Blue', note: 'Clear blue and sky accents for records, scheduling and telehealth.', tokens: { primary: '#2563EB', accent: '#38BDF8', surface: '#F8FAFF', ink: '#0F172A', font: 'jakarta', radius: 10, spacing: 8 } },
-  { domain: 'E-commerce', name: 'Retail Coral', note: 'Warm coral and orange for storefronts, checkout and seasonal campaigns.', tokens: { primary: '#E11D48', accent: '#FB923C', surface: '#FFF7F4', ink: '#231815', font: 'bricolage', radius: 16, spacing: 8 } },
-  { domain: 'E-commerce', name: 'Marketplace', note: 'Ink and marketplace amber for catalogues, offers and seller tools.', tokens: { primary: '#111827', accent: '#F59E0B', surface: '#FFFFFF', ink: '#111827', font: 'jakarta', radius: 8, spacing: 8 } },
-  { domain: 'SaaS', name: 'Indigo Stack', note: 'The familiar product-led SaaS indigo with a cyan data accent.', tokens: { primary: '#5E6AD2', accent: '#22D3EE', surface: '#FFFFFF', ink: '#17171A', font: 'jakarta', radius: 12, spacing: 8 } },
-  { domain: 'SaaS', name: 'Dark Ops', note: 'Dark console surfaces with violet and cyan for technical operators.', tokens: { primary: '#7170FF', accent: '#22D3EE', surface: '#0B0C10', ink: '#F7F8FA', font: 'mono', radius: 6, spacing: 8 } },
-  { domain: 'Education', name: 'Campus', note: 'Friendly academic blue and amber for courses, grades and enrolments.', tokens: { primary: '#1D4ED8', accent: '#F59E0B', surface: '#F8FAFC', ink: '#1E293B', font: 'jakarta', radius: 12, spacing: 8 } },
-  { domain: 'Travel', name: 'Sunset Route', note: 'Warm sunset orange with sky blue for itineraries and destination cards.', tokens: { primary: '#EA580C', accent: '#0EA5E9', surface: '#FFFBF5', ink: '#1C1917', font: 'bricolage', radius: 16, spacing: 8 } },
-  { domain: 'Real estate', name: 'Property Sage', note: 'Grounded sage and olive for listings, floor plans and neighbourhood guides.', tokens: { primary: '#3F6212', accent: '#A3A380', surface: '#FAFAF7', ink: '#1C1917', font: 'georgia', radius: 6, spacing: 8 } },
-  { domain: 'Gaming', name: 'Arcade Neon', note: 'Neon purple and cyan on black for game hubs, lobbies and leaderboards.', tokens: { primary: '#A855F7', accent: '#22D3EE', surface: '#09090B', ink: '#FAFAFA', font: 'mono', radius: 8, spacing: 8 } },
-  { domain: 'Food', name: 'Appetite', note: 'Tomato red and butter yellow for menus, delivery and reservations.', tokens: { primary: '#DC2626', accent: '#FBBF24', surface: '#FFFBF5', ink: '#1C1917', font: 'bricolage', radius: 18, spacing: 10 } },
-  { domain: 'Luxury', name: 'Atelier', note: 'Black, ivory and muted gold for fashion, jewellery and hospitality.', tokens: { primary: '#111111', accent: '#B08D57', surface: '#F7F3EC', ink: '#111111', font: 'georgia', radius: 2, spacing: 8 } },
-  { domain: 'AI / Developer', name: 'Terminal', note: 'Terminal green and blue on near-black for developer tools and agents.', tokens: { primary: '#22C55E', accent: '#38BDF8', surface: '#0A0A0A', ink: '#E5E7EB', font: 'mono', radius: 4, spacing: 8 } },
-  { domain: 'Social', name: 'Community', note: 'Friendly indigo and pink for feeds, communities and creator profiles.', tokens: { primary: '#6366F1', accent: '#EC4899', surface: '#FFFFFF', ink: '#111827', font: 'jakarta', radius: 14, spacing: 8 } },
-];
 
 interface FormState {
   id?: string;
