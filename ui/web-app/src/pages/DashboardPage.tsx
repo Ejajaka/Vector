@@ -4,7 +4,6 @@ import {
   Clock3,
   Compass,
   GraduationCap,
-  LayoutTemplate,
   Plus,
   Search,
   Sparkles,
@@ -13,7 +12,7 @@ import {
 import type { ActiveTab } from '../types/analysis.ts';
 import { useProject } from '../context/ProjectContext.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
-import { TEMPLATE_CATEGORIES, TEMPLATES } from '../data/templates.ts';
+import { TEMPLATES } from '../data/templates.ts';
 import { TemplateArt } from '../components/templates/TemplateArt.tsx';
 import { FeatureSpotlight } from '../components/onboarding/FeatureSpotlight.tsx';
 import {
@@ -136,43 +135,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onStar
           >
             <Wand2 className="h-3 w-3" /> Score a prompt
           </button>
-        </div>
-      </section>
-
-      {/* Categories */}
-      <section>
-        <div className="flex items-end justify-between mb-4">
-          <div>
-            <p className="v-eyebrow">Browse by</p>
-            <h2 className="v-display text-[18px] mt-0.5">Pick a starting shape</h2>
-          </div>
-          <button
-            type="button"
-            onClick={() => onNavigate('templates')}
-            className="text-[12px] font-semibold text-[var(--v-violet)] hover:underline"
-          >
-            See all templates
-          </button>
-        </div>
-
-        <div className="flex gap-4 overflow-x-auto v-scroll pb-2">
-          {TEMPLATE_CATEGORIES.filter((category) => category !== 'All').map((category) => {
-            return (
-              <button
-                key={category}
-                type="button"
-                onClick={() => onNavigate('templates')}
-                className="group flex flex-col items-center gap-2 shrink-0 w-[86px]"
-              >
-                <span className="grid h-[40px] w-[40px] place-items-center rounded-md border border-[var(--v-line)] bg-[var(--v-surface)] text-[var(--v-muted)] transition-colors group-hover:border-[var(--v-line-strong)] group-hover:text-[var(--v-ink)]">
-                  <LayoutTemplate className="h-[17px] w-[17px]" />
-                </span>
-                <span className="text-[11px] font-medium text-[var(--v-muted)] group-hover:text-[var(--v-ink)] transition-colors">
-                  {category}
-                </span>
-              </button>
-            );
-          })}
         </div>
       </section>
 
