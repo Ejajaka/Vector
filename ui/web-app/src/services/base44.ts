@@ -170,3 +170,33 @@ export function saveProjectBase44(projectId: string, app: Base44App | null): voi
     // ignore
   }
 }
+
+export const BASE44_DEFAULT_URL = 'https://app.base44.com';
+
+function base44PageKey(projectId: string): string {
+  return `vector_project_base44_page_${projectId}`;
+}
+
+/** The exact Base44 page this project should embed and open. */
+export function readBase44PageUrl(projectId: string): string {
+  try {
+    const explicit = localStorage.getItem(base44PageKey(projectId));
+    if (explicit && /^https?:\/\//i.test(explicit)) return explicit;
+    const app = readProjectBase44(projectId);
+    if (app?.url && /^https?:\/\//i.test(app.url)) return app.url;
+  } catch {
+    // Storage is best effort; fall back to the Base44 home page.
+  }
+  return BASE44_DEFAULT_URL;
+}
+
+export function saveBase44PageUrl(projectId: string, url: string): string {
+  const next = url.trim();
+  if (!/^https?:\/\//i.test(next)) return readBase44PageUrl(projectId);
+  try {
+    localStorage.setItem(base44PageKey(projectId), next);
+  } catch {
+    // ignore
+  }
+  return next;
+}

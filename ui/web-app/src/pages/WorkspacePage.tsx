@@ -23,6 +23,7 @@ import { loadProjectMemory, saveProjectMemory } from '../services/projectMemory.
 import { MEMORY_KEYS } from '../services/generation/memory.ts';
 import { listDesignSystems } from '../services/generation/designSystems.ts';
 import { analyzePromptCoverage } from '../services/generation/promptCoverage.ts';
+import { readBase44PageUrl } from '../services/base44.ts';
 import { SpellingNotice } from '../components/ui/SpellingNotice.tsx';
 import { usePromptDraft } from '../hooks/usePromptDraft.ts';
 import { DEFAULT_DESIGN_SYSTEM } from '../types/designSystem.ts';
@@ -96,6 +97,10 @@ export const WorkspacePage: React.FC = () => {
   }, [load]);
 
   const designSystem = designSystems.find((system) => system.id === designSystemId) || DEFAULT_DESIGN_SYSTEM;
+  const base44OpenUrl = useMemo(
+    () => readBase44PageUrl(currentProject?.id || ''),
+    [currentProject?.id]
+  );
   const generated = useMemo(
     () => generateProfessionalPrompt({
       projectName: currentProject?.name || 'Untitled project',
@@ -315,7 +320,7 @@ export const WorkspacePage: React.FC = () => {
                 </button>
               </div>
               <div className="ml-auto flex items-center gap-1">
-                <a href="https://app.base44.com" target="_blank" rel="noreferrer" className="p-1.5 rounded-md text-[#49686C] hover:bg-[#F6F4EC]" aria-label="Open Base44">
+                <a href={base44OpenUrl} target="_blank" rel="noreferrer" className="p-1.5 rounded-md text-[#49686C] hover:bg-[#F6F4EC]" aria-label="Open Base44">
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
               </div>
@@ -327,7 +332,7 @@ export const WorkspacePage: React.FC = () => {
                   <span>Sign in inside this panel. If Base44 blocks framing or sign-in, open it in a new tab.</span>
                   <button
                     type="button"
-                    onClick={() => window.open('https://app.base44.com', '_blank', 'noopener,noreferrer')}
+                    onClick={() => window.open(base44OpenUrl, '_blank', 'noopener,noreferrer')}
                     className="ml-auto font-semibold text-[#49686C] hover:underline"
                   >
                     Open Base44
@@ -359,7 +364,7 @@ export const WorkspacePage: React.FC = () => {
                           <ExternalLink className="w-3.5 h-3.5" /> Load Base44 here
                         </button>
                         <a
-                          href="https://app.base44.com"
+                          href={base44OpenUrl}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#E5E2D8] bg-white text-xs font-semibold text-[#49686C] hover:bg-[#FAFAF8]"
@@ -402,7 +407,7 @@ export const WorkspacePage: React.FC = () => {
                         <button type="button" onClick={() => void sendToBase44()} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#49686C] text-white text-xs font-semibold">
                           <Send className="w-3.5 h-3.5" /> Copy brief + open Base44
                         </button>
-                        <a href="https://app.base44.com" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#E5E2D8] bg-white text-xs font-semibold text-[#49686C]">
+                        <a href={base44OpenUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#E5E2D8] bg-white text-xs font-semibold text-[#49686C]">
                           <ExternalLink className="w-3.5 h-3.5" /> Open Base44
                         </a>
                       </div>

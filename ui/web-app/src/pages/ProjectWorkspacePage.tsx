@@ -59,6 +59,9 @@ import { WireframePreview } from '../components/editor/WireframePreview.tsx';
 import { parseFigmaJson } from '../services/figma.ts';
 import { getActiveDesignSystem } from '../services/designSystems.ts';
 import { readProjectSetup } from '../services/projectSeed.ts';
+import { readBase44PageUrl, saveBase44PageUrl } from '../services/base44.ts';
+import { loadProjectMemory } from '../services/projectMemory.ts';
+import { MEMORY_KEYS } from '../services/generation/memory.ts';
 import { currentRoom, projectRoom, shareLink } from '../services/collab.ts';
 import { loadSharedDoc, saveSharedDoc } from '../services/sharedDocs.ts';
 import { isPaid, readEntitlements } from '../services/entitlements.ts';
@@ -125,20 +128,6 @@ interface ProjectFile {
   type: string;
   size: number;
   dataUrl: string;
-}
-
-interface GraphNode {
-  id: string;
-  label: string;
-  kind: 'page' | 'element';
-  page: string;
-  elementKind?: string;
-  action?: string;
-}
-
-interface GraphEdge {
-  from: string;
-  to: string;
 }
 
 interface Artifact {
@@ -310,53 +299,6 @@ const ActualBoard: React.FC<{ page?: CanvasPage; empty: string }> = ({ page, emp
   );
 };
 
-function buildGraphSvg(nodes: GraphNode[], edges: GraphEdge[]): string {
-  if (!nodes.length) {
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="520" height="120"><rect width="520" height="120" rx="12" fill="#f7f7fb"/><text x="260" y="64" text-anchor="middle" font-family="Inter,sans-serif" font-size="12" fill="#8a8f98">Not enough data yet — add a canvas or analyse a prompt.</text></svg>`;
-  }
-  const pages = Array.from(new Set(nodes.filter((node) => node.kind === 'page').map((node) => node.page)));
-  const byPage = pages.map((page) => nodes.filter((node) => node.kind === 'element' && node.page === page));
-  const maxRows = Math.max(1, ...byPage.map((row) => row.length));
-  const width = Math.max(620, 40 + pages.length * 280 + 20);
-  const height = Math.max(220, 100 + maxRows * 50 + 40);
-  const positions = new Map<string, { x: number; y: number }>();
-
-  pages.forEach((page, pageIndex) => {
-    const x = 40 + pageIndex * 280;
-    const pageNode = nodes.find((node) => node.kind === 'page' && node.page === page);
-    if (pageNode) positions.set(pageNode.id, { x, y: 24 });
-    byPage[pageIndex].forEach((node, row) => {
-      positions.set(node.id, { x, y: 92 + row * 50 });
-    });
-  });
-
-  const nodeMarkup = nodes
-    .map((node) => {
-      const position = positions.get(node.id);
-      if (!position) return '';
-      const page = node.kind === 'page';
-      const fill = page ? '#7C5CFF' : '#ffffff';
-      const stroke = page ? '#7C5CFF' : '#e7e5f0';
-      const colour = page ? '#ffffff' : '#17171a';
-      const label = node.label.length > 34 ? `${node.label.slice(0, 31)}…` : node.label;
-      return `<g><rect x="${position.x}" y="${position.y}" width="230" height="34" rx="8" fill="${fill}" stroke="${stroke}"/>
-      <text x="${position.x + 10}" y="${position.y + 21}" font-family="Inter,sans-serif" font-size="10.5" font-weight="${page ? 700 : 600}" fill="${colour}">${escapeHtml(label)}</text></g>`;
-    })
-    .join('');
-
-  const edgeMarkup = edges
-    .map((edge) => {
-      const from = positions.get(edge.from);
-      const to = positions.get(edge.to);
-      if (!from || !to) return '';
-      return `<path d="M ${from.x + 115} ${from.y + 34} C ${from.x + 115} ${from.y + 54}, ${to.x + 115} ${to.y - 20}, ${to.x + 115} ${to.y}" fill="none" stroke="#c9c4da" stroke-width="1.3"/>`;
-    })
-    .join('');
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-    <rect width="${width}" height="${height}" rx="14" fill="#f7f7fb"/>${edgeMarkup}${nodeMarkup}</svg>`;
-}
-
 const FolderItem: React.FC<{
   icon: React.ReactNode;
   title: string;
@@ -485,6 +427,9 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   const [base44Copied, setBase44Copied] = useState(false);
   const [base44Key, setBase44Key] = useState(0);
   const [base44Loaded, setBase44Loaded] = useState(false);
+  const [base44PageUrl, setBase44PageUrl] = useState(() => readBase44PageUrl(project.id));
+  const [base44PageDraft, setBase44PageDraft] = useState(() => readBase44PageUrl(project.id));
+  const [base44PageError, setBase44PageError] = useState('');
   const [generatedAt, setGeneratedAt] = useState(new Date().toISOString());
   const fileRef = useRef<HTMLInputElement>(null);
   const figmaRef = useRef<HTMLInputElement>(null);
@@ -700,66 +645,6 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     );
     const openQuestions: Question[] =
       activeVersion?.source === 'analysis' && analysis ? analysis.questions : [];
-    const findings: Array<{ severity: 'high' | 'medium' | 'low'; title: string; body: string }> = [];
-    const labels = new Map<string, number>();
-    elements.forEach((element) => {
-      if (element.label) labels.set(element.label, (labels.get(element.label) || 0) + 1);
-    });
-    elements.forEach((element) => {
-      if (!element.label && ['heading', 'button', 'input', 'text'].includes(element.kind)) {
-        findings.push({ severity: 'high', title: `Unlabelled ${element.kind}`, body: `On ${element.page}, a ${element.kind} has no visible label.` });
-      }
-      if (element.kind === 'button' && !element.action && !element.linkToPageId) {
-        findings.push({ severity: 'medium', title: `“${element.label || 'Button'}” has no action`, body: `On ${element.page}, define what happens when this button is clicked.` });
-      }
-      if (element.label && (labels.get(element.label) || 0) > 1) {
-        findings.push({ severity: 'low', title: `Duplicate label “${element.label}”`, body: `The same label appears ${labels.get(element.label)} times.` });
-      }
-      const page = pages.find((entry) => entry.name === element.page);
-      if (page && (element.x < 0 || element.y < 0 || element.x + element.w > page.width || element.y + element.h > page.height)) {
-        findings.push({ severity: 'high', title: `“${element.label || element.kind}” leaves the page`, body: `On ${element.page}, the element extends outside the canvas.` });
-      }
-      if (element.fontSize && element.fontSize < 11) {
-        findings.push({ severity: 'low', title: `Small text “${element.label || element.kind}”`, body: `Font size ${Math.round(element.fontSize)}px may be hard to read.` });
-      }
-    });
-    pages.forEach((page) => {
-      if (page.elements.length === 0) findings.push({ severity: 'high', title: `${page.name} is empty`, body: 'Add components or remove the page.' });
-    });
-    openQuestions.slice(0, 8).forEach((question) => {
-      findings.push({ severity: 'medium', title: question.text, body: 'Open clarification from the prompt analysis.' });
-    });
-
-    const criteria: string[] = [];
-    pages.forEach((page) => {
-      criteria.push(`The “${page.name}” screen is available and uses the ${page.width}×${page.height} frame.`);
-      page.elements.forEach((element) => {
-        criteria.push(`The ${element.kind} labelled “${element.label || '(empty)'}” is visible on “${page.name}”.`);
-        if (element.action) criteria.push(`Selecting “${element.label || element.kind}” on “${page.name}” ${element.action}.`);
-        if (element.linkToPageId) criteria.push(`Selecting “${element.label || element.kind}” on “${page.name}” navigates to the linked page.`);
-      });
-    });
-    if (!criteria.length) criteria.push('No acceptance criteria yet — add a canvas or analyse a prompt.');
-
-    const nodes: GraphNode[] = [];
-    const edges: GraphEdge[] = [];
-    pages.forEach((page, pageIndex) => {
-      const pageId = `page-${pageIndex}`;
-      nodes.push({ id: pageId, label: page.name, kind: 'page', page: page.name });
-      page.elements.forEach((element, elementIndex) => {
-        const elementId = `element-${pageIndex}-${elementIndex}`;
-        nodes.push({
-          id: elementId,
-          label: `${element.kind}: ${element.label || '(no label)'}`,
-          kind: 'element',
-          page: page.name,
-          elementKind: element.kind,
-          action: element.action || (element.linkToPageId ? 'navigates' : undefined),
-        });
-        edges.push({ from: pageId, to: elementId });
-      });
-    });
-    const graphSvg = buildGraphSvg(nodes, edges);
 
     const analysisJson = {
       generatedAt,
@@ -770,60 +655,28 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
       elements: elements.length,
       openQuestions: openQuestions.map((question) => ({ id: question.id, text: question.text })),
     };
-    const reviewJson = { generatedAt, findings };
-    const acceptanceJson = { generatedAt, criteria };
-    const graphJson = { generatedAt, nodes, edges };
 
     const listHtml = (items: string[]) =>
       items.length
         ? `<ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`
         : '<p class="muted">Nothing to show yet.</p>';
 
-    const findingsHtml = findings.length
-      ? `<ul>${findings
-          .map(
-            (finding) =>
-              `<li><strong>${escapeHtml(finding.title)}</strong><br><span class="muted">${escapeHtml(finding.body)}</span></li>`
-          )
-          .join('')}</ul>`
-      : '<p class="muted">No issues found.</p>';
-
     const analysisHtml = `<p><span class="pill">${escapeHtml(activeVersion?.label || 'No source')}</span></p>
       <table><tr><th>Pages</th><td>${pages.length}</td></tr>
       <tr><th>Elements</th><td>${elements.length}</td></tr>
-      <tr><th>Risk</th><td>${activeVersion?.risk ?? analysis?.risk ?? '—'}</td></tr>
+      <tr><th>Risk</th><td>${activeVersion?.risk ?? analysis?.risk ?? '-'}</td></tr>
       <tr><th>Open questions</th><td>${openQuestions.length}</td></tr></table>
       <h2>Open questions</h2>${listHtml(openQuestions.map((question) => question.text))}`;
 
+    // Requirement graph, review findings and acceptance criteria are extracted
+    // from uploaded requirement documents, never from the canvas or a prompt.
     return [
       {
         id: 'prompt-analysis',
         label: 'Prompt analysis',
-        summary: `${activeVersion?.label || 'No source'} · ${elements.length} elements${activeVersion?.risk != null ? ` · risk ${activeVersion.risk}` : ''}`,
+        summary: `${activeVersion?.label || 'No source'} - ${elements.length} elements${activeVersion?.risk != null ? ` - risk ${activeVersion.risk}` : ''}`,
         bodyHtml: analysisHtml,
         json: analysisJson,
-      },
-      {
-        id: 'requirement-graph',
-        label: 'Requirement graph',
-        summary: `${pages.length} pages · ${elements.length} nodes`,
-        bodyHtml: `<p class="muted">${pages.length} pages and ${elements.length} elements mapped from ${activeVersion?.label || 'this project'}.</p>${graphSvg}`,
-        json: graphJson,
-        graphSvg,
-      },
-      {
-        id: 'review-findings',
-        label: 'Review findings',
-        summary: `${findings.length} finding${findings.length === 1 ? '' : 's'}`,
-        bodyHtml: findingsHtml,
-        json: reviewJson,
-      },
-      {
-        id: 'acceptance-criteria',
-        label: 'Acceptance criteria',
-        summary: `${criteria.length} criteria`,
-        bodyHtml: listHtml(criteria),
-        json: acceptanceJson,
       },
     ];
   }, [activeVersion, analysis, generatedAt, sourcePages]);
@@ -983,6 +836,10 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     analyser: 'new-analysis',
   };
 
+  // Requirement analysis is document-first. These tools open the dedicated
+  // pages, which only read requirements compiled from uploaded documents.
+  const documentToolIds = new Set<ProjectToolId>(['requirements', 'graph', 'review']);
+
   const copyBase44Prompt = async () => {
     if (!base44Version) return;
     try {
@@ -995,6 +852,38 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   };
 
   const reloadBase44 = () => {
+    setBase44Loaded(false);
+    setBase44Key((value) => value + 1);
+  };
+
+  useEffect(() => {
+    let active = true;
+    setBase44PageError('');
+    const next = readBase44PageUrl(project.id);
+    setBase44PageUrl(next);
+    setBase44PageDraft(next);
+    const explicitKey = `vector_project_base44_page_${project.id}`;
+    if (localStorage.getItem(explicitKey)) return;
+    void loadProjectMemory<string>(project.id, MEMORY_KEYS.publishedUrl, '').then((url) => {
+      if (!active || !/^https?:\/\//i.test(url)) return;
+      setBase44PageUrl(url);
+      setBase44PageDraft(url);
+    }).catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [project.id]);
+
+  const applyBase44Page = () => {
+    const next = base44PageDraft.trim();
+    if (!/^https?:\/\//i.test(next)) {
+      setBase44PageError('Enter a full https URL, for example https://app.base44.com/apps/...');
+      return;
+    }
+    const saved = saveBase44PageUrl(project.id, next);
+    setBase44PageUrl(saved);
+    setBase44PageDraft(saved);
+    setBase44PageError('');
     setBase44Loaded(false);
     setBase44Key((value) => value + 1);
   };
@@ -1080,7 +969,13 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
             <button
               key={tool.id}
               type="button"
-              onClick={() => setToolOpen(tool.id)}
+              onClick={() => {
+                if (documentToolIds.has(tool.id)) {
+                  onNavigate(fullTabForTool[tool.id]);
+                  return;
+                }
+                setToolOpen(tool.id);
+              }}
               className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[10.5px] font-medium text-[var(--v-muted)] transition-colors hover:bg-[var(--v-surface-2)] hover:text-[var(--v-ink)]"
             >
               <Icon className="h-3.5 w-3.5" /> {tool.label}
@@ -1236,17 +1131,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                     {filteredArtifacts.map((entry) => (
                       <FolderItem
                         key={entry.id}
-                        icon={
-                          entry.id === 'requirement-graph' ? (
-                            <GitBranch className="h-3 w-3" />
-                          ) : entry.id === 'review-findings' ? (
-                            <AlertTriangle className="h-3 w-3" />
-                          ) : entry.id === 'acceptance-criteria' ? (
-                            <ClipboardCheck className="h-3 w-3" />
-                          ) : (
-                            <BarChart3 className="h-3 w-3" />
-                          )
-                        }
+                        icon={<BarChart3 className="h-3 w-3" />}
                         title={entry.label}
                         meta={`${relativeTime(generatedAt)} · ${entry.summary}`}
                         badge="auto"
@@ -1363,19 +1248,50 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
               <div className="min-w-0 flex-1">
                 <p className="text-[11.5px] font-semibold text-[var(--v-ink)]">Base44 builder</p>
                 <p className="text-[9px] text-[var(--v-faint)]">
-                  Embedded at app.base44.com. Sign in inside the frame, then paste the prompt.
+                  Embedded at app.base44.com. Paste the exact page URL to open it in a new tab.
                 </p>
               </div>
               <button type="button" onClick={reloadBase44} className="v-btn v-btn-ghost h-7 px-2 text-[9.5px]">
                 <RefreshCw className="h-3 w-3" /> Reload
               </button>
-              <a href="https://app.base44.com" target="_blank" rel="noreferrer" className="v-btn v-btn-ghost h-7 px-2 text-[9.5px]">
+              <a href={base44PageUrl} target="_blank" rel="noreferrer" className="v-btn v-btn-ghost h-7 px-2 text-[9.5px]">
                 <ExternalLink className="h-3 w-3" /> Open in new tab
               </a>
             </div>
 
             <div className="grid gap-3 p-3 lg:grid-cols-[minmax(220px,32%)_1fr]">
               <div className="flex flex-col gap-2">
+                <div className="rounded-xl border border-[var(--v-line)] bg-[var(--v-surface-2)] p-2.5">
+                  <label htmlFor="base44-page-url" className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--v-muted)]">
+                    Exact Base44 page
+                  </label>
+                  <div className="mt-1 flex gap-1">
+                    <input
+                      id="base44-page-url"
+                      value={base44PageDraft}
+                      onChange={(event) => {
+                        setBase44PageDraft(event.target.value);
+                        setBase44PageError('');
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault();
+                          applyBase44Page();
+                        }
+                      }}
+                      placeholder="https://app.base44.com/apps/..."
+                      className="h-7 min-w-0 flex-1 rounded-md border border-[var(--v-line)] bg-[var(--v-surface)] px-2 text-[9.5px] text-[var(--v-ink)] outline-none focus:border-[var(--v-violet)]"
+                    />
+                    <button type="button" onClick={applyBase44Page} className="v-btn v-btn-ghost h-7 px-2 text-[9px]">
+                      Use
+                    </button>
+                  </div>
+                  <p className="mt-1 text-[8.5px] leading-relaxed text-[var(--v-faint)]">
+                    Copy the address from Base44. "Open in new tab" will load this exact page.
+                  </p>
+                  {base44PageError && <p className="mt-1 text-[8.5px] text-[#B94D42]">{base44PageError}</p>}
+                </div>
+
                 <div
                   onDragOver={(event) => event.preventDefault()}
                   onDrop={(event) => {

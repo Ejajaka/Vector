@@ -18,15 +18,10 @@ import {
   Sparkles,
   X,
 } from 'lucide-react';
-import { compileRequirements } from '../../services/requirements/compiler.ts';
-import { analyzeRequirements } from '../../services/requirements/intelligence.ts';
-import { generateAcceptanceCriteria } from '../../services/requirements/acceptance.ts';
-import { classifyRequirementPriority } from '../../services/requirements/priority.ts';
-import { buildGraphModel } from '../../services/requirements/graphLayout.ts';
 import { auditElements, auditQuality, compilePromptScreens, roughRisk } from '../../services/promptCompiler.ts';
 import { getActiveDesignSystem } from '../../services/designSystems.ts';
 import { readProjectSetup } from '../../services/projectSeed.ts';
-import type { RequirementDraft, RequirementPriority, RequirementRecord } from '../../types/requirements.ts';
+import { readBase44PageUrl } from '../../services/base44.ts';
 
 export type ProjectToolId =
   | 'requirements'
@@ -58,35 +53,17 @@ interface ProjectToolsDialogProps {
 }
 
 const TOOLS: Array<{ id: ProjectToolId; label: string; icon: React.ComponentType<{ className?: string }>; hint: string }> = [
-  { id: 'requirements', label: 'Requirements', icon: FileText, hint: 'What the source asks for' },
-  { id: 'graph', label: 'Requirement graph', icon: GitBranch, hint: 'How the pieces relate' },
-  { id: 'review', label: 'Review & acceptance', icon: ClipboardCheck, hint: 'Gaps and testable criteria' },
+  { id: 'requirements', label: 'Requirements', icon: FileText, hint: 'From uploaded requirement documents' },
+  { id: 'graph', label: 'Requirement graph', icon: GitBranch, hint: 'From uploaded requirement documents' },
+  { id: 'review', label: 'Review & acceptance', icon: ClipboardCheck, hint: 'From uploaded requirement documents' },
   { id: 'prompt', label: 'Prompt studio', icon: Sparkles, hint: 'The six-section brief' },
   { id: 'build', label: 'Build workspace', icon: Rocket, hint: 'Base44, embedded' },
   { id: 'design', label: 'Design systems', icon: Palette, hint: 'Tokens this project uses' },
   { id: 'analyser', label: 'Prompt analyser', icon: BarChart3, hint: 'Risk and readiness' },
 ];
 
-const PRIORITY_TONE: Record<RequirementPriority, string> = {
-  critical: '#F27D6E',
-  high: '#E0B15C',
-  medium: '#9BA0A8',
-  low: '#6E727A',
-};
-
-const SEVERITY_TONE: Record<string, string> = {
-  critical: '#F27D6E',
-  high: '#EE927F',
-  medium: '#E0B15C',
-  low: '#7C8CFF',
-};
-
-const CHIP_TONE: Record<string, string> = {
-  screen: '#7C8CFF',
-  component: '#E0B15C',
-  role: '#5FA8D3',
-  interaction: '#F27D6E',
-};
+/** Requirement analysis is document-first; prompts and canvas files are not a source. */
+const DOCUMENT_TOOLS = new Set<ProjectToolId>(['requirements', 'graph', 'review']);
 
 const DEFAULT_TOKENS = {
   primary: '#7170FF',
@@ -106,111 +83,6 @@ function pagesFromPrompt(text: string): string[] {
     .map((part) => part.trim())
     .filter(Boolean);
   return parts.length ? parts : [cleaned];
-}
-
-const PROMPT_COMPONENTS = [
-  'navigation', 'sidebar', 'kpi', 'card', 'chart', 'table', 'selector', 'search',
-  'filter', 'export', 'button', 'input', 'form', 'modal', 'dialog', 'dropdown',
-  'toast', 'banner', 'tab', 'menu', 'footer', 'header', 'toggle', 'badge', 'slider',
-];
-
-const PROMPT_BEHAVIOURS = [
-  'add', 'allow', 'apply', 'approve', 'authenticate', 'build', 'change', 'close',
-  'collapse', 'create', 'delete', 'disable', 'display', 'download', 'edit', 'enable',
-  'ensure', 'export', 'fetch', 'filter', 'handle', 'include', 'keep', 'launch', 'log',
-  'navigate', 'notify', 'open', 'prevent', 'provide', 'redirect', 'render', 'require',
-  'restrict', 'retry', 'save', 'search', 'select', 'send', 'show', 'sort', 'stack',
-  'store', 'submit', 'support', 'update', 'upload', 'validate',
-];
-
-const NON_FUNCTIONAL_PROMPT_RE =
-  /\b(responsive|mobile|tablet|accessib|performance|latency|security|privacy|audit|empty|loading|error state|retry|fallback|contrast|screen reader|keyboard|international|localization|seo)\b/i;
-
-function promptSections(text: string): Array<{ index: number; title: string; lines: string[] }> {
-  const sections: Array<{ index: number; title: string; lines: string[] }> = [];
-  let current = { index: 0, title: 'Brief', lines: [] as string[] };
-  for (const line of text.split(/\r?\n/)) {
-    const match = line.match(/^\s*(\d{2})\s*\/\s*([A-Za-z][A-Za-z0-9 /&-]+?)\s*$/);
-    if (match) {
-      if (current.lines.some((entry) => entry.trim())) sections.push(current);
-      current = { index: Number(match[1]), title: match[2].trim(), lines: [] };
-      continue;
-    }
-    current.lines.push(line);
-  }
-  if (current.lines.some((entry) => entry.trim())) sections.push(current);
-  return sections;
-}
-
-function promptStatements(lines: string[]): string[] {
-  const out: string[] = [];
-  for (const line of lines) {
-    const cleanedLine = line.replace(/^([-*•]|\d+[.)])\s+/, '').trim();
-    if (!cleanedLine) continue;
-    for (const part of cleanedLine.split(/(?<=[.!?])\s+/)) {
-      for (const clause of part.split(/;\s+/)) {
-        const text = clause.trim().replace(/\s+/g, ' ');
-        if (text.length < 16) continue;
-        if (/^[#\d\s.,/px%-]+$/i.test(text)) continue;
-        out.push(text);
-      }
-    }
-  }
-  return out;
-}
-
-function metadataForPrompt(text: string) {
-  const screens: string[] = [];
-  const dashboard = text.match(/\b([A-Za-z]+(?:\s+[A-Za-z]+)?)\s+dashboard\b/i);
-  if (dashboard) screens.push(dashboard[0].replace(/\b\w/g, (letter) => letter.toUpperCase()));
-  else if (/\bdashboard\b/i.test(text)) screens.push('Dashboard');
-  else if (/\bpage\b/i.test(text)) screens.push('Page');
-
-  const roles = [
-    ...text.matchAll(/\b(ops leads?|finance admins?|admins?|administrators?|managers?|employees?|customers?|users?|guests?|owners?|reviewers?|operators?)\b/gi),
-  ].map((match) => match[0].toLowerCase());
-
-  const components = PROMPT_COMPONENTS.filter((component) =>
-    new RegExp(`\\b${component}s?\\b`, 'i').test(text),
-  );
-  const behaviours = PROMPT_BEHAVIOURS.filter((verb) =>
-    new RegExp(`\\b${verb}(?:s|ed|ing)?\\b`, 'i').test(text),
-  );
-  return {
-    screens: [...new Set(screens)].slice(0, 4),
-    components: [...new Set(components)].slice(0, 8),
-    roles: [...new Set(roles)].slice(0, 5),
-    behaviours: [...new Set(behaviours)].slice(0, 8),
-  };
-}
-
-function promptDrafts(text: string): RequirementDraft[] {
-  const drafts: RequirementDraft[] = [];
-  const seen = new Set<string>();
-  let offset = 0;
-  for (const section of promptSections(text)) {
-    let paragraph = 0;
-    for (const statement of promptStatements(section.lines)) {
-      paragraph += 1;
-      const normalized = statement.replace(/\s+/g, ' ').trim();
-      const key = normalized.toLowerCase();
-      if (seen.has(key)) continue;
-      seen.add(key);
-      drafts.push({
-        requirementCode: `REQ-${String(drafts.length + 1).padStart(3, '0')}`,
-        originalText: statement,
-        normalizedText: normalized,
-        kind: NON_FUNCTIONAL_PROMPT_RE.test(normalized) ? 'non_functional' : 'functional',
-        sourcePage: section.index || null,
-        sourceParagraph: paragraph,
-        sourceCharStart: offset,
-        sourceCharEnd: offset + statement.length,
-        metadata: metadataForPrompt(normalized),
-      });
-      offset += statement.length + 1;
-    }
-  }
-  return drafts;
 }
 
 function useCopied(): [boolean, (text: string) => void] {
@@ -245,224 +117,6 @@ const SectionHeading: React.FC<{ title: string; meta?: string }> = ({ title, met
     {meta && <p className="text-[9.5px] text-[var(--v-faint)]">{meta}</p>}
   </div>
 );
-
-const RequirementsView: React.FC<{
-  requirements: RequirementRecord[];
-  sourceLabel: string;
-  sourceKind: 'prompt' | 'file';
-}> = ({ requirements, sourceLabel, sourceKind }) => {
-  const functional = requirements.filter((item) => item.kind === 'functional').length;
-  if (!requirements.length) {
-    return (
-      <Empty
-        title="No requirement-shaped sentences in this source"
-        body={`“${sourceLabel}” reads more like a layout description than a brief. Add sentences with must, shall, needs to, or an action on a named component.`}
-      />
-    );
-  }
-  return (
-    <div className="space-y-3">
-      <SectionHeading
-        title="Extracted requirements"
-        meta={`${requirements.length} total · ${functional} functional · ${requirements.length - functional} non-functional`}
-      />
-      <div className="space-y-1.5">
-        {requirements.slice(0, 80).map((requirement) => (
-          <div key={requirement.id} className="rounded-lg border border-[var(--v-line)] bg-[var(--v-surface-2)] p-2.5">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="rounded border border-[var(--v-line)] px-1.5 py-0.5 font-mono text-[8.5px] font-semibold text-[var(--v-muted)]">
-                {requirement.requirementCode}
-              </span>
-              <span
-                className="rounded px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wider"
-                style={{ color: PRIORITY_TONE[requirement.priority], background: `${PRIORITY_TONE[requirement.priority]}14` }}
-              >
-                {requirement.priority}
-              </span>
-              <span className="text-[8.5px] text-[var(--v-faint)]">
-                {requirement.kind === 'functional' ? 'Functional' : 'Non-functional'}
-                {requirement.sourcePage
-                  ? ` · ${sourceKind === 'prompt' ? 'section' : 'page'} ${requirement.sourcePage}`
-                  : ''}
-              </span>
-            </div>
-            <p className="mt-1.5 text-[10.5px] leading-relaxed text-[var(--v-ink)]">{requirement.originalText}</p>
-            {(requirement.metadata.screens.length > 0 || requirement.metadata.components.length > 0) && (
-              <div className="mt-1.5 flex flex-wrap gap-1">
-                {requirement.metadata.screens.map((item) => (
-                  <span key={`s-${item}`} className="rounded bg-[#7C8CFF]/10 px-1.5 py-0.5 text-[8px] text-[#A6B0FF]">
-                    {item}
-                  </span>
-                ))}
-                {requirement.metadata.components.map((item) => (
-                  <span key={`c-${item}`} className="rounded bg-[#E0B15C]/10 px-1.5 py-0.5 text-[8px] text-[#E0B15C]">
-                    {item}
-                  </span>
-                ))}
-                {requirement.metadata.roles.slice(0, 3).map((item) => (
-                  <span key={`r-${item}`} className="rounded bg-[#5FA8D3]/10 px-1.5 py-0.5 text-[8px] text-[#5FA8D3]">
-                    {item}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-      {requirements.length > 80 && (
-        <p className="text-[9px] text-[var(--v-faint)]">
-          Showing the first 80 of {requirements.length}. Open the full view for the rest.
-        </p>
-      )}
-    </div>
-  );
-};
-
-const GraphView: React.FC<{ analysis: ReturnType<typeof analyzeRequirements> }> = ({ analysis }) => {
-  const model = useMemo(() => buildGraphModel(analysis), [analysis]);
-  const counts = useMemo(() => {
-    const tally = new Map<string, number>();
-    analysis.graph.nodes.forEach((node) => tally.set(node.kind, (tally.get(node.kind) || 0) + 1));
-    return tally;
-  }, [analysis]);
-  if (!model.cards.length) return <Empty title="Nothing to graph yet" body="This source produced no requirements, so there are no nodes or relations to show." />;
-  return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap gap-1.5">
-        {([
-          ['requirement', 'requirements'],
-          ['screen', 'screens'],
-          ['component', 'components'],
-          ['role', 'roles'],
-          ['interaction', 'interactions'],
-        ] as const).map(([kind, label]) => {
-          const value = counts.get(kind) || 0;
-          const text = value === 1 ? label.replace(/s$/, '') : label;
-          return (
-            <span key={kind} className="rounded-md border border-[var(--v-line)] bg-[var(--v-surface-2)] px-2 py-1 text-[9px] text-[var(--v-muted)]">
-              <span className="font-semibold text-[var(--v-ink)]">{value}</span> {text}
-            </span>
-          );
-        })}
-        <span className="rounded-md border border-[var(--v-line)] bg-[var(--v-surface-2)] px-2 py-1 text-[9px] text-[var(--v-muted)]">
-          <span className="font-semibold text-[var(--v-ink)]">{analysis.graph.edges.length}</span> relations
-        </span>
-      </div>
-      <div className="grid gap-2 lg:grid-cols-2">
-        {model.cards.slice(0, 40).map((card) => (
-          <div key={card.id} className="rounded-lg border border-[var(--v-line)] bg-[var(--v-surface-2)] p-2.5">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="font-mono text-[9px] font-semibold text-[var(--v-violet)]">{card.code}</span>
-              {card.conflicts > 0 && (
-                <span className="rounded bg-[#F27D6E]/10 px-1.5 py-0.5 text-[8px] font-semibold text-[#F27D6E]">
-                  {card.conflicts} conflict{card.conflicts === 1 ? '' : 's'}
-                </span>
-              )}
-              {card.dependencies > 0 && (
-                <span className="rounded bg-[#7C8CFF]/10 px-1.5 py-0.5 text-[8px] font-semibold text-[#A6B0FF]">
-                  {card.dependencies} need{card.dependencies === 1 ? '' : 's'}
-                </span>
-              )}
-            </div>
-            <p className="mt-1 line-clamp-3 text-[10px] leading-relaxed text-[var(--v-ink)]">{card.text}</p>
-            <div className="mt-1.5 flex flex-wrap gap-1">
-              {card.chips.flatMap((group) =>
-                group.items.slice(0, 2).map((item) => (
-                  <span
-                    key={`${card.id}-${group.kind}-${item}`}
-                    className="rounded px-1.5 py-0.5 text-[8px]"
-                    style={{ color: CHIP_TONE[group.kind] || '#9BA0A8', background: `${CHIP_TONE[group.kind] || '#9BA0A8'}14` }}
-                  >
-                    {item}
-                  </span>
-                )),
-              )}
-            </div>
-            {card.dependsOn.length > 0 && (
-              <p className="mt-1.5 text-[8.5px] text-[var(--v-faint)]">Needs {card.dependsOn.join(', ')}</p>
-            )}
-          </div>
-        ))}
-      </div>
-      {model.cards.length > 40 && (
-        <p className="text-[9px] text-[var(--v-faint)]">Showing 40 of {model.cards.length} requirement cards.</p>
-      )}
-    </div>
-  );
-};
-
-const ReviewView: React.FC<{
-  analysis: ReturnType<typeof analyzeRequirements>;
-  criteria: ReturnType<typeof generateAcceptanceCriteria>;
-}> = ({ analysis, criteria }) => {
-  const findings = analysis.findings;
-  if (!findings.length && !criteria.length) {
-    return <Empty title="No gaps found" body="This source produced no findings and no acceptance criteria. Add more explicit behaviour to review." />;
-  }
-  return (
-    <div className="space-y-4">
-      <div>
-        <SectionHeading title="Findings" meta={`${findings.length} open`} />
-        {findings.length ? (
-          <div className="space-y-1.5">
-            {findings.slice(0, 40).map((finding) => (
-              <div key={finding.id} className="rounded-lg border border-[var(--v-line)] bg-[var(--v-surface-2)] p-2.5">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span
-                    className="rounded px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wider"
-                    style={{ color: SEVERITY_TONE[finding.severity], background: `${SEVERITY_TONE[finding.severity]}14` }}
-                  >
-                    {finding.severity}
-                  </span>
-                  <span className="text-[8.5px] uppercase tracking-wider text-[var(--v-faint)]">{finding.type}</span>
-                </div>
-                <p className="mt-1.5 text-[10.5px] font-semibold text-[var(--v-ink)]">{finding.title}</p>
-                <p className="mt-0.5 text-[9.5px] leading-relaxed text-[var(--v-muted)]">{finding.detail}</p>
-                {finding.evidence[0] && (
-                  <p className="mt-1.5 rounded bg-[var(--v-surface)] px-2 py-1 text-[9px] text-[var(--v-faint)]">
-                    {finding.evidence[0].requirementCode}: {finding.evidence[0].text}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="rounded-lg border border-[var(--v-line)] bg-[var(--v-surface-2)] px-3 py-2 text-[10px] text-[var(--v-muted)]">
-            No ambiguities, conflicts or dependency problems detected.
-          </p>
-        )}
-        {findings.length > 40 && (
-          <p className="mt-1.5 text-[9px] text-[var(--v-faint)]">Showing 40 of {findings.length} findings.</p>
-        )}
-      </div>
-
-      <div>
-        <SectionHeading title="Acceptance criteria" meta={`${criteria.length} generated`} />
-        {criteria.length ? (
-          <div className="space-y-1.5">
-            {criteria.slice(0, 40).map((criterion) => (
-              <div key={criterion.id} className="rounded-lg border border-[var(--v-line)] bg-[var(--v-surface-2)] p-2.5">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-mono text-[8.5px] font-semibold text-[var(--v-muted)]">{criterion.requirementCode}</span>
-                  <span className="rounded bg-[var(--v-violet)]/10 px-1.5 py-0.5 text-[8px] text-[var(--v-violet)]">{criterion.source}</span>
-                </div>
-                <div className="mt-1.5 space-y-0.5 text-[9.5px] leading-relaxed">
-                  <p><span className="font-semibold text-[var(--v-muted)]">Given</span> <span className="text-[var(--v-ink)]">{criterion.given.replace(/^given\s+/i, '')}</span></p>
-                  <p><span className="font-semibold text-[var(--v-muted)]">When</span> <span className="text-[var(--v-ink)]">{criterion.when.replace(/^when\s+/i, '')}</span></p>
-                  <p><span className="font-semibold text-[var(--v-muted)]">Then</span> <span className="text-[var(--v-ink)]">{criterion.then.replace(/^then\s+/i, '')}</span></p>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="rounded-lg border border-[var(--v-line)] bg-[var(--v-surface-2)] px-3 py-2 text-[10px] text-[var(--v-muted)]">
-            No acceptance criteria could be generated from this source.
-          </p>
-        )}
-      </div>
-    </div>
-  );
-};
 
 const PromptView: React.FC<{ text: string; sourceLabel: string }> = ({ text, sourceLabel }) => {
   const [copied, copy] = useCopied();
@@ -505,10 +159,11 @@ const PromptView: React.FC<{ text: string; sourceLabel: string }> = ({ text, sou
   );
 };
 
-const BuildView: React.FC<{ text: string }> = ({ text }) => {
+const BuildView: React.FC<{ text: string; projectId: string }> = ({ text, projectId }) => {
   const [copied, copy] = useCopied();
   const [key, setKey] = useState(0);
   const [loaded, setLoaded] = useState(false);
+  const base44Url = useMemo(() => readBase44PageUrl(projectId), [projectId]);
   return (
     <div className="flex h-full min-h-[420px] flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
@@ -526,7 +181,7 @@ const BuildView: React.FC<{ text: string }> = ({ text }) => {
         >
           <RefreshCw className="h-3 w-3" /> Reload
         </button>
-        <a href="https://app.base44.com" target="_blank" rel="noreferrer" className="v-btn v-btn-ghost h-7 px-2 text-[9.5px]">
+        <a href={base44Url} target="_blank" rel="noreferrer" className="v-btn v-btn-ghost h-7 px-2 text-[9.5px]">
           <ExternalLink className="h-3 w-3" /> New tab
         </a>
         <button type="button" onClick={() => copy(text)} disabled={!text.trim()} className="v-btn v-btn-primary h-7 px-2 text-[9.5px] disabled:opacity-40">
@@ -651,15 +306,11 @@ const DesignView: React.FC<{ projectId: string }> = ({ projectId }) => {
 
 const AnalyserView: React.FC<{
   risk: number;
-  requirements: RequirementRecord[];
-  findings: ReturnType<typeof analyzeRequirements>['findings'];
-  criteria: ReturnType<typeof generateAcceptanceCriteria>;
   questions: number;
   issues: number;
-}> = ({ risk, requirements, findings, criteria, questions, issues }) => {
+}> = ({ risk, questions, issues }) => {
   const tone = risk >= 60 ? '#F27D6E' : risk >= 35 ? '#E0B15C' : '#8C8CFF';
   const label = risk >= 60 ? 'High risk' : risk >= 35 ? 'Medium risk' : 'Low risk';
-  const severe = findings.filter((finding) => finding.severity === 'high' || finding.severity === 'critical').length;
   const readiness = Math.max(0, Math.min(100, Math.round(100 - questions * 6 - issues * 4)));
   return (
     <div className="space-y-4">
@@ -668,7 +319,7 @@ const AnalyserView: React.FC<{
           <p className="text-[9px] uppercase tracking-[0.12em] text-[var(--v-faint)]">Risk score</p>
           <div className="mt-1 flex items-end gap-2">
             <p className="v-display text-[34px] leading-none" style={{ color: tone }}>{risk}</p>
-            <span className="pb-1 text-[10px] text-[var(--v-muted)]">/ 100 · {label}</span>
+            <span className="pb-1 text-[10px] text-[var(--v-muted)]">/ 100 - {label}</span>
           </div>
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--v-surface)]">
             <div className="h-full rounded-full" style={{ width: `${Math.max(2, risk)}%`, background: tone }} />
@@ -676,10 +327,8 @@ const AnalyserView: React.FC<{
         </div>
         <div className="grid grid-cols-2 gap-2">
           {[
-            { label: 'Requirements', value: requirements.length },
-            { label: 'Criteria', value: criteria.length },
-            { label: 'Findings', value: findings.length },
-            { label: 'High severity', value: severe },
+            { label: 'Risk band', value: label },
+            { label: 'Readiness', value: `${readiness}%` },
             { label: 'Open questions', value: questions },
             { label: 'Quality issues', value: issues },
           ].map((stat) => (
@@ -701,24 +350,11 @@ const AnalyserView: React.FC<{
         </p>
       </div>
 
-      <div>
-        <SectionHeading title="Fix first" />
-        {findings.filter((finding) => finding.severity === 'high' || finding.severity === 'critical').slice(0, 5).map((finding) => (
-          <div key={finding.id} className="mb-1.5 flex items-start gap-2 rounded-lg border border-[var(--v-line)] bg-[var(--v-surface-2)] p-2">
-            <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" style={{ color: SEVERITY_TONE[finding.severity] }} />
-            <div className="min-w-0">
-              <p className="text-[10px] font-semibold text-[var(--v-ink)]">{finding.title}</p>
-              <p className="text-[9px] leading-relaxed text-[var(--v-muted)]">{finding.whyItMatters}</p>
-            </div>
-          </div>
-        ))}
-        {!severe && <p className="text-[9.5px] text-[var(--v-muted)]">No high-severity findings.</p>}
-      </div>
-
       <div className="flex items-start gap-2 rounded-lg border border-[var(--v-line)] bg-[var(--v-surface-2)] p-2.5">
         <ShieldCheck className="mt-0.5 h-3.5 w-3.5 text-[var(--v-violet)]" />
         <p className="text-[9px] leading-relaxed text-[var(--v-muted)]">
-          This analysis runs on the selected source only. It never changes the prompt, the canvas or the project.
+          This analyser reads the selected prompt only. Requirement documents are reviewed separately in
+          Requirement graph and Review & acceptance.
         </p>
       </div>
     </div>
@@ -753,38 +389,10 @@ export const ProjectToolsDialog: React.FC<ProjectToolsDialogProps> = ({
   }, [open, onClose]);
 
   const source = sources.find((entry) => entry.id === sourceId) || sources[0] || null;
+  const documentTool = DOCUMENT_TOOLS.has(tool);
 
   const compiled = useMemo(() => {
-    if (!open || !source || !source.text.trim()) return null;
-    const pages = pagesFromPrompt(source.text);
-    if (!pages.length) return null;
-    const drafts =
-      source.kind === 'prompt'
-        ? promptDrafts(source.text)
-        : compileRequirements({
-            text: pages.join('\n\n'),
-            pages,
-            pageCount: pages.length,
-            fileName: source.label,
-            mimeType: 'text/plain',
-          });
-    const now = new Date().toISOString();
-    const requirements: RequirementRecord[] = drafts.map((draft) => {
-      const base: RequirementRecord = {
-        ...draft,
-        id: `${source.id}:${draft.requirementCode}`,
-        projectId: project.id,
-        documentId: null,
-        status: 'pending_review',
-        priority: 'medium',
-        priorityReason: null,
-        createdAt: now,
-      };
-      const priority = classifyRequirementPriority(base);
-      return { ...base, priority: priority.priority, priorityReason: priority.reason };
-    });
-    const analysis = analyzeRequirements(requirements);
-    const criteria = generateAcceptanceCriteria(requirements, project.id);
+    if (!open || documentTool || !source || !source.text.trim()) return null;
     let risk = 0;
     let questions = 0;
     let issues = 0;
@@ -797,15 +405,15 @@ export const ProjectToolsDialog: React.FC<ProjectToolsDialogProps> = ({
     } catch {
       // The prompt compiler is best-effort on free-form sources.
     }
-    return { requirements, analysis, criteria, risk, questions, issues };
-  }, [open, project.id, source]);
+    return { risk, questions, issues };
+  }, [open, source, documentTool]);
 
   if (!open) return null;
 
   const counts: Record<ProjectToolId, string> = {
-    requirements: compiled ? String(compiled.requirements.length) : '—',
-    graph: compiled ? String(compiled.analysis.graph.nodes.length) : '—',
-    review: compiled ? String(compiled.analysis.findings.length) : '—',
+    requirements: 'Documents',
+    graph: 'Documents',
+    review: 'Documents',
     prompt: source ? String(pagesFromPrompt(source.text).length) : '—',
     build: 'Base44',
     design: 'Tokens',
@@ -834,7 +442,7 @@ export const ProjectToolsDialog: React.FC<ProjectToolsDialogProps> = ({
             <p className="mt-0.5 text-[9.5px] text-[var(--v-faint)]">{activeTool.hint}</p>
           </div>
           <span className="hidden rounded-full border border-[var(--v-line)] bg-[var(--v-surface-2)] px-2 py-0.5 text-[8.5px] font-semibold uppercase tracking-wider text-[var(--v-faint)] sm:inline-flex">
-            {tool === 'build' || tool === 'design' ? 'Read-only' : 'Read-only analysis'}
+            {tool === 'build' || tool === 'design' ? 'Read-only' : documentTool ? 'From documents' : 'Read-only analysis'}
           </span>
           {tool !== 'build' && tool !== 'design' && (
             <button type="button" onClick={() => onOpenFull(tool)} className="v-btn v-btn-ghost h-7 px-2 text-[9.5px]">
@@ -846,7 +454,7 @@ export const ProjectToolsDialog: React.FC<ProjectToolsDialogProps> = ({
           </button>
         </div>
 
-        {tool !== 'design' && (
+        {tool !== 'design' && !documentTool && (
           <div className="flex flex-wrap items-center gap-2 border-b border-[var(--v-line)] bg-[var(--v-surface-2)]/40 px-4 py-2">
             <button
               type="button"
@@ -867,7 +475,7 @@ export const ProjectToolsDialog: React.FC<ProjectToolsDialogProps> = ({
           </div>
         )}
 
-        {sourceOpen && tool !== 'design' && (
+        {sourceOpen && tool !== 'design' && !documentTool && (
           <div className="border-b border-[var(--v-line)] bg-[var(--v-surface)] p-2">
             <div className="grid max-h-[220px] gap-1 overflow-y-auto">
               {sources.map((entry) => {
@@ -929,25 +537,38 @@ export const ProjectToolsDialog: React.FC<ProjectToolsDialogProps> = ({
           </div>
 
           <div key={tool} className="tool-swap v-scroll min-h-0 overflow-y-auto p-4">
-            {!source && (
+            {documentTool && (
+              <div className="rounded-xl border border-[var(--v-line)] bg-[var(--v-surface-2)] p-4">
+                <div className="flex items-start gap-3">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--v-violet)]/10 text-[var(--v-violet)]">
+                    <FileText className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <h3 className="text-[12px] font-semibold text-[var(--v-ink)]">Upload a requirement document</h3>
+                    <p className="mt-1 text-[10px] leading-relaxed text-[var(--v-muted)]">
+                      Requirement graph, review findings and acceptance criteria are extracted only from an uploaded PDF,
+                      DOCX, TXT or Markdown document. Prompts and canvas pages are not used here.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => onOpenFull(tool)}
+                      className="v-btn v-btn-primary mt-3 h-8 px-3 text-[10.5px]"
+                    >
+                      <ArrowUpRight className="h-3.5 w-3.5" />
+                      Open {tool === 'requirements' ? 'Requirement Compiler' : tool === 'graph' ? 'Requirement graph' : 'Review & acceptance'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!documentTool && !source && (
               <Empty title="No source to analyse yet" body="Create a canvas or write a prompt in this project. The tools will then analyse it here, without changing anything." />
-            )}
-
-            {source && tool === 'requirements' && (
-              compiled ? <RequirementsView requirements={compiled.requirements} sourceLabel={source.label} sourceKind={source.kind} /> : <Empty title="Could not read this source" body="Try another prompt or file." />
-            )}
-
-            {source && tool === 'graph' && (
-              compiled ? <GraphView analysis={compiled.analysis} /> : <Empty title="Could not read this source" body="Try another prompt or file." />
-            )}
-
-            {source && tool === 'review' && (
-              compiled ? <ReviewView analysis={compiled.analysis} criteria={compiled.criteria} /> : <Empty title="Could not read this source" body="Try another prompt or file." />
             )}
 
             {source && tool === 'prompt' && <PromptView text={source.text} sourceLabel={source.label} />}
 
-            {source && tool === 'build' && <BuildView text={source.text} />}
+            {source && tool === 'build' && <BuildView text={source.text} projectId={project.id} />}
 
             {tool === 'design' && <DesignView projectId={project.id} />}
 
@@ -955,9 +576,6 @@ export const ProjectToolsDialog: React.FC<ProjectToolsDialogProps> = ({
               compiled ? (
                 <AnalyserView
                   risk={compiled.risk}
-                  requirements={compiled.requirements}
-                  findings={compiled.analysis.findings}
-                  criteria={compiled.criteria}
                   questions={compiled.questions}
                   issues={compiled.issues}
                 />
