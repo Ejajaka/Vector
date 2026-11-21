@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Check, Copy, Mail, MapPin, MessageSquare } from 'lucide-react';
+import { Check, Copy, Mail, MessageSquare } from 'lucide-react';
 import type { ActiveTab } from '../types/analysis.ts';
 
 interface ContactPageProps {
   onNavigate: (tab: ActiveTab) => void;
 }
 
-const EMAIL = 'hello@vector.is-a.dev';
+const EMAIL = 'hobbyhive52@gmail.com';
 
 export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
   const [copied, setCopied] = useState(false);
@@ -54,14 +54,6 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
               >
                 {copied ? <Check className="h-3 w-3 text-[var(--v-teal)]" /> : <Copy className="h-3 w-3" />}
               </button>
-            </div>
-
-            <div className="flex items-center gap-2.5 rounded-xl border border-[var(--v-line)] bg-[var(--v-surface)] px-3 py-2.5">
-              <MapPin className="h-4 w-4 text-[var(--v-violet)]" />
-              <div>
-                <p className="text-[11px] font-semibold text-[var(--v-ink)]">Studio</p>
-                <p className="text-[10.5px] text-[var(--v-muted)]">Bengaluru, India · remote-first</p>
-              </div>
             </div>
 
             <div className="flex items-center gap-2.5 rounded-xl border border-[var(--v-line)] bg-[var(--v-surface)] px-3 py-2.5">

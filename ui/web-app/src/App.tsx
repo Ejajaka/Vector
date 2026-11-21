@@ -497,7 +497,7 @@ function AppShell() {
               <button type="button" onClick={() => window.location.assign('/')} className="v-btn v-btn-primary h-9 px-4 text-[11.5px]">
                 Back to home
               </button>
-              <a href="mailto:hello@vector.is-a.dev" className="v-btn v-btn-ghost h-9 px-4 text-[11.5px]">
+              <a href="mailto:hobbyhive52@gmail.com" className="v-btn v-btn-ghost h-9 px-4 text-[11.5px]">
                 Contact us
               </a>
             </div>

@@ -55,10 +55,10 @@ export const PublicFooter: React.FC<PublicFooterProps> = ({ activeTab, onNavigat
               Requirement engineering for UI teams. Turn an under-specified prompt into a complete, reviewed brief.
             </p>
             <a
-              href="mailto:hello@vector.is-a.dev"
+              href="mailto:hobbyhive52@gmail.com"
               className="mt-3 inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-[var(--v-violet)] hover:underline"
             >
-              <Mail className="h-3 w-3" /> hello@vector.is-a.dev
+              <Mail className="h-3 w-3" /> hobbyhive52@gmail.com
             </a>
             <a
               href={WINDOWS_INSTALLER_URL}
@@ -92,7 +92,7 @@ export const PublicFooter: React.FC<PublicFooterProps> = ({ activeTab, onNavigat
 
         <div className="mt-10 flex flex-col gap-3 border-t border-[var(--v-line)] pt-5 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[10.5px] text-[var(--v-faint)]">
-            © 2026 Vector. All rights reserved. · Bengaluru, India
+            © 2026 Vector. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
             <button type="button" onClick={() => go('contact')} className="text-[10.5px] text-[var(--v-muted)] hover:text-[var(--v-ink)]">

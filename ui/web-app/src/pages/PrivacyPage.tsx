@@ -225,8 +225,8 @@ export const PrivacyPage: React.FC = () => {
               <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-[var(--v-ink)]">13. Contact</h2>
               <p className="mt-2">
                 For privacy questions, account deletion, data export or security reports, email us at{' '}
-                <a href="mailto:hello@vector.is-a.dev" className="font-medium text-[var(--v-accent-hover)] hover:underline">
-                  hello@vector.is-a.dev
+                <a href="mailto:hobbyhive52@gmail.com" className="font-medium text-[var(--v-accent-hover)] hover:underline">
+                  hobbyhive52@gmail.com
                 </a>
                 . We aim to respond within a reasonable period.
               </p>
