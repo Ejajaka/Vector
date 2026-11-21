@@ -49,8 +49,8 @@ export const PLANS: PlanDefinition[] = [
     code: 'pro',
     name: 'Pro',
     tagline: 'For designers and developers shipping weekly.',
-    monthlyInr: 499,
-    annualInr: 4990,
+    monthlyInr: 199,
+    annualInr: 1990,
     highlights: [
       'Unlimited projects',
       'All 10+ templates with previews',

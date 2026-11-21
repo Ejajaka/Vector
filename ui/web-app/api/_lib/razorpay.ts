@@ -19,8 +19,8 @@ export const PLANS: Record<
 > = {
   pro: {
     name: 'Pro',
-    monthly: { amount: 499, planId: env('RAZORPAY_PLAN_PRO_MONTHLY') || 'plan_U2ZYoMsKavqBVD' },
-    annual: { amount: 4990, planId: env('RAZORPAY_PLAN_PRO_ANNUAL') || 'plan_U2Za5LEpzl9biS' },
+    monthly: { amount: 199, planId: env('RAZORPAY_PLAN_PRO_MONTHLY') || 'plan_U2h2RY1z2VWQSP' },
+    annual: { amount: 1990, planId: env('RAZORPAY_PLAN_PRO_ANNUAL') || 'plan_U2h2RsYsf6dII3' },
   },
   team: {
     name: 'Team',

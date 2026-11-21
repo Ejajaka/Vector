@@ -48,7 +48,7 @@ const STEPS: Step[] = [
   },
   {
     title: 'Two projects are on us',
-    body: 'Your first two projects are free, no card. Plans start at ₹499/month and unlock all generators and one-click deploys.',
+    body: 'Your first two projects are free, no card. Plans start at ₹199/month and unlock all generators and one-click deploys.',
     icon: Wallet,
     hint: 'Nothing is charged until you choose a plan.',
     anchor: '[data-tour="nav-pricing"]',
