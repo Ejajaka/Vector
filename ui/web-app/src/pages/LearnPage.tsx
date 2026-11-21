@@ -27,10 +27,52 @@ interface Lesson {
   icon: React.ElementType;
   from: string;
   to: string;
+  guide?: LessonGuide;
 }
 
-const TABS = ['Get started', 'Prompting', 'Elements', 'Templates', 'Billing'] as const;
+const TABS = ['Get started', 'Workflows', 'Prompting', 'Elements', 'Templates', 'Billing'] as const;
 type Tab = (typeof TABS)[number];
+
+const DOCUMENT_WORKFLOW_GUIDE: LessonGuide = {
+  intro:
+    'Use this when a company or client gives you a brief, a requirements document or a product spec. The document is the source of truth; Vector turns it into traceable requirements, findings, acceptance criteria and a build-ready prompt.',
+  steps: [
+    'Create the project in Projects and name it after the client and product. Start blank unless a template genuinely matches their product.',
+    'Open Project tools → Requirements. Upload the client document (PDF, DOCX, TXT or Markdown). Wait for the parsed state and check the page count.',
+    'Read the extracted requirements. Each one keeps its page, paragraph and character reference. Approve what is in scope, reject what is not, and run Prioritize.',
+    'Open Requirement graph. Work through conflicts, dependency links and ambiguities. Every finding quotes the requirement code, so send those exact codes back to the client for a decision.',
+    'Open Review & acceptance. Accept or reject the inferred behaviours, then approve the acceptance criteria. Criteria stay linked to requirement codes and become the test plan.',
+    'Attach the client design system. Import their token JSON, or create one from their brand colours. If they have no formal system, choose a domain preset, then edit the four colours and typeface.',
+    'Open Canvas. Build or adjust the screens with palette blocks. Every button needs a label, an action, a colour and a location; every input needs validation and error behaviour.',
+    'Select elements and add Behaviour notes for interactions the document leaves implicit. Notes are written into the prompt under INTERACTIONS, not kept as loose comments.',
+    'Open Prompt studio and choose the canvas or analysis source. Read the six-section brief end to end. If a question is still open, answer it in Prompt mode before copying.',
+    'Open Prompt analyser. Check risk, readiness, open questions and quality issues. Resolve the high-severity items; do not treat a low risk score as approval.',
+    'Open the Base44 builder, sign in or sign up with email and password, paste the prompt and build. Publish the app, then save the published URL for the Live app preview.',
+    'Final gate: requirements approved, criteria approved, conflicts resolved, design tokens applied, prompt copied, live URL saved. Export the ZIP or share the project link with the client.',
+  ],
+  demo: 'project',
+  action: { label: 'Open Requirements', tab: 'requirements' },
+};
+
+const SOLO_WORKFLOW_GUIDE: LessonGuide = {
+  intro:
+    'Use this when there is no company document. You are the source of truth: the canvas, the prompt, the design system and the project tools are how you turn an idea into a complete, buildable brief.',
+  steps: [
+    'Create a project from Projects → New project. Answer the three setup questions so Vector suggests templates that match the purpose and features.',
+    'Pick a template or a blank canvas. Templates are starting points, not requirements; delete anything that does not belong to your product.',
+    'Open Design systems and choose a domain colour combination that fits, or create your own. Save and apply it so the canvas background, text, buttons and cards all use the same tokens.',
+    'Open Canvas and place the core blocks: navigation, hero or page header, primary content, empty state, form or table, and the main action. Use the palette rather than describing the layout in prose.',
+    'Give every element a label, a concrete action and a colour. Add validation, loading, empty, error and success states where the interaction needs them.',
+    'Use Behaviour notes on every interactive element. Write what happens on click, failure, retry, duplicate submission, permission denial and small screens.',
+    'Open Prompt mode and write one plain sentence about the screen. Answer the clarification questions; the prompt remains a draft until the blocking gaps are resolved.',
+    'Open Project tools → Design systems to confirm the tokens, Prompt studio to read the six-section brief, and Prompt analyser to check risk and readiness.',
+    'Use the Prompt analyser’s open questions and quality issues as your checklist. If you later get a client document, upload it in Requirements; the graph, review and acceptance criteria will switch to that document.',
+    'Copy the finished prompt into Base44, v0, Bolt or Lovable. Build and publish the app, then save the published URL in the Live app tab.',
+    'Return to the project and iterate with prompt versions and behaviour notes. Share the project link or export the ZIP when the build is ready for review.',
+  ],
+  demo: 'elements',
+  action: { label: 'Open projects', tab: 'projects' },
+};
 
 const LESSONS: Record<Tab, Lesson[]> = {
   'Get started': [
@@ -38,6 +80,28 @@ const LESSONS: Record<Tab, Lesson[]> = {
     { title: 'A tour of the workspace', summary: 'Home, projects, templates and the prompt studio — where everything lives.', minutes: 3, level: 'Beginner', icon: Play, from: '#FFC53D', to: '#FF8A6B' },
     { title: 'Reading the risk score', summary: 'What 0–100 means, the four components, and when to ignore it.', minutes: 2, level: 'Beginner', icon: ScanLine, from: '#4F7DF3', to: '#8B5CF6' },
     { title: 'Answering clarification questions', summary: 'Why the final prompt is blocked until every gap is resolved.', minutes: 5, level: 'Beginner', icon: Sparkles, from: '#FF6B8A', to: '#8B5CF6' },
+  ],
+  Workflows: [
+    {
+      title: 'Company or client document to a complete build',
+      summary: 'Upload the brief, trace requirements, resolve findings, approve acceptance criteria, apply the design system, then build.',
+      minutes: 10,
+      level: 'Advanced',
+      icon: BookOpen,
+      from: '#5E6AD2',
+      to: '#22D3EE',
+      guide: DOCUMENT_WORKFLOW_GUIDE,
+    },
+    {
+      title: 'No document? Build the whole project from scratch',
+      summary: 'Use templates, the canvas, behaviour notes, the design system and every project tool when you are creating on your own.',
+      minutes: 9,
+      level: 'Intermediate',
+      icon: Sparkles,
+      from: '#FF6B8A',
+      to: '#8B5CF6',
+      guide: SOLO_WORKFLOW_GUIDE,
+    },
   ],
   Prompting: [
     { title: 'The four attributes every button needs', summary: 'Label, action, colour and location — the checklist behind the schema.', minutes: 3, level: 'Beginner', icon: Layers, from: '#5E6AD2', to: '#A78BFA' },
@@ -72,6 +136,7 @@ const GUIDES: Record<Tab, LessonGuide> = {
     demo: 'project',
     action: { label: 'Open projects', tab: 'projects' },
   },
+  Workflows: DOCUMENT_WORKFLOW_GUIDE,
   Prompting: {
     intro: 'A prompt is just a clear description of what should appear, what it does, and when it changes.',
     steps: [
@@ -141,6 +206,29 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onStartTour })
             Browse templates <ArrowRight className="h-3.5 w-3.5" />
           </button>
         </div>
+      </section>
+
+      <section className="grid gap-3 md:grid-cols-2">
+        {LESSONS.Workflows.map((lesson, index) => (
+          <button
+            key={lesson.title}
+            type="button"
+            onClick={() => {
+              setTab('Workflows');
+              setActiveLesson(lesson);
+            }}
+            className="v-card v-card-lift rounded-lg p-4 text-left"
+          >
+            <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--v-faint)]">
+              Complete workflow {index === 0 ? 'A' : 'B'}
+            </span>
+            <h3 className="mt-1 text-[13px] font-semibold text-[var(--v-ink)]">{lesson.title}</h3>
+            <p className="mt-1 text-[11px] leading-relaxed text-[var(--v-muted)]">{lesson.summary}</p>
+            <span className="mt-2 inline-flex items-center gap-1 text-[10.5px] font-semibold text-[var(--v-violet)]">
+              Open step-by-step guide <ArrowRight className="h-3 w-3" />
+            </span>
+          </button>
+        ))}
       </section>
 
       <div className="flex items-center gap-2 overflow-x-auto v-scroll pb-1">
@@ -220,7 +308,7 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onStartTour })
       {activeLesson && (
         <LessonDialog
           lesson={activeLesson}
-          guide={GUIDES[tab]}
+          guide={activeLesson.guide ?? GUIDES[tab]}
           onClose={() => setActiveLesson(null)}
           onTry={(target) => {
             setActiveLesson(null);

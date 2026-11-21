@@ -1758,7 +1758,8 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     const el = viewportRef.current;
     if (!el) return;
     const onWheel = (event: WheelEvent) => {
-      if (!(event.ctrlKey || event.metaKey)) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
       event.preventDefault();
       const factor = Math.exp(-event.deltaY * 0.0015);
       applyZoom(zoomRef.current * factor, event.clientX, event.clientY);
@@ -2115,7 +2116,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                     </button>
                   </div>
                   <p className="mt-2 text-[9px] leading-relaxed text-white/35">
-                    Ctrl/âŒ˜ + scroll or pinch to zoom. Space or middle-drag to pan.
+          Scroll or pinch to zoom. Space or middle-drag to pan.
                   </p>
                 </div>
               </>
