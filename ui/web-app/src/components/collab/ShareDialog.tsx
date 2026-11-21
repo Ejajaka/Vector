@@ -27,7 +27,19 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
 }) => {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<'edit' | 'view'>('edit');
+  const [linkRole, setLinkRole] = useState<'edit' | 'view'>('edit');
   const [copied, setCopied] = useState<'link' | 'room' | null>(null);
+
+  const linkFor = (nextRole: 'edit' | 'view') => {
+    try {
+      const url = new URL(link);
+      if (nextRole === 'view') url.searchParams.set('role', 'view');
+      else url.searchParams.delete('role');
+      return url.toString();
+    } catch {
+      return link;
+    }
+  };
 
   const everyone = useMemo(() => {
     const list: Array<{ id: string; name: string; colour: string; online: boolean; role: string }> = [
@@ -62,10 +74,12 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
     if (!value) return;
     onInvite(value, role);
     setEmail('');
-    // Hand the invite to the mail app with the live link already in the body,
-    // so the person actually receives access instead of a silent local entry.
-    const subject = encodeURIComponent('Edit this project with me on Vector');
-    const body = encodeURIComponent(`Open this project in Vector and sign in with this link:\n\n${link}`);
+    // Hand the invite to the mail app with the role-specific live link in the
+    // body, so the person receives exactly the access that was chosen.
+    const subject = encodeURIComponent(
+      role === 'view' ? 'View this project on Vector' : 'Edit this project with me on Vector',
+    );
+    const body = encodeURIComponent(`Open this project in Vector and sign in with this link:\n\n${linkFor(role)}`);
     window.location.href = `mailto:${value}?subject=${subject}&body=${body}`;
   };
 
@@ -147,12 +161,32 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
 
         {/* Link */}
         <div className="mt-4 border-t border-white/10 px-4 py-3">
+          <div className="mb-2 flex items-center gap-1.5">
+            <span className="text-[9.5px] font-semibold uppercase tracking-wider text-white/35">Link access</span>
+            {(['edit', 'view'] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => {
+                  setLinkRole(option);
+                  setRole(option);
+                }}
+                className={`rounded px-2 py-0.5 text-[9.5px] font-semibold transition-colors ${
+                  linkRole === option
+                    ? 'bg-[#5E6AD2] text-white'
+                    : 'bg-white/5 text-white/50 hover:text-white/80'
+                }`}
+              >
+                {option === 'edit' ? 'Can edit' : 'Can view'}
+              </button>
+            ))}
+          </div>
           <div className="flex items-center gap-2">
             <Link2 className="h-3.5 w-3.5 shrink-0 text-white/40" />
-            <input readOnly value={link} className="h-8 min-w-0 flex-1 rounded-md border border-white/10 bg-[#383838] px-2 text-[10.5px] text-white/70 outline-none" />
+            <input readOnly value={linkFor(linkRole)} className="h-8 min-w-0 flex-1 rounded-md border border-white/10 bg-[#383838] px-2 text-[10.5px] text-white/70 outline-none" />
             <button
               type="button"
-              onClick={() => void copy(link, 'link')}
+              onClick={() => void copy(linkFor(linkRole), 'link')}
               className="inline-flex h-8 items-center gap-1.5 rounded-md border border-white/15 px-2.5 text-[10.5px] font-semibold text-white/85 hover:bg-white/5"
             >
               {copied === 'link' ? <Check className="h-3 w-3 text-[#6ea8fe]" /> : <Copy className="h-3 w-3" />} Copy
@@ -176,8 +210,8 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
                   <span className="h-1.5 w-1.5 rounded-full bg-[#6ea8fe]" /> Live across devices
                 </p>
                 <p className="mt-0.5 text-[10px] leading-relaxed text-white/45">
-                  Anyone who opens this link edits the same canvas in real time — cursors, selections and pages included.
-                  They will be asked to sign in first.
+                  Anyone who opens an edit link joins the same canvas in real time. A view-only link can watch every
+                  change but cannot edit, move or delete anything. They will be asked to sign in first.
                 </p>
               </>
             ) : (

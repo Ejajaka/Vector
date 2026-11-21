@@ -671,6 +671,14 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     return new URLSearchParams(window.location.search).get('project');
   }, []);
   const sharedReady = useRef(false);
+  const lastLocalEdit = useRef(0);
+  const pollingDoc = useRef(false);
+  const viewOnly = useMemo(
+    () =>
+      typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).get('role') === 'view',
+    [],
+  );
   const [peers, setPeers] = useState<Peer[]>([]);
   const [me, setMe] = useState<Peer | null>(null);
   const [invites, setInvites] = useState<Invite[]>(() => readInvites());
@@ -752,6 +760,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   // Autosave into the project document (or a source-keyed draft for template
   // editors) so leaving and returning keeps everything.
   useEffect(() => {
+    if (viewOnly) return;
     const timer = window.setTimeout(() => {
       try {
         if (projectDocKey) {
@@ -795,7 +804,9 @@ export const EditorPage: React.FC<EditorPageProps> = ({
         }, 60);
       },
     });
-    session.setDocProvider(() => docRef.current);
+    session.setDocProvider(() =>
+      sharedMode && !sharedReady.current ? null : docRef.current,
+    );
     sessionRef.current = session;
     setMe(session.self);
     return () => {
@@ -828,7 +839,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   }, [room, sharedMode]);
 
   useEffect(() => {
-    if (!sharedMode || !sharedReady.current) return;
+    if (!sharedMode || viewOnly || !sharedReady.current) return;
     const timer = window.setTimeout(() => {
       void saveSharedDoc(room, {
         name,
@@ -838,15 +849,67 @@ export const EditorPage: React.FC<EditorPageProps> = ({
       });
     }, 700);
     return () => window.clearTimeout(timer);
-  }, [name, pages, room, sharedMode, sharedOwner, sharedProject, projectId]);
+  }, [name, pages, room, sharedMode, viewOnly, sharedOwner, sharedProject, projectId]);
 
-  // Broadcast local edits, but never echo a document that came from a peer.
+  // Supabase Realtime can be slow to connect on some networks. Poll the room as
+  // a quiet fallback so collaborators still see each other's work within a few
+  // seconds, and the holder's copy is the same document the server stores.
   useEffect(() => {
-    if (applyingRemote.current) return;
+    if (!sharedMode) return;
+    const timer = window.setInterval(async () => {
+      if (pollingDoc.current || applyingRemote.current) return;
+      if (Date.now() - lastLocalEdit.current < 2600) return;
+      pollingDoc.current = true;
+      try {
+        const doc = await loadSharedDoc(room);
+        if (!doc) return;
+        const current = docRef.current;
+        if (doc.name === current.name && JSON.stringify(doc.pages) === JSON.stringify(current.pages)) return;
+        applyingRemote.current = true;
+        setName(doc.name);
+        setPages(doc.pages);
+        setActivePageId(doc.pages[0]?.id || '');
+        window.setTimeout(() => {
+          applyingRemote.current = false;
+        }, 80);
+      } finally {
+        pollingDoc.current = false;
+      }
+    }, 2500);
+    return () => window.clearInterval(timer);
+  }, [room, sharedMode]);
+
+  // Broadcast local edits, but never echo a document that came from a peer,
+  // and never publish the placeholder document before the room has loaded.
+  useEffect(() => {
+    if (viewOnly || applyingRemote.current) return;
+    if (sharedMode && !sharedReady.current) return;
+    lastLocalEdit.current = Date.now();
     window.clearTimeout(publishTimer.current);
     publishTimer.current = window.setTimeout(() => sessionRef.current?.publish({ name, pages }), 160);
     return () => window.clearTimeout(publishTimer.current);
-  }, [name, pages]);
+  }, [name, pages, viewOnly, sharedMode]);
+
+  // A view-only guest may watch and pan through the document but must not
+  // mutate it with keyboard shortcuts.
+  useEffect(() => {
+    if (!viewOnly) return;
+    const block = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return;
+      if (event.key === 'Escape' || event.key === 'Tab') return;
+      const mutating =
+        ['Delete', 'Backspace', 'Enter'].includes(event.key) ||
+        ((event.ctrlKey || event.metaKey) &&
+          ['z', 'y', 'v', 'x', 'd', 'a'].includes(event.key.toLowerCase()));
+      if (mutating) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+    window.addEventListener('keydown', block, true);
+    return () => window.removeEventListener('keydown', block, true);
+  }, [viewOnly]);
 
   // Presence: which page, which element, whether typing.
   useEffect(() => {
@@ -1496,6 +1559,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   };
 
   const save = () => {
+    if (viewOnly) return;
     try {
       if (projectDocKey) {
         localStorage.setItem(projectDocKey, JSON.stringify({ name, pages, updatedAt: new Date().toISOString() }));
@@ -1821,8 +1885,15 @@ export const EditorPage: React.FC<EditorPageProps> = ({
           <input
             value={name}
             onChange={(event) => setName(event.target.value)}
-            className="bg-transparent text-[12.5px] font-semibold outline-none border-b border-transparent focus:border-white/25 min-w-[120px] max-w-[240px]"
+            readOnly={viewOnly}
+            aria-readonly={viewOnly}
+            className="bg-transparent text-[12.5px] font-semibold outline-none border-b border-transparent focus:border-white/25 min-w-[120px] max-w-[240px] read-only:focus:border-transparent"
           />
+          {viewOnly && (
+            <span className="rounded-full border border-[#6ea8fe]/30 bg-[#6ea8fe]/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-[#9cc4ff]">
+              View only
+            </span>
+          )}
           <span className="hidden sm:inline px-1.5 py-0.5 rounded text-[9.5px] font-medium bg-white/10 text-white/50">
             {describeSize(pageWidth, pageHeight)}
           </span>
@@ -1992,14 +2063,16 @@ export const EditorPage: React.FC<EditorPageProps> = ({
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={() => figmaRef.current?.click()}
-            className="hidden lg:inline-flex h-8 whitespace-nowrap px-2.5 rounded-md text-[11.5px] font-semibold text-white/75 hover:bg-white/10 items-center gap-1.5"
-            title="Import a Figma JSON export"
-          >
-            <Frame className="w-3.5 h-3.5" /> Import Figma
-          </button>
+          {!viewOnly && (
+            <button
+              type="button"
+              onClick={() => figmaRef.current?.click()}
+              className="hidden lg:inline-flex h-8 whitespace-nowrap px-2.5 rounded-md text-[11.5px] font-semibold text-white/75 hover:bg-white/10 items-center gap-1.5"
+              title="Import a Figma JSON export"
+            >
+              <Frame className="w-3.5 h-3.5" /> Import Figma
+            </button>
+          )}
           <button
             type="button"
             onClick={onOpenAssistant}
@@ -2007,9 +2080,12 @@ export const EditorPage: React.FC<EditorPageProps> = ({
           >
             <Sparkles className="w-3.5 h-3.5 text-[#B9A8FF]" /> Ask AI
           </button>
-          <button type="button" onClick={save} className="h-8 whitespace-nowrap px-3 rounded-md text-[11.5px] font-semibold text-white/80 hover:bg-white/10 hidden sm:inline-flex items-center">
-            {saved ? 'Saved' : 'Save'}
-          </button>
+          {!viewOnly && (
+            <button type="button" onClick={save} className="h-8 whitespace-nowrap px-3 rounded-md text-[11.5px] font-semibold text-white/80 hover:bg-white/10 hidden sm:inline-flex items-center">
+              {saved ? 'Saved' : 'Save'}
+            </button>
+          )}
+          {!viewOnly && (
           <div className="relative">
             <button
               type="button"
@@ -2050,24 +2126,42 @@ export const EditorPage: React.FC<EditorPageProps> = ({
               </>
             )}
           </div>
+          )}
 
-          <button
-            type="button"
-            onClick={() => setBuildOpen(true)}
-            className="h-8 whitespace-nowrap rounded-md px-3.5 text-[11.5px] font-semibold text-white"
-            style={{ backgroundImage: 'linear-gradient(135deg,#5E6AD2,#828FFF)' }}
-          >
-            Generate
-          </button>
-          <button
-            type="button"
-            onClick={openShare}
-            className="h-8 whitespace-nowrap rounded-md border border-white/20 px-3 text-[11.5px] font-semibold text-white/85 hover:bg-white/5"
-          >
-            Share
-          </button>
+          {!viewOnly && (
+            <>
+              <button
+                type="button"
+                onClick={() => setBuildOpen(true)}
+                className="h-8 whitespace-nowrap rounded-md px-3.5 text-[11.5px] font-semibold text-white"
+                style={{ backgroundImage: 'linear-gradient(135deg,#5E6AD2,#828FFF)' }}
+              >
+                Generate
+              </button>
+              <button
+                type="button"
+                onClick={openShare}
+                className="h-8 whitespace-nowrap rounded-md border border-white/20 px-3 text-[11.5px] font-semibold text-white/85 hover:bg-white/5"
+              >
+                Share
+              </button>
+            </>
+          )}
         </div>
       </header>
+
+      {viewOnly && (
+        <>
+          <div
+            className="fixed inset-x-0 bottom-0 top-12 z-[70] cursor-default"
+            aria-hidden="true"
+            onContextMenu={(event) => event.preventDefault()}
+          />
+          <div className="pointer-events-none fixed left-1/2 top-14 z-[71] -translate-x-1/2 rounded-full border border-[#6ea8fe]/30 bg-[#101113]/95 px-3 py-1.5 text-[10.5px] font-semibold text-[#9cc4ff] shadow-lg backdrop-blur">
+            View only · changes from the editor appear live
+          </div>
+        </>
+      )}
 
       <input
         ref={fileRef}

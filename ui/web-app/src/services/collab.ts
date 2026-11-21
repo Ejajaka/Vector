@@ -172,7 +172,7 @@ export class CollabSession {
     }
   }
 
-  setDocProvider(provider: () => { name: string; pages: CanvasPage[] }): void {
+  setDocProvider(provider: () => { name: string; pages: CanvasPage[] } | null): void {
     this.docProvider = provider;
   }
 

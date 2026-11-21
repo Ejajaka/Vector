@@ -8,6 +8,12 @@ interface SubscriptionRow {
 }
 
 /**
+ * Owner/testing accounts that keep Pro without a Razorpay subscription.
+ * Matched against the authenticated Supabase email, never user input.
+ */
+const COMPED_PRO_EMAILS = new Set(['sanjeev.vakalapudi@gmail.com']);
+
+/**
  * The browser plan is a cache. On every sign-in, compare it with the billing
  * table so a plan is never active just because localStorage says so.
  *
@@ -15,8 +21,15 @@ interface SubscriptionRow {
  * - No active subscription downgrades a stale Pro state to free.
  * - Network or RLS failures keep the local state (offline tolerance).
  */
-export async function reconcileEntitlements(userId: string): Promise<void> {
-  if (!supabase || !userId) return;
+export async function reconcileEntitlements(userId: string, email?: string | null): Promise<void> {
+  if (!userId) return;
+
+  if (email && COMPED_PRO_EMAILS.has(email.trim().toLowerCase())) {
+    if (readEntitlements().plan !== 'pro') setPlanState('pro', 'comped');
+    return;
+  }
+
+  if (!supabase) return;
 
   const { data, error } = await supabase
     .from('billing_subscriptions')

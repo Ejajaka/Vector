@@ -53,10 +53,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  // A plan is only real when the billing table confirms it.
+  // A plan is only real when the billing table confirms it, unless the
+  // signed-in email is an owner/testing account on the comp list.
   useEffect(() => {
     if (!user) return;
-    void reconcileEntitlements(user.id);
+    void reconcileEntitlements(user.id, user.email);
   }, [user]);
 
   const signIn = useCallback(async (email: string, password: string) => {
