@@ -202,6 +202,13 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onStartTour })
           <button type="button" onClick={onStartTour} className="v-btn v-btn-primary h-8 px-3 text-[12px]">
             <Play className="h-3.5 w-3.5" /> Start the tour
           </button>
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new Event('vector:start-guide'))}
+            className="v-btn h-8 px-3 text-[12px]"
+          >
+            <Sparkles className="h-3.5 w-3.5" /> Guided setup
+          </button>
           <button type="button" onClick={() => onNavigate('templates')} className="v-btn h-8 px-3 text-[12px]">
             Browse templates <ArrowRight className="h-3.5 w-3.5" />
           </button>

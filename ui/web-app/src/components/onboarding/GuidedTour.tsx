@@ -528,10 +528,7 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({
             {onOtherPage ? (
               <button
                 type="button"
-                onClick={() => {
-                  onNavigate(current.page);
-                  onStep(step + 1);
-                }}
+                onClick={() => onNavigate(current.page)}
                 className="inline-flex h-7 items-center gap-1 rounded-md px-2.5 text-[10.5px] font-semibold text-white"
                 style={{ backgroundColor: 'var(--v-accent)' }}
               >
