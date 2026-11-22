@@ -725,6 +725,9 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     [],
   );
   const [peers, setPeers] = useState<Peer[]>([]);
+  // Bumped after a remote apply so a local edit that landed during the apply
+  // still publishes its patch.
+  const [publishEpoch, setPublishEpoch] = useState(0);
   const [me, setMe] = useState<Peer | null>(null);
   const [invites, setInvites] = useState<Invite[]>(() => readInvites());
   const [shareOpen, setShareOpen] = useState(false);
@@ -872,6 +875,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
         setSelectedId(null);
         window.setTimeout(() => {
           applyingRemote.current = false;
+          setPublishEpoch((value) => value + 1);
         }, 60);
       },
       onPatch: (patch) => {
@@ -891,6 +895,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
         );
         window.setTimeout(() => {
           applyingRemote.current = false;
+          setPublishEpoch((value) => value + 1);
         }, 20);
       },
     });
@@ -942,6 +947,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
         sharedReady.current = true;
         window.setTimeout(() => {
           applyingRemote.current = false;
+          setPublishEpoch((value) => value + 1);
         }, 60);
       }
     });
@@ -1014,6 +1020,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
       setSelectedId(null);
       window.setTimeout(() => {
         applyingRemote.current = false;
+          setPublishEpoch((value) => value + 1);
       }, 80);
     }, 3000);
     return () => window.clearInterval(timer);
@@ -1047,6 +1054,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
         setActivePageId((current) => (merged.some((page) => page.id === current) ? current : merged[0]?.id || ''));
         window.setTimeout(() => {
           applyingRemote.current = false;
+          setPublishEpoch((value) => value + 1);
         }, 80);
       } finally {
         pollingDoc.current = false;
@@ -1058,35 +1066,20 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   // Broadcast local edits, but never echo a document that came from a peer,
   // and never publish the initial link snapshot before the owner sends.
   useEffect(() => {
-    const dbg = ((globalThis as unknown as { __vectorPatch?: Record<string, number> }).__vectorPatch ||= {
-      effect: 0, skipped: 0, unchanged: 0, sent: 0, lastSize: 0,
-    });
-    dbg.effect += 1;
-    if (viewOnly || applyingRemote.current) {
-      dbg.skipped += 1;
-      return;
-    }
-    if (sharedMode && bootPagesRef.current !== null && JSON.stringify(pages) === bootPagesRef.current) {
-      dbg.skipped += 1;
-      return;
-    }
+    if (viewOnly || applyingRemote.current) return;
+    if (sharedMode && bootPagesRef.current !== null && JSON.stringify(pages) === bootPagesRef.current) return;
     lastLocalEdit.current = Date.now();
     const patch = buildCanvasPatch(broadcastRef.current, { name, pages });
-    if (!patch) dbg.unchanged += 1;
-    else dbg.lastSize = JSON.stringify(patch).length;
     window.clearTimeout(publishTimer.current);
     publishTimer.current = window.setTimeout(() => {
       // Advance only when a patch actually goes out. If another edit arrives
       // first, its patch is computed from the last sent state, so nothing is
       // silently dropped.
       broadcastRef.current = { name, pages };
-      if (patch) {
-        dbg.sent += 1;
-        sessionRef.current?.publishPatch(patch);
-      }
+      if (patch) sessionRef.current?.publishPatch(patch);
     }, 160);
     return () => window.clearTimeout(publishTimer.current);
-  }, [name, pages, viewOnly, sharedMode]);
+  }, [name, pages, viewOnly, sharedMode, publishEpoch]);
 
   // A view-only guest may watch and pan through the document but must not
   // mutate it with keyboard shortcuts.
