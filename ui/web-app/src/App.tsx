@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useState } from 'react';
+﻿import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { ActiveTab, AnalysisResult } from './types/analysis.ts';
 import { ToastProvider } from './components/ui/Toast.tsx';
 import { ThemeProvider } from './context/ThemeContext.tsx';
@@ -147,6 +147,7 @@ function AppShell() {
   const [welcomeOpen, setWelcomeOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
   const [guideStep, setGuideStep] = useState(0);
+  const projectScrollRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
     const onOpenPricing = () => setPricingOpen(true);
     const onOpenHub = (event: Event) => {
@@ -451,6 +452,17 @@ function AppShell() {
     window.addEventListener('vector:start-guide', start);
     return () => window.removeEventListener('vector:start-guide', start);
   }, []);
+
+  // Entering a project (or coming back from the canvas / prompt mode) always
+  // starts at the top of the workspace. Base44 is far down the page and was
+  // pulling the viewport down when its frame loaded.
+  useEffect(() => {
+    if (activeTab !== 'project') return;
+    const frame = window.requestAnimationFrame(() => {
+      if (projectScrollRef.current) projectScrollRef.current.scrollTop = 0;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeTab, projectView, activeProject?.id]);
 
   const guidePage: GuidePage =
     activeTab === 'editor'
@@ -898,7 +910,7 @@ function AppShell() {
   if (activeTab === 'project' && activeProject) {
     return (
       <div className="flex h-screen flex-col overflow-hidden v-bg" data-app="true">
-        <main className="min-h-0 flex-1 overflow-y-auto p-2 sm:p-3">
+        <main ref={projectScrollRef} className="min-h-0 flex-1 overflow-y-auto p-2 sm:p-3">
           {projectView === 'prompt' ? (
             <PromptModePage
               key={`${activeProject.id}-${projectDocVersion}`}

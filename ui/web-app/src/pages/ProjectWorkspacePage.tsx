@@ -22,6 +22,8 @@ import {
   Image as ImageIcon,
   Layers,
   Loader2,
+  Maximize2,
+  Minimize2,
   Palette,
   PanelLeftClose,
   PanelLeftOpen,
@@ -443,6 +445,11 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   const [base44Copied, setBase44Copied] = useState(false);
   const [base44Key, setBase44Key] = useState(0);
   const [base44Loaded, setBase44Loaded] = useState(false);
+  const [base44Visible, setBase44Visible] = useState(false);
+  const [base44Fullscreen, setBase44Fullscreen] = useState(false);
+  const base44FrameRef = useRef<HTMLDivElement | null>(null);
+  const scrollSectionRef = useRef<HTMLElement | null>(null);
+  const base44ScrollTopRef = useRef(0);
   const [base44PageUrl, setBase44PageUrl] = useState(() => readBase44PageUrl(project.id));
   const [base44PageDraft, setBase44PageDraft] = useState(() => readBase44PageUrl(project.id));
   const [base44PageError, setBase44PageError] = useState('');
@@ -904,6 +911,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   };
 
   const reloadBase44 = () => {
+    rememberBase44Scroll();
     setBase44Loaded(false);
     setBase44Key((value) => value + 1);
   };
@@ -937,6 +945,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     }
     try {
       await doc.requestStorageAccessFor(origin);
+      rememberBase44Scroll();
       setBase44Loaded(false);
       setBase44Key((value) => value + 1);
       notificationService.push({
@@ -972,6 +981,70 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     };
   }, [project.id]);
 
+  // Returning from the canvas or prompt mode starts at the top of the project
+  // workspace, not wherever the Base44 frame happened to pull the page.
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      if (scrollSectionRef.current) scrollSectionRef.current.scrollTop = 0;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [project.id]);
+
+  const rememberBase44Scroll = () => {
+    base44ScrollTopRef.current = scrollSectionRef.current?.scrollTop ?? 0;
+  };
+
+  // The Base44 login page autofocuses its email field. A cross-origin frame
+  // doing that below the fold can scroll its parent, so pin the workspace back
+  // to where it was before the frame loaded.
+  const handleBase44Load = () => {
+    setBase44Loaded(true);
+    const restore = () => {
+      const section = scrollSectionRef.current;
+      if (section && Math.abs(section.scrollTop - base44ScrollTopRef.current) > 2) {
+        section.scrollTop = base44ScrollTopRef.current;
+      }
+      if (document.activeElement instanceof HTMLIFrameElement) {
+        document.activeElement.blur();
+      }
+    };
+    window.setTimeout(restore, 30);
+    window.setTimeout(restore, 250);
+  };
+
+  useEffect(() => {
+    if (!base44Fullscreen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setBase44Fullscreen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [base44Fullscreen]);
+
+  // Load Base44 only when the section is actually on screen. Its sign-in page
+  // autofocuses the email field, and a cross-origin frame loading below the
+  // fold was pulling the project page down to it.
+  useEffect(() => {
+    const node = base44FrameRef.current;
+    if (!node || base44Visible) return;
+    if (typeof IntersectionObserver === 'undefined') {
+      setBase44Visible(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          rememberBase44Scroll();
+          setBase44Visible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '80px' },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [base44Visible]);
+
   const applyBase44Page = () => {
     const next = base44PageDraft.trim();
     if (!/^https?:\/\//i.test(next)) {
@@ -982,6 +1055,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     setBase44PageUrl(saved);
     setBase44PageDraft(saved);
     setBase44PageError('');
+    rememberBase44Scroll();
     setBase44Loaded(false);
     setBase44Key((value) => value + 1);
   };
@@ -1377,7 +1451,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
 
         {/* Workspace */}
         <div className="relative flex min-h-0 min-w-0 flex-1">
-        <section className="v-scroll flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto pr-1">
+        <section ref={scrollSectionRef} className="v-scroll flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto pr-1">
           <div data-guide="mode-cards" className="grid gap-3 sm:grid-cols-2">
             <button
               type="button"
@@ -1446,7 +1520,14 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
           </div>
 
           {/* Base44 */}
-          <div data-guide="base44" className="flex flex-col rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)]">
+          <div
+            data-guide="base44"
+            className={
+              base44Fullscreen
+                ? 'fixed inset-0 z-[85] flex flex-col overflow-hidden bg-[var(--v-surface)] p-3'
+                : 'flex flex-col rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)]'
+            }
+          >
             <div className="flex flex-wrap items-center gap-2 border-b border-[var(--v-line)] px-3 py-2">
               <span className="grid h-7 w-7 place-items-center rounded-lg bg-[#7C5CFF]/10 text-[#7C5CFF]">
                 <Rocket className="h-3.5 w-3.5" />
@@ -1457,6 +1538,15 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                   Sign in or sign up with email and password inside the frame. Press Keep signed in once so Base44 survives closing Vector.
                 </p>
               </div>
+              <button
+                type="button"
+                onClick={() => setBase44Fullscreen((value) => !value)}
+                className="v-btn v-btn-ghost h-7 px-2 text-[9.5px]"
+                title={base44Fullscreen ? 'Exit full screen' : 'Expand the Base44 builder'}
+              >
+                {base44Fullscreen ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
+                {base44Fullscreen ? 'Exit full screen' : 'Full screen'}
+              </button>
               <button
                 type="button"
                 onClick={() => void keepBase44Session()}
@@ -1473,8 +1563,20 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
               </a>
             </div>
 
-            <div className="grid gap-3 p-3 lg:grid-cols-[minmax(220px,32%)_1fr]">
-              <div className="flex flex-col gap-2">
+            <div
+              className={
+                base44Fullscreen
+                  ? 'flex min-h-0 flex-1 gap-3 p-3'
+                  : 'grid gap-3 p-3 lg:grid-cols-[minmax(220px,32%)_1fr]'
+              }
+            >
+              <div
+                className={
+                  base44Fullscreen
+                    ? 'hidden w-[280px] shrink-0 flex-col gap-2 overflow-y-auto lg:flex'
+                    : 'flex flex-col gap-2'
+                }
+              >
                 <div className="rounded-xl border border-[var(--v-line)] bg-[var(--v-surface-2)] p-2.5">
                   <label htmlFor="base44-page-url" className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--v-muted)]">
                     Exact Base44 page
@@ -1562,8 +1664,33 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                 </p>
               </div>
 
-              <div className="relative flex h-[440px] flex-col overflow-hidden rounded-xl border border-[var(--v-line)] bg-[var(--v-surface-2)] lg:h-[560px]">
-                {!base44Loaded && (
+              <div
+                ref={base44FrameRef}
+                className={`relative flex flex-col overflow-hidden rounded-xl border border-[var(--v-line)] bg-[var(--v-surface-2)] ${
+                  base44Fullscreen ? 'h-full min-h-0 flex-1' : 'h-[440px] lg:h-[560px]'
+                }`}
+              >
+                {!base44Visible && (
+                  <div className="absolute inset-0 z-10 grid place-items-center bg-[var(--v-surface-2)] p-4">
+                    <div className="max-w-[260px] text-center">
+                      <Rocket className="mx-auto h-5 w-5 text-[#7C5CFF]" />
+                      <p className="mt-2 text-[10px] leading-relaxed text-[var(--v-muted)]">
+                        Base44 loads when you reach this section, so it can’t pull the page down while you work above.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          rememberBase44Scroll();
+                          setBase44Visible(true);
+                        }}
+                        className="v-btn v-btn-ghost mt-2 h-7 px-2.5 text-[9.5px]"
+                      >
+                        Load Base44
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {base44Visible && !base44Loaded && (
                   <div className="absolute inset-0 z-10 grid place-items-center bg-[var(--v-surface-2)]">
                     <div className="text-center">
                       <Loader2 className="mx-auto h-5 w-5 animate-spin text-[#7C5CFF]" />
@@ -1571,28 +1698,33 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                     </div>
                   </div>
                 )}
-                <iframe
-                  key={`${base44Key}:${base44PageUrl}`}
-                  src={base44PageUrl}
-                  title="Base44 builder"
-                  className="h-full w-full flex-1 border-0 bg-white"
-                  allow="clipboard-read; clipboard-write; storage-access"
-                  onLoad={() => setBase44Loaded(true)}
-                  onError={() => setBase44Loaded(true)}
-                />
+                {base44Visible && (
+                  <iframe
+                    key={`${base44Key}:${base44PageUrl}`}
+                    src={base44PageUrl}
+                    title="Base44 builder"
+                    loading="lazy"
+                    className="h-full w-full flex-1 border-0 bg-white"
+                    allow="clipboard-read; clipboard-write; storage-access"
+                    onLoad={handleBase44Load}
+                    onError={() => setBase44Loaded(true)}
+                  />
+                )}
                 {/* The frame is cross-origin, so the tour points at the field
                     area with a transparent hotspot instead of reading its DOM. */}
                 <div
                   data-guide="base44-email"
                   aria-hidden="true"
                   className="pointer-events-none absolute rounded-lg"
-                  style={{ left: '14%', right: '14%', top: '67%', height: '8%' }}
+                  style={{ left: '14%', right: '14%', top: '64.4%', height: '6.7%' }}
                 />
               </div>
             </div>
+            {!base44Fullscreen && (
             <p className="px-3 pb-2 text-[8.5px] leading-relaxed text-[var(--v-faint)]">
               Base44 keeps its own account. Embedded sessions can be cleared by browser privacy settings — press <b>Keep signed in</b> once, or use <b>Open in new tab</b>, which stays signed in.
             </p>
+            )}
           </div>
         </section>
 
