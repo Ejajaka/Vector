@@ -39,7 +39,7 @@ type Message =
   | { type: 'doc'; name: string; pages: CanvasPage[]; by: string };
 
 const PEER_COLOURS = ['#7C5CFF', '#0D99FF', '#A78BFA', '#FF7A59', '#FFC53D', '#E879F9', '#FF5C8A'];
-const STALE_MS = 12_000;
+const STALE_MS = 45_000;
 
 export function sharingMode(): 'cloud' | 'local' {
   return isSupabaseConfigured ? 'cloud' : 'local';
@@ -111,15 +111,18 @@ export class CollabSession {
       .on('broadcast', { event: 'msg' }, ({ payload }: { payload: Message }) => this.receive(payload))
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState() as Record<string, Array<{ peer?: Peer }>>;
-        const peers: Peer[] = [];
+        const next = new Map(this.peers);
         Object.values(state).forEach((entries) => {
           entries.forEach((entry) => {
             const peer = entry?.peer;
-            if (peer && peer.id !== this.me.id) peers.push({ ...peer, lastSeen: Date.now() });
+            if (peer && peer.id !== this.me.id) next.set(peer.id, { ...peer, lastSeen: Date.now() });
           });
         });
-        this.peers = new Map(peers.map((peer) => [peer.id, peer]));
+        this.peers = next;
         this.emit();
+      })
+      .on('presence', { event: 'leave' }, (payload: { key?: string }) => {
+        if (payload?.key && payload.key !== this.me.id && this.peers.delete(payload.key)) this.emit();
       })
       .subscribe((status: string) => {
         if (status === 'SUBSCRIBED') void channel.track({ peer: this.me, online_at: new Date().toISOString() });
@@ -182,6 +185,10 @@ export class CollabSession {
   }
 
   private prune(): void {
+    // Cloud presence is authoritative: Supabase emits a fresh sync on join,
+    // leave and heartbeat, so a browser throttling its timers in the
+    // background must not make a collaborator disappear.
+    if (this.cloud) return;
     const now = Date.now();
     let changed = false;
     this.peers.forEach((peer, id) => {
