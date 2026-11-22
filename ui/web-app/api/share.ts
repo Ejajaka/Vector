@@ -61,6 +61,45 @@ function mergeDocs(previous: any, incoming: any) {
   };
 }
 
+async function mergeAndSave(projectId: string, key: string, value: any) {
+  if (!client) throw new Error('Shared canvases are not configured on this deployment.');
+  // Two editors can save at the same time. Read-merge-write is retried against
+  // the row version, so a slower request cannot overwrite a newer canvas or
+  // drop its deletion tombstones.
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const { data: existing, error: readError } = await client
+      .from('project_memory')
+      .select('value, updated_at')
+      .eq('project_id', projectId)
+      .eq('key', key)
+      .maybeSingle();
+    if (readError) throw new Error(readError.message);
+
+    const merged = mergeDocs(existing?.value || null, value);
+    const now = new Date().toISOString();
+
+    if (existing) {
+      const { data, error } = await client
+        .from('project_memory')
+        .update({ value: merged, updated_at: now })
+        .eq('project_id', projectId)
+        .eq('key', key)
+        .eq('updated_at', existing.updated_at)
+        .select('value');
+      if (error) throw new Error(error.message);
+      if (data && data.length) return merged;
+      continue;
+    }
+
+    const { error: insertError } = await client
+      .from('project_memory')
+      .insert({ project_id: projectId, key, value: merged, updated_at: now });
+    if (!insertError) return merged;
+    // Another request inserted the row first; retry as an update.
+  }
+  throw new Error('Could not save the shared canvas. Please try again.');
+}
+
 export default async function handler(req: any, res: any) {
   res.setHeader('Cache-Control', 'no-store, max-age=0');
   if (!client) {
@@ -105,23 +144,7 @@ export default async function handler(req: any, res: any) {
         deletedPages: Array.isArray(body.deletedPages) ? body.deletedPages.map(String) : [],
         updatedAt: new Date().toISOString(),
       };
-      const { data: existing } = await client
-        .from('project_memory')
-        .select('value')
-        .eq('project_id', projectId)
-        .eq('key', memoryKey(room))
-        .maybeSingle();
-      const merged = mergeDocs(existing?.value || null, value);
-      const { error } = await client.from('project_memory').upsert(
-        {
-          project_id: projectId,
-          key: memoryKey(room),
-          value: merged,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'project_id,key' },
-      );
-      if (error) throw new Error(error.message);
+      const merged = await mergeAndSave(projectId, memoryKey(room), value);
       res.status(200).json({ ok: true, doc: merged });
       return;
     }
