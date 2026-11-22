@@ -1058,17 +1058,32 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   // Broadcast local edits, but never echo a document that came from a peer,
   // and never publish the initial link snapshot before the owner sends.
   useEffect(() => {
-    if (viewOnly || applyingRemote.current) return;
-    if (sharedMode && bootPagesRef.current !== null && JSON.stringify(pages) === bootPagesRef.current) return;
+    const dbg = ((globalThis as unknown as { __vectorPatch?: Record<string, number> }).__vectorPatch ||= {
+      effect: 0, skipped: 0, unchanged: 0, sent: 0, lastSize: 0,
+    });
+    dbg.effect += 1;
+    if (viewOnly || applyingRemote.current) {
+      dbg.skipped += 1;
+      return;
+    }
+    if (sharedMode && bootPagesRef.current !== null && JSON.stringify(pages) === bootPagesRef.current) {
+      dbg.skipped += 1;
+      return;
+    }
     lastLocalEdit.current = Date.now();
     const patch = buildCanvasPatch(broadcastRef.current, { name, pages });
+    if (!patch) dbg.unchanged += 1;
+    else dbg.lastSize = JSON.stringify(patch).length;
     window.clearTimeout(publishTimer.current);
     publishTimer.current = window.setTimeout(() => {
       // Advance only when a patch actually goes out. If another edit arrives
       // first, its patch is computed from the last sent state, so nothing is
       // silently dropped.
       broadcastRef.current = { name, pages };
-      if (patch) sessionRef.current?.publishPatch(patch);
+      if (patch) {
+        dbg.sent += 1;
+        sessionRef.current?.publishPatch(patch);
+      }
     }, 160);
     return () => window.clearTimeout(publishTimer.current);
   }, [name, pages, viewOnly, sharedMode]);
