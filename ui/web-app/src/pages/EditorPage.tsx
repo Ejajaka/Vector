@@ -697,6 +697,11 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     (user?.user_metadata?.display_name as string | undefined) ||
     user?.email?.split('@')[0] ||
     'You';
+  // The session must not restart when the profile finishes loading: recreating
+  // the Realtime channel mid-join is what made collaborators vanish. Keep the
+  // name in a ref and update presence separately.
+  const displayNameRef = useRef(displayName);
+  displayNameRef.current = displayName;
   const [room] = useState(() => roomFromUrl() || (projectId ? projectRoom(projectId) : currentRoom()));
   const sharedMode = useMemo(() => {
     if (typeof window === 'undefined') return false;
@@ -839,7 +844,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
 
   useEffect(() => {
     if (!projectId && !sharedMode) return;
-    const session = new CollabSession(room, makePeer(displayName), {
+    const session = new CollabSession(room, makePeer(displayNameRef.current), {
       onPeers: setPeers,
       onDoc: (doc) => {
         applyingRemote.current = true;
@@ -866,7 +871,15 @@ export const EditorPage: React.FC<EditorPageProps> = ({
       session.close();
       sessionRef.current = null;
     };
-  }, [room, displayName, sharedMode, projectId]);
+  }, [room, sharedMode, projectId]);
+
+  // Keep the peer label in sync without tearing down the room session.
+  useEffect(() => {
+    const session = sessionRef.current;
+    if (!session) return;
+    session.presence({ name: displayName });
+    setMe((current) => (current ? { ...current, name: displayName } : current));
+  }, [displayName]);
 
   // Shared rooms persist to Supabase, so edits survive after everyone closes the tab.
   useEffect(() => {

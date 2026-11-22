@@ -14,6 +14,7 @@
 
 import type { CanvasPage } from '../data/canvas.ts';
 import { isSupabaseConfigured, supabase } from './supabase/client.ts';
+import { pingPresence } from './presenceApi.ts';
 
 export interface Peer {
   id: string;
@@ -51,7 +52,21 @@ export function randomColour(seed: string): string {
 }
 
 export function makePeer(name: string): Peer {
-  const id = `peer_${Math.random().toString(36).slice(2, 10)}`;
+  // A tab keeps one identity even if the editor remounts (for example when the
+  // signed-in profile finishes loading). Realtime presence and the server-side
+  // heartbeat then agree on who is in the room.
+  let id = '';
+  try {
+    const key = 'vector_peer_id';
+    let saved = sessionStorage.getItem(key);
+    if (!saved || !saved.startsWith('peer_')) {
+      saved = `peer_${Math.random().toString(36).slice(2, 10)}`;
+      sessionStorage.setItem(key, saved);
+    }
+    id = saved;
+  } catch {
+    id = `peer_${Math.random().toString(36).slice(2, 10)}`;
+  }
   return {
     id,
     name: name || 'Guest',
@@ -67,6 +82,9 @@ export class CollabSession {
   private peers = new Map<string, Peer>();
   private heartbeat: number | null = null;
   private sweep: number | null = null;
+  private presenceTimer: number | null = null;
+  private serverPeers = new Map<string, Peer>();
+  private serverPresenceAt = 0;
   private me: Peer;
   private room: string;
   private handlers: CollabHandlers;
@@ -96,6 +114,49 @@ export class CollabSession {
     }, 3000);
 
     this.sweep = window.setInterval(() => this.prune(), 4000);
+
+    if (this.cloud) {
+      this.pingServerPresence();
+      this.presenceTimer = window.setInterval(() => this.pingServerPresence(), 5000);
+    }
+  }
+
+  /**
+   * Realtime presence can drop a collaborator for a few seconds while a socket
+   * reconnects. The room's server-side heartbeat is authoritative, so show the
+   * people who pinged within the last few seconds.
+   */
+  private async pingServerPresence(): Promise<void> {
+    const result = await pingPresence(this.room, this.me);
+    if (!result.ok) {
+      if (Date.now() - this.serverPresenceAt > 30_000) {
+        this.serverPeers = new Map();
+        this.serverPresenceAt = 0;
+        this.emit();
+      }
+      return;
+    }
+    const next = new Map<string, Peer>();
+    const now = Date.now();
+    result.peers.forEach((peer) => {
+      if (!peer?.id || peer.id === this.me.id) return;
+      next.set(peer.id, { ...peer, lastSeen: now });
+    });
+    this.serverPeers = next;
+    this.serverPresenceAt = now;
+    this.emit();
+  }
+
+  private syncRealtimePresence(): void {
+    if (!this.cloud) return;
+    const state = this.cloud.presenceState() as Record<string, Array<{ peer?: Peer }>>;
+    Object.values(state).forEach((entries) => {
+      entries.forEach((entry) => {
+        const peer = entry?.peer;
+        if (peer && peer.id !== this.me.id) this.peers.set(peer.id, { ...peer, lastSeen: Date.now() });
+      });
+    });
+    this.emit();
   }
 
   private connectCloud(): void {
@@ -109,23 +170,13 @@ export class CollabSession {
 
     channel
       .on('broadcast', { event: 'msg' }, ({ payload }: { payload: Message }) => this.receive(payload))
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState() as Record<string, Array<{ peer?: Peer }>>;
-        const next = new Map(this.peers);
-        Object.values(state).forEach((entries) => {
-          entries.forEach((entry) => {
-            const peer = entry?.peer;
-            if (peer && peer.id !== this.me.id) next.set(peer.id, { ...peer, lastSeen: Date.now() });
-          });
-        });
-        this.peers = next;
-        this.emit();
-      })
-      .on('presence', { event: 'leave' }, (payload: { key?: string }) => {
-        if (payload?.key && payload.key !== this.me.id && this.peers.delete(payload.key)) this.emit();
-      })
+      .on('presence', { event: 'sync' }, () => this.syncRealtimePresence())
+      .on('presence', { event: 'join' }, () => this.syncRealtimePresence())
       .subscribe((status: string) => {
-        if (status === 'SUBSCRIBED') void channel.track({ peer: this.me, online_at: new Date().toISOString() });
+        if (status === 'SUBSCRIBED') {
+          void channel.track({ peer: this.me, online_at: new Date().toISOString() });
+          this.pingServerPresence();
+        }
       });
 
     this.cloud = channel;
@@ -201,13 +252,18 @@ export class CollabSession {
   }
 
   private emit(): void {
-    this.handlers.onPeers(Array.from(this.peers.values()).map((peer) => ({ ...peer })));
+    // The server heartbeat is authoritative while it is fresh: a collaborator
+    // stays visible for as long as their browser keeps pinging.
+    const serverFresh = this.serverPresenceAt > 0 && Date.now() - this.serverPresenceAt < 15_000;
+    const source = serverFresh ? this.serverPeers : this.peers;
+    this.handlers.onPeers(Array.from(source.values()).map((peer) => ({ ...peer })));
   }
 
   presence(patch: Partial<Peer>): void {
     this.me = { ...this.me, ...patch, lastSeen: Date.now() };
     this.post({ type: 'presence', peer: this.me });
     this.cloud?.track({ peer: this.me, online_at: new Date().toISOString() });
+    if (this.cloud) void this.pingServerPresence();
   }
 
   publish(doc: { name: string; pages: CanvasPage[] }): void {
@@ -222,6 +278,7 @@ export class CollabSession {
     this.post({ type: 'bye', id: this.me.id });
     if (this.heartbeat) window.clearInterval(this.heartbeat);
     if (this.sweep) window.clearInterval(this.sweep);
+    if (this.presenceTimer) window.clearInterval(this.presenceTimer);
     this.channel?.close();
     if (this.cloud && supabase) void supabase.removeChannel(this.cloud);
   }

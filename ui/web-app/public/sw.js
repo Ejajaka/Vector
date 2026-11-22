@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Vector offline shell.
  *
  * The wireframe engine itself is pure local JavaScript. This service worker
@@ -9,7 +9,7 @@
  * assets never change, so cache-first is safe for them. The optional local
  * BERT model is cached on first use and then available offline as well.
  */
-const CACHE = 'vector-shell-v24';
+const CACHE = 'vector-shell-v25';
 
 /**
  * Static assets are stored without transport headers:
