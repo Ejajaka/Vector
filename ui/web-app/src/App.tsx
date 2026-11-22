@@ -44,7 +44,7 @@ import { PricingDialog } from './components/pricing/PricingDialog.tsx';
 import { PlanHubDialog, type PlanHubTab } from './components/pricing/PlanHubDialog.tsx';
 import { getAdvisorContext, setAdvisorContext } from './services/aiAdvisor.ts';
 import type { TemplateDefinition } from './data/templates.ts';
-import { canCreateProject, isPaid, readEntitlements, type PlanCode } from './services/entitlements.ts';
+import { canCreateProject, readEntitlements, type PlanCode } from './services/entitlements.ts';
 import { notificationService } from './services/notifications.ts';
 
 const PUBLIC_TABS: ActiveTab[] = ['about', 'privacy', 'pricing', 'learn', 'manual', 'terms', 'contact'];
@@ -337,16 +337,12 @@ function AppShell() {
     if (isShareLink && !signedIn) setShowAuth(true);
     const shareLink = signedIn && isShareLink;
     if (shareLink && shareProject) {
-      if (!isPaid(readEntitlements())) {
-        openPricing();
-      } else {
-        setEditorProject({
-          id: shareProject,
-          name: params.get('name') || 'Shared project',
-        });
-        setEditorOrigin('project');
-        next = 'editor';
-      }
+      setEditorProject({
+        id: shareProject,
+        name: params.get('name') || 'Shared project',
+      });
+      setEditorOrigin('project');
+      next = 'editor';
     } else {
       try {
         const saved = sessionStorage.getItem(tabSessionKey(user?.id));

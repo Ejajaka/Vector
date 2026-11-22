@@ -9,13 +9,40 @@ export interface SharedDoc {
 }
 
 /**
- * Shared project documents live in Supabase so a collaborator's edits are
- * still there when the project holder opens the project later.
- *
- * The room id is the capability in the share link. RLS allows authenticated
- * users to read/write the row; the app additionally requires Pro before it
- * opens a shared room.
+ * A share link can carry the canvas snapshot itself. This keeps the recipient
+ * on the same page as the sender even when the optional shared-doc table is
+ * not deployed or the room has not been seeded yet.
  */
+export function encodeSharedCanvas(doc: SharedDoc): string {
+  const json = JSON.stringify({ name: doc.name, pages: doc.pages, ownerId: doc.ownerId || null, projectId: doc.projectId || null });
+  const bytes = new TextEncoder().encode(json);
+  let binary = '';
+  const chunk = 0x8000;
+  for (let index = 0; index < bytes.length; index += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunk));
+  }
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+export function decodeSharedCanvas(value: string | null): SharedDoc | null {
+  if (!value) return null;
+  try {
+    const padded = value.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (value.length % 4)) % 4);
+    const binary = atob(padded);
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+    const parsed = JSON.parse(new TextDecoder().decode(bytes)) as Partial<SharedDoc>;
+    if (!Array.isArray(parsed.pages) || !parsed.pages.length) return null;
+    return {
+      name: String(parsed.name || 'Shared screen'),
+      pages: parsed.pages as CanvasPage[],
+      ownerId: parsed.ownerId || null,
+      projectId: parsed.projectId || null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function loadSharedDoc(room: string): Promise<SharedDoc | null> {
   if (!isSupabaseConfigured || !supabase || !room) return null;
   const { data, error } = await supabase

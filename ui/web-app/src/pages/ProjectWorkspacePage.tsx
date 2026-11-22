@@ -71,7 +71,7 @@ import { listAcceptanceCriteria } from '../services/requirements/acceptanceRepos
 import { listRequirementDocuments, listRequirements } from '../services/documents/requirementDocuments.ts';
 import type { AcceptanceCriterion, RequirementDocument, RequirementRecord } from '../types/requirements.ts';
 import { currentRoom, projectRoom, shareLink } from '../services/collab.ts';
-import { loadSharedDoc, saveSharedDoc } from '../services/sharedDocs.ts';
+import { loadSharedDoc, saveSharedDoc, encodeSharedCanvas } from '../services/sharedDocs.ts';
 import { isPaid, readEntitlements } from '../services/entitlements.ts';
 import type { ActiveTab } from '../types/analysis.ts';
 import { useAuth } from '../context/AuthContext.tsx';
@@ -611,8 +611,17 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     url.searchParams.set('name', project.name);
     url.searchParams.set('share', '1');
     if (user?.id) url.searchParams.set('owner', user.id);
+    if (doc?.pages.length) {
+      const payload = encodeSharedCanvas({
+        name: doc.name || project.name,
+        pages: doc.pages,
+        ownerId: user?.id || null,
+        projectId: project.id,
+      });
+      if (payload.length < 1_500_000) url.searchParams.set('canvas', payload);
+    }
     return url.toString();
-  }, [collabRoom, project.id, project.name, user?.id]);
+  }, [collabRoom, doc, project.id, project.name, user?.id]);
 
   const sourcePages = useMemo(() => {
     if (activeVersion?.source === 'canvas' && doc) {
@@ -775,17 +784,19 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   };
 
   const copyShare = async () => {
-    // Seed the room with the project holder's canvas only when the room has no
-    // document yet: never overwrite a collaborator's newer work.
+    // Always publish the current canvas when the owner copies a share link,
+    // so the recipient sees the same state rather than an older snapshot.
     if (doc && doc.pages.length) {
-      void loadSharedDoc(collabRoom).then((existing) => {
-        if (existing) return;
-        void saveSharedDoc(collabRoom, {
-          name: doc.name || project.name,
-          pages: doc.pages,
-          ownerId: user?.id || null,
-          projectId: project.id,
-        });
+      try {
+        localStorage.setItem(`vector_project_share_room_${project.id}`, collabRoom);
+      } catch {
+        // ignore
+      }
+      void saveSharedDoc(collabRoom, {
+        name: doc.name || project.name,
+        pages: doc.pages,
+        ownerId: user?.id || null,
+        projectId: project.id,
       });
     }
     try {
@@ -796,6 +807,25 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
       // ignore
     }
   };
+
+  useEffect(() => {
+    let room = '';
+    try {
+      room = localStorage.getItem(`vector_project_share_room_${project.id}`) || '';
+    } catch {
+      room = '';
+    }
+    if (!room || !doc?.pages.length) return;
+    const timer = window.setTimeout(() => {
+      void saveSharedDoc(room, {
+        name: doc.name || project.name,
+        pages: doc.pages,
+        ownerId: user?.id || null,
+        projectId: project.id,
+      });
+    }, 900);
+    return () => window.clearTimeout(timer);
+  }, [doc, project.id, project.name, user?.id]);
 
   const zipProject = async () => {
     setZipBusy(true);
@@ -1750,7 +1780,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                 <p className="v-eyebrow">Share</p>
                 <h2 className="mt-0.5 text-[17px] font-semibold text-[var(--v-ink)]">Share this project</h2>
                 <p className="mt-1 text-[10px] leading-relaxed text-[var(--v-muted)]">
-                  Only Pro members can open this room. They sign in, then edit the same canvas live with you. Changes are saved to your project.
+                  This link includes the current canvas snapshot. Recipients sign in and see the same state; Pro is not required to open it.
                 </p>
               </div>
               <button type="button" onClick={() => setShareOpen(false)} className="v-icon-btn" aria-label="Close share">

@@ -101,7 +101,7 @@ import {
   type Peer,
 } from '../services/collab.ts';
 import { ShareDialog } from '../components/collab/ShareDialog.tsx';
-import { loadSharedDoc, saveSharedDoc } from '../services/sharedDocs.ts';
+import { loadSharedDoc, saveSharedDoc, decodeSharedCanvas } from '../services/sharedDocs.ts';
 import { PagePickerModal } from '../components/projects/PagePickerModal.tsx';
 import { ConnectDialog } from '../components/generators/ConnectDialog.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
@@ -587,7 +587,14 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     }
   };
 
-  const restored = fresh ? null : loadProjectDoc();
+  const urlShareDoc = (() => {
+    if (typeof window === 'undefined') return null;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('share') !== '1') return null;
+    return decodeSharedCanvas(params.get('canvas'));
+  })();
+
+  const restored = fresh ? null : urlShareDoc || loadProjectDoc();
   const draft = fresh ? null : loadDraft();
 
   const [name, setName] = useState(
@@ -851,6 +858,10 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   // Shared rooms persist to Supabase, so edits survive after everyone closes the tab.
   useEffect(() => {
     if (!sharedMode) return;
+    if (urlShareDoc) {
+      sharedReady.current = true;
+      return;
+    }
     let cancelled = false;
     void loadSharedDoc(room).then((doc) => {
       if (cancelled) return;
@@ -860,11 +871,11 @@ export const EditorPage: React.FC<EditorPageProps> = ({
         setPages(doc.pages);
         setActivePageId(doc.pages[0]?.id || '');
         setSelectedId(null);
+        sharedReady.current = true;
         window.setTimeout(() => {
           applyingRemote.current = false;
         }, 60);
       }
-      sharedReady.current = true;
     });
     return () => {
       cancelled = true;
@@ -884,11 +895,33 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     return () => window.clearTimeout(timer);
   }, [name, pages, room, sharedMode, viewOnly, sharedOwner, sharedProject, projectId]);
 
+  // When a project has already been shared, keep its shared canvas in sync
+  // while the owner edits normally (without joining the room as a guest).
+  useEffect(() => {
+    if (!projectId || sharedMode) return;
+    let roomId = '';
+    try {
+      roomId = localStorage.getItem(`vector_project_share_room_${projectId}`) || '';
+    } catch {
+      roomId = '';
+    }
+    if (!roomId) return;
+    const timer = window.setTimeout(() => {
+      void saveSharedDoc(roomId, {
+        name,
+        pages,
+        ownerId: user?.id || null,
+        projectId,
+      });
+    }, 900);
+    return () => window.clearTimeout(timer);
+  }, [name, pages, projectId, sharedMode, user?.id]);
+
   // Supabase Realtime can be slow to connect on some networks. Poll the room as
   // a quiet fallback so collaborators still see each other's work within a few
   // seconds, and the holder's copy is the same document the server stores.
   useEffect(() => {
-    if (!sharedMode) return;
+    if (!sharedMode || urlShareDoc) return;
     const timer = window.setInterval(async () => {
       if (pollingDoc.current || applyingRemote.current) return;
       if (Date.now() - lastLocalEdit.current < 2600) return;
