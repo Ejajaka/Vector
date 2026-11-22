@@ -4,7 +4,7 @@ const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const client = url && serviceKey ? createClient(url, serviceKey, { auth: { persistSession: false } }) : null;
 
-const PRESENCE_TTL_MS = 20_000;
+const PRESENCE_TTL_MS = 25_000;
 const MAX_NAME = 60;
 
 function projectFromRoom(room: string): string | null {
