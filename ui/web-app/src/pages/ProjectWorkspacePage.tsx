@@ -925,10 +925,13 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
       requestStorageAccessFor?: (targetOrigin: string) => Promise<void>;
     };
     if (!origin || typeof doc.requestStorageAccessFor !== 'function') {
+      // The browser cannot grant the frame a persistent third-party session.
+      // A first-party tab can, so make that the one-click fallback.
+      window.open(base44PageUrl, '_blank', 'noopener,noreferrer');
       notificationService.push({
         kind: 'system',
-        title: 'Use Base44 in a new tab',
-        body: 'This browser cannot keep an embedded third-party session. Open Base44 in a new tab once and it will stay signed in there.',
+        title: 'Opening Base44 in a new tab',
+        body: 'This browser limits embedded sessions. Sign in once in the new tab and Base44 will stay signed in there.',
       });
       return;
     }
@@ -942,10 +945,11 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
         body: 'Base44 can now keep you signed in after you close Vector.',
       });
     } catch {
+      window.open(base44PageUrl, '_blank', 'noopener,noreferrer');
       notificationService.push({
         kind: 'system',
-        title: 'Could not save the Base44 session',
-        body: 'Open Base44 in a new tab once. The new tab has its own first-party session and stays signed in.',
+        title: 'Opening Base44 in a new tab',
+        body: 'The browser did not grant the embedded session. Sign in once in the new tab and Base44 will stay signed in there.',
       });
     }
   };
@@ -1572,7 +1576,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                   src={base44PageUrl}
                   title="Base44 builder"
                   className="h-full w-full flex-1 border-0 bg-white"
-                  allow="clipboard-read; clipboard-write"
+                  allow="clipboard-read; clipboard-write; storage-access"
                   onLoad={() => setBase44Loaded(true)}
                   onError={() => setBase44Loaded(true)}
                 />
