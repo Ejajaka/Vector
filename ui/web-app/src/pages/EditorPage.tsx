@@ -907,17 +907,11 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     return () => window.clearTimeout(timer);
   }, [name, pages, room, sharedMode, viewOnly, sharedOwner, sharedProject, projectId]);
 
-  // When a project has already been shared, keep its shared canvas in sync
-  // while the owner edits normally (without joining the room as a guest).
+  // Keep every project canvas in the shared room so a link recipient can load
+  // the current state even when the owner has not just copied a fresh link.
   useEffect(() => {
     if (!projectId || sharedMode) return;
-    let roomId = '';
-    try {
-      roomId = localStorage.getItem(`vector_project_share_room_${projectId}`) || '';
-    } catch {
-      roomId = '';
-    }
-    if (!roomId) return;
+    const roomId = projectRoom(projectId);
     const timer = window.setTimeout(() => {
       void saveSharedDoc(roomId, {
         name,
