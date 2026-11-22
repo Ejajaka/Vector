@@ -731,6 +731,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   const applyingRemote = useRef(false);
   const publishTimer = useRef<number | undefined>(undefined);
   const interactedRef = useRef(false);
+  const receivedRemoteRef = useRef(false);
   const lastCursor = useRef(0);
   const dragRef = useRef<{
     id: string;
@@ -837,6 +838,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
       onDoc: (doc) => {
         applyingRemote.current = true;
         sharedReady.current = true;
+        receivedRemoteRef.current = true;
         setName(doc.name);
         setPages(doc.pages);
         setActivePageId(doc.pages[0]?.id || '');
@@ -846,9 +848,11 @@ export const EditorPage: React.FC<EditorPageProps> = ({
         }, 60);
       },
     });
-    session.setDocProvider(() =>
-      sharedMode && !sharedReady.current ? null : docRef.current,
-    );
+    session.setDocProvider(() => {
+      if (sharedMode && !sharedReady.current) return null;
+      if (sharedMode && !receivedRemoteRef.current && !interactedRef.current) return null;
+      return docRef.current;
+    });
     sessionRef.current = session;
     setMe(session.self);
     return () => {
