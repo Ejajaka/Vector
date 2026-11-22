@@ -102,6 +102,7 @@ import {
 } from '../services/collab.ts';
 import { ShareDialog } from '../components/collab/ShareDialog.tsx';
 import { loadSharedDoc, saveSharedDoc, decodeSharedCanvas } from '../services/sharedDocs.ts';
+import { mergeCanvasPages } from '../services/canvasMerge.ts';
 import { PagePickerModal } from '../components/projects/PagePickerModal.tsx';
 import { ConnectDialog } from '../components/generators/ConnectDialog.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
@@ -843,9 +844,10 @@ export const EditorPage: React.FC<EditorPageProps> = ({
       onDoc: (doc) => {
         applyingRemote.current = true;
         sharedReady.current = true;
+        const merged = mergeCanvasPages(docRef.current.pages, doc.pages);
         setName(doc.name);
-        setPages(doc.pages);
-        setActivePageId(doc.pages[0]?.id || '');
+        setPages(merged);
+        setActivePageId((current) => (merged.some((page) => page.id === current) ? current : merged[0]?.id || ''));
         setSelectedId(null);
         window.setTimeout(() => {
           applyingRemote.current = false;
@@ -878,9 +880,10 @@ export const EditorPage: React.FC<EditorPageProps> = ({
       if (cancelled) return;
       if (doc) {
         applyingRemote.current = true;
+        const merged = mergeCanvasPages(docRef.current.pages, doc.pages);
         setName(doc.name);
-        setPages(doc.pages);
-        setActivePageId(doc.pages[0]?.id || '');
+        setPages(merged);
+        setActivePageId((current) => (merged.some((page) => page.id === current) ? current : merged[0]?.id || ''));
         setSelectedId(null);
         sharedReady.current = true;
         window.setTimeout(() => {
@@ -935,9 +938,10 @@ export const EditorPage: React.FC<EditorPageProps> = ({
       const current = docRef.current;
       if (remote.name === current.name && JSON.stringify(remote.pages) === JSON.stringify(current.pages)) return;
       applyingRemote.current = true;
+      const merged = mergeCanvasPages(docRef.current.pages, remote.pages);
       setName(remote.name);
-      setPages(remote.pages);
-      setActivePageId(remote.pages[0]?.id || '');
+      setPages(merged);
+      setActivePageId((current) => (merged.some((page) => page.id === current) ? current : merged[0]?.id || ''));
       setSelectedId(null);
       window.setTimeout(() => {
         applyingRemote.current = false;
@@ -961,9 +965,10 @@ export const EditorPage: React.FC<EditorPageProps> = ({
         const current = docRef.current;
         if (doc.name === current.name && JSON.stringify(doc.pages) === JSON.stringify(current.pages)) return;
         applyingRemote.current = true;
+        const merged = mergeCanvasPages(docRef.current.pages, doc.pages);
         setName(doc.name);
-        setPages(doc.pages);
-        setActivePageId(doc.pages[0]?.id || '');
+        setPages(merged);
+        setActivePageId((current) => (merged.some((page) => page.id === current) ? current : merged[0]?.id || ''));
         window.setTimeout(() => {
           applyingRemote.current = false;
         }, 80);
