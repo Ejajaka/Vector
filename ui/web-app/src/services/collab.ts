@@ -168,7 +168,6 @@ export class CollabSession {
     }
 
     if (message.type === 'doc') {
-      (globalThis as any).__vectorCollabReceived = { room: this.room, by: message.by, pages: message.pages?.length || 0, at: Date.now() };
       this.handlers.onDoc(message);
     }
   }
@@ -205,7 +204,6 @@ export class CollabSession {
   }
 
   publish(doc: { name: string; pages: CanvasPage[] }): void {
-    (globalThis as any).__vectorCollabSent = { room: this.room, pages: doc.pages?.length || 0, at: Date.now() };
     this.post({ type: 'doc', ...doc, by: this.me.id });
   }
 

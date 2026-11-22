@@ -980,13 +980,6 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     if (viewOnly || applyingRemote.current) return;
     if (sharedMode && bootPagesRef.current !== null && JSON.stringify(pages) === bootPagesRef.current) return;
     lastLocalEdit.current = Date.now();
-    (window as any).__vectorPublishState = {
-      room,
-      sharedMode,
-      session: Boolean(sessionRef.current),
-      items: pages.reduce((sum, page) => sum + page.items.length, 0),
-      bootEqual: bootPagesRef.current !== null && JSON.stringify(pages) === bootPagesRef.current,
-    };
     window.clearTimeout(publishTimer.current);
     publishTimer.current = window.setTimeout(() => sessionRef.current?.publish({ name, pages }), 160);
     return () => window.clearTimeout(publishTimer.current);
