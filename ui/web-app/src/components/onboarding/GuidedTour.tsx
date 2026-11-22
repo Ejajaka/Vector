@@ -396,13 +396,6 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({
     return () => window.clearInterval(timer);
   }, [open, step, current.advanceOnSelector, current.waitForSetup, setupOpen]);
 
-  // If the user navigates on their own, follow them to the matching step.
-  useEffect(() => {
-    if (!open || current.page === page) return;
-    const upcoming = GUIDE_STEPS[step + 1];
-    if (upcoming && upcoming.page === page) onStep(step + 1);
-  }, [open, page, step, current.page, onStep]);
-
   // Keyboard control.
   useEffect(() => {
     if (!open) return;
@@ -535,7 +528,10 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({
             {onOtherPage ? (
               <button
                 type="button"
-                onClick={() => onNavigate(current.page)}
+                onClick={() => {
+                  onNavigate(current.page);
+                  onStep(step + 1);
+                }}
                 className="inline-flex h-7 items-center gap-1 rounded-md px-2.5 text-[10.5px] font-semibold text-white"
                 style={{ backgroundColor: 'var(--v-accent)' }}
               >
