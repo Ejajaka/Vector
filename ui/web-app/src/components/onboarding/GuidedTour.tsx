@@ -176,10 +176,10 @@ export const GUIDE_STEPS: GuideStep[] = [
     id: 'base44',
     page: 'project',
     title: 'Build it in Base44',
-    body: 'Copy the prompt, then sign in or sign up with your email and password inside the Base44 frame. Paste the prompt and build the real app.',
-    hint: 'If the frame stays blank, use “Open in new tab” — it loads the same page.',
-    anchor: '[data-guide="base44"]',
-    placement: 'top',
+    body: 'Type your email in the box (or continue with Google, Apple or GitHub) and sign in. New to Base44? Choose Sign up under the box. Then paste your prompt and build the real app.',
+    hint: 'Press Keep signed in once so Base44 stays logged in after you close Vector. If the frame stays blank, use "Open in new tab" — it loads the same page.',
+    anchor: '[data-guide="base44-email"]',
+    placement: 'left',
   },
 ];
 

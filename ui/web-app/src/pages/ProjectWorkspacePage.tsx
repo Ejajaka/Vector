@@ -32,6 +32,7 @@ import {
   Search,
   Send,
   Share2,
+  ShieldCheck,
   Sparkles,
   Trash2,
   Upload,
@@ -73,6 +74,7 @@ import type { AcceptanceCriterion, RequirementDocument, RequirementRecord } from
 import { currentRoom, projectRoom, shareLink } from '../services/collab.ts';
 import { loadSharedDoc, saveSharedDoc, encodeSharedCanvas } from '../services/sharedDocs.ts';
 import { isPaid, readEntitlements } from '../services/entitlements.ts';
+import { notificationService } from '../services/notifications.ts';
 import type { ActiveTab } from '../types/analysis.ts';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useSearchAutocomplete } from '../hooks/useSearchAutocomplete.ts';
@@ -906,6 +908,48 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     setBase44Key((value) => value + 1);
   };
 
+  /**
+   * Embedded Base44 is a third-party frame, so Chromium can isolate its
+   * cookies and storage from the first-party session. The Storage Access API
+   * lets this site ask for unpartitioned access for app.base44.com after a
+   * click; the frame is then reloaded so Base44 can reuse its session.
+   */
+  const keepBase44Session = async () => {
+    let origin = '';
+    try {
+      origin = new URL(base44PageUrl).origin;
+    } catch {
+      origin = '';
+    }
+    const doc = document as Document & {
+      requestStorageAccessFor?: (targetOrigin: string) => Promise<void>;
+    };
+    if (!origin || typeof doc.requestStorageAccessFor !== 'function') {
+      notificationService.push({
+        kind: 'system',
+        title: 'Use Base44 in a new tab',
+        body: 'This browser cannot keep an embedded third-party session. Open Base44 in a new tab once and it will stay signed in there.',
+      });
+      return;
+    }
+    try {
+      await doc.requestStorageAccessFor(origin);
+      setBase44Loaded(false);
+      setBase44Key((value) => value + 1);
+      notificationService.push({
+        kind: 'system',
+        title: 'Base44 session saved',
+        body: 'Base44 can now keep you signed in after you close Vector.',
+      });
+    } catch {
+      notificationService.push({
+        kind: 'system',
+        title: 'Could not save the Base44 session',
+        body: 'Open Base44 in a new tab once. The new tab has its own first-party session and stays signed in.',
+      });
+    }
+  };
+
   useEffect(() => {
     let active = true;
     setBase44PageError('');
@@ -1406,9 +1450,17 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
               <div className="min-w-0 flex-1">
                 <p className="text-[11.5px] font-semibold text-[var(--v-ink)]">Base44 builder</p>
                 <p className="text-[9px] text-[var(--v-faint)]">
-                  Sign in or sign up using email and password inside the frame. The frame and the new tab use the same exact page URL.
+                  Sign in or sign up with email and password inside the frame. Press Keep signed in once so Base44 survives closing Vector.
                 </p>
               </div>
+              <button
+                type="button"
+                onClick={() => void keepBase44Session()}
+                className="v-btn v-btn-ghost h-7 px-2 text-[9.5px]"
+                title="Let Base44 keep you signed in after you close this site"
+              >
+                <ShieldCheck className="h-3 w-3" /> Keep signed in
+              </button>
               <button type="button" onClick={reloadBase44} className="v-btn v-btn-ghost h-7 px-2 text-[9.5px]">
                 <RefreshCw className="h-3 w-3" /> Reload
               </button>
@@ -1524,8 +1576,19 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                   onLoad={() => setBase44Loaded(true)}
                   onError={() => setBase44Loaded(true)}
                 />
+                {/* The frame is cross-origin, so the tour points at the field
+                    area with a transparent hotspot instead of reading its DOM. */}
+                <div
+                  data-guide="base44-email"
+                  aria-hidden="true"
+                  className="pointer-events-none absolute rounded-lg"
+                  style={{ left: '14%', right: '14%', top: '67%', height: '8%' }}
+                />
               </div>
             </div>
+            <p className="px-3 pb-2 text-[8.5px] leading-relaxed text-[var(--v-faint)]">
+              Base44 keeps its own account. Embedded sessions can be cleared by browser privacy settings — press <b>Keep signed in</b> once, or use <b>Open in new tab</b>, which stays signed in.
+            </p>
           </div>
         </section>
 
