@@ -730,6 +730,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   const sessionRef = useRef<CollabSession | null>(null);
   const applyingRemote = useRef(false);
   const publishTimer = useRef<number | undefined>(undefined);
+  const interactedRef = useRef(false);
   const lastCursor = useRef(0);
   const dragRef = useRef<{
     id: string;
@@ -830,11 +831,12 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   }, [name, pages]);
 
   useEffect(() => {
-    if (!sharedMode) return;
+    if (!projectId && !sharedMode) return;
     const session = new CollabSession(room, makePeer(displayName), {
       onPeers: setPeers,
       onDoc: (doc) => {
         applyingRemote.current = true;
+        sharedReady.current = true;
         setName(doc.name);
         setPages(doc.pages);
         setActivePageId(doc.pages[0]?.id || '');
@@ -853,7 +855,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
       session.close();
       sessionRef.current = null;
     };
-  }, [room, displayName, sharedMode]);
+  }, [room, displayName, sharedMode, projectId]);
 
   // Shared rooms persist to Supabase, so edits survive after everyone closes the tab.
   useEffect(() => {
@@ -945,11 +947,26 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     return () => window.clearInterval(timer);
   }, [room, sharedMode]);
 
+  // A guest opening a share link should not publish the URL snapshot before
+  // the owner has had a chance to send the live document.
+  useEffect(() => {
+    const mark = () => {
+      interactedRef.current = true;
+    };
+    window.addEventListener('pointerdown', mark, { once: true });
+    window.addEventListener('keydown', mark, { once: true });
+    return () => {
+      window.removeEventListener('pointerdown', mark);
+      window.removeEventListener('keydown', mark);
+    };
+  }, []);
+
   // Broadcast local edits, but never echo a document that came from a peer,
   // and never publish the placeholder document before the room has loaded.
   useEffect(() => {
     if (viewOnly || applyingRemote.current) return;
     if (sharedMode && !sharedReady.current) return;
+    if (sharedMode && !interactedRef.current) return;
     lastLocalEdit.current = Date.now();
     window.clearTimeout(publishTimer.current);
     publishTimer.current = window.setTimeout(() => sessionRef.current?.publish({ name, pages }), 160);
