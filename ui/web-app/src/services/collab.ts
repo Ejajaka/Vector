@@ -13,6 +13,7 @@
  */
 
 import type { CanvasPage } from '../data/canvas.ts';
+import type { CanvasPatch } from './canvasMerge.ts';
 import { isSupabaseConfigured, supabase } from './supabase/client.ts';
 import { pingPresence } from './presenceApi.ts';
 
@@ -36,6 +37,7 @@ export interface CollabHandlers {
     deletedItems?: string[];
     deletedPages?: string[];
   }) => void;
+  onPatch?: (patch: CanvasPatch & { by: string }) => void;
 }
 
 type Message =
@@ -43,10 +45,21 @@ type Message =
   | { type: 'presence'; peer: Peer }
   | { type: 'bye'; id: string }
   | { type: 'request'; from: string }
-  | { type: 'doc'; name: string; pages: CanvasPage[]; by: string };
+  | { type: 'doc'; name: string; pages: CanvasPage[]; by: string }
+  | ({ type: 'patch'; by: string } & CanvasPatch);
 
 const PEER_COLOURS = ['#7C5CFF', '#0D99FF', '#A78BFA', '#FF7A59', '#FFC53D', '#E879F9', '#FF5C8A'];
 const STALE_MS = 45_000;
+const MAX_BROADCAST_BYTES = 2_400;
+
+type CloudChannel = ReturnType<NonNullable<typeof supabase>['channel']>;
+
+/**
+ * Supabase dedupes channels by topic, so two editor instances in the same tab
+ * can receive the same channel object. Refcount it: one unmounting must not
+ * remove the channel the other one is still using.
+ */
+const cloudChannels = new Map<string, { channel: CloudChannel; refs: number }>();
 
 export function sharingMode(): 'cloud' | 'local' {
   return isSupabaseConfigured ? 'cloud' : 'local';
@@ -84,7 +97,10 @@ export function makePeer(name: string): Peer {
 
 export class CollabSession {
   private channel: BroadcastChannel | null = null;
-  private cloud: ReturnType<NonNullable<typeof supabase>['channel']> | null = null;
+  private cloud: CloudChannel | null = null;
+  private cloudTopic: string | null = null;
+  private ready = false;
+  private pending: Message[] = [];
   private peers = new Map<string, Peer>();
   private heartbeat: number | null = null;
   private sweep: number | null = null;
@@ -192,29 +208,66 @@ export class CollabSession {
 
   private connectCloud(): void {
     if (!supabase) return;
-    const channel = supabase.channel(`vector-canvas:${this.room}`, {
-      config: {
-        broadcast: { self: false },
-        presence: { key: this.me.id },
-      },
-    });
+    const topic = `vector-canvas:${this.room}`;
+    let entry = cloudChannels.get(topic);
+    const reuse = Boolean(entry);
+    if (!entry) {
+      entry = {
+        channel: supabase.channel(topic, {
+          config: {
+            broadcast: { self: false },
+            presence: { key: this.me.id },
+          },
+        }),
+        refs: 0,
+      };
+      cloudChannels.set(topic, entry);
+    }
+    entry.refs += 1;
+    const channel = entry.channel;
+    this.cloud = channel;
+    this.cloudTopic = topic;
 
     channel
       .on('broadcast', { event: 'msg' }, ({ payload }: { payload: Message }) => this.receive(payload))
       .on('presence', { event: 'sync' }, () => this.syncRealtimePresence())
       .on('presence', { event: 'join' }, () => this.syncRealtimePresence())
       .subscribe((status: string) => {
-        if (status === 'SUBSCRIBED') {
-          void channel.track({ peer: this.me, online_at: new Date().toISOString() });
-          this.pingServerPresence();
-        }
+        if (status !== 'SUBSCRIBED') return;
+        this.ready = true;
+        const queued = this.pending;
+        this.pending = [];
+        queued.forEach((message) => this.post(message));
+        void channel.track({ peer: this.me, online_at: new Date().toISOString() });
+        this.pingServerPresence();
       });
 
-    this.cloud = channel;
+    // A channel that is already joined returns itself and does not fire the
+    // subscribe callback again, so mark it ready immediately.
+    if (reuse && (channel as unknown as { state?: string }).state === 'joined') {
+      this.ready = true;
+      const queued = this.pending;
+      this.pending = [];
+      queued.forEach((message) => this.post(message));
+      void channel.track({ peer: this.me, online_at: new Date().toISOString() });
+      this.pingServerPresence();
+    }
   }
 
   private post(message: Message): void {
     if (this.cloud) {
+      if (!this.ready) {
+        if ((this.cloud as unknown as { state?: string }).state === 'joined') {
+          this.ready = true;
+          const queued = this.pending;
+          this.pending = [];
+          queued.forEach((queuedMessage) => this.post(queuedMessage));
+        } else {
+          this.pending.push(message);
+          if (this.pending.length > 20) this.pending.shift();
+          return;
+        }
+      }
       void this.cloud.send({ type: 'broadcast', event: 'msg', payload: message });
       return;
     }
@@ -254,6 +307,11 @@ export class CollabSession {
 
     if (message.type === 'doc') {
       this.handlers.onDoc(message);
+      return;
+    }
+
+    if (message.type === 'patch') {
+      this.handlers.onPatch?.(message);
     }
   }
 
@@ -263,7 +321,11 @@ export class CollabSession {
 
   private broadcastDocIfAvailable(): void {
     const doc = this.docProvider();
-    if (doc) this.post({ type: 'doc', ...doc, by: this.me.id });
+    if (!doc) return;
+    // Large canvases exceed the Realtime payload limit; peers load those from
+    // the room API instead.
+    if (JSON.stringify(doc).length > MAX_BROADCAST_BYTES) return;
+    this.post({ type: 'doc', ...doc, by: this.me.id });
   }
 
   private prune(): void {
@@ -298,7 +360,14 @@ export class CollabSession {
   }
 
   publish(doc: { name: string; pages: CanvasPage[] }): void {
+    if (JSON.stringify(doc).length > MAX_BROADCAST_BYTES) return;
     this.post({ type: 'doc', ...doc, by: this.me.id });
+  }
+
+  publishPatch(patch: CanvasPatch): void {
+    if (!patch.pages.length && !patch.deletedItems.length && !patch.deletedPages.length) return;
+    if (JSON.stringify(patch).length > MAX_BROADCAST_BYTES) return;
+    this.post({ type: 'patch', ...patch, by: this.me.id });
   }
 
   get self(): Peer {
@@ -306,12 +375,24 @@ export class CollabSession {
   }
 
   close(): void {
-    this.post({ type: 'bye', id: this.me.id });
     if (this.heartbeat) window.clearInterval(this.heartbeat);
     if (this.sweep) window.clearInterval(this.sweep);
     if (this.presenceTimer) window.clearInterval(this.presenceTimer);
+    this.ready = false;
+    this.pending = [];
     this.channel?.close();
-    if (this.cloud && supabase) void supabase.removeChannel(this.cloud);
+    this.channel = null;
+
+    const topic = this.cloudTopic;
+    this.cloudTopic = null;
+    this.cloud = null;
+    if (!topic || !supabase) return;
+    const entry = cloudChannels.get(topic);
+    if (!entry) return;
+    entry.refs -= 1;
+    if (entry.refs > 0) return;
+    cloudChannels.delete(topic);
+    void supabase.removeChannel(entry.channel);
   }
 }
 

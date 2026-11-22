@@ -102,7 +102,7 @@ import {
 } from '../services/collab.ts';
 import { ShareDialog } from '../components/collab/ShareDialog.tsx';
 import { loadSharedDoc, saveSharedDoc, decodeSharedCanvas, removedSince } from '../services/sharedDocs.ts';
-import { mergeCanvasPages } from '../services/canvasMerge.ts';
+import { buildCanvasPatch, mergeCanvasPages } from '../services/canvasMerge.ts';
 import { PagePickerModal } from '../components/projects/PagePickerModal.tsx';
 import { ConnectDialog } from '../components/generators/ConnectDialog.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
@@ -740,6 +740,12 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   // Last canvas state this tab knows the room has seen. Deletions are the ids
   // that disappeared from this snapshot.
   const lastSharedSnapshot = useRef<{ name: string; pages: CanvasPage[] }>({ name, pages });
+  // Canvas state last sent to peers. Edits go out as small Realtime patches so
+  // they are instant and never hit the broadcast payload limit.
+  const broadcastRef = useRef<{ name: string; pages: CanvasPage[] }>({ name, pages });
+  // A server poll can be a few seconds behind an instant peer patch. Do not let
+  // an older room snapshot undo what a collaborator just did.
+  const peerUpdateAt = useRef(0);
   const lastCursor = useRef(0);
   const dragRef = useRef<{
     id: string;
@@ -851,12 +857,15 @@ export const EditorPage: React.FC<EditorPageProps> = ({
       onPeers: setPeers,
       onDoc: (doc) => {
         applyingRemote.current = true;
+        window.clearTimeout(publishTimer.current);
         sharedReady.current = true;
         const merged = mergeCanvasPages(docRef.current.pages, doc.pages, {
           deletedItems: doc.deletedItems,
           deletedPages: doc.deletedPages,
         });
         lastSharedSnapshot.current = { name: doc.name, pages: merged };
+        broadcastRef.current = { name: doc.name, pages: merged };
+        peerUpdateAt.current = Date.now();
         setName(doc.name);
         setPages(merged);
         setActivePageId((current) => (merged.some((page) => page.id === current) ? current : merged[0]?.id || ''));
@@ -864,6 +873,25 @@ export const EditorPage: React.FC<EditorPageProps> = ({
         window.setTimeout(() => {
           applyingRemote.current = false;
         }, 60);
+      },
+      onPatch: (patch) => {
+        applyingRemote.current = true;
+        window.clearTimeout(publishTimer.current);
+        const merged = mergeCanvasPages(docRef.current.pages, patch.pages, {
+          deletedItems: patch.deletedItems,
+          deletedPages: patch.deletedPages,
+        });
+        broadcastRef.current = { name: patch.name || docRef.current.name, pages: merged };
+        peerUpdateAt.current = Date.now();
+        if (patch.name) setName(patch.name);
+        setPages(merged);
+        setActivePageId((current) => (merged.some((page) => page.id === current) ? current : merged[0]?.id || ''));
+        setSelectedId((current) =>
+          current && merged.some((page) => page.items.some((item) => item.id === current)) ? current : null,
+        );
+        window.setTimeout(() => {
+          applyingRemote.current = false;
+        }, 20);
       },
     });
     session.setDocProvider(() => {
@@ -900,11 +928,13 @@ export const EditorPage: React.FC<EditorPageProps> = ({
       if (cancelled) return;
       if (doc) {
         applyingRemote.current = true;
+        window.clearTimeout(publishTimer.current);
         const merged = mergeCanvasPages(docRef.current.pages, doc.pages, {
           deletedItems: doc.deletedItems,
           deletedPages: doc.deletedPages,
         });
         lastSharedSnapshot.current = { name: doc.name, pages: merged };
+        broadcastRef.current = { name: doc.name, pages: merged };
         setName(doc.name);
         setPages(merged);
         setActivePageId((current) => (merged.some((page) => page.id === current) ? current : merged[0]?.id || ''));
@@ -965,16 +995,19 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     const timer = window.setInterval(async () => {
       if (applyingRemote.current) return;
       if (Date.now() - lastLocalEdit.current < 3000) return;
+      if (Date.now() - peerUpdateAt.current < 2200) return;
       const remote = await loadSharedDoc(projectRoom(projectId));
       if (!remote) return;
       const current = docRef.current;
       if (remote.name === current.name && JSON.stringify(remote.pages) === JSON.stringify(current.pages)) return;
       applyingRemote.current = true;
+      window.clearTimeout(publishTimer.current);
       const merged = mergeCanvasPages(docRef.current.pages, remote.pages, {
         deletedItems: remote.deletedItems,
         deletedPages: remote.deletedPages,
       });
       lastSharedSnapshot.current = { name: remote.name, pages: merged };
+      broadcastRef.current = { name: remote.name, pages: merged };
       setName(remote.name);
       setPages(merged);
       setActivePageId((current) => (merged.some((page) => page.id === current) ? current : merged[0]?.id || ''));
@@ -994,6 +1027,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     const timer = window.setInterval(async () => {
       if (pollingDoc.current || applyingRemote.current) return;
       if (Date.now() - lastLocalEdit.current < 2600) return;
+      if (Date.now() - peerUpdateAt.current < 2200) return;
       pollingDoc.current = true;
       try {
         const doc = await loadSharedDoc(room);
@@ -1001,11 +1035,13 @@ export const EditorPage: React.FC<EditorPageProps> = ({
         const current = docRef.current;
         if (doc.name === current.name && JSON.stringify(doc.pages) === JSON.stringify(current.pages)) return;
         applyingRemote.current = true;
+        window.clearTimeout(publishTimer.current);
         const merged = mergeCanvasPages(docRef.current.pages, doc.pages, {
           deletedItems: doc.deletedItems,
           deletedPages: doc.deletedPages,
         });
         lastSharedSnapshot.current = { name: doc.name, pages: merged };
+        broadcastRef.current = { name: doc.name, pages: merged };
         setName(doc.name);
         setPages(merged);
         setActivePageId((current) => (merged.some((page) => page.id === current) ? current : merged[0]?.id || ''));
@@ -1025,8 +1061,15 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     if (viewOnly || applyingRemote.current) return;
     if (sharedMode && bootPagesRef.current !== null && JSON.stringify(pages) === bootPagesRef.current) return;
     lastLocalEdit.current = Date.now();
+    const patch = buildCanvasPatch(broadcastRef.current, { name, pages });
     window.clearTimeout(publishTimer.current);
-    publishTimer.current = window.setTimeout(() => sessionRef.current?.publish({ name, pages }), 160);
+    publishTimer.current = window.setTimeout(() => {
+      // Advance only when a patch actually goes out. If another edit arrives
+      // first, its patch is computed from the last sent state, so nothing is
+      // silently dropped.
+      broadcastRef.current = { name, pages };
+      if (patch) sessionRef.current?.publishPatch(patch);
+    }, 160);
     return () => window.clearTimeout(publishTimer.current);
   }, [name, pages, viewOnly, sharedMode]);
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mergeCanvasPages } from './canvasMerge.ts';
+import { buildCanvasPatch, mergeCanvasPages } from './canvasMerge.ts';
 import { removedSince } from './sharedDocs.ts';
 import type { CanvasPage } from '../data/canvas.ts';
 
@@ -49,5 +49,26 @@ describe('live canvas merging', () => {
     );
     expect(removed.deletedItems).toEqual(['a']);
     expect(removed.deletedPages).toEqual([]);
+  });
+
+  it('sends only changed elements as a live patch', () => {
+    const before = [page('p1', ['a', 'b'])];
+    const after = [page('p1', ['a', 'b', 'c'])];
+    const patch = buildCanvasPatch({ name: 'Screen', pages: before }, { name: 'Screen', pages: after });
+    expect(patch?.pages).toHaveLength(1);
+    expect(patch?.pages[0].items.map((item) => item.id)).toEqual(['c']);
+    expect(patch?.deletedItems).toEqual([]);
+  });
+
+  it('carries deletions in the patch so peers remove the element', () => {
+    const before = [page('p1', ['a', 'b'])];
+    const after = [page('p1', ['b'])];
+    const patch = buildCanvasPatch({ name: 'Screen', pages: before }, { name: 'Screen', pages: after });
+    expect(patch?.deletedItems).toEqual(['a']);
+  });
+
+  it('sends nothing when the canvas did not change', () => {
+    const pages = [page('p1', ['a'])];
+    expect(buildCanvasPatch({ name: 'Screen', pages }, { name: 'Screen', pages })).toBeNull();
   });
 });

@@ -5,6 +5,59 @@ export interface CanvasTombstones {
   deletedPages?: string[];
 }
 
+export interface CanvasPatch {
+  name: string;
+  /** Only pages (and items) that changed since the last broadcast. */
+  pages: CanvasPage[];
+  deletedItems: string[];
+  deletedPages: string[];
+}
+
+/**
+ * Build a compact patch for Realtime. Supabase rejects large broadcast
+ * payloads, so full canvases are only exchanged through the room API; edits go
+ * out as small per-item patches.
+ */
+export function buildCanvasPatch(
+  previous: { name: string; pages: CanvasPage[] },
+  next: { name: string; pages: CanvasPage[] },
+): CanvasPatch | null {
+  const previousPages = new Map(previous.pages.map((page) => [String(page.id), page]));
+  const nextPages = new Map(next.pages.map((page) => [String(page.id), page]));
+  const changedPages: CanvasPage[] = [];
+  const deletedItems: string[] = [];
+  const deletedPages: string[] = [];
+
+  for (const [id, page] of nextPages) {
+    const before = previousPages.get(id);
+    const beforeItems = new Map((before?.items || []).map((item) => [String(item.id), item]));
+    const nextItemIds = new Set(page.items.map((item) => String(item.id)));
+    const changedItems = page.items.filter((item) => {
+      const old = beforeItems.get(String(item.id));
+      return !old || JSON.stringify(old) !== JSON.stringify(item);
+    });
+    for (const oldId of beforeItems.keys()) {
+      if (!nextItemIds.has(oldId)) deletedItems.push(oldId);
+    }
+    const metaChanged =
+      !before ||
+      before.name !== page.name ||
+      before.width !== page.width ||
+      before.height !== page.height ||
+      before.background !== page.background;
+    if (!before || metaChanged || changedItems.length) {
+      changedPages.push({ ...page, items: changedItems });
+    }
+  }
+
+  for (const id of previousPages.keys()) {
+    if (!nextPages.has(id)) deletedPages.push(id);
+  }
+
+  if (!changedPages.length && !deletedItems.length && !deletedPages.length) return null;
+  return { name: next.name, pages: changedPages, deletedItems, deletedPages };
+}
+
 function pageKey(page: CanvasPage): string {
   return String(page.name || page.id || '').trim().toLowerCase() || page.id;
 }
