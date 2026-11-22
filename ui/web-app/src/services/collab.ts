@@ -144,7 +144,7 @@ export class CollabSession {
       this.peers.set(message.peer.id, { ...message.peer, lastSeen: Date.now() });
       this.emit();
       this.post({ type: 'presence', peer: this.me });
-      this.broadcastDocIfAuthoritative();
+      this.broadcastDocIfAvailable();
       return;
     }
 
@@ -163,7 +163,7 @@ export class CollabSession {
 
     if (message.type === 'request') {
       const ids = [this.me.id, ...this.peers.keys()].sort();
-      if (ids[0] === this.me.id) this.broadcastDocIfAuthoritative();
+      if (ids[0] === this.me.id) this.broadcastDocIfAvailable();
       return;
     }
 
@@ -176,12 +176,9 @@ export class CollabSession {
     this.docProvider = provider;
   }
 
-  private broadcastDocIfAuthoritative(): void {
-    const ids = [this.me.id, ...this.peers.keys()].sort();
-    if (ids[0] === this.me.id) {
-      const doc = this.docProvider();
-      if (doc) this.post({ type: 'doc', ...doc, by: this.me.id });
-    }
+  private broadcastDocIfAvailable(): void {
+    const doc = this.docProvider();
+    if (doc) this.post({ type: 'doc', ...doc, by: this.me.id });
   }
 
   private prune(): void {

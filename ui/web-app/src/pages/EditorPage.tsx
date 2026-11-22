@@ -730,8 +730,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   const sessionRef = useRef<CollabSession | null>(null);
   const applyingRemote = useRef(false);
   const publishTimer = useRef<number | undefined>(undefined);
-  const interactedRef = useRef(false);
-  const receivedRemoteRef = useRef(false);
+  const bootPagesRef = useRef<string | null>(null);
   const lastCursor = useRef(0);
   const dragRef = useRef<{
     id: string;
@@ -832,13 +831,18 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   }, [name, pages]);
 
   useEffect(() => {
+    if (bootPagesRef.current === null) bootPagesRef.current = JSON.stringify(pages);
+    // Capture the initial page state only; later edits must be allowed to publish.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     if (!projectId && !sharedMode) return;
     const session = new CollabSession(room, makePeer(displayName), {
       onPeers: setPeers,
       onDoc: (doc) => {
         applyingRemote.current = true;
         sharedReady.current = true;
-        receivedRemoteRef.current = true;
         setName(doc.name);
         setPages(doc.pages);
         setActivePageId(doc.pages[0]?.id || '');
@@ -849,8 +853,9 @@ export const EditorPage: React.FC<EditorPageProps> = ({
       },
     });
     session.setDocProvider(() => {
-      if (sharedMode && !sharedReady.current) return null;
-      if (sharedMode && !receivedRemoteRef.current && !interactedRef.current) return null;
+      if (sharedMode && bootPagesRef.current !== null && JSON.stringify(docRef.current.pages) === bootPagesRef.current) {
+        return null;
+      }
       return docRef.current;
     });
     sessionRef.current = session;
@@ -951,26 +956,11 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     return () => window.clearInterval(timer);
   }, [room, sharedMode]);
 
-  // A guest opening a share link should not publish the URL snapshot before
-  // the owner has had a chance to send the live document.
-  useEffect(() => {
-    const mark = () => {
-      interactedRef.current = true;
-    };
-    window.addEventListener('pointerdown', mark, { once: true });
-    window.addEventListener('keydown', mark, { once: true });
-    return () => {
-      window.removeEventListener('pointerdown', mark);
-      window.removeEventListener('keydown', mark);
-    };
-  }, []);
-
   // Broadcast local edits, but never echo a document that came from a peer,
-  // and never publish the placeholder document before the room has loaded.
+  // and never publish the initial link snapshot before the owner sends.
   useEffect(() => {
     if (viewOnly || applyingRemote.current) return;
-    if (sharedMode && !sharedReady.current) return;
-    if (sharedMode && !interactedRef.current) return;
+    if (sharedMode && bootPagesRef.current !== null && JSON.stringify(pages) === bootPagesRef.current) return;
     lastLocalEdit.current = Date.now();
     window.clearTimeout(publishTimer.current);
     publishTimer.current = window.setTimeout(() => sessionRef.current?.publish({ name, pages }), 160);
