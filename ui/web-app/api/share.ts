@@ -13,6 +13,33 @@ function memoryKey(room: string): string {
   return `shared_canvas:${room}`;
 }
 
+function mergeDocs(previous: any, incoming: any) {
+  const pages = new Map<string, any>();
+  const addPage = (page: any) => {
+    const key = String(page?.name || page?.id || Math.random()).toLowerCase();
+    const existing = pages.get(key);
+    if (!existing) {
+      pages.set(key, { ...page, items: Array.isArray(page?.items) ? [...page.items] : [] });
+      return;
+    }
+    const items = new Map<string, any>();
+    for (const item of existing.items || []) items.set(String(item.id), item);
+    for (const item of page?.items || []) items.set(String(item.id), item);
+    pages.set(key, {
+      ...existing,
+      ...page,
+      items: Array.from(items.values()),
+    });
+  };
+  for (const page of previous?.pages || []) addPage(page);
+  for (const page of incoming?.pages || []) addPage(page);
+  return {
+    ...incoming,
+    pages: Array.from(pages.values()),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 export default async function handler(req: any, res: any) {
   if (!client) {
     res.status(503).json({ error: 'Shared canvases are not configured on this deployment.' });
@@ -54,17 +81,24 @@ export default async function handler(req: any, res: any) {
         projectId,
         updatedAt: new Date().toISOString(),
       };
+      const { data: existing } = await client
+        .from('project_memory')
+        .select('value')
+        .eq('project_id', projectId)
+        .eq('key', memoryKey(room))
+        .maybeSingle();
+      const merged = mergeDocs(existing?.value || null, value);
       const { error } = await client.from('project_memory').upsert(
         {
           project_id: projectId,
           key: memoryKey(room),
-          value,
+          value: merged,
           updated_at: new Date().toISOString(),
         },
         { onConflict: 'project_id,key' },
       );
       if (error) throw new Error(error.message);
-      res.status(200).json({ ok: true, doc: value });
+      res.status(200).json({ ok: true, doc: merged });
       return;
     }
 
