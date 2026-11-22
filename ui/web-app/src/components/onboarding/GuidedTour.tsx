@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, ChevronRight, Sparkles, X } from 'lucide-react';
 
-export type GuidePage = 'dashboard' | 'projects' | 'project' | 'editor' | 'prompt';
+export type GuidePage = 'dashboard' | 'projects' | 'project' | 'editor' | 'prompt' | 'other';
 
 interface GuideStep {
   id: string;

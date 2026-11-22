@@ -461,9 +461,12 @@ function AppShell() {
           : 'project'
         : activeTab === 'projects'
           ? 'projects'
-          : 'dashboard';
+          : activeTab === 'dashboard'
+            ? 'dashboard'
+            : 'other';
 
   const guideNavigate = (target: GuidePage) => {
+    if (target === 'other') return;
     if (target === 'dashboard') {
       setActiveTab('dashboard');
       return;
