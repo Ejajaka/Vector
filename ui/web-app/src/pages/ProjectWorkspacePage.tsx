@@ -1079,6 +1079,19 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                 setShareGateOpen(true);
                 return;
               }
+              try {
+                localStorage.setItem(`vector_project_share_room_${project.id}`, collabRoom);
+              } catch {
+                // ignore
+              }
+              if (doc?.pages.length) {
+                void saveSharedDoc(collabRoom, {
+                  name: doc.name || project.name,
+                  pages: doc.pages,
+                  ownerId: user?.id || null,
+                  projectId: project.id,
+                });
+              }
               setShareOpen(true);
             }}
             className="v-btn v-btn-ghost h-8 px-2.5 text-[10.5px]"

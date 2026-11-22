@@ -44,7 +44,30 @@ export function decodeSharedCanvas(value: string | null): SharedDoc | null {
 }
 
 export async function loadSharedDoc(room: string): Promise<SharedDoc | null> {
-  if (!isSupabaseConfigured || !supabase || !room) return null;
+  if (!room) return null;
+  try {
+    const url = new URL('/api/share', window.location.origin);
+    url.searchParams.set('room', room);
+    const projectId = room.startsWith('project_') ? room.slice('project_'.length) : '';
+    if (projectId) url.searchParams.set('projectId', projectId);
+    const response = await fetch(url.toString(), { headers: { Accept: 'application/json' } });
+    if (response.ok) {
+      const body = await response.json();
+      const doc = body?.doc;
+      if (doc && Array.isArray(doc.pages) && doc.pages.length) {
+        return {
+          name: String(doc.name || 'Shared screen'),
+          pages: doc.pages as CanvasPage[],
+          ownerId: doc.ownerId || null,
+          projectId: doc.projectId || projectId || null,
+        };
+      }
+    }
+  } catch {
+    // Fall through to the Supabase table for older deployments.
+  }
+
+  if (!isSupabaseConfigured || !supabase) return null;
   const { data, error } = await supabase
     .from('shared_project_docs')
     .select('name, pages, owner_id, project_id')
@@ -65,7 +88,19 @@ export async function saveSharedDoc(
   room: string,
   doc: SharedDoc,
 ): Promise<void> {
-  if (!isSupabaseConfigured || !supabase || !room) return;
+  if (!room) return;
+  try {
+    const response = await fetch('/api/share', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ room, ...doc }),
+    });
+    if (response.ok) return;
+  } catch {
+    // Fall back to the table.
+  }
+
+  if (!isSupabaseConfigured || !supabase) return;
   await supabase.from('shared_project_docs').upsert(
     {
       room,

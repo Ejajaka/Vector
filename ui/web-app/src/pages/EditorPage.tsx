@@ -894,7 +894,8 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   }, [room, sharedMode]);
 
   useEffect(() => {
-    if (!sharedMode || viewOnly || !sharedReady.current) return;
+    if (!sharedMode || viewOnly) return;
+    if (bootPagesRef.current !== null && JSON.stringify(pages) === bootPagesRef.current) return;
     const timer = window.setTimeout(() => {
       void saveSharedDoc(room, {
         name,
@@ -927,6 +928,29 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     }, 900);
     return () => window.clearTimeout(timer);
   }, [name, pages, projectId, sharedMode, user?.id]);
+
+  // The owner also watches the shared room so a guest's edits appear in the
+  // normal project editor, even when the two browsers use different accounts.
+  useEffect(() => {
+    if (!projectId || sharedMode) return;
+    const timer = window.setInterval(async () => {
+      if (applyingRemote.current) return;
+      if (Date.now() - lastLocalEdit.current < 3000) return;
+      const remote = await loadSharedDoc(projectRoom(projectId));
+      if (!remote) return;
+      const current = docRef.current;
+      if (remote.name === current.name && JSON.stringify(remote.pages) === JSON.stringify(current.pages)) return;
+      applyingRemote.current = true;
+      setName(remote.name);
+      setPages(remote.pages);
+      setActivePageId(remote.pages[0]?.id || '');
+      setSelectedId(null);
+      window.setTimeout(() => {
+        applyingRemote.current = false;
+      }, 80);
+    }, 3000);
+    return () => window.clearInterval(timer);
+  }, [projectId, sharedMode]);
 
   // Supabase Realtime can be slow to connect on some networks. Poll the room as
   // a quiet fallback so collaborators still see each other's work within a few
