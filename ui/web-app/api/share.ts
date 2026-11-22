@@ -41,6 +41,7 @@ function mergeDocs(previous: any, incoming: any) {
 }
 
 export default async function handler(req: any, res: any) {
+  res.setHeader('Cache-Control', 'no-store, max-age=0');
   if (!client) {
     res.status(503).json({ error: 'Shared canvases are not configured on this deployment.' });
     return;

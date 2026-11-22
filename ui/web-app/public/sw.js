@@ -9,7 +9,7 @@
  * assets never change, so cache-first is safe for them. The optional local
  * BERT model is cached on first use and then available offline as well.
  */
-const CACHE = 'vector-shell-v23';
+const CACHE = 'vector-shell-v24';
 
 /**
  * Static assets are stored without transport headers:
@@ -98,6 +98,13 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+
+  // Live collaboration and other API responses must never be served from the
+  // offline shell cache. They change constantly and are not static assets.
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/_vercel/')) {
+    event.respondWith(fetch(request));
+    return;
+  }
 
   const isDocument = request.mode === 'navigate' || request.destination === 'document';
 

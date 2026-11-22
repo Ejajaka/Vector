@@ -50,7 +50,7 @@ export async function loadSharedDoc(room: string): Promise<SharedDoc | null> {
     url.searchParams.set('room', room);
     const projectId = room.startsWith('project_') ? room.slice('project_'.length) : '';
     if (projectId) url.searchParams.set('projectId', projectId);
-    const response = await fetch(url.toString(), { headers: { Accept: 'application/json' } });
+    const response = await fetch(url.toString(), { cache: 'no-store', headers: { Accept: 'application/json' } });
     if (response.ok) {
       const body = await response.json();
       const doc = body?.doc;
@@ -92,6 +92,7 @@ export async function saveSharedDoc(
   try {
     const response = await fetch('/api/share', {
       method: 'POST',
+      cache: 'no-store',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ room, ...doc }),
     });
