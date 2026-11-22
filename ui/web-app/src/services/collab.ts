@@ -61,6 +61,16 @@ type CloudChannel = ReturnType<NonNullable<typeof supabase>['channel']>;
  */
 const cloudChannels = new Map<string, { channel: CloudChannel; refs: number }>();
 
+// Temporary optics for verifying the live transport in production.
+const diag: Record<string, unknown> = {
+  sessions: 0, ready: false, state: '', sent: 0, received: 0, queued: 0, closed: 0, lastSend: '', lastError: '',
+};
+try {
+  (globalThis as unknown as { __vectorCollab?: unknown }).__vectorCollab = diag;
+} catch {
+  // ignore
+}
+
 export function sharingMode(): 'cloud' | 'local' {
   return isSupabaseConfigured ? 'cloud' : 'local';
 }
@@ -120,6 +130,8 @@ export class CollabSession {
     this.room = room;
     this.me = me;
     this.handlers = handlers;
+    diag.sessions = Number(diag.sessions) + 1;
+    diag.room = room;
 
     if (supabase) {
       this.connectCloud();
@@ -248,11 +260,23 @@ export class CollabSession {
           queued.forEach((queuedMessage) => this.post(queuedMessage));
         } else {
           this.pending.push(message);
+          diag.queued = this.pending.length;
           if (this.pending.length > 20) this.pending.shift();
           return;
         }
       }
-      void this.cloud.send({ type: 'broadcast', event: 'msg', payload: message });
+      diag.ready = this.ready;
+      diag.state = String((this.cloud as unknown as { state?: string }).state || '');
+      diag.sent = Number(diag.sent) + 1;
+      diag.lastType = message.type;
+      void this.cloud
+        .send({ type: 'broadcast', event: 'msg', payload: message })
+        .then((result) => {
+          diag.lastSend = String(result);
+        })
+        .catch((error) => {
+          diag.lastError = String(error instanceof Error ? error.message : error);
+        });
       return;
     }
     this.channel?.postMessage(message);
@@ -260,6 +284,8 @@ export class CollabSession {
 
   private receive(message: Message): void {
     if (!message || typeof message !== 'object') return;
+    diag.received = Number(diag.received) + 1;
+    diag.lastReceived = message.type;
 
     if (message.type === 'hello') {
       if (message.peer.id === this.me.id) return;
@@ -363,6 +389,7 @@ export class CollabSession {
   }
 
   close(): void {
+    diag.closed = Number(diag.closed) + 1;
     if (this.heartbeat) window.clearInterval(this.heartbeat);
     if (this.sweep) window.clearInterval(this.sweep);
     if (this.presenceTimer) window.clearInterval(this.presenceTimer);
