@@ -106,6 +106,7 @@ export class CollabSession {
   private sweep: number | null = null;
   private presenceTimer: number | null = null;
   private presencePinging = false;
+  private lastPresencePost = 0;
   private serverPeers = new Map<string, Peer>();
   private serverMissing = new Map<string, number>();
   private serverPresenceAt = 0;
@@ -133,7 +134,6 @@ export class CollabSession {
     this.heartbeat = window.setInterval(() => {
       this.me.lastSeen = Date.now();
       this.post({ type: 'presence', peer: this.me });
-      this.cloud?.track({ peer: this.me, online_at: new Date().toISOString() });
       this.prune();
     }, 3000);
 
@@ -194,18 +194,6 @@ export class CollabSession {
     }
   }
 
-  private syncRealtimePresence(): void {
-    if (!this.cloud) return;
-    const state = this.cloud.presenceState() as Record<string, Array<{ peer?: Peer }>>;
-    Object.values(state).forEach((entries) => {
-      entries.forEach((entry) => {
-        const peer = entry?.peer;
-        if (peer && peer.id !== this.me.id) this.peers.set(peer.id, { ...peer, lastSeen: Date.now() });
-      });
-    });
-    this.emit();
-  }
-
   private connectCloud(): void {
     if (!supabase) return;
     const topic = `vector-canvas:${this.room}`;
@@ -230,15 +218,12 @@ export class CollabSession {
 
     channel
       .on('broadcast', { event: 'msg' }, ({ payload }: { payload: Message }) => this.receive(payload))
-      .on('presence', { event: 'sync' }, () => this.syncRealtimePresence())
-      .on('presence', { event: 'join' }, () => this.syncRealtimePresence())
       .subscribe((status: string) => {
         if (status !== 'SUBSCRIBED') return;
         this.ready = true;
         const queued = this.pending;
         this.pending = [];
         queued.forEach((message) => this.post(message));
-        void channel.track({ peer: this.me, online_at: new Date().toISOString() });
         this.pingServerPresence();
       });
 
@@ -249,7 +234,6 @@ export class CollabSession {
       const queued = this.pending;
       this.pending = [];
       queued.forEach((message) => this.post(message));
-      void channel.track({ peer: this.me, online_at: new Date().toISOString() });
       this.pingServerPresence();
     }
   }
@@ -353,10 +337,14 @@ export class CollabSession {
   }
 
   presence(patch: Partial<Peer>): void {
+    const previousName = this.me.name;
     this.me = { ...this.me, ...patch, lastSeen: Date.now() };
-    this.post({ type: 'presence', peer: this.me });
-    this.cloud?.track({ peer: this.me, online_at: new Date().toISOString() });
-    if (this.cloud) void this.pingServerPresence();
+    const now = Date.now();
+    if (now - this.lastPresencePost > 800) {
+      this.lastPresencePost = now;
+      this.post({ type: 'presence', peer: this.me });
+    }
+    if (this.cloud && patch.name && patch.name !== previousName) void this.pingServerPresence();
   }
 
   publish(doc: { name: string; pages: CanvasPage[] }): void {
