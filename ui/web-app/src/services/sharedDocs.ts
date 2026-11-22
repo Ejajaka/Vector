@@ -135,16 +135,21 @@ export async function saveSharedDoc(
 ): Promise<void> {
   if (!room) return;
   const removed = tombstones(doc);
-  try {
-    const response = await fetchWithTimeout('/api/share', {
-      method: 'POST',
-      cache: 'no-store',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ room, ...doc, ...removed }),
-    }, 7000);
-    if (response.ok) return;
-  } catch {
-    // Fall back to the table.
+  // The room API can be slow. Retry in the background so the last edit is not
+  // lost when a single request times out.
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const response = await fetchWithTimeout('/api/share', {
+        method: 'POST',
+        cache: 'no-store',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ room, ...doc, ...removed }),
+      }, 7000);
+      if (response.ok) return;
+    } catch {
+      // Retry below.
+    }
+    if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 1200 * (attempt + 1)));
   }
 
   if (!isSupabaseConfigured || !supabase) return;

@@ -970,7 +970,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
       }).then(() => {
         lastSharedSnapshot.current = { name, pages };
       });
-    }, 700);
+    }, 1200);
     return () => window.clearTimeout(timer);
   }, [name, pages, room, sharedMode, viewOnly, sharedOwner, sharedProject, projectId]);
 
@@ -990,7 +990,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
       }).then(() => {
         lastSharedSnapshot.current = { name, pages };
       });
-    }, 900);
+    }, 1400);
     return () => window.clearTimeout(timer);
   }, [name, pages, projectId, sharedMode, user?.id]);
 

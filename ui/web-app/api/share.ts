@@ -88,6 +88,7 @@ async function mergeAndSave(projectId: string, key: string, value: any) {
         .select('value');
       if (error) throw new Error(error.message);
       if (data && data.length) return merged;
+      await new Promise((resolve) => setTimeout(resolve, 80 + Math.random() * 160));
       continue;
     }
 
