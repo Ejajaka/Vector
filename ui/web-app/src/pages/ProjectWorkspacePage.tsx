@@ -1101,7 +1101,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
         </div>
       </header>
 
-      <nav className="flex shrink-0 flex-wrap items-center gap-1 rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] p-1">
+      <nav data-guide="project-tools" className="flex shrink-0 flex-wrap items-center gap-1 rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] p-1">
         <span className="px-2 text-[9.5px] font-medium uppercase tracking-[0.05em] text-[var(--v-faint)]">Project tools</span>
         {[
           { id: 'requirements' as ProjectToolId, label: 'Requirements', icon: FileText },
@@ -1330,9 +1330,10 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
         {/* Workspace */}
         <div className="relative flex min-h-0 min-w-0 flex-1">
         <section className="v-scroll flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto pr-1">
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div data-guide="mode-cards" className="grid gap-3 sm:grid-cols-2">
             <button
               type="button"
+              data-guide="open-canvas"
               onClick={doc ? onOpenCanvas : onBlankCanvas}
               className="group rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] p-3 text-left transition-colors hover:border-[var(--v-violet)]"
             >
@@ -1355,6 +1356,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
 
             <button
               type="button"
+              data-guide="open-prompt"
               onClick={onOptimizePrompt}
               className="group rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] p-3 text-left transition-colors hover:border-[var(--v-violet)]"
             >
@@ -1396,7 +1398,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
           </div>
 
           {/* Base44 */}
-          <div className="flex flex-col rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)]">
+          <div data-guide="base44" className="flex flex-col rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)]">
             <div className="flex flex-wrap items-center gap-2 border-b border-[var(--v-line)] px-3 py-2">
               <span className="grid h-7 w-7 place-items-center rounded-lg bg-[#7C5CFF]/10 text-[#7C5CFF]">
                 <Rocket className="h-3.5 w-3.5" />

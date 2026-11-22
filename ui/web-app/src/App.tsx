@@ -13,6 +13,7 @@ import { AuthPage } from './components/auth/AuthPage.tsx';
 import { ResetPasswordPage } from './components/auth/ResetPasswordPage.tsx';
 import { ProductTour, resetTour } from './components/onboarding/ProductTour.tsx';
 import { WelcomeDialog } from './components/onboarding/WelcomeDialog.tsx';
+import { GuidedTour, type GuidePage } from './components/onboarding/GuidedTour.tsx';
 import { OverviewPage } from './pages/OverviewPage.tsx';
 import { DashboardPage } from './pages/DashboardPage.tsx';
 import { TemplatesPage } from './pages/TemplatesPage.tsx';
@@ -144,6 +145,8 @@ function AppShell() {
   const [analysisPromptSeed, setAnalysisPromptSeed] = useState<string | null>(null);
   const [tourOpen, setTourOpen] = useState(false);
   const [welcomeOpen, setWelcomeOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [guideStep, setGuideStep] = useState(0);
   useEffect(() => {
     const onOpenPricing = () => setPricingOpen(true);
     const onOpenHub = (event: Event) => {
@@ -405,6 +408,86 @@ function AppShell() {
     }
     setWelcomeOpen(true);
   }, [user]);
+
+  // A brand-new account gets a hands-on walkthrough: create a project, meet
+  // every tool, try canvas and prompt mode, then open Base44.
+  const guideStorageKey = user ? `vector_guide_v1_${user.id}` : '';
+
+  const finishGuide = () => {
+    try {
+      if (guideStorageKey) localStorage.setItem(guideStorageKey, 'done');
+    } catch {
+      // ignore
+    }
+    setGuideOpen(false);
+    setGuideStep(0);
+  };
+
+  useEffect(() => {
+    if (!user || !signedIn || projectLoading) return;
+    if (guideOpen || welcomeOpen || showAuth) return;
+    if (projects.length > 0) return;
+    if (activeTab !== 'dashboard' && activeTab !== 'projects') return;
+    if (!guideStorageKey) return;
+    try {
+      if (localStorage.getItem(guideStorageKey) === 'done') return;
+    } catch {
+      // ignore
+    }
+    const timer = window.setTimeout(() => {
+      setGuideStep(0);
+      setGuideOpen(true);
+    }, 1200);
+    return () => window.clearTimeout(timer);
+  }, [user, signedIn, projectLoading, guideOpen, welcomeOpen, showAuth, projects.length, activeTab, guideStorageKey]);
+
+  // Lets Learn (or a support link) replay the walkthrough without touching the
+  // completion flag for other accounts.
+  useEffect(() => {
+    const start = () => {
+      setGuideStep(0);
+      setGuideOpen(true);
+    };
+    window.addEventListener('vector:start-guide', start);
+    return () => window.removeEventListener('vector:start-guide', start);
+  }, []);
+
+  const guidePage: GuidePage =
+    activeTab === 'editor'
+      ? 'editor'
+      : activeTab === 'project'
+        ? projectView === 'prompt'
+          ? 'prompt'
+          : 'project'
+        : activeTab === 'projects'
+          ? 'projects'
+          : 'dashboard';
+
+  const guideNavigate = (target: GuidePage) => {
+    if (target === 'dashboard') {
+      setActiveTab('dashboard');
+      return;
+    }
+    if (target === 'projects') {
+      setActiveTab('projects');
+      return;
+    }
+    if (!activeProject) {
+      setActiveTab('projects');
+      return;
+    }
+    if (target === 'project') {
+      setProjectView('hub');
+      setActiveTab('project');
+      return;
+    }
+    if (target === 'editor') {
+      enterProjectCanvas({ fresh: false });
+      return;
+    }
+    setProjectView('prompt');
+    setActiveTab('project');
+  };
 
   // Keep the assistant's context honest: only the editor and the analysis page
   // carry a live prompt, every other tab gets a description of what is actually
@@ -794,6 +877,15 @@ function AppShell() {
           project={setupProject ?? { id: '', name: '' }}
           onComplete={completeProjectSetup}
         />
+        <GuidedTour
+          open={guideOpen}
+          page={guidePage}
+          step={guideStep}
+          setupOpen={Boolean(setupProject)}
+          onStep={setGuideStep}
+          onDone={finishGuide}
+          onNavigate={guideNavigate}
+        />
       </main>
     );
   }
@@ -853,6 +945,15 @@ function AppShell() {
           open={Boolean(setupProject)}
           project={setupProject ?? { id: '', name: '' }}
           onComplete={completeProjectSetup}
+        />
+        <GuidedTour
+          open={guideOpen}
+          page={guidePage}
+          step={guideStep}
+          setupOpen={Boolean(setupProject)}
+          onStep={setGuideStep}
+          onDone={finishGuide}
+          onNavigate={guideNavigate}
         />
       </div>
     );
@@ -1093,6 +1194,15 @@ function AppShell() {
         open={Boolean(setupProject)}
         project={setupProject ?? { id: '', name: '' }}
         onComplete={completeProjectSetup}
+      />
+      <GuidedTour
+        open={guideOpen}
+        page={guidePage}
+        step={guideStep}
+        setupOpen={Boolean(setupProject)}
+        onStep={setGuideStep}
+        onDone={finishGuide}
+        onNavigate={guideNavigate}
       />
       <WelcomeDialog
         open={welcomeOpen}

@@ -157,6 +157,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onStar
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
           <button
             type="button"
+            data-guide="dashboard-new-project"
             onClick={() => onNavigate('projects')}
             className="v-card v-card-lift flex min-h-[124px] flex-col items-start justify-between rounded-lg border-dashed bg-[var(--v-surface-2)] p-3.5"
           >

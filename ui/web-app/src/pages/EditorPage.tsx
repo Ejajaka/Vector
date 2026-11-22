@@ -2088,7 +2088,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     >
       {/* Top bar */}
       <header className="h-12 shrink-0 flex items-center gap-2 px-2 border-b border-white/10 bg-[#0F1011]">
-        <button type="button" onClick={onExit} className="w-8 h-8 rounded-md grid place-items-center text-white/60 hover:text-white hover:bg-white/10" aria-label="Back">
+        <button type="button" data-guide="editor-exit" onClick={onExit} className="w-8 h-8 rounded-md grid place-items-center text-white/60 hover:text-white hover:bg-white/10" aria-label="Back">
           <ArrowLeft className="w-4 h-4" />
         </button>
         <div className="w-6 h-6 rounded-md shrink-0" style={{ backgroundImage: 'linear-gradient(135deg,#5E6AD2,#828FFF)' }} />

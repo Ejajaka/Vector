@@ -225,6 +225,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
             </div>
             <button
               type="button"
+              data-guide="projects-new"
               onClick={() => setCreateOpen(true)}
               className="v-btn v-btn-primary h-8 px-3 text-[12.5px]"
             >
@@ -527,7 +528,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
       {createOpen && (
         <div className="fixed inset-0 z-[70] grid place-items-center p-4">
           <div className="absolute inset-0 bg-[#14121F]/50 backdrop-blur-sm" onClick={() => setCreateOpen(false)} aria-hidden="true" />
-          <form onSubmit={handleCreate} className="relative w-full max-w-[440px] v-card rounded-xl p-6 shadow-[var(--v-shadow-lg)]">
+          <form data-guide="create-modal" onSubmit={handleCreate} className="relative w-full max-w-[440px] v-card rounded-xl p-6 shadow-[var(--v-shadow-lg)]">
             <div className="flex items-start justify-between">
               <div>
                 <p className="v-eyebrow">New</p>
@@ -569,7 +570,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
                 <button type="button" onClick={() => setCreateOpen(false)} className="v-btn v-btn-ghost h-9 px-4 text-[12px]">
                   Cancel
                 </button>
-                <button type="submit" disabled={creating || !name.trim()} className="v-btn v-btn-primary h-9 px-4 text-[12px] disabled:opacity-60">
+                <button type="submit" data-guide="create-submit" disabled={creating || !name.trim()} className="v-btn v-btn-primary h-9 px-4 text-[12px] disabled:opacity-60">
                   {creating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
                   Create
                 </button>

@@ -8,6 +8,7 @@
  */
 
 import { env, pipeline } from '@huggingface/transformers';
+import { loadSettings } from './settings.ts';
 
 export interface LocalSTTProgress {
   percent: number;
@@ -83,6 +84,64 @@ export async function transcribeLocally(
     stride_length_s: 5,
   });
   return String(result?.text || '').trim();
+}
+
+function audioFileName(blob: Blob): string {
+  const type = (blob.type || '').toLowerCase();
+  if (type.includes('mp4') || type.includes('m4a')) return 'speech.m4a';
+  if (type.includes('ogg')) return 'speech.ogg';
+  if (type.includes('wav')) return 'speech.wav';
+  if (type.includes('mpeg') || type.includes('mp3')) return 'speech.mp3';
+  return 'speech.webm';
+}
+
+/**
+ * Whisper over the configured OpenAI-compatible provider (Groq by default).
+ * This is the reliable path: it needs no local model files and works on any
+ * network where the app can reach the provider.
+ */
+async function transcribeWithProvider(
+  blob: Blob,
+  onProgress?: LocalSTTProgressHandler
+): Promise<string | null> {
+  const settings = loadSettings();
+  const base = (settings.baseUrl || '').replace(/\/$/, '');
+  const key = settings.apiKey || '';
+  if (!base || !key || key === 'server-proxy') return null;
+  if (!/groq\.com|openai\.com|api\.groq|openrouter/i.test(base)) return null;
+
+  const model = /groq/i.test(base) ? 'whisper-large-v3-turbo' : 'whisper-1';
+  const form = new FormData();
+  form.append('file', blob, audioFileName(blob));
+  form.append('model', model);
+  form.append('language', 'en');
+  onProgress?.({ percent: 100, file: 'Whisper' });
+
+  try {
+    const response = await fetch(`${base}/audio/transcriptions`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}` },
+      body: form,
+    });
+    if (!response.ok) return null;
+    const body = await response.json();
+    return String(body?.text || '').trim();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Transcribe a recording. The hosted Whisper model is tried first, then the
+ * bundled on-device model when it is available in the deployment.
+ */
+export async function transcribeSpeech(
+  blob: Blob,
+  onProgress?: LocalSTTProgressHandler
+): Promise<string> {
+  const hosted = await transcribeWithProvider(blob, onProgress);
+  if (hosted) return hosted;
+  return transcribeLocally(blob, onProgress);
 }
 
 /** Preload the model so the first recording is faster. */

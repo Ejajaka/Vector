@@ -569,3 +569,17 @@ code, kbd, samp, pre {
 @media (prefers-reduced-motion: reduce) {
   .drawer-panel, .tool-swap { animation: none !important; }
 }
+
+/* Guided onboarding arrow */
+@keyframes v-guide-nudge {
+  0%, 100% { transform: translateX(-3px); }
+  50% { transform: translateX(7px); }
+}
+.v-guide-arrow {
+  animation: v-guide-nudge 1.15s cubic-bezier(.45, 0, .25, 1) infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v-guide-arrow { animation: none !important; }
+}

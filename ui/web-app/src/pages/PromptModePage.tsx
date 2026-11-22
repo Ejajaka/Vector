@@ -23,7 +23,7 @@ import { loadLearnedLexicon, saveLearnedPhrase } from '../services/lexicon.ts';
 import { loadSettings } from '../services/settings.ts';
 import { isLLMConfigured } from '../services/llmEngine.ts';
 import { parsePromptWithModel, type ModelParseResult } from '../services/semanticParser.ts';
-import { preloadLocalSTT, transcribeLocally } from '../services/localStt.ts';
+import { transcribeSpeech } from '../services/localStt.ts';
 import { SideBySideBuild } from '../components/generators/SideBySideBuild.tsx';
 import { WireframePreview } from '../components/editor/WireframePreview.tsx';
 import type { CanvasItem, CanvasItemType, CanvasPage } from '../data/canvas.ts';
@@ -482,7 +482,7 @@ export const PromptModePage: React.FC<Props> = ({
         setLocalVoiceState('transcribing');
         setLocalVoiceProgress('Transcribing on this device…');
         const blob = new Blob(mediaChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
-        void transcribeLocally(blob, (progress) => {
+        void transcribeSpeech(blob, (progress) => {
           setLocalVoiceProgress(
             progress.percent >= 100
               ? 'Transcribing locally…'
@@ -511,11 +511,7 @@ export const PromptModePage: React.FC<Props> = ({
           });
       };
       recorder.start(250);
-      // Warm the model while the user speaks so transcription starts sooner.
-      void preloadLocalSTT((progress) => {
-        if (progress.percent >= 100) return;
-        setLocalVoiceProgress(`Voice model · ${progress.percent}%`);
-      }).catch(() => undefined);
+      setLocalVoiceProgress('Recording…');
       // Safety stop so a forgotten recording cannot grow forever.
       localStopTimerRef.current = window.setTimeout(() => stopLocalVoice(), 60_000);
     } catch (error) {
@@ -1008,7 +1004,7 @@ export const PromptModePage: React.FC<Props> = ({
   return (
     <div className="mx-auto max-w-[1240px] space-y-4 v-fade-up">
       <header className="flex flex-wrap items-center gap-2">
-        <button type="button" onClick={onBack} className="v-icon-btn -ml-1" aria-label="Back">
+        <button type="button" data-guide="prompt-back" onClick={onBack} className="v-icon-btn -ml-1" aria-label="Back">
           <ArrowLeft className="w-4 h-4" />
         </button>
         <div className="min-w-0">
@@ -1038,7 +1034,7 @@ export const PromptModePage: React.FC<Props> = ({
                       ? 'border-[#FF7A59] bg-[#FF7A59]/10 text-[#C2410C]'
                       : 'border-[var(--v-line)] bg-[var(--v-surface)] text-[var(--v-muted)] hover:border-[var(--v-teal)] hover:text-[var(--v-teal)] disabled:opacity-50'
                   }`}
-                  title="Speak your prompt — recorded and transcribed on this device"
+                  title="Speak your prompt — record it and Whisper writes it here"
                   aria-label={localVoiceState === 'recording' ? 'Stop recording' : 'Speak your prompt'}
                 >
                   {localVoiceState === 'recording' ? (
@@ -1058,6 +1054,7 @@ export const PromptModePage: React.FC<Props> = ({
             </div>
             <textarea
               ref={textareaRef}
+              data-guide="prompt-input"
               value={text}
               onChange={(event) => setText(event.target.value)}
               rows={6}
@@ -1080,7 +1077,7 @@ export const PromptModePage: React.FC<Props> = ({
               <p className="mt-1 flex items-center gap-1.5 text-[10px] font-semibold text-[#C2410C]">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#FF7A59]" />
                 <span>
-                  Recording on this device… tap Stop &amp; transcribe when finished.
+                  Recording… tap Stop &amp; transcribe when finished.
                   {localVoiceProgress ? ` ${localVoiceProgress}` : ''}
                 </span>
               </p>
@@ -1088,13 +1085,13 @@ export const PromptModePage: React.FC<Props> = ({
             {localVoiceState === 'transcribing' && (
               <p className="mt-1 flex items-center gap-1.5 text-[10px] font-semibold text-[var(--v-muted)]">
                 <Loader2 className="h-3 w-3 animate-spin" />
-                {localVoiceProgress || 'Transcribing on this device…'}
+                {localVoiceProgress || 'Transcribing with Whisper…'}
               </p>
             )}
             {voiceError && <p className="mt-1 text-[10px] font-medium text-[#B94D42]">{voiceError}</p>}
             {!voiceSupported && !voiceError && (
               <p className="mt-1 text-[9.5px] leading-relaxed text-[var(--v-faint)]">
-                Browser speech capture needs Chrome or Edge. Use <b>Speak</b> to record and transcribe locally.
+                Use <b>Speak</b> to record your prompt and let Whisper type it for you.
               </p>
             )}
           </div>
@@ -1114,7 +1111,7 @@ export const PromptModePage: React.FC<Props> = ({
           </div>
 
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <button type="button" onClick={analyse} className="v-btn v-btn-primary h-9 px-4 text-[11.5px]">
+            <button type="button" data-guide="prompt-analyse" onClick={analyse} className="v-btn v-btn-primary h-9 px-4 text-[11.5px]">
               <Sparkles className="w-3.5 h-3.5" /> Analyse prompt
             </button>
             {submitted && (
@@ -1532,7 +1529,7 @@ export const PromptModePage: React.FC<Props> = ({
         </section>
 
         {/* ------------------------------------------------ artifact preview */}
-        <section className="rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] p-4">
+        <section data-guide="prompt-output" className="rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex rounded-full bg-[var(--v-surface-2)] p-0.5">
               {(['wireframe', 'prompt'] as const).map((option) => (
