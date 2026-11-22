@@ -29,7 +29,13 @@ export interface Peer {
 
 export interface CollabHandlers {
   onPeers: (peers: Peer[]) => void;
-  onDoc: (doc: { name: string; pages: CanvasPage[]; by: string }) => void;
+  onDoc: (doc: {
+    name: string;
+    pages: CanvasPage[];
+    by: string;
+    deletedItems?: string[];
+    deletedPages?: string[];
+  }) => void;
 }
 
 type Message =

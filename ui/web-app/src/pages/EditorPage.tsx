@@ -101,7 +101,7 @@ import {
   type Peer,
 } from '../services/collab.ts';
 import { ShareDialog } from '../components/collab/ShareDialog.tsx';
-import { loadSharedDoc, saveSharedDoc, decodeSharedCanvas } from '../services/sharedDocs.ts';
+import { loadSharedDoc, saveSharedDoc, decodeSharedCanvas, removedSince } from '../services/sharedDocs.ts';
 import { mergeCanvasPages } from '../services/canvasMerge.ts';
 import { PagePickerModal } from '../components/projects/PagePickerModal.tsx';
 import { ConnectDialog } from '../components/generators/ConnectDialog.tsx';
@@ -737,6 +737,9 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   const applyingRemote = useRef(false);
   const publishTimer = useRef<number | undefined>(undefined);
   const bootPagesRef = useRef<string | null>(null);
+  // Last canvas state this tab knows the room has seen. Deletions are the ids
+  // that disappeared from this snapshot.
+  const lastSharedSnapshot = useRef<{ name: string; pages: CanvasPage[] }>({ name, pages });
   const lastCursor = useRef(0);
   const dragRef = useRef<{
     id: string;
@@ -849,7 +852,11 @@ export const EditorPage: React.FC<EditorPageProps> = ({
       onDoc: (doc) => {
         applyingRemote.current = true;
         sharedReady.current = true;
-        const merged = mergeCanvasPages(docRef.current.pages, doc.pages);
+        const merged = mergeCanvasPages(docRef.current.pages, doc.pages, {
+          deletedItems: doc.deletedItems,
+          deletedPages: doc.deletedPages,
+        });
+        lastSharedSnapshot.current = { name: doc.name, pages: merged };
         setName(doc.name);
         setPages(merged);
         setActivePageId((current) => (merged.some((page) => page.id === current) ? current : merged[0]?.id || ''));
@@ -893,7 +900,11 @@ export const EditorPage: React.FC<EditorPageProps> = ({
       if (cancelled) return;
       if (doc) {
         applyingRemote.current = true;
-        const merged = mergeCanvasPages(docRef.current.pages, doc.pages);
+        const merged = mergeCanvasPages(docRef.current.pages, doc.pages, {
+          deletedItems: doc.deletedItems,
+          deletedPages: doc.deletedPages,
+        });
+        lastSharedSnapshot.current = { name: doc.name, pages: merged };
         setName(doc.name);
         setPages(merged);
         setActivePageId((current) => (merged.some((page) => page.id === current) ? current : merged[0]?.id || ''));
@@ -913,11 +924,15 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     if (!sharedMode || viewOnly) return;
     if (bootPagesRef.current !== null && JSON.stringify(pages) === bootPagesRef.current) return;
     const timer = window.setTimeout(() => {
+      const removed = removedSince(lastSharedSnapshot.current, { pages });
       void saveSharedDoc(room, {
         name,
         pages,
+        ...removed,
         ownerId: sharedOwner || user?.id || null,
         projectId: sharedProject || projectId || null,
+      }).then(() => {
+        lastSharedSnapshot.current = { name, pages };
       });
     }, 700);
     return () => window.clearTimeout(timer);
@@ -929,11 +944,15 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     if (!projectId || sharedMode) return;
     const roomId = projectRoom(projectId);
     const timer = window.setTimeout(() => {
+      const removed = removedSince(lastSharedSnapshot.current, { pages });
       void saveSharedDoc(roomId, {
         name,
         pages,
+        ...removed,
         ownerId: user?.id || null,
         projectId,
+      }).then(() => {
+        lastSharedSnapshot.current = { name, pages };
       });
     }, 900);
     return () => window.clearTimeout(timer);
@@ -951,7 +970,11 @@ export const EditorPage: React.FC<EditorPageProps> = ({
       const current = docRef.current;
       if (remote.name === current.name && JSON.stringify(remote.pages) === JSON.stringify(current.pages)) return;
       applyingRemote.current = true;
-      const merged = mergeCanvasPages(docRef.current.pages, remote.pages);
+      const merged = mergeCanvasPages(docRef.current.pages, remote.pages, {
+        deletedItems: remote.deletedItems,
+        deletedPages: remote.deletedPages,
+      });
+      lastSharedSnapshot.current = { name: remote.name, pages: merged };
       setName(remote.name);
       setPages(merged);
       setActivePageId((current) => (merged.some((page) => page.id === current) ? current : merged[0]?.id || ''));
@@ -978,7 +1001,11 @@ export const EditorPage: React.FC<EditorPageProps> = ({
         const current = docRef.current;
         if (doc.name === current.name && JSON.stringify(doc.pages) === JSON.stringify(current.pages)) return;
         applyingRemote.current = true;
-        const merged = mergeCanvasPages(docRef.current.pages, doc.pages);
+        const merged = mergeCanvasPages(docRef.current.pages, doc.pages, {
+          deletedItems: doc.deletedItems,
+          deletedPages: doc.deletedPages,
+        });
+        lastSharedSnapshot.current = { name: doc.name, pages: merged };
         setName(doc.name);
         setPages(merged);
         setActivePageId((current) => (merged.some((page) => page.id === current) ? current : merged[0]?.id || ''));

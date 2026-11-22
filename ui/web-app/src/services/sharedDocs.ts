@@ -6,6 +6,17 @@ export interface SharedDoc {
   pages: CanvasPage[];
   ownerId?: string | null;
   projectId?: string | null;
+  /** Element ids that were deliberately removed from the room. */
+  deletedItems?: string[];
+  /** Page ids that were deliberately removed from the room. */
+  deletedPages?: string[];
+}
+
+function tombstones(doc: SharedDoc): { deletedItems: string[]; deletedPages: string[] } {
+  return {
+    deletedItems: Array.isArray(doc.deletedItems) ? doc.deletedItems.map(String) : [],
+    deletedPages: Array.isArray(doc.deletedPages) ? doc.deletedPages.map(String) : [],
+  };
 }
 
 /**
@@ -14,7 +25,12 @@ export interface SharedDoc {
  * not deployed or the room has not been seeded yet.
  */
 export function encodeSharedCanvas(doc: SharedDoc): string {
-  const json = JSON.stringify({ name: doc.name, pages: doc.pages, ownerId: doc.ownerId || null, projectId: doc.projectId || null });
+  const json = JSON.stringify({
+    name: doc.name,
+    pages: doc.pages,
+    ownerId: doc.ownerId || null,
+    projectId: doc.projectId || null,
+  });
   const bytes = new TextEncoder().encode(json);
   let binary = '';
   const chunk = 0x8000;
@@ -60,6 +76,8 @@ export async function loadSharedDoc(room: string): Promise<SharedDoc | null> {
           pages: doc.pages as CanvasPage[],
           ownerId: doc.ownerId || null,
           projectId: doc.projectId || projectId || null,
+          deletedItems: Array.isArray(doc.deletedItems) ? doc.deletedItems.map(String) : [],
+          deletedPages: Array.isArray(doc.deletedPages) ? doc.deletedPages.map(String) : [],
         };
       }
     }
@@ -89,12 +107,13 @@ export async function saveSharedDoc(
   doc: SharedDoc,
 ): Promise<void> {
   if (!room) return;
+  const removed = tombstones(doc);
   try {
     const response = await fetch('/api/share', {
       method: 'POST',
       cache: 'no-store',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ room, ...doc }),
+      body: JSON.stringify({ room, ...doc, ...removed }),
     });
     if (response.ok) return;
   } catch {
@@ -113,4 +132,21 @@ export async function saveSharedDoc(
     },
     { onConflict: 'room' },
   );
+}
+
+/** Ids that existed in `previous` but are gone from `next`. */
+export function removedSince(
+  previous: { pages: CanvasPage[] },
+  next: { pages: CanvasPage[] },
+): { deletedItems: string[]; deletedPages: string[] } {
+  const previousItems = new Set<string>();
+  previous.pages.forEach((page) => page.items.forEach((item) => previousItems.add(String(item.id))));
+  const nextItems = new Set<string>();
+  next.pages.forEach((page) => page.items.forEach((item) => nextItems.add(String(item.id))));
+  const previousPages = new Set(previous.pages.map((page) => String(page.id)));
+  const nextPages = new Set(next.pages.map((page) => String(page.id)));
+  return {
+    deletedItems: Array.from(previousItems).filter((id) => !nextItems.has(id)),
+    deletedPages: Array.from(previousPages).filter((id) => !nextPages.has(id)),
+  };
 }

@@ -33,9 +33,30 @@ function mergeDocs(previous: any, incoming: any) {
   };
   for (const page of previous?.pages || []) addPage(page);
   for (const page of incoming?.pages || []) addPage(page);
+
+  // Tombstones are permanent for the room: an element or page id is removed
+  // only when an editor deliberately deletes it.
+  const deletedItems = new Set<string>([
+    ...(Array.isArray(previous?.deletedItems) ? previous.deletedItems : []),
+    ...(Array.isArray(incoming?.deletedItems) ? incoming.deletedItems : []),
+  ].map(String));
+  const deletedPages = new Set<string>([
+    ...(Array.isArray(previous?.deletedPages) ? previous.deletedPages : []),
+    ...(Array.isArray(incoming?.deletedPages) ? incoming.deletedPages : []),
+  ].map(String));
+
+  const mergedPages = Array.from(pages.values())
+    .filter((page) => !deletedPages.has(String(page?.id)) && !deletedPages.has(String(page?.name)))
+    .map((page) => ({
+      ...page,
+      items: (page.items || []).filter((item: any) => !deletedItems.has(String(item?.id))),
+    }));
+
   return {
     ...incoming,
-    pages: Array.from(pages.values()),
+    pages: mergedPages,
+    deletedItems: Array.from(deletedItems).slice(-4000),
+    deletedPages: Array.from(deletedPages).slice(-500),
     updatedAt: new Date().toISOString(),
   };
 }
@@ -80,6 +101,8 @@ export default async function handler(req: any, res: any) {
         pages,
         ownerId: body.ownerId || null,
         projectId,
+        deletedItems: Array.isArray(body.deletedItems) ? body.deletedItems.map(String) : [],
+        deletedPages: Array.isArray(body.deletedPages) ? body.deletedPages.map(String) : [],
         updatedAt: new Date().toISOString(),
       };
       const { data: existing } = await client
