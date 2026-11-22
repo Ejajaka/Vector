@@ -20,6 +20,24 @@ function tombstones(doc: SharedDoc): { deletedItems: string[]; deletedPages: str
 }
 
 /**
+ * Collaboration requests must never hang. A stalled request used to hold the
+ * poll lock and stop canvas updates until the browser gave up (sometimes 20s).
+ */
+export async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+  timeoutMs = 5000,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
  * A share link can carry the canvas snapshot itself. This keeps the recipient
  * on the same page as the sender even when the optional shared-doc table is
  * not deployed or the room has not been seeded yet.
@@ -66,7 +84,7 @@ export async function loadSharedDoc(room: string): Promise<SharedDoc | null> {
     url.searchParams.set('room', room);
     const projectId = room.startsWith('project_') ? room.slice('project_'.length) : '';
     if (projectId) url.searchParams.set('projectId', projectId);
-    const response = await fetch(url.toString(), { cache: 'no-store', headers: { Accept: 'application/json' } });
+    const response = await fetchWithTimeout(url.toString(), { cache: 'no-store', headers: { Accept: 'application/json' } });
     if (response.ok) {
       const body = await response.json();
       const doc = body?.doc;
@@ -86,20 +104,29 @@ export async function loadSharedDoc(room: string): Promise<SharedDoc | null> {
   }
 
   if (!isSupabaseConfigured || !supabase) return null;
-  const { data, error } = await supabase
-    .from('shared_project_docs')
-    .select('name, pages, owner_id, project_id')
-    .eq('room', room)
-    .maybeSingle();
-  if (error || !data) return null;
-  const pages = Array.isArray(data.pages) ? (data.pages as CanvasPage[]) : [];
-  if (!pages.length) return null;
-  return {
-    name: String(data.name || 'Shared screen'),
-    pages,
-    ownerId: data.owner_id || null,
-    projectId: data.project_id || null,
-  };
+  try {
+    const result = await Promise.race([
+      supabase
+        .from('shared_project_docs')
+        .select('name, pages, owner_id, project_id')
+        .eq('room', room)
+        .maybeSingle(),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
+    ]);
+    if (!result) return null;
+    const { data, error } = result;
+    if (error || !data) return null;
+    const pages = Array.isArray(data.pages) ? (data.pages as CanvasPage[]) : [];
+    if (!pages.length) return null;
+    return {
+      name: String(data.name || 'Shared screen'),
+      pages,
+      ownerId: data.owner_id || null,
+      projectId: data.project_id || null,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export async function saveSharedDoc(
@@ -109,12 +136,12 @@ export async function saveSharedDoc(
   if (!room) return;
   const removed = tombstones(doc);
   try {
-    const response = await fetch('/api/share', {
+    const response = await fetchWithTimeout('/api/share', {
       method: 'POST',
       cache: 'no-store',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ room, ...doc, ...removed }),
-    });
+    }, 7000);
     if (response.ok) return;
   } catch {
     // Fall back to the table.

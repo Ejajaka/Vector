@@ -89,6 +89,7 @@ export class CollabSession {
   private heartbeat: number | null = null;
   private sweep: number | null = null;
   private presenceTimer: number | null = null;
+  private presencePinging = false;
   private serverPeers = new Map<string, Peer>();
   private serverMissing = new Map<string, number>();
   private serverPresenceAt = 0;
@@ -134,41 +135,47 @@ export class CollabSession {
    * people who pinged within the last few seconds.
    */
   private async pingServerPresence(): Promise<void> {
-    const result = await pingPresence(this.room, this.me);
-    if (!result.ok) {
-      if (Date.now() - this.serverPresenceAt > 30_000) {
-        this.serverPeers = new Map();
-        this.serverPresenceAt = 0;
-        this.emit();
-      }
-      return;
-    }
-    const next = new Map<string, Peer>();
-    const now = Date.now();
-    const seen = new Set<string>();
-    result.peers.forEach((peer) => {
-      if (!peer?.id || peer.id === this.me.id) return;
-      seen.add(peer.id);
-      next.set(peer.id, { ...peer, lastSeen: now });
-    });
-    // Keep someone visible through a single missed heartbeat or a flaky read;
-    // remove them only when they have been absent for a couple of polls.
-    this.serverPeers.forEach((peer, id) => {
-      if (seen.has(id)) {
-        this.serverMissing.delete(id);
-        next.set(id, peer);
+    if (this.presencePinging) return;
+    this.presencePinging = true;
+    try {
+      const result = await pingPresence(this.room, this.me);
+      if (!result.ok) {
+        if (Date.now() - this.serverPresenceAt > 30_000) {
+          this.serverPeers = new Map();
+          this.serverPresenceAt = 0;
+          this.emit();
+        }
         return;
       }
-      const missingSince = this.serverMissing.get(id) || now;
-      this.serverMissing.set(id, missingSince);
-      if (now - missingSince < 10_000) next.set(id, peer);
-    });
-    for (const id of Array.from(this.serverMissing.keys())) {
-      if (!next.has(id)) this.serverMissing.delete(id);
+      const next = new Map<string, Peer>();
+      const now = Date.now();
+      const seen = new Set<string>();
+      result.peers.forEach((peer) => {
+        if (!peer?.id || peer.id === this.me.id) return;
+        seen.add(peer.id);
+        next.set(peer.id, { ...peer, lastSeen: now });
+      });
+      // Keep someone visible through a single missed heartbeat or a flaky read;
+      // remove them only when they have been absent for a couple of polls.
+      this.serverPeers.forEach((peer, id) => {
+        if (seen.has(id)) {
+          this.serverMissing.delete(id);
+          next.set(id, peer);
+          return;
+        }
+        const missingSince = this.serverMissing.get(id) || now;
+        this.serverMissing.set(id, missingSince);
+        if (now - missingSince < 10_000) next.set(id, peer);
+      });
+      for (const id of Array.from(this.serverMissing.keys())) {
+        if (!next.has(id)) this.serverMissing.delete(id);
+      }
+      this.serverPeers = next;
+      this.serverPresenceAt = now;
+      this.emit();
+    } finally {
+      this.presencePinging = false;
     }
-    this.serverPeers = next;
-    this.serverPresenceAt = now;
-    this.emit();
   }
 
   private syncRealtimePresence(): void {

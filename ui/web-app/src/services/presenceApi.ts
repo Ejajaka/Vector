@@ -1,4 +1,5 @@
 import type { Peer } from './collab.ts';
+import { fetchWithTimeout } from './sharedDocs.ts';
 
 export interface PresenceResult {
   ok: boolean;
@@ -13,7 +14,7 @@ export interface PresenceResult {
 export async function pingPresence(room: string, peer: Peer): Promise<PresenceResult> {
   if (!room || !peer?.id) return { ok: false, peers: [] };
   try {
-    const response = await fetch('/api/presence', {
+    const response = await fetchWithTimeout('/api/presence', {
       method: 'POST',
       cache: 'no-store',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -23,7 +24,7 @@ export async function pingPresence(room: string, peer: Peer): Promise<PresenceRe
         name: peer.name,
         colour: peer.colour,
       }),
-    });
+    }, 5000);
     if (!response.ok) return { ok: false, peers: [] };
     const body = await response.json();
     const peers = Array.isArray(body?.peers) ? (body.peers as Peer[]) : [];
