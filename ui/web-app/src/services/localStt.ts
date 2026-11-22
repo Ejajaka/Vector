@@ -117,17 +117,22 @@ async function transcribeWithProvider(
   form.append('language', 'en');
   onProgress?.({ percent: 100, file: 'Whisper' });
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 30_000);
   try {
     const response = await fetch(`${base}/audio/transcriptions`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}` },
       body: form,
+      signal: controller.signal,
     });
     if (!response.ok) return null;
     const body = await response.json();
     return String(body?.text || '').trim();
   } catch {
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
 

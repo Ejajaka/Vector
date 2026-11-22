@@ -1010,7 +1010,7 @@ export const PromptModePage: React.FC<Props> = ({
         <div className="min-w-0">
           <h1 className="truncate text-[16px] font-semibold text-[var(--v-ink)]">{projectName}</h1>
           <p className="text-[10.5px] text-[var(--v-faint)]">
-            Prompt mode · deterministic engine · {screens.length > 1 ? `${screens.length} pages · ` : ''}optional local model
+            Prompt mode · deterministic engine · {screens.length > 1 ? `${screens.length} pages · ` : ''}voice by Whisper
           </p>
         </div>
         <button type="button" onClick={openCanvas} className="ml-auto v-btn v-btn-ghost h-8 px-3 text-[11px]">
