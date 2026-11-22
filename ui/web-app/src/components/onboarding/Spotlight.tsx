@@ -101,7 +101,7 @@ export const Spotlight: React.FC<SpotlightProps> = ({
   onDismiss,
 }) => {
   return (
-    <div className="pointer-events-none fixed bottom-4 right-4 z-[92]" role="dialog" aria-modal="false" aria-labelledby="spotlight-title">
+    <div data-spotlight-card className="pointer-events-none fixed bottom-4 right-4 z-[92]" role="dialog" aria-modal="false" aria-labelledby="spotlight-title">
       <div className="pointer-events-auto w-[320px] overflow-hidden rounded-lg border border-[var(--v-line)] bg-[var(--v-surface)] shadow-[0_30px_70px_-20px_rgba(0,0,0,.85)]">
         <div className="flex items-center justify-between px-4 pt-3">
           <p id="spotlight-title" className="text-[12.5px] font-semibold text-[var(--v-ink)]">

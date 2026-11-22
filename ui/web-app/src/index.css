@@ -583,3 +583,8 @@ code, kbd, samp, pre {
 @media (prefers-reduced-motion: reduce) {
   .v-guide-arrow { animation: none !important; }
 }
+
+/* The guided setup owns the screen while it runs. */
+body[data-onboarding="open"] [data-spotlight-card] {
+  display: none !important;
+}

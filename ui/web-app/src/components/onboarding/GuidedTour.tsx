@@ -199,6 +199,7 @@ interface CardPosition {
   left: number;
   width: number;
   centred: boolean;
+  placement: 'left' | 'right' | 'top' | 'bottom' | 'centre';
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -215,6 +216,7 @@ function placeCard(rect: Rect | null, preferred?: GuideStep['placement']): CardP
       left: vw / 2 - width / 2,
       width,
       centred: true,
+      placement: 'centre',
     };
   }
 
@@ -243,6 +245,7 @@ function placeCard(rect: Rect | null, preferred?: GuideStep['placement']): CardP
       left: clamp(rect.left + rect.width + CARD_GAP, 12, vw - width - 12),
       width,
       centred: false,
+      placement: 'right',
     };
   }
   if (chosen.placement === 'left') {
@@ -251,6 +254,7 @@ function placeCard(rect: Rect | null, preferred?: GuideStep['placement']): CardP
       left: clamp(rect.left - width - CARD_GAP, 12, vw - width - 12),
       width,
       centred: false,
+      placement: 'left',
     };
   }
   if (chosen.placement === 'top') {
@@ -259,6 +263,7 @@ function placeCard(rect: Rect | null, preferred?: GuideStep['placement']): CardP
       left: centredX,
       width,
       centred: false,
+      placement: 'top',
     };
   }
   return {
@@ -266,6 +271,7 @@ function placeCard(rect: Rect | null, preferred?: GuideStep['placement']): CardP
     left: centredX,
     width,
     centred: false,
+    placement: 'bottom',
   };
 }
 
@@ -301,6 +307,14 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({
   }, [onDone, onStep, step]);
 
   nextRef.current = next;
+
+  useEffect(() => {
+    if (!open) return;
+    document.body.dataset.onboarding = 'open';
+    return () => {
+      delete document.body.dataset.onboarding;
+    };
+  }, [open]);
 
   // Track the highlighted element (the layout changes while pages animate).
   useEffect(() => {
@@ -410,17 +424,13 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({
   const onOtherPage = current.page !== page;
 
   const arrow = (() => {
-    if (!rect || card.centred) return null;
-    const cardCenter = { x: card.left + card.width / 2, y: card.top + CARD_HEIGHT_ESTIMATE / 2 };
-    const targetCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-    const dx = targetCenter.x - cardCenter.x;
-    const dy = targetCenter.y - cardCenter.y;
-    const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
-    return {
-      left: cardCenter.x + dx * 0.62,
-      top: cardCenter.y + dy * 0.62,
-      angle,
-    };
+    if (!rect || card.placement === 'centre') return null;
+    const centreY = clamp(rect.top + rect.height / 2, rect.top + 18, rect.top + rect.height - 18);
+    const centreX = clamp(rect.left + rect.width / 2, rect.left + 18, rect.left + rect.width - 18);
+    if (card.placement === 'left') return { left: rect.left - 24, top: centreY, angle: 0 };
+    if (card.placement === 'right') return { left: rect.left + rect.width + 24, top: centreY, angle: 180 };
+    if (card.placement === 'top') return { left: centreX, top: rect.top - 24, angle: 90 };
+    return { left: centreX, top: rect.top + rect.height + 24, angle: -90 };
   })();
 
   return (
@@ -448,6 +458,7 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({
           style={{
             left: arrow.left,
             top: arrow.top,
+            zIndex: 2,
             transform: `translate(-50%, -50%) rotate(${arrow.angle}deg)`,
           }}
         >
@@ -467,6 +478,7 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({
           left: card.left,
           width: card.width,
           maxHeight: 'calc(100vh - 24px)',
+          zIndex: 1,
           pointerEvents: 'auto',
           transition: 'top .3s cubic-bezier(.16,1,.3,1), left .3s cubic-bezier(.16,1,.3,1)',
         }}

@@ -18,7 +18,10 @@ export const SpotlightHost: React.FC<SpotlightHostProps> = ({ page, delay = 1200
 
   useEffect(() => {
     setCurrent(null);
-    const timer = window.setTimeout(() => setCurrent(nextSpotlight(page)), delay);
+    const timer = window.setTimeout(() => {
+      if (document.body.dataset.onboarding === 'open') return;
+      setCurrent(nextSpotlight(page));
+    }, delay);
     return () => window.clearTimeout(timer);
   }, [page, delay]);
 
