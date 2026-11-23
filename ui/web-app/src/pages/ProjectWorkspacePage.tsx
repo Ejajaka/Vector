@@ -448,6 +448,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   const [base44Visible, setBase44Visible] = useState(false);
   const [base44Fullscreen, setBase44Fullscreen] = useState(false);
   const [base44Guard, setBase44Guard] = useState(true);
+  const [base44GuardHint, setBase44GuardHint] = useState(false);
   const base44FrameRef = useRef<HTMLDivElement | null>(null);
   const scrollSectionRef = useRef<HTMLElement | null>(null);
   const base44ScrollTopRef = useRef(0);
@@ -1023,6 +1024,14 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [base44Fullscreen]);
+
+  // The guard is a login-time nudge, not a permanent wall. It also clears
+  // itself so a signed-in Base44 dashboard is never blocked for long.
+  useEffect(() => {
+    if (!base44Guard) return;
+    const timer = window.setTimeout(() => setBase44Guard(false), 90_000);
+    return () => window.clearTimeout(timer);
+  }, [base44Guard]);
 
   // Load Base44 only when the section is actually on screen. Its sign-in page
   // autofocuses the email field, and a cross-origin frame loading below the
@@ -1704,24 +1713,36 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                 )}
                 {base44Visible && base44Loaded && base44Guard && (
                   <div
-                    className="absolute z-20 flex items-center justify-center rounded-xl border border-[var(--v-line)] bg-[var(--v-surface)] px-4"
+                    data-base44-guard
+                    className="absolute z-20"
                     style={{ left: '5%', right: '5%', top: '27%', height: '37%' }}
+                    onMouseEnter={() => setBase44GuardHint(true)}
+                    onMouseLeave={() => setBase44GuardHint(false)}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      setBase44GuardHint(true);
+                    }}
                     title="Social sign-in is disabled inside the embedded builder. Use email and password."
                   >
-                    <div className="w-full max-w-[420px] rounded-xl border border-[#7C5CFF]/35 bg-[var(--v-surface)]/97 p-3 text-center shadow-[0_18px_50px_-20px_rgba(0,0,0,.8)] backdrop-blur-sm">
-                      <p className="text-[11px] font-semibold text-[var(--v-ink)]">Use email and password to sign in</p>
-                      <p className="mt-1 text-[9.5px] leading-relaxed text-[var(--v-muted)]">
-                        Google, GitHub and Apple sign-in are disabled inside this embedded builder. Sign in with your
-                        Base44 email below, then press hide.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => setBase44Guard(false)}
-                        className="mt-2 h-7 rounded-md border border-[var(--v-line)] bg-[var(--v-surface-2)] px-2.5 text-[9.5px] font-semibold text-[var(--v-ink)] hover:border-[var(--v-violet)]"
-                      >
-                        I'm signed in · hide
-                      </button>
-                    </div>
+                    {base44GuardHint && (
+                      <div className="absolute left-1/2 top-1/2 w-[min(320px,90%)] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-[#7C5CFF]/35 bg-[var(--v-surface)]/98 p-2.5 text-center shadow-[0_18px_50px_-20px_rgba(0,0,0,.8)]">
+                        <p className="text-[10.5px] font-semibold text-[var(--v-ink)]">Use email and password to sign in</p>
+                        <p className="mt-1 text-[9px] leading-relaxed text-[var(--v-muted)]">
+                          Google, GitHub and Apple sign-in are disabled inside this embedded builder.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setBase44Guard(false);
+                          }}
+                          className="mt-1.5 h-6 rounded-md border border-[var(--v-line)] bg-[var(--v-surface-2)] px-2 text-[9px] font-semibold text-[var(--v-ink)] hover:border-[var(--v-violet)]"
+                        >
+                          Hide guard
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
                 {base44Visible && (
