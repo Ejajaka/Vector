@@ -3,6 +3,9 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 const url = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim() || '';
 const anonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim() || '';
 
+export const supabaseUrl = url;
+export const supabaseAnonKey = anonKey;
+
 /**
  * The anon key is intentionally public. Never put a service-role key in a
  * VITE_* variable: every VITE variable is shipped to the browser.

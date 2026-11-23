@@ -1,18 +1,21 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
   Check,
   Eye,
   EyeOff,
+  Github,
   KeyRound,
+  Linkedin,
   Loader2,
   LockKeyhole,
   Mail,
   Sparkles,
   UserPlus,
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext.tsx';
+import { useAuth, type OAuthProvider } from '../../context/AuthContext.tsx';
+import { isSupabaseConfigured, supabaseAnonKey, supabaseUrl } from '../../services/supabase/client.ts';
 import { Logo } from '../ui/Logo.tsx';
 
 type Mode = 'login' | 'register' | 'reset';
@@ -29,9 +32,50 @@ const HIGHLIGHTS = [
   'Six-section design briefs with design tokens',
 ];
 
+const OAUTH_PROVIDERS: Array<{ id: OAuthProvider; label: string }> = [
+  { id: 'google', label: 'Google' },
+  { id: 'apple', label: 'Apple' },
+  { id: 'github', label: 'GitHub' },
+  { id: 'azure', label: 'Microsoft' },
+  { id: 'linkedin_oidc', label: 'LinkedIn' },
+];
+
+const ProviderIcon: React.FC<{ provider: OAuthProvider }> = ({ provider }) => {
+  if (provider === 'google') {
+    return (
+      <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+        <path fill="#4285F4" d="M21.6 12.23c0-.68-.06-1.33-.17-1.96H12v3.71h5.38a4.6 4.6 0 0 1-2 3.02v2.5h3.24c1.9-1.75 2.98-4.33 2.98-7.27Z" />
+        <path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.62-2.44l-3.24-2.5c-.9.6-2.05.96-3.38.96-2.6 0-4.81-1.76-5.6-4.12H3.06v2.58A10 10 0 0 0 12 22Z" />
+        <path fill="#FBBC05" d="M6.4 13.9a6 6 0 0 1 0-3.8V7.52H3.06a10 10 0 0 0 0 8.96L6.4 13.9Z" />
+        <path fill="#EA4335" d="M12 5.98c1.47 0 2.79.5 3.83 1.5l2.87-2.87A9.6 9.6 0 0 0 12 2a10 10 0 0 0-8.94 5.52L6.4 10.1C7.19 7.74 9.4 5.98 12 5.98Z" />
+      </svg>
+    );
+  }
+  if (provider === 'apple') {
+    return (
+      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
+        <path d="M16.36 12.8c.02-2.06 1.68-3.05 1.76-3.1-.96-1.4-2.45-1.6-2.98-1.62-1.27-.13-2.48.75-3.12.75-.65 0-1.64-.73-2.7-.71-1.39.02-2.67.81-3.39 2.06-1.45 2.51-.37 6.22 1.04 8.26.69.99 1.51 2.1 2.58 2.06 1.04-.04 1.43-.67 2.69-.67 1.25 0 1.61.67 2.71.65 1.12-.02 1.83-1.01 2.51-2 .79-1.15 1.12-2.26 1.14-2.32-.03-.01-2.18-.84-2.2-3.36ZM14.3 6.77c.57-.69.96-1.65.85-2.6-.82.03-1.82.55-2.41 1.23-.53.61-1 1.59-.87 2.52.92.07 1.86-.47 2.43-1.15Z" />
+      </svg>
+    );
+  }
+  if (provider === 'github') return <Github className="h-4 w-4" aria-hidden="true" />;
+  if (provider === 'azure') {
+    return (
+      <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+        <path fill="#F25022" d="M3 3h8v8H3z" />
+        <path fill="#7FBA00" d="M13 3h8v8h-8z" />
+        <path fill="#00A4EF" d="M3 13h8v8H3z" />
+        <path fill="#FFB900" d="M13 13h8v8h-8z" />
+      </svg>
+    );
+  }
+  return <Linkedin className="h-4 w-4" aria-hidden="true" />;
+};
+
 export const AuthPage: React.FC<AuthPageProps> = ({ onBack, initialMode = 'login' }) => {
-  const { signIn, signUp, resetPassword } = useAuth();
+  const { signIn, signInWithProvider, sendMagicLink, signUp, resetPassword } = useAuth();
   const [mode, setMode] = useState<Mode>(initialMode);
+  const [providers, setProviders] = useState<Array<{ id: OAuthProvider; label: string }>>([]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -39,6 +83,59 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack, initialMode = 'login
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  // Only show providers that are actually enabled in Supabase, so nobody
+  // clicks a button that dead-ends on the provider setup page.
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabaseUrl || !supabaseAnonKey) return;
+    let active = true;
+    fetch(`${supabaseUrl}/auth/v1/settings`, { headers: { apikey: supabaseAnonKey } })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body) => {
+        if (!active) return;
+        const external = body?.external || {};
+        setProviders(OAUTH_PROVIDERS.filter((provider) => external[provider.id]));
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const oauth = async (provider: OAuthProvider) => {
+    if (busy) return;
+    setBusy(true);
+    setError('');
+    setNotice('');
+    try {
+      await signInWithProvider(provider);
+    } catch (e: any) {
+      setError(e?.message || 'Could not start that sign-in. Try email instead.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const emailLink = async () => {
+    if (busy) return;
+    if (!email.trim()) {
+      setError('Enter your email first, then request the link.');
+      return;
+    }
+    setBusy(true);
+    setError('');
+    setNotice('');
+    try {
+      await sendMagicLink(email.trim());
+      setNotice(
+        `Check ${email.trim()} for a ${mode === 'register' ? 'sign-up' : 'sign-in'} link. It works once and expires shortly.`,
+      );
+    } catch (e: any) {
+      setError(e?.message || 'Could not send the email link.');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -219,6 +316,30 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack, initialMode = 'login
               </p>
             </div>
 
+            {providers.length > 0 && mode !== 'reset' && (
+              <div className="mb-5 space-y-2">
+                {providers.map((provider) => (
+                  <button
+                    key={provider.id}
+                    type="button"
+                    onClick={() => void oauth(provider.id)}
+                    disabled={busy}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-[#E5E2D8] dark:border-[#33403F] bg-white dark:bg-[#1B2526] px-4 py-2.5 text-sm font-semibold text-[#283638] dark:text-[#E7E4D9] transition-colors hover:border-[#49686C]/50 hover:bg-[#FAFAF8] dark:hover:bg-[#223031] disabled:opacity-60"
+                  >
+                    <ProviderIcon provider={provider.id} />
+                    Continue with {provider.label}
+                  </button>
+                ))}
+                <div className="flex items-center gap-3 py-1">
+                  <span className="h-px flex-1 bg-[#E5E2D8] dark:bg-[#33403F]" />
+                  <span className="text-[9.5px] font-semibold uppercase tracking-[0.14em] text-[#737A72] dark:text-[#8E9A93]">
+                    or with email
+                  </span>
+                  <span className="h-px flex-1 bg-[#E5E2D8] dark:bg-[#33403F]" />
+                </div>
+              </div>
+            )}
+
             <form onSubmit={submit} className="space-y-4">
               {mode === 'register' && (
                 <label className="block">
@@ -306,6 +427,18 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack, initialMode = 'login
                 )}
                 {mode === 'login' ? 'Sign in' : mode === 'register' ? 'Create account' : 'Send reset link'}
               </button>
+
+              {mode !== 'reset' && (
+                <button
+                  type="button"
+                  onClick={() => void emailLink()}
+                  disabled={busy}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-[#E5E2D8] dark:border-[#33403F] bg-transparent px-4 py-2.5 text-xs font-semibold text-[#49686C] dark:text-[#9DBEC1] transition-colors hover:bg-[#F6F4EC] dark:hover:bg-[#141C1D] disabled:opacity-60"
+                >
+                  <Mail className="h-3.5 w-3.5" />
+                  Email me a {mode === 'register' ? 'sign-up' : 'sign-in'} link
+                </button>
+              )}
             </form>
 
             <div className="mt-5 flex items-center justify-between gap-2">
