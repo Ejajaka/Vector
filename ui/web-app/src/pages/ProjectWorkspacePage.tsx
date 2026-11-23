@@ -1705,7 +1705,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                 {base44Visible && base44Loaded && base44Guard && (
                   <div
                     className="absolute z-20 flex items-center justify-center px-4"
-                    style={{ left: '5%', right: '5%', top: '18%', height: '25%' }}
+                    style={{ left: '5%', right: '5%', top: '27%', height: '37%' }}
                     title="Social sign-in is disabled inside the embedded builder. Use email and password."
                   >
                     <div className="w-full max-w-[420px] rounded-xl border border-[#7C5CFF]/35 bg-[var(--v-surface)]/97 p-3 text-center shadow-[0_18px_50px_-20px_rgba(0,0,0,.8)] backdrop-blur-sm">
