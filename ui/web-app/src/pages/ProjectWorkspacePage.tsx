@@ -447,6 +447,8 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   const [base44Loaded, setBase44Loaded] = useState(false);
   const [base44Visible, setBase44Visible] = useState(false);
   const [base44Fullscreen, setBase44Fullscreen] = useState(false);
+  const [base44Guard, setBase44Guard] = useState(true);
+  const base44LoadsRef = useRef(0);
   const base44FrameRef = useRef<HTMLDivElement | null>(null);
   const scrollSectionRef = useRef<HTMLElement | null>(null);
   const base44ScrollTopRef = useRef(0);
@@ -912,6 +914,8 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
 
   const reloadBase44 = () => {
     rememberBase44Scroll();
+    base44LoadsRef.current = 0;
+    setBase44Guard(true);
     setBase44Loaded(false);
     setBase44Key((value) => value + 1);
   };
@@ -946,6 +950,8 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     try {
       await doc.requestStorageAccessFor(origin);
       rememberBase44Scroll();
+    base44LoadsRef.current = 0;
+    setBase44Guard(true);
       setBase44Loaded(false);
       setBase44Key((value) => value + 1);
       notificationService.push({
@@ -998,7 +1004,11 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   // doing that below the fold can scroll its parent, so pin the workspace back
   // to where it was before the frame loaded.
   const handleBase44Load = () => {
+    base44LoadsRef.current += 1;
     setBase44Loaded(true);
+    // Load #1 is the Base44 sign-in screen. A later navigation is almost always
+    // the signed-in app, so the guard can stand down.
+    if (base44LoadsRef.current > 1) setBase44Guard(false);
     const restore = () => {
       const section = scrollSectionRef.current;
       if (section && Math.abs(section.scrollTop - base44ScrollTopRef.current) > 2) {
@@ -1056,6 +1066,8 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     setBase44PageDraft(saved);
     setBase44PageError('');
     rememberBase44Scroll();
+    base44LoadsRef.current = 0;
+    setBase44Guard(true);
     setBase44Loaded(false);
     setBase44Key((value) => value + 1);
   };
@@ -1695,6 +1707,28 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                     <div className="text-center">
                       <Loader2 className="mx-auto h-5 w-5 animate-spin text-[#7C5CFF]" />
                       <p className="mt-2 text-[10px] text-[var(--v-muted)]">Loading Base44…</p>
+                    </div>
+                  </div>
+                )}
+                {base44Visible && base44Loaded && base44Guard && (
+                  <div
+                    className="absolute z-20 flex items-center justify-center px-4"
+                    style={{ left: '5%', right: '5%', top: '18%', height: '25%' }}
+                    title="Social sign-in is disabled inside the embedded builder. Use email and password."
+                  >
+                    <div className="w-full max-w-[420px] rounded-xl border border-[#7C5CFF]/35 bg-[var(--v-surface)]/97 p-3 text-center shadow-[0_18px_50px_-20px_rgba(0,0,0,.8)] backdrop-blur-sm">
+                      <p className="text-[11px] font-semibold text-[var(--v-ink)]">Use email and password to sign in</p>
+                      <p className="mt-1 text-[9.5px] leading-relaxed text-[var(--v-muted)]">
+                        Google, GitHub and Apple sign-in are disabled inside this embedded builder. Sign in with your
+                        Base44 email below, then press hide.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setBase44Guard(false)}
+                        className="mt-2 h-7 rounded-md border border-[var(--v-line)] bg-[var(--v-surface-2)] px-2.5 text-[9.5px] font-semibold text-[var(--v-ink)] hover:border-[var(--v-violet)]"
+                      >
+                        I'm signed in · hide
+                      </button>
                     </div>
                   </div>
                 )}
