@@ -14,7 +14,6 @@ interface AuthContextValue {
   configured: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signInWithProvider: (provider: OAuthProvider) => Promise<void>;
-  sendMagicLink: (email: string) => Promise<void>;
   signUp: (email: string, password: string, displayName?: string) => Promise<{ needsConfirmation: boolean }>;
   resetPassword: (email: string) => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
@@ -84,16 +83,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (error) authError(error);
   }, []);
 
-  const sendMagicLink = useCallback(async (email: string) => {
-    if (!supabase) throw new Error('Connect Supabase to enable accounts.');
-    const emailRedirectTo = `${window.location.origin}${window.location.pathname}`;
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo, shouldCreateUser: true },
-    });
-    if (error) authError(error);
-  }, []);
-
   const signUp = useCallback(async (email: string, password: string, displayName?: string) => {
     if (!supabase) throw new Error('Connect Supabase to enable accounts.');
     const { data, error } = await supabase.auth.signUp({
@@ -136,7 +125,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       configured: isSupabaseConfigured,
       signIn,
       signInWithProvider,
-      sendMagicLink,
       signUp,
       resetPassword,
       updatePassword,
@@ -149,7 +137,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       passwordRecovery,
       signIn,
       signInWithProvider,
-      sendMagicLink,
       signUp,
       resetPassword,
       updatePassword,

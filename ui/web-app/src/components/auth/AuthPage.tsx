@@ -73,7 +73,7 @@ const ProviderIcon: React.FC<{ provider: OAuthProvider }> = ({ provider }) => {
 };
 
 export const AuthPage: React.FC<AuthPageProps> = ({ onBack, initialMode = 'login' }) => {
-  const { signIn, signInWithProvider, sendMagicLink, signUp, resetPassword } = useAuth();
+  const { signIn, signInWithProvider, signUp, resetPassword } = useAuth();
   const [mode, setMode] = useState<Mode>(initialMode);
   const [providers, setProviders] = useState<Array<{ id: OAuthProvider; label: string }>>([]);
   const [email, setEmail] = useState('');
@@ -111,27 +111,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack, initialMode = 'login
       await signInWithProvider(provider);
     } catch (e: any) {
       setError(e?.message || 'Could not start that sign-in. Try email instead.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const emailLink = async () => {
-    if (busy) return;
-    if (!email.trim()) {
-      setError('Enter your email first, then request the link.');
-      return;
-    }
-    setBusy(true);
-    setError('');
-    setNotice('');
-    try {
-      await sendMagicLink(email.trim());
-      setNotice(
-        `Check ${email.trim()} for a ${mode === 'register' ? 'sign-up' : 'sign-in'} link. It works once and expires shortly.`,
-      );
-    } catch (e: any) {
-      setError(e?.message || 'Could not send the email link.');
     } finally {
       setBusy(false);
     }
@@ -317,20 +296,23 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack, initialMode = 'login
             </div>
 
             {providers.length > 0 && mode !== 'reset' && (
-              <div className="mb-5 space-y-2">
-                {providers.map((provider) => (
-                  <button
-                    key={provider.id}
-                    type="button"
-                    onClick={() => void oauth(provider.id)}
-                    disabled={busy}
-                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-[#E5E2D8] dark:border-[#33403F] bg-white dark:bg-[#1B2526] px-4 py-2.5 text-sm font-semibold text-[#283638] dark:text-[#E7E4D9] transition-colors hover:border-[#49686C]/50 hover:bg-[#FAFAF8] dark:hover:bg-[#223031] disabled:opacity-60"
-                  >
-                    <ProviderIcon provider={provider.id} />
-                    Continue with {provider.label}
-                  </button>
-                ))}
-                <div className="flex items-center gap-3 py-1">
+              <div className="mb-5">
+                <div className={`grid gap-2 ${providers.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                  {providers.map((provider) => (
+                    <button
+                      key={provider.id}
+                      type="button"
+                      onClick={() => void oauth(provider.id)}
+                      disabled={busy}
+                      aria-label={`Continue with ${provider.label}`}
+                      className="inline-flex min-w-0 items-center justify-center gap-2 rounded-xl border border-[#E5E2D8] dark:border-[#33403F] bg-white dark:bg-[#1B2526] px-3 py-2.5 text-[13px] font-semibold text-[#283638] dark:text-[#E7E4D9] transition-colors hover:border-[#49686C]/50 hover:bg-[#FAFAF8] dark:hover:bg-[#223031] disabled:opacity-60"
+                    >
+                      <ProviderIcon provider={provider.id} />
+                      <span className="truncate">{provider.label}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-3 flex items-center gap-3">
                   <span className="h-px flex-1 bg-[#E5E2D8] dark:bg-[#33403F]" />
                   <span className="text-[9.5px] font-semibold uppercase tracking-[0.14em] text-[#737A72] dark:text-[#8E9A93]">
                     or with email
@@ -427,18 +409,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack, initialMode = 'login
                 )}
                 {mode === 'login' ? 'Sign in' : mode === 'register' ? 'Create account' : 'Send reset link'}
               </button>
-
-              {mode !== 'reset' && (
-                <button
-                  type="button"
-                  onClick={() => void emailLink()}
-                  disabled={busy}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-[#E5E2D8] dark:border-[#33403F] bg-transparent px-4 py-2.5 text-xs font-semibold text-[#49686C] dark:text-[#9DBEC1] transition-colors hover:bg-[#F6F4EC] dark:hover:bg-[#141C1D] disabled:opacity-60"
-                >
-                  <Mail className="h-3.5 w-3.5" />
-                  Email me a {mode === 'register' ? 'sign-up' : 'sign-in'} link
-                </button>
-              )}
             </form>
 
             <div className="mt-5 flex items-center justify-between gap-2">
