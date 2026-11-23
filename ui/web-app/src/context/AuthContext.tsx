@@ -78,6 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       options: {
         redirectTo,
         ...(provider === 'google' ? { queryParams: { prompt: 'select_account' } } : {}),
+        ...(provider === 'apple' ? { scopes: 'name email' } : {}),
       },
     });
     if (error) authError(error);
