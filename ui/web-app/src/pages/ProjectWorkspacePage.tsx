@@ -448,7 +448,6 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   const [base44Visible, setBase44Visible] = useState(false);
   const [base44Fullscreen, setBase44Fullscreen] = useState(false);
   const [base44Guard, setBase44Guard] = useState(true);
-  const base44LoadsRef = useRef(0);
   const base44FrameRef = useRef<HTMLDivElement | null>(null);
   const scrollSectionRef = useRef<HTMLElement | null>(null);
   const base44ScrollTopRef = useRef(0);
@@ -914,7 +913,6 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
 
   const reloadBase44 = () => {
     rememberBase44Scroll();
-    base44LoadsRef.current = 0;
     setBase44Guard(true);
     setBase44Loaded(false);
     setBase44Key((value) => value + 1);
@@ -950,7 +948,6 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     try {
       await doc.requestStorageAccessFor(origin);
       rememberBase44Scroll();
-    base44LoadsRef.current = 0;
     setBase44Guard(true);
       setBase44Loaded(false);
       setBase44Key((value) => value + 1);
@@ -1004,11 +1001,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   // doing that below the fold can scroll its parent, so pin the workspace back
   // to where it was before the frame loaded.
   const handleBase44Load = () => {
-    base44LoadsRef.current += 1;
     setBase44Loaded(true);
-    // Load #1 is the Base44 sign-in screen. A later navigation is almost always
-    // the signed-in app, so the guard can stand down.
-    if (base44LoadsRef.current > 1) setBase44Guard(false);
     const restore = () => {
       const section = scrollSectionRef.current;
       if (section && Math.abs(section.scrollTop - base44ScrollTopRef.current) > 2) {
@@ -1066,7 +1059,6 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     setBase44PageDraft(saved);
     setBase44PageError('');
     rememberBase44Scroll();
-    base44LoadsRef.current = 0;
     setBase44Guard(true);
     setBase44Loaded(false);
     setBase44Key((value) => value + 1);
