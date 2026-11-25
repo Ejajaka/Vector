@@ -406,7 +406,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
                         >
                           <p className="text-[12.5px] font-semibold text-[var(--v-ink)] truncate">{project.name}</p>
                           <p className="text-[10.5px] text-[var(--v-faint)] truncate">
-                            {project.description || 'No description'} Â· {new Date(project.updatedAt).toLocaleDateString()}
+                            {project.description || 'No description'} · {new Date(project.updatedAt).toLocaleDateString()}
                           </p>
                         </button>
                       </>
@@ -484,7 +484,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
               <div className="mt-6 v-card rounded-xl p-10 text-center">
                 <Sparkles className="w-6 h-6 mx-auto text-[var(--v-faint)]" />
                 <p className="mt-2 text-[13.5px] font-semibold text-[var(--v-ink)]">
-                  {query ? `No projects match â€œ${query}â€` : tab === 'trash' ? 'Trash is empty' : 'No projects yet'}
+                  {query ? `No projects match “${query}”` : tab === 'trash' ? 'Trash is empty' : 'No projects yet'}
                 </p>
                 <p className="mt-1 text-[11.5px] text-[var(--v-muted)]">
                   {tab === 'trash' ? 'Deleted projects can be restored for 30 days.' : 'Create one, or start from a template.'}

@@ -322,7 +322,7 @@ function AppShell() {
 
   const publicMode = configured && !user;
   // Without Supabase the app runs as a local workspace, which is a valid
-  // signed-in state â€” otherwise local users could never reach the dashboard.
+  // signed-in state — otherwise local users could never reach the dashboard.
   const localWorkspace = !configured;
   const signedIn = !!user || localWorkspace;
   // Marketing chrome is a property of the page, not of the session. Learn is
@@ -797,7 +797,7 @@ function AppShell() {
       }
       notificationService.push({
         kind: 'system',
-        title: `â€œ${template.name}â€ project created`,
+        title: `“${template.name}” project created`,
         body: `${template.blocks.length} elements were pre-filled. Keep designing, the prompt updates as you go.`,
         action: { label: 'Open projects', tab: 'projects' },
       });

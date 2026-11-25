@@ -1307,7 +1307,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     notificationService.push({
       kind: 'system',
       title: `${category.name} page added`,
-      body: `${category.width}Ã—${category.height} frame with a starter layout.`,
+      body: `${category.width}×${category.height} frame with a starter layout.`,
       action: { label: 'Open pages', tab: 'projects' },
     });
   };
@@ -1559,7 +1559,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
       if (!drag) return;
       const screenDx = event.clientX - drag.startX;
       const screenDy = event.clientY - drag.startY;
-      // A tap often includes 1â€“2px of finger/mouse jitter. Treat that as a
+      // A tap often includes 1–2px of finger/mouse jitter. Treat that as a
       // tap, not a drag, so a second tap can put the caret inside the text.
       if (!drag.moved && Math.hypot(screenDx, screenDy) < 3) return;
       const dx = screenDx / zoom;
@@ -1802,7 +1802,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   };
 
   /**
-   * Zoom around a point in the viewport. Used by the âˆ’/+ buttons, the zoom
+   * Zoom around a point in the viewport. Used by the −/+ buttons, the zoom
    * menu, keyboard shortcuts and trackpad pinch (ctrl/meta + wheel).
    */
   const applyZoom = useCallback(
@@ -2177,7 +2177,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                 type="button"
                 onClick={() => zoomStep(-1)}
                 className="grid h-7 w-7 place-items-center text-white/60 hover:bg-white/10"
-                title="Zoom out (Ctrl/âŒ˜ âˆ’)"
+                title="Zoom out (Ctrl/⌘ −)"
               >
                 <Minus className="h-3 w-3" />
               </button>
@@ -2193,7 +2193,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                 type="button"
                 onClick={() => zoomStep(1)}
                 className="grid h-7 w-7 place-items-center text-white/60 hover:bg-white/10"
-                title="Zoom in (Ctrl/âŒ˜ +)"
+                title="Zoom in (Ctrl/⌘ +)"
               >
                 <Plus className="h-3 w-3" />
               </button>
@@ -2201,7 +2201,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                 type="button"
                 onClick={fitToScreen}
                 className="grid h-7 w-7 place-items-center border-l border-white/10 text-white/60 hover:bg-white/10"
-                title="Fit to screen (Ctrl/âŒ˜ 1)"
+                title="Fit to screen (Ctrl/⌘ 1)"
               >
                 <Maximize2 className="h-3 w-3" />
               </button>
@@ -2620,7 +2620,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                     <span className="min-w-0 flex-1">
                       <span className="block text-[12.5px] font-medium text-white/90">{item.name}</span>
                       <span className="block text-[10px] text-white/40">
-                        {item.width}Ã—{item.height}
+                        {item.width}×{item.height}
                       </span>
                     </span>
                     {item.premium ? <Crown className="h-3.5 w-3.5 text-[#FFC53D]" /> : <ChevronRight className="h-4 w-4 text-white/30" />}
@@ -2694,7 +2694,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                             {index + 1}. {page.name}
                           </span>
                           <span className="block text-[9px] text-white/35">
-                            {pageW}Ã—{pageH} Â· {page.items.length} element{page.items.length === 1 ? '' : 's'}
+                            {pageW}×{pageH} · {page.items.length} element{page.items.length === 1 ? '' : 's'}
                           </span>
                         </span>
                       </button>
@@ -2793,7 +2793,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                       }}
                       onClick={() => addVariant(variant)}
                       className="w-full cursor-grab text-left active:cursor-grabbing"
-                      title={`${variant.name} â€” drag onto the canvas`}
+                      title={`${variant.name} — drag onto the canvas`}
                     >
                       <div className="rounded-lg overflow-hidden ring-1 ring-white/10 group-hover:ring-[#0D99FF] p-1.5" style={{ background: '#383838' }}>
                         <div className="h-[86px]">
@@ -2820,7 +2820,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
             )}
 
             {showingSearch && searchResults.length === 0 && (
-              <p className="py-6 text-center text-[11px] text-white/35">Nothing matches â€œ{query}â€.</p>
+              <p className="py-6 text-center text-[11px] text-white/35">Nothing matches “{query}”.</p>
             )}
           </div>
 
@@ -2855,7 +2855,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
             <div className="pointer-events-auto absolute left-1/2 top-3 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/15 bg-[#252525]/95 px-3 py-1.5 text-[11px] text-white/80 shadow-[0_12px_30px_-12px_rgba(0,0,0,.8)]">
               <span className="h-1.5 w-1.5 rounded-full bg-[#22D3EE]" />
               <span className="font-semibold">Preview</span>
-              <span className="text-white/35">Â·</span>
+              <span className="text-white/35">·</span>
               <span className="max-w-[180px] truncate">{activePage.name}</span>
               <button
                 type="button"
@@ -2893,7 +2893,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
             >
               <span className="absolute -top-6 left-0 text-[11px] text-white/40 select-none">{activePage?.name}</span>
               <span className="absolute -bottom-6 right-0 px-1.5 py-0.5 rounded bg-[#0D99FF] text-white text-[9.5px] font-medium">
-                {pageWidth} Ã— {pageHeight}
+                {pageWidth} × {pageHeight}
               </span>
 
               {items.length === 0 && !preview && (
@@ -2903,7 +2903,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                       <Plus className="w-5 h-5 text-black/25" />
                     </span>
                     <p className="mt-3 text-[14px] font-semibold text-black/60">Blank canvas</p>
-                    <p className="mt-1 text-[12px] text-black/35">Drag an element from the left, or paste an image with âŒ˜V.</p>
+                    <p className="mt-1 text-[12px] text-black/35">Drag an element from the left, or paste an image with ⌘V.</p>
                   </div>
                 </div>
               )}
@@ -3071,7 +3071,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                           }}
                           className="absolute left-3 top-2 text-left text-[12px] font-medium text-black/45 hover:text-black/70"
                         >
-                          â€¢ Click to add text
+                          • Click to add text
                         </button>
 
                         {isSelected && (
@@ -3113,7 +3113,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                       <>
                         <span className="absolute inset-0 ring-[1.5px] ring-[#0D99FF] pointer-events-none" />
                         <span className="absolute -top-5 left-0 px-1 py-0.5 rounded-sm bg-[#0D99FF] text-white text-[9px] font-medium whitespace-nowrap">
-                          {item.w} Ã— {item.h}
+                          {item.w} × {item.h}
                         </span>
                         {([
                           { handle: 'nw' as const, position: 'left-0 top-0 -translate-x-1/2 -translate-y-1/2 cursor-nwse-resize' },
@@ -3177,7 +3177,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                 onMouseDown={startFrameResize}
                 onClick={(event) => event.stopPropagation()}
                 className="absolute -bottom-1.5 -right-1.5 z-30 h-3 w-3 cursor-nwse-resize rounded-[2px] border border-[#0D99FF] bg-white"
-                title={`Resize frame (${pageWidth} Ã— ${pageHeight})`}
+                title={`Resize frame (${pageWidth} × ${pageHeight})`}
                 aria-label="Resize frame"
               />
             )}
@@ -3199,7 +3199,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                 className={`h-7 min-w-[26px] px-2 rounded text-[10.5px] font-medium ${
                   page.id === activePage.id ? 'bg-[#0D99FF] text-white' : 'text-white/60 hover:bg-white/10'
                 }`}
-                title={`${page.name} Â· ${page.width || CANVAS_WIDTH}Ã—${page.height || CANVAS_HEIGHT}`}
+                title={`${page.name} · ${page.width || CANVAS_WIDTH}×${page.height || CANVAS_HEIGHT}`}
               >
                 {index + 1}
               </button>
@@ -3258,10 +3258,10 @@ export const EditorPage: React.FC<EditorPageProps> = ({
 
             <span className="w-px h-5 bg-white/10 mx-1" />
 
-            <button type="button" onClick={(event) => { event.stopPropagation(); undo(); }} title="Undo (Ctrl/âŒ˜ Z)" className="w-8 h-8 rounded-md grid place-items-center text-white/60 hover:bg-white/10">
+            <button type="button" onClick={(event) => { event.stopPropagation(); undo(); }} title="Undo (Ctrl/⌘ Z)" className="w-8 h-8 rounded-md grid place-items-center text-white/60 hover:bg-white/10">
               <Undo2 className="w-4 h-4" />
             </button>
-            <button type="button" onClick={(event) => { event.stopPropagation(); redo(); }} title="Redo (Ctrl/âŒ˜ Shift Z)" className="w-8 h-8 rounded-md grid place-items-center text-white/60 hover:bg-white/10">
+            <button type="button" onClick={(event) => { event.stopPropagation(); redo(); }} title="Redo (Ctrl/⌘ Shift Z)" className="w-8 h-8 rounded-md grid place-items-center text-white/60 hover:bg-white/10">
               <Redo2 className="w-4 h-4" />
             </button>
 
@@ -3391,7 +3391,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                   </label>
                 )}
                 <p className="text-[9.5px] leading-relaxed text-white/35">
-                  Applied when a click lands on this page in Preview. Press â–¶ in the top bar to try it.
+                  Applied when a click lands on this page in Preview. Press ▶ in the top bar to try it.
                 </p>
               </Section>
 
@@ -3399,7 +3399,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                 {selected ? (
                   <>
                     <p className="text-[10.5px] text-white/55">
-                      On click, â€œ{selected.label}â€ should go to:
+                      On click, “{selected.label}” should go to:
                     </p>
                     <select
                       value={selected.linkToPageId || ''}
@@ -3419,7 +3419,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                       </p>
                     )}
                     <p className="text-[9.5px] leading-relaxed text-white/35">
-                      For click copy and a list of behaviour comments, use Design â†’ Behaviour.
+                      For click copy and a list of behaviour comments, use Design → Behaviour.
                     </p>
                   </>
                 ) : (
@@ -3667,7 +3667,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                         </div>
                         <p className="text-[9.5px] leading-relaxed text-white/35">
                           Click Preview to play in the full canvas. Hover/click triggers replay there,
-                          â€œIn viewâ€ plays when the page appears, and reduced-motion is respected.
+                          “In view” plays when the page appears, and reduced-motion is respected.
                         </p>
                       </>
                     )}
@@ -3710,7 +3710,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
             </div>
             {hasAiDesign && (
               <p className="mt-1.5 text-[9.5px] text-[#B9A8FF]">
-                Layout {(aiCycle ?? 0) + 1} of 4 Â· your original layout is saved.
+                Layout {(aiCycle ?? 0) + 1} of 4 · your original layout is saved.
               </p>
             )}
           </Section>
@@ -3738,7 +3738,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                 className="h-7 px-2 rounded bg-[#383838] text-[10px] text-white/70 hover:bg-white/15"
                 title="Swap orientation"
               >
-                âŸ³
+                ⟳
               </button>
               <button
                 type="button"
@@ -3779,7 +3779,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                               }`}
                             >
                               <span className="truncate">{device.name}</span>
-                              <span className="text-white/35 tabular-nums">{device.width}Ã—{device.height}</span>
+                              <span className="text-white/35 tabular-nums">{device.width}×{device.height}</span>
                             </button>
                           );
                         })}
@@ -3836,7 +3836,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                 </button>
                 <ChevronRight className="h-3 w-3 text-white/25" />
                 <span className="min-w-0 flex-1 truncate font-semibold text-white/85">
-                  {TYPE_LABEL[selected.type]} Â· {variantFor(selected).name}
+                  {TYPE_LABEL[selected.type]} · {variantFor(selected).name}
                 </span>
                 <button type="button" onClick={duplicateSelected} className="grid h-6 w-6 place-items-center rounded text-white/45 hover:bg-white/10" aria-label="Duplicate">
                   <Copy className="h-3 w-3" />
