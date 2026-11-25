@@ -601,15 +601,26 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   const [name, setName] = useState(
     restored?.name || draft?.name || projectName || seed?.name || template?.name || 'Untitled screen'
   );
+  const reconcileHouseDefaults = (list: CanvasPage[]): CanvasPage[] => {
+    const system = getActiveDesignSystem();
+    if (!system) return list;
+    return list.map((page) => ({
+      ...page,
+      items: (page.items || []).map((item) =>
+        (item.color || '').toUpperCase() === '#7C5CFF' ? applySystemToItems([item], system)[0] : item,
+      ),
+    }));
+  };
+
   const [pages, setPages] = useState<CanvasPage[]>(() => {
-    if (restored?.pages?.length) return restored.pages;
-    if (draft?.pages?.length) return draft.pages;
-    if (seed?.pages?.length) return seed.pages;
+    if (restored?.pages?.length) return reconcileHouseDefaults(restored.pages);
+    if (draft?.pages?.length) return reconcileHouseDefaults(draft.pages);
+    if (seed?.pages?.length) return reconcileHouseDefaults(seed.pages);
     if (!template) return [{ id: newId(), name: 'Page 1', items: emptyCanvas() }];
     const device = template.device || 'desktop';
     if (device !== 'desktop') {
       const frame = DEVICE_FRAMES[device];
-      return [
+      return reconcileHouseDefaults([
         {
           id: newId(),
           name: 'Page 1',
@@ -617,8 +628,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
           width: frame.width,
           height: frame.height,
         },
-      ];
-    }
+      ]);    }
     const first: CanvasPage = {
       id: newId(),
       name: 'Page 1',
@@ -629,7 +639,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
       name: page.name,
       items: itemsFromTemplate({ ...template, blocks: page.blocks, pages: undefined }),
     }));
-    return [first, ...extras];
+    return reconcileHouseDefaults([first, ...extras]);
   });
   const [activePageId, setActivePageId] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
