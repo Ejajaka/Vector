@@ -1075,17 +1075,10 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
       // must never cover it again.
       if (settled && frameFocused()) hideBase44Guard(true);
     };
-    const onFocus = () => {
-      if (base44TouchedRef.current && Date.now() - base44GuardSinceRef.current > 8000) {
-        hideBase44Guard(false);
-      }
-    };
     window.addEventListener('blur', onBlur);
-    window.addEventListener('focus', onFocus);
     const timer = window.setTimeout(() => hideBase44Guard(false), 45_000);
     return () => {
       window.removeEventListener('blur', onBlur);
-      window.removeEventListener('focus', onFocus);
       window.clearTimeout(timer);
     };
   }, [base44Guard, base44Visible, base44Loaded, hideBase44Guard]);
