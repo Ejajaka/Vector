@@ -456,6 +456,8 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   const base44GuardSinceRef = useRef(0);
   const base44TouchedRef = useRef(false);
   const base44GuardDoneRef = useRef(readBase44GuardDismissed(project.id));
+  const base44LoadedAtRef = useRef(0);
+  const base44GestureRef = useRef(false);
   const base44FrameRef = useRef<HTMLDivElement | null>(null);
   const scrollSectionRef = useRef<HTMLElement | null>(null);
   const base44ScrollTopRef = useRef(0);
@@ -1025,6 +1027,8 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   // to where it was before the frame loaded.
   const handleBase44Load = () => {
     if (base44GuardSinceRef.current === 0) base44GuardSinceRef.current = Date.now();
+    base44LoadedAtRef.current = Date.now();
+    base44GestureRef.current = false;
     setBase44Loaded(true);
     if (base44Guard && base44TouchedRef.current && Date.now() - base44GuardSinceRef.current > 5000) {
       dismissBase44Guard();
@@ -1052,19 +1056,26 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   }, [base44Fullscreen]);
 
   // Cross-origin iframes cannot tell us when their login succeeds, so use the
-  // signals we do have: the user clicking into the frame, a later document load
-  // after that click, a return of focus to Vector, and a bounded fallback.
+  // signals we do have: a click into the frame after a real gesture, a later
+  // document load after that click, and a bounded fallback. Base44 autofocuses
+  // its email field on load, which blurs this window without any user action,
+  // so a blur only counts once the person has actually touched the page and
+  // the frame has settled.
   useEffect(() => {
     if (!base44Guard || !base44Visible || !base44Loaded) return;
     const frameFocused = () => {
       const frame = base44FrameRef.current?.querySelector('iframe');
       return Boolean(frame) && document.activeElement === frame;
     };
+    const markGesture = () => {
+      base44GestureRef.current = true;
+    };
     const onBlur = () => {
       base44TouchedRef.current = true;
-      // Focus moving into the cross-origin frame means the email/password form
-      // is in use; from here on the guard must never cover it again.
-      if (frameFocused()) dismissBase44Guard();
+      const settled = Date.now() - base44LoadedAtRef.current > 1500;
+      // Focus moving into the cross-origin frame after a real gesture means the
+      // email/password form is in use; from here on the guard stays away.
+      if (settled && base44GestureRef.current && frameFocused()) dismissBase44Guard();
     };
     const onFocus = () => {
       if (base44TouchedRef.current && Date.now() - base44GuardSinceRef.current > 8000) {
@@ -1073,10 +1084,16 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     };
     window.addEventListener('blur', onBlur);
     window.addEventListener('focus', onFocus);
+    window.addEventListener('pointerdown', markGesture, true);
+    window.addEventListener('keydown', markGesture, true);
+    window.addEventListener('wheel', markGesture, { capture: true, passive: true });
     const timer = window.setTimeout(() => dismissBase44Guard(), 45_000);
     return () => {
       window.removeEventListener('blur', onBlur);
       window.removeEventListener('focus', onFocus);
+      window.removeEventListener('pointerdown', markGesture, true);
+      window.removeEventListener('keydown', markGesture, true);
+      window.removeEventListener('wheel', markGesture, true);
       window.clearTimeout(timer);
     };
   }, [base44Guard, base44Visible, base44Loaded, dismissBase44Guard]);
