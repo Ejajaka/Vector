@@ -1754,9 +1754,9 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                     title="Social sign-in is disabled inside the embedded builder. Use email and password."
                   >
                     {base44GuardHint && (
-                      <div className="absolute left-1/2 top-1/2 w-[min(320px,90%)] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-[#7C5CFF]/35 bg-[var(--v-surface)]/98 p-2.5 text-center shadow-[0_18px_50px_-20px_rgba(0,0,0,.8)]">
-                        <p className="text-[10.5px] font-semibold text-[var(--v-ink)]">Use email and password to sign in</p>
-                        <p className="mt-1 text-[9px] leading-relaxed text-[var(--v-muted)]">
+                      <div className="absolute left-1/2 top-1/2 w-[min(320px,90%)] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-[#7C5CFF]/30 bg-white/65 p-2.5 text-center shadow-[0_18px_50px_-20px_rgba(0,0,0,.45)] backdrop-blur-md">
+                        <p className="text-[10.5px] font-semibold text-[#283638]">Use email and password to sign in</p>
+                        <p className="mt-1 text-[9px] leading-relaxed text-[#4B5A58]">
                           Google, GitHub and Apple sign-in are disabled inside this embedded builder.
                         </p>
                         <button
@@ -1765,7 +1765,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                             event.stopPropagation();
                             setBase44Guard(false);
                           }}
-                          className="mt-1.5 h-6 rounded-md border border-[var(--v-line)] bg-[var(--v-surface-2)] px-2 text-[9px] font-semibold text-[var(--v-ink)] hover:border-[var(--v-violet)]"
+                          className="mt-1.5 h-6 rounded-md border border-black/10 bg-white/70 px-2 text-[9px] font-semibold text-[#283638] hover:border-[#7C5CFF]"
                         >
                           Hide guard
                         </button>
