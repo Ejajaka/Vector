@@ -1012,14 +1012,15 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   };
 
   /**
-   * Hides the social sign-in guard and remembers that this project no longer
-   * needs it. Base44 is cross-origin, so the first click into the frame is the
-   * earliest reliable signal that the user is on the email/password form.
+   * Hides the social sign-in guard. `remember` is only set when the person has
+   * actually started using the Base44 form — the timed fallbacks must not hide
+   * it forever for a project that was never signed in to.
    */
-  const dismissBase44Guard = useCallback(() => {
+  const hideBase44Guard = useCallback((remember: boolean) => {
+    setBase44Guard(false);
+    if (!remember) return;
     base44GuardDoneRef.current = true;
     saveBase44GuardDismissed(project.id);
-    setBase44Guard(false);
   }, [project.id]);
 
   // The Base44 login page autofocuses its email field. A cross-origin frame
@@ -1030,8 +1031,12 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     base44LoadedAtRef.current = Date.now();
     base44GestureRef.current = false;
     setBase44Loaded(true);
-    if (base44Guard && base44TouchedRef.current && Date.now() - base44GuardSinceRef.current > 5000) {
-      dismissBase44Guard();
+    if (
+      base44Guard &&
+      base44GestureRef.current &&
+      Date.now() - base44GuardSinceRef.current > 5000
+    ) {
+      hideBase44Guard(true);
     }
     const restore = () => {
       const section = scrollSectionRef.current;
@@ -1075,11 +1080,11 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
       const settled = Date.now() - base44LoadedAtRef.current > 1500;
       // Focus moving into the cross-origin frame after a real gesture means the
       // email/password form is in use; from here on the guard stays away.
-      if (settled && base44GestureRef.current && frameFocused()) dismissBase44Guard();
+      if (settled && base44GestureRef.current && frameFocused()) hideBase44Guard(true);
     };
     const onFocus = () => {
       if (base44TouchedRef.current && Date.now() - base44GuardSinceRef.current > 8000) {
-        dismissBase44Guard();
+        hideBase44Guard(false);
       }
     };
     window.addEventListener('blur', onBlur);
@@ -1087,7 +1092,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     window.addEventListener('pointerdown', markGesture, true);
     window.addEventListener('keydown', markGesture, true);
     window.addEventListener('wheel', markGesture, { capture: true, passive: true });
-    const timer = window.setTimeout(() => dismissBase44Guard(), 45_000);
+    const timer = window.setTimeout(() => hideBase44Guard(false), 45_000);
     return () => {
       window.removeEventListener('blur', onBlur);
       window.removeEventListener('focus', onFocus);
@@ -1096,7 +1101,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
       window.removeEventListener('wheel', markGesture, true);
       window.clearTimeout(timer);
     };
-  }, [base44Guard, base44Visible, base44Loaded, dismissBase44Guard]);
+  }, [base44Guard, base44Visible, base44Loaded, hideBase44Guard]);
 
   // Load Base44 only when the section is actually on screen. Its sign-in page
   // autofocuses the email field, and a cross-origin frame loading below the
@@ -1802,7 +1807,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                       type="button"
                       onClick={(event) => {
                         event.stopPropagation();
-                        dismissBase44Guard();
+                        hideBase44Guard(true);
                       }}
                       className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-md text-white/60 hover:bg-white/10 hover:text-white"
                       aria-label="Hide social sign-in guard"
