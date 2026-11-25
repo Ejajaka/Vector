@@ -457,7 +457,6 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   const base44TouchedRef = useRef(false);
   const base44GuardDoneRef = useRef(readBase44GuardDismissed(project.id));
   const base44LoadedAtRef = useRef(0);
-  const base44GestureRef = useRef(false);
   const base44FrameRef = useRef<HTMLDivElement | null>(null);
   const scrollSectionRef = useRef<HTMLElement | null>(null);
   const base44ScrollTopRef = useRef(0);
@@ -1029,13 +1028,8 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   const handleBase44Load = () => {
     if (base44GuardSinceRef.current === 0) base44GuardSinceRef.current = Date.now();
     base44LoadedAtRef.current = Date.now();
-    base44GestureRef.current = false;
     setBase44Loaded(true);
-    if (
-      base44Guard &&
-      base44GestureRef.current &&
-      Date.now() - base44GuardSinceRef.current > 5000
-    ) {
+    if (base44Guard && base44TouchedRef.current && Date.now() - base44GuardSinceRef.current > 5000) {
       hideBase44Guard(true);
     }
     const restore = () => {
@@ -1061,26 +1055,25 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   }, [base44Fullscreen]);
 
   // Cross-origin iframes cannot tell us when their login succeeds, so use the
-  // signals we do have: a click into the frame after a real gesture, a later
-  // document load after that click, and a bounded fallback. Base44 autofocuses
-  // its email field on load, which blurs this window without any user action,
-  // so a blur only counts once the person has actually touched the page and
-  // the frame has settled.
+  // Cross-origin iframes cannot tell us when their login succeeds, so use the
+  // signals we do have: focus moving into the frame once it has settled, a later
+  // document load after that, and a bounded fallback. Base44 autofocuses its
+  // email field on load, which blurs this window without any user action, so a
+  // blur only counts after the frame has settled.
   useEffect(() => {
     if (!base44Guard || !base44Visible || !base44Loaded) return;
     const frameFocused = () => {
       const frame = base44FrameRef.current?.querySelector('iframe');
       return Boolean(frame) && document.activeElement === frame;
     };
-    const markGesture = () => {
-      base44GestureRef.current = true;
-    };
     const onBlur = () => {
       base44TouchedRef.current = true;
       const settled = Date.now() - base44LoadedAtRef.current > 1500;
-      // Focus moving into the cross-origin frame after a real gesture means the
-      // email/password form is in use; from here on the guard stays away.
-      if (settled && base44GestureRef.current && frameFocused()) hideBase44Guard(true);
+      // Base44 autofocuses its email field as it loads, which blurs this window
+      // without any user action. Only a blur after the frame has settled means
+      // the person clicked into the email/password form; from then on the guard
+      // must never cover it again.
+      if (settled && frameFocused()) hideBase44Guard(true);
     };
     const onFocus = () => {
       if (base44TouchedRef.current && Date.now() - base44GuardSinceRef.current > 8000) {
@@ -1089,16 +1082,10 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     };
     window.addEventListener('blur', onBlur);
     window.addEventListener('focus', onFocus);
-    window.addEventListener('pointerdown', markGesture, true);
-    window.addEventListener('keydown', markGesture, true);
-    window.addEventListener('wheel', markGesture, { capture: true, passive: true });
     const timer = window.setTimeout(() => hideBase44Guard(false), 45_000);
     return () => {
       window.removeEventListener('blur', onBlur);
       window.removeEventListener('focus', onFocus);
-      window.removeEventListener('pointerdown', markGesture, true);
-      window.removeEventListener('keydown', markGesture, true);
-      window.removeEventListener('wheel', markGesture, true);
       window.clearTimeout(timer);
     };
   }, [base44Guard, base44Visible, base44Loaded, hideBase44Guard]);
