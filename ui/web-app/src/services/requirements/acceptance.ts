@@ -51,6 +51,8 @@ function action(requirement: RequirementRecord): string {
   return text.length > 140 ? `${text.slice(0, 137)}…` : text;
 }
 
+export const ACCEPTANCE_LIMIT = 120;
+
 export function generateAcceptanceCriteria(
   requirements: RequirementRecord[],
   projectId: string,
@@ -147,7 +149,7 @@ export function generateAcceptanceCriteria(
         'Then the system should deny access without exposing protected data',
       );
     }
-    if (criteria.length >= 120) break;
+    if (criteria.length >= ACCEPTANCE_LIMIT) break;
   }
 
   return criteria;

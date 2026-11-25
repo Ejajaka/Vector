@@ -4,7 +4,7 @@ import type {
   RequirementRecord,
   RequirementRow,
 } from '../../types/requirements.ts';
-import { compileRequirements } from '../requirements/compiler.ts';
+import { compileRequirementsWithStats } from '../requirements/compiler.ts';
 import { extractDocumentText } from '../documents/parseDocument.ts';
 import { supabase } from '../supabase/client.ts';
 import {
@@ -104,6 +104,9 @@ export async function listRequirements(projectId: string): Promise<RequirementRe
 export interface UploadResult {
   document: RequirementDocument;
   requirements: RequirementRecord[];
+  /** The document had more statements than the compile cap allows. */
+  truncated: boolean;
+  limit: number;
 }
 
 async function uploadRequirementDocumentInner(
@@ -118,7 +121,8 @@ async function uploadRequirementDocumentInner(
     onProgress?.('parsing', 'Reading the document...');
     const extracted = await extractDocumentText(file);
     const prefix = `REQ-${documentId.slice(0, 6).toUpperCase()}`;
-    const drafts = compileRequirements(extracted, { codePrefix: prefix });
+    const compiled = compileRequirementsWithStats(extracted, { codePrefix: prefix });
+    const drafts = compiled.drafts;
     const createdAt = new Date().toISOString();
     const document: RequirementDocument = {
       id: documentId,
@@ -145,7 +149,7 @@ async function uploadRequirementDocumentInner(
     saveLocalDocument(document);
     saveLocalRequirements(projectId, requirements);
     onProgress?.('saving', `Saved ${requirements.length} requirements in this browser.`);
-    return { document, requirements };
+    return { document, requirements, truncated: compiled.truncated, limit: compiled.limit };
   }
 
   const client = requireClient();
@@ -187,7 +191,8 @@ async function uploadRequirementDocumentInner(
 
   onProgress?.('parsing', 'Compiling requirements and source references…');
   const prefix = `REQ-${documentId.slice(0, 6).toUpperCase()}`;
-  const drafts = compileRequirements(extracted, { codePrefix: prefix });
+  const compiled = compileRequirementsWithStats(extracted, { codePrefix: prefix });
+  const drafts = compiled.drafts;
   if (!drafts.length) {
     await client
       .from('requirement_documents')
@@ -197,7 +202,12 @@ async function uploadRequirementDocumentInner(
         page_count: extracted.pageCount,
       })
       .eq('id', documentId);
-    return { document: mapDocument({ ...inserted, extracted_text: extracted.text, page_count: extracted.pageCount, status: 'parsed' }), requirements: [] };
+    return {
+      document: mapDocument({ ...inserted, extracted_text: extracted.text, page_count: extracted.pageCount, status: 'parsed' }),
+      requirements: [],
+      truncated: compiled.truncated,
+      limit: compiled.limit,
+    };
   }
 
   onProgress?.('saving', `Saving ${drafts.length} requirements…`);
@@ -242,6 +252,8 @@ async function uploadRequirementDocumentInner(
   return {
     document: mapDocument(documentData),
     requirements: (requirementData || []).map((row) => mapRequirement(row as RequirementRow)),
+    truncated: compiled.truncated,
+    limit: compiled.limit,
   };
 }
 

@@ -607,6 +607,8 @@ function inferLabel(
       feature: 'Features', product: 'Products', pricing: 'Plans', stat: 'Metrics',
       testimonial: 'Testimonials', menu: 'Menu', blog: 'Articles', team: 'Team',
     };
+    const metricHeading = text.match(/\b(kpis?|metrics?|stats?|statistics?)\b\s*[:\-]\s*\S/i);
+    if (metricHeading) return /^kpi/i.test(metricHeading[1]) ? 'KPIs' : 'Metrics';
     const type = text.match(/\b(feature|product|pricing|stat|testimonial|menu|blog|team)\s+cards?\b/i);
     if (type) return named[type[1].toLowerCase()];
     const of = text.match(/\b(?:cards?|tiles?|panels?)\s+(?:for|of|showing)\s+(.+)$/i);
@@ -1788,6 +1790,55 @@ export function stripPromptInjection(text: string): { text: string; removed: num
   return { text: kept.join(' ').trim(), removed: parts.length - kept.length };
 }
 
+const ACCENT_COLOUR_WORDS = [
+  'red', 'blue', 'green', 'violet', 'purple', 'orange', 'amber', 'yellow', 'teal',
+  'cyan', 'pink', 'rose', 'indigo', 'emerald', 'coral', 'lavender', 'mint', 'sky', 'navy',
+];
+
+/**
+ * Contradictions that a deterministic compiler cannot resolve on its own. They
+ * are surfaced as warnings so the person decides before the prompt is handed to
+ * a generator.
+ */
+export function detectContradictions(prompt: string): Signal[] {
+  const signals: Signal[] = [];
+  const lower = prompt.toLowerCase();
+
+  const pairRe = new RegExp(
+    `\\b(${ACCENT_COLOUR_WORDS.join('|')})\\b\\s*(?:,|and|\\+|/)\\s*\\b(${ACCENT_COLOUR_WORDS.join('|')})\\b`,
+    'i',
+  );
+  const pair = lower.match(pairRe);
+  if (pair && pair[1] !== pair[2]) {
+    const first = COLOURS[pair[1]] || pair[1];
+    const second = COLOURS[pair[2]] || pair[2];
+    signals.push({
+      tone: 'warn',
+      text: `Two accent colours are requested (${pair[1]} ${first}, ${pair[2]} ${second}). One is applied as primary — confirm the other is an accent, not a second primary.`,
+    });
+  }
+
+  const darkLight =
+    /\b(dark|night)\b[^.]{0,40}\b(light|day)\b/i.test(lower) ||
+    /\b(light|day)\b[^.]{0,40}\b(dark|night)\b/i.test(lower);
+  if (darkLight && !/\b(toggle|switch|preference|system setting|follows? the (os|system|device)|automatic|auto)\b/i.test(lower)) {
+    signals.push({
+      tone: 'warn',
+      text: 'The prompt asks for a dark theme and a light theme at once. Pick a default, or ask for a user-facing toggle.',
+    });
+  }
+
+  const prohibitsDelete = /\b(never|not|no|don'?t|must not|should not|cannot|can'?t)\b[^.]{0,30}\b(delete|deletion|remove|removal)\b/i.test(lower);
+  if (prohibitsDelete) {
+    signals.push({
+      tone: 'warn',
+      text: 'The prompt forbids deletion but also mentions a delete/remove action. The generated control keeps that action — confirm which rule wins.',
+    });
+  }
+
+  return signals;
+}
+
 export function compilePrompt(
   prompt: string,
   tokenBase?: DesignTokens,
@@ -1938,6 +1989,7 @@ export function compilePrompt(
       text: `${injection.removed} instruction${injection.removed === 1 ? '' : 's'} tried to override the downstream model and ${injection.removed === 1 ? 'was' : 'were'} removed from the hand-off prompt.`,
     });
   }
+  detectContradictions(prompt).forEach((signal) => signals.push(signal));
 
   if (noComponents) {
     signals.push({

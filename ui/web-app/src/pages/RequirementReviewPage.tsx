@@ -18,7 +18,7 @@ import { useToast } from '../components/ui/Toast.tsx';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog.tsx';
 import { listRequirements } from '../services/documents/requirementDocuments.ts';
 import { generateSuggestions } from '../services/requirements/suggestions.ts';
-import { generateAcceptanceCriteria } from '../services/requirements/acceptance.ts';
+import { ACCEPTANCE_LIMIT, generateAcceptanceCriteria } from '../services/requirements/acceptance.ts';
 import {
   ensureAcceptanceCriteria,
   listAcceptanceCriteria,
@@ -238,6 +238,13 @@ export const RequirementReviewPage: React.FC = () => {
           </button>
         ))}
       </div>
+
+      {tab === 'acceptance' && criteria.length >= ACCEPTANCE_LIMIT && (
+        <div className="rounded-lg border border-[#E9D9A8] bg-[#FBF7E8] px-3 py-2 text-[11px] leading-relaxed text-[#7A6320]">
+          Showing the first {ACCEPTANCE_LIMIT} criteria. Split the requirement document or reject requirements you
+          do not need so the remaining criteria can be generated.
+        </div>
+      )}
 
       {requirements.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">

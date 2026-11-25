@@ -1218,9 +1218,14 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     setPages(next);
   };
 
+  const applyActiveSystem = (item: CanvasItem): CanvasItem => {
+    const system = getActiveDesignSystem();
+    return system ? applySystemToItems([item], system)[0] : item;
+  };
+
   const addVariant = (variant: StyleVariant) => {
     const offset = items.length * 14;
-    const item: CanvasItem = {
+    const item = applyActiveSystem({
       id: newId(),
       type: variant.type,
       variant: variant.id,
@@ -1230,7 +1235,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
       h: variant.h,
       label: variant.label,
       color: variant.color ?? (variant.group === 'Text' && pageIsDark ? '#FFFFFF' : undefined),
-    };
+    });
     commit([...items, item]);
     setSelectedId(item.id);
     if (variant.group === 'Text') setEditingId(item.id);
@@ -1463,13 +1468,13 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     commit(
       items.map((entry) =>
         entry.id === item.id
-          ? {
+          ? applyActiveSystem({
               ...entry,
               type,
               variant,
               label,
               fill: type === 'image' || type === 'chart' || type === 'table' ? undefined : entry.fill,
-            }
+            })
           : entry
       )
     );

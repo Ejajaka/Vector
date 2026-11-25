@@ -224,24 +224,38 @@ function segmentsForPage(pageText: string): Segment[] {
  * offsets. Semantic LLM enrichment can add labels/suggestions later, but it
  * may not replace or silently rewrite the source text.
  */
-export function compileRequirements(
+export interface CompileStats {
+  drafts: RequirementDraft[];
+  /** True when the document held more unique statements than the cap allows. */
+  truncated: boolean;
+  /** The cap that applied to this compile. */
+  limit: number;
+}
+
+export const REQUIREMENT_LIMIT = 300;
+
+export function compileRequirementsWithStats(
   document: ExtractedDocument,
   options: CompileOptions = {},
-): RequirementDraft[] {
+): CompileStats {
   const prefix = options.codePrefix || 'REQ';
-  const max = options.maxRequirements ?? 300;
+  const max = options.maxRequirements ?? REQUIREMENT_LIMIT;
   const drafts: RequirementDraft[] = [];
   const seen = new Set<string>();
+  let truncated = false;
   let globalOffset = 0;
 
   document.pages.forEach((page, pageIndex) => {
     const segments = segmentsForPage(page);
     for (const segment of segments) {
-      if (drafts.length >= max) break;
       const normalized = segment.text.replace(/\s+/g, ' ').trim();
       if (!normalized) continue;
       const dedupeKey = normalized.toLowerCase();
       if (seen.has(dedupeKey)) continue;
+      if (drafts.length >= max) {
+        truncated = true;
+        break;
+      }
       seen.add(dedupeKey);
       drafts.push({
         requirementCode: `${prefix}-${String(drafts.length + 1).padStart(3, '0')}`,
@@ -258,5 +272,12 @@ export function compileRequirements(
     globalOffset += page.length + 2;
   });
 
-  return drafts;
+  return { drafts, truncated, limit: max };
+}
+
+export function compileRequirements(
+  document: ExtractedDocument,
+  options: CompileOptions = {},
+): RequirementDraft[] {
+  return compileRequirementsWithStats(document, options).drafts;
 }

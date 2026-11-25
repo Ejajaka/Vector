@@ -105,12 +105,19 @@ export const RequirementsPage: React.FC = () => {
         setProgress(message || stage);
       });
       await load();
-      toast(
-        result.requirements.length
-          ? `Compiled ${result.requirements.length} requirements from ${file.name}.`
-          : `Parsed ${file.name}, but no requirement-like statements were found.`,
-        result.requirements.length ? 'success' : 'info'
-      );
+      if (result.truncated) {
+        toast(
+          `Compiled the first ${result.limit} requirements from ${file.name}. The document has more — split it to compile the rest.`,
+          'info'
+        );
+      } else {
+        toast(
+          result.requirements.length
+            ? `Compiled ${result.requirements.length} requirements from ${file.name}.`
+            : `Parsed ${file.name}, but no requirement-like statements were found.`,
+          result.requirements.length ? 'success' : 'info'
+        );
+      }
     } catch (e: any) {
       setError(e?.message || 'Upload failed.');
       toast(e?.message || 'Upload failed.', 'error');
@@ -248,7 +255,7 @@ export const RequirementsPage: React.FC = () => {
           </div>
           <div className="flex-1">
             <h2 className="text-base font-semibold text-[#283638]">Upload a requirement document</h2>
-            <p className="text-xs text-[#737A72] mt-1">PDF, DOCX, TXT or Markdown · maximum 25 MB.</p>
+            <p className="text-xs text-[#737A72] mt-1">PDF, DOCX, TXT or Markdown · maximum 25 MB · 300 requirements per document.</p>
             <input
               ref={inputRef}
               type="file"

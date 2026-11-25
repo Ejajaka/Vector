@@ -338,6 +338,7 @@ export const RequirementGraphPage: React.FC = () => {
                 <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#C96839]" /> interaction</span>
                 <span className="inline-flex items-center gap-1"><span className="w-3 border-t border-dashed border-[#B94D42]" /> conflict</span>
                 <span className="hidden sm:inline">Needs = dependency</span>
+                <span className="text-[10px] font-medium text-[#49686C]">Scroll to zoom · drag to pan</span>
               </div>
             </div>
             <div className="h-[600px] bg-[#FAFAF8]">
@@ -346,7 +347,7 @@ export const RequirementGraphPage: React.FC = () => {
                 edges={flow.edges}
                 nodeTypes={nodeTypes}
                 fitView
-                fitViewOptions={{ padding: 0.15 }}
+                fitViewOptions={{ padding: 0.18, minZoom: 0.45 }}
                 minZoom={0.15}
                 maxZoom={1.5}
                 nodesDraggable
