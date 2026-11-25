@@ -1,7 +1,7 @@
 {
   "name": "vector-desktop",
   "productName": "Vector",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Vector desktop — UI prompt engineering for Windows, macOS and Linux",
   "main": "main.js",
   "author": "Vector",
