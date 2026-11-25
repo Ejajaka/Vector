@@ -588,3 +588,26 @@ code, kbd, samp, pre {
 body[data-onboarding="open"] [data-spotlight-card] {
   display: none !important;
 }
+
+/* React Flow's default controls ship with white buttons. The graph card is
+   dark, so keep the zoom controls legible and stop them reading as a white
+   strip at the edge of the canvas. */
+.react-flow__controls {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.7);
+}
+
+.react-flow__controls-button {
+  background: var(--v-surface-2);
+  border-bottom: 1px solid var(--v-line);
+  color: var(--v-ink);
+}
+
+.react-flow__controls-button:hover {
+  background: var(--v-surface);
+}
+
+.react-flow__controls-button svg {
+  fill: currentColor;
+}
