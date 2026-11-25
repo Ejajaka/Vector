@@ -448,7 +448,6 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   const [base44Visible, setBase44Visible] = useState(false);
   const [base44Fullscreen, setBase44Fullscreen] = useState(false);
   const [base44Guard, setBase44Guard] = useState(true);
-  const [base44GuardHint, setBase44GuardHint] = useState(false);
   const base44GuardSinceRef = useRef(0);
   const base44TouchedRef = useRef(false);
   const base44FrameRef = useRef<HTMLDivElement | null>(null);
@@ -1742,36 +1741,14 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                 {base44Visible && base44Loaded && base44Guard && (
                   <div
                     data-base44-guard
-                    className="absolute z-20"
-                    style={{ left: '5%', right: '5%', top: '27%', height: '37%' }}
-                    onMouseEnter={() => setBase44GuardHint(true)}
-                    onMouseLeave={() => setBase44GuardHint(false)}
+                    aria-hidden="true"
+                    className="absolute z-20 rounded-lg bg-white/30 backdrop-blur-[6px]"
+                    style={{ left: '18%', right: '18%', top: '31%', height: '25%' }}
                     onClick={(event) => {
                       event.preventDefault();
                       event.stopPropagation();
-                      setBase44GuardHint(true);
                     }}
-                    title="Social sign-in is disabled inside the embedded builder. Use email and password."
-                  >
-                    {base44GuardHint && (
-                      <div className="absolute left-1/2 top-1/2 w-[min(320px,90%)] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-[#7C5CFF]/40 bg-white/80 p-3 text-center shadow-[0_18px_50px_-20px_rgba(0,0,0,.45)] ring-1 ring-black/5 backdrop-blur-md">
-                        <p className="text-[11px] font-semibold text-[#1F2A28]">Use email and password to sign in</p>
-                        <p className="mt-1 text-[9.5px] leading-relaxed text-[#3F4A48]">
-                          Google, GitHub and Apple sign-in are disabled inside this embedded builder.
-                        </p>
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setBase44Guard(false);
-                          }}
-                          className="mt-2 h-6 rounded-md border border-black/10 bg-white/80 px-2 text-[9px] font-semibold text-[#283638] hover:border-[#7C5CFF]"
-                        >
-                          Hide guard
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  />
                 )}
                 {base44Visible && (
                   <iframe
