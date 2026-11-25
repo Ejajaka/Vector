@@ -12,12 +12,38 @@ function stableUuid(value: string): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
 }
 
+const SINGULAR_ROLES: Record<string, string> = {
+  admins: 'admin',
+  administrators: 'administrator',
+  auditors: 'auditor',
+  customers: 'customer',
+  editors: 'editor',
+  employees: 'employee',
+  guests: 'guest',
+  managers: 'manager',
+  operators: 'operator',
+  owners: 'owner',
+  reviewers: 'reviewer',
+  users: 'user',
+  viewers: 'viewer',
+};
+
 function role(requirement: RequirementRecord): string {
-  return requirement.metadata.roles?.[0] || 'authorized user';
+  const raw = (requirement.metadata.roles?.[0] || '').trim().toLowerCase();
+  if (!raw || raw === 'authorized user') return 'user';
+  if (SINGULAR_ROLES[raw]) return SINGULAR_ROLES[raw];
+  if (/s$/.test(raw) && !/ss$/.test(raw)) return raw.slice(0, -1);
+  return raw;
 }
 
 function subject(requirement: RequirementRecord): string {
-  return requirement.metadata.screens?.[0] || requirement.metadata.components?.[0] || 'the interface';
+  const candidate = (requirement.metadata.screens?.[0] || requirement.metadata.components?.[0] || '').trim();
+  if (!candidate || /^(the|this|that|a|an|each|every|any)$/i.test(candidate)) return 'the interface';
+  return candidate;
+}
+
+function lowerFirst(text: string): string {
+  return text ? text.charAt(0).toLowerCase() + text.slice(1) : text;
 }
 
 function action(requirement: RequirementRecord): string {
@@ -62,53 +88,53 @@ export function generateAcceptanceCriteria(
         requirement,
         'valid-submit',
         `Given an authenticated ${who} on ${where}`,
-        'when they submit valid information',
-        'then the changes should be saved and a clear success state should be shown',
+        'When they submit valid information',
+        'Then the changes should be saved and a clear success state should be shown',
       );
       add(
         requirement,
         'invalid-submit',
         `Given an authenticated ${who} on ${where}`,
-        'when they submit invalid or missing information',
-        'then the form should show specific validation errors and preserve their input',
+        'When they submit invalid or missing information',
+        'Then the form should show specific validation errors and preserve their input',
       );
     } else if (/\b(login|sign in|sign-in|password|authenticate)\b/i.test(text)) {
       add(
         requirement,
         'valid-auth',
         'Given valid credentials and an available authentication service',
-        'when the user signs in',
-        'then a session should be created and the user should reach the intended screen',
+        'When the user signs in',
+        'Then a session should be created and the user should reach the intended screen',
       );
       add(
         requirement,
         'invalid-auth',
         'Given invalid credentials or an expired session',
-        'when the user attempts to access a protected action',
-        'then access should be denied and a safe sign-in state should be shown',
+        'When the user attempts to access a protected action',
+        'Then access should be denied and a safe sign-in state should be shown',
       );
     } else if (/\b(search|filter|list|table|dashboard|report)\b/i.test(text)) {
       add(
         requirement,
         'data-loaded',
         `Given an authenticated ${who} and available data on ${where}`,
-        'when the view loads',
-        'then the requested data should be displayed with a clear loading state before it arrives',
+        'When the view loads',
+        'Then the requested data should be displayed with a clear loading state before it arrives',
       );
       add(
         requirement,
         'empty-data',
         `Given an authenticated ${who} and no matching data on ${where}`,
-        'when the view loads',
-        'then a specific empty state should be shown without presenting false zero values',
+        'When the view loads',
+        'Then a specific empty state should be shown without presenting false zero values',
       );
     } else {
       add(
         requirement,
         'main-path',
         `Given an authenticated ${who} on ${where}`,
-        `when they perform the action described by ${requirement.requirementCode}`,
-        `then ${act}`,
+        `When they use ${where}`,
+        `Then ${lowerFirst(act)}`,
       );
     }
 
@@ -117,8 +143,8 @@ export function generateAcceptanceCriteria(
         requirement,
         'unauthorized',
         `Given an authenticated user without the required role for ${where}`,
-        'when they attempt the protected action',
-        'then the system should deny access without exposing protected data',
+        'When they attempt the protected action',
+        'Then the system should deny access without exposing protected data',
       );
     }
     if (criteria.length >= 120) break;

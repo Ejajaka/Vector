@@ -454,7 +454,6 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   const [base44Fullscreen, setBase44Fullscreen] = useState(false);
   const [base44Guard, setBase44Guard] = useState(() => !readBase44GuardDismissed());
   const base44GuardDoneRef = useRef(readBase44GuardDismissed());
-  const base44LoadedAtRef = useRef(0);
   const base44FrameRef = useRef<HTMLDivElement | null>(null);
   const scrollSectionRef = useRef<HTMLElement | null>(null);
   const base44ScrollTopRef = useRef(0);
@@ -1019,7 +1018,6 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   // doing that below the fold can scroll its parent, so pin the workspace back
   // to where it was before the frame loaded.
   const handleBase44Load = () => {
-    base44LoadedAtRef.current = Date.now();
     setBase44Loaded(true);
     const restore = () => {
       const section = scrollSectionRef.current;
@@ -1042,21 +1040,6 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [base44Fullscreen]);
-
-  // A cross-origin frame swallows its own clicks, but the first one moves focus
-  // into the frame. Base44 autofocuses its email field while loading, so ignore
-  // focus moves for the first moment and treat the next one as a real click.
-  useEffect(() => {
-    if (!base44Guard || !base44Visible || !base44Loaded) return;
-    const onBlur = () => {
-      const frame = base44FrameRef.current?.querySelector('iframe');
-      if (!frame || document.activeElement !== frame) return;
-      if (Date.now() - base44LoadedAtRef.current < 1000) return;
-      hideBase44Guard();
-    };
-    window.addEventListener('blur', onBlur);
-    return () => window.removeEventListener('blur', onBlur);
-  }, [base44Guard, base44Visible, base44Loaded, hideBase44Guard]);
 
   // Load Base44 only when the section is actually on screen. Its sign-in page
   // autofocuses the email field, and a cross-origin frame loading below the
@@ -1084,7 +1067,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
 
   const applyBase44Page = () => {
     const next = base44PageDraft.trim();
-    if (!/^https?:\/\//i.test(next)) {
+    if (!/^https:\/\//i.test(next)) {
       setBase44PageError('Enter a full https URL, for example https://app.base44.com/apps/...');
       return;
     }
@@ -1735,6 +1718,13 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                       <p className="mt-2 text-[10px] text-[var(--v-muted)]">Loading Base44…</p>
                     </div>
                   </div>
+                )}
+                {base44Visible && base44Loaded && base44Guard && (
+                  <div
+                    data-base44-guard-overlay
+                    className="absolute inset-0 z-10"
+                    onPointerDown={() => hideBase44Guard()}
+                  />
                 )}
                 {base44Visible && base44Loaded && base44Guard && (
                   <div

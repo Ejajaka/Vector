@@ -59,4 +59,48 @@ describe('requirement compiler', () => {
     expect(docs[0].metadata.components).not.toContain('tab');
     expect(docs[0].metadata.components).not.toContain('table');
   });
+
+  it('keeps decimals and abbreviations inside one requirement', () => {
+    const page =
+      'The checkout must respond in under 2.5 seconds, e.g. when 10,000 invoices exist, i.e. the p95 case. Retries must stop after 3.5 attempts.';
+    const docs = compileRequirements(documentFor([page]), { codePrefix: 'REQ-NUM' });
+    expect(docs).toHaveLength(2);
+    expect(docs[0].originalText).toContain('2.5 seconds, e.g. when 10,000 invoices exist, i.e. the p95 case.');
+    expect(docs[1].originalText).toContain('3.5 attempts');
+  });
+
+  it('splits a prose paragraph into one requirement per sentence', () => {
+    const page =
+      'The portal must let owners manage invoices. Response time must stay under 800ms. All data must be encrypted at rest.';
+    const docs = compileRequirements(documentFor([page]), { codePrefix: 'REQ-SENT' });
+    expect(docs.map((item) => item.originalText)).toEqual([
+      'The portal must let owners manage invoices.',
+      'Response time must stay under 800ms.',
+      'All data must be encrypted at rest.',
+    ]);
+    expect(docs[2].kind).toBe('non_functional');
+  });
+
+  it('rejoins hard-wrapped PDF lines before splitting sentences', () => {
+    const page = [
+      'The billing portal must let workspace owners manage invoices, payment methods and plan',
+      'changes. Response time should be under 2.5 seconds for the invoice list, e.g. when a workspace',
+      'has 10,000 invoices.',
+    ].join('\n');
+    const docs = compileRequirements(documentFor([page]), { codePrefix: 'REQ-WRAP' });
+    expect(docs).toHaveLength(2);
+    expect(docs[0].originalText).toBe(
+      'The billing portal must let workspace owners manage invoices, payment methods and plan changes.'
+    );
+    expect(docs[1].originalText).toContain('10,000 invoices');
+  });
+
+  it('does not treat "The page" as a named screen and flags accessibility as non-functional', () => {
+    const docs = compileRequirements(
+      documentFor(['The page must display an empty state. The portal must meet WCAG 2.1 AA.']),
+      { codePrefix: 'REQ-SCREEN' }
+    );
+    expect(docs[0].metadata.screens).not.toContain('The');
+    expect(docs[1].kind).toBe('non_functional');
+  });
 });

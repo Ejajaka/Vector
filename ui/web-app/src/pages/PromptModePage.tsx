@@ -9,6 +9,7 @@ import {
   compilePromptScreens,
   layoutElements,
   roughRisk,
+  stripPromptInjection,
   type Clarification,
   type ClarificationOption,
   type CompiledElement,
@@ -20,6 +21,7 @@ import {
 } from '../services/promptCompiler.ts';
 import { refineWithBERT } from '../services/promptRefiner.ts';
 import { loadLearnedLexicon, saveLearnedPhrase } from '../services/lexicon.ts';
+import { useToast } from '../components/ui/Toast.tsx';
 import { loadSettings } from '../services/settings.ts';
 import { isLLMConfigured } from '../services/llmEngine.ts';
 import { parsePromptWithModel, type ModelParseResult } from '../services/semanticParser.ts';
@@ -259,6 +261,7 @@ export const PromptModePage: React.FC<Props> = ({
   onOpenAssistant,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { toast } = useToast();
   const initialDraft = useRef<PromptDraft | null>(null);
   if (initialDraft.current === null) initialDraft.current = readPromptDraft(projectId);
 
@@ -659,7 +662,7 @@ export const PromptModePage: React.FC<Props> = ({
       'You are a senior product designer and front-end engineer.',
       '',
       'TASK',
-      submitted.trim(),
+      stripPromptInjection(submitted.trim()).text,
       '',
       'SCREENS',
       ...screens.map((screen, index) => `${index + 1}. ${screen.name} — ${screen.archetype}`),
@@ -669,7 +672,7 @@ export const PromptModePage: React.FC<Props> = ({
       `theme ${tokens.theme}`,
       `density ${tokens.density}`,
       `radius ${tokens.radius}px`,
-      `typeface ${tokens.font}`,
+      `typeface ${tokens.fontLabel || tokens.font}`,
       '',
       'LAYOUT',
       `Schematic ${boardWidth}×${boardHeight} ${viewport} board. Positions are a starting skeleton, not fixed CSS or a measurement taken from the request. Use responsive auto-layout.`,
@@ -812,6 +815,10 @@ export const PromptModePage: React.FC<Props> = ({
   };
 
   const analyse = () => {
+    if (!text.trim()) {
+      toast('Describe the screen first — the prompt is empty.', 'info');
+      return;
+    }
     const next = compilePromptScreens(text);
     const baselines: Record<string, number> = {};
     next.forEach((screen) => {

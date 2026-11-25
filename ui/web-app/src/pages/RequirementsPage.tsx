@@ -468,12 +468,24 @@ export const RequirementsPage: React.FC = () => {
                     <span className="ml-auto text-[10px] text-[#737A72]">{requirement.priority} priority · {requirement.status.replace(/_/g, ' ')}</span>
                   </div>
                   <p className="text-sm text-[#283638] mt-2 leading-relaxed">{requirement.originalText}</p>
-                  {requirement.status === 'pending_review' && (
-                    <div className="flex gap-2 mt-3">
-                      <button type="button" onClick={() => void handleDecision(requirement, 'approved')} className="text-[10px] font-semibold px-2.5 py-1 rounded-md bg-[#F4F9F1] border border-[#CFE2C8] text-[#3E6B33]">Approve</button>
-                      <button type="button" onClick={() => void handleDecision(requirement, 'rejected')} className="text-[10px] font-semibold px-2.5 py-1 rounded-md bg-[#FDF2F0] border border-[#F0C4BF] text-[#B94D42]">Reject</button>
-                    </div>
-                  )}
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      type="button"
+                      disabled={requirement.status === 'approved'}
+                      onClick={() => void handleDecision(requirement, 'approved')}
+                      className="text-[10px] font-semibold px-2.5 py-1 rounded-md bg-[#F4F9F1] border border-[#CFE2C8] text-[#3E6B33] disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      type="button"
+                      disabled={requirement.status === 'rejected'}
+                      onClick={() => void handleDecision(requirement, 'rejected')}
+                      className="text-[10px] font-semibold px-2.5 py-1 rounded-md bg-[#FDF2F0] border border-[#F0C4BF] text-[#B94D42] disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      Reject
+                    </button>
+                  </div>
                   <SpellingHint text={requirement.originalText} />
                   <div className="flex flex-wrap gap-1.5 mt-2.5">
                     {(requirement.metadata.roles || []).map((role) => (

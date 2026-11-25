@@ -101,6 +101,8 @@ export interface DesignTokens {
   density: 'compact' | 'comfortable' | 'spacious';
   radius: number;
   font: 'jakarta' | 'bricolage' | 'georgia' | 'mono';
+  /** The typeface the prompt names, when it names one we do not ship. */
+  fontLabel?: string;
   responsive: boolean;
 }
 
@@ -166,7 +168,7 @@ const KIND_DEFS: KindDef[] = [
   { kind: 'badge', words: ['status badge', 'badge', 'pill', 'chip', 'tag', 'bage', 'badg'] },
   { kind: 'progress', words: ['progress indicator', 'progress bar', 'loading bar', 'stepper', 'progress', 'progess'] },
   { kind: 'avatar', words: ['profile picture', 'profile photo', 'profile image', 'user photo', 'avatar', 'avtar', 'avater'] },
-  { kind: 'card', words: ['product card', 'stat card', 'pricing card', 'feature card', 'card', 'tile', 'panel', 'crd', 'cardd'] },
+  { kind: 'card', words: ['product card', 'stat card', 'pricing card', 'feature card', 'kpi', 'metric', 'stat', 'statistic', 'card', 'tile', 'panel', 'crd', 'cardd'] },
   {
     kind: 'image',
     words: ['header image', 'hero image', 'feature image', 'background image', 'illustration', 'screenshot', 'thumbnail', 'picture', 'gallery', 'banner', 'photo', 'image', 'graphic', 'logo', 'map', 'imge', 'img', 'pcture'],
@@ -787,6 +789,13 @@ function parseTokens(text: string, base: DesignTokens = DEFAULT_TOKENS): DesignT
         ? 'bricolage'
         : base.font;
 
+  // The prompt may name a family we do not ship (Inter, Roboto, …). The canvas
+  // keeps its closest token, but the hand-off prompt must carry the real name
+  // instead of claiming the default "jakarta".
+  const namedFont = text.match(
+    /\b(inter|roboto|helvetica|arial|dm sans|manrope|poppins|montserrat|open sans|lato|nunito|source sans|ibm plex sans|geist|sf pro|system ui|figtree|satoshi|work sans|plus jakarta sans|bricolage grotesque)\b/i,
+  )?.[1];
+
   return {
     primary: primary || base.primary,
     statedColour: Boolean(primary) || base.statedColour,
@@ -794,6 +803,7 @@ function parseTokens(text: string, base: DesignTokens = DEFAULT_TOKENS): DesignT
     density,
     radius,
     font,
+    fontLabel: namedFont ? namedFont : undefined,
     responsive: /responsive|mobile|tablet|breakpoint|desktop/i.test(text) || base.responsive,
   };
 }
@@ -1769,6 +1779,15 @@ function detectClarifications(text: string, lexicon: LearnedLexicon = {}): Clari
 /* Compile                                                             */
 /* ------------------------------------------------------------------ */
 
+const INJECTION_RE = /(ignore|disregard|forget)\s+(all\s+)?(previous|prior|above|earlier)\s+(instructions?|prompts?|rules?)|(print|reveal|show|repeat|output)\s+(me\s+)?(your\s+)?(system\s+prompt|hidden\s+prompt|developer\s+prompt|instructions?)/i;
+
+/** Removes instructions aimed at the downstream model, not at the design. */
+export function stripPromptInjection(text: string): { text: string; removed: number } {
+  const parts = text.split(/(?<=[.!?])\s+/);
+  const kept = parts.filter((part) => !INJECTION_RE.test(part));
+  return { text: kept.join(' ').trim(), removed: parts.length - kept.length };
+}
+
 export function compilePrompt(
   prompt: string,
   tokenBase?: DesignTokens,
@@ -1911,6 +1930,14 @@ export function compilePrompt(
 
   const skippedLines = Math.max(0, parsed.units.length - usedLines);
   const signals: Signal[] = [];
+
+  const injection = stripPromptInjection(prompt);
+  if (injection.removed > 0) {
+    signals.push({
+      tone: 'warn',
+      text: `${injection.removed} instruction${injection.removed === 1 ? '' : 's'} tried to override the downstream model and ${injection.removed === 1 ? 'was' : 'were'} removed from the hand-off prompt.`,
+    });
+  }
 
   if (noComponents) {
     signals.push({

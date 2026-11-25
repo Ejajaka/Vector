@@ -40,8 +40,20 @@ describe('acceptance criteria', () => {
     expect(criteria.length).toBeGreaterThanOrEqual(3);
     expect(criteria[0].requirementId).toBe('r1');
     expect(criteria[0].given).toMatch(/^Given/);
-    expect(criteria[0].when).toMatch(/^when/);
-    expect(criteria[0].then).toMatch(/^then/);
+    expect(criteria[0].given).toMatch(/authenticated employee\b/);
+    expect(criteria[0].when).toMatch(/^When/);
+    expect(criteria[0].then).toMatch(/^Then/);
     expect(new Set(criteria.map((item) => item.id)).size).toBe(criteria.length);
+  });
+
+  it('does not repeat "authorized" and keeps plural roles singular', () => {
+    const record = requirement('r2', 'Users must be able to filter invoices by status.');
+    record.metadata = { screens: ['The'], components: [], roles: ['Users'], behaviours: ['filter'] };
+    const criteria = generateAcceptanceCriteria([record], 'project-1');
+    const given = criteria.map((item) => item.given).join(' | ');
+    expect(given).not.toMatch(/authenticated authorized user/);
+    expect(given).toMatch(/authenticated user/);
+    expect(given).not.toMatch(/\busers\b/);
+    expect(given).not.toMatch(/on The\b/);
   });
 });

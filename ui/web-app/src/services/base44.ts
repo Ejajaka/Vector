@@ -204,9 +204,9 @@ export function saveBase44GuardDismissed(): void {
 export function readBase44PageUrl(projectId: string): string {
   try {
     const explicit = localStorage.getItem(base44PageKey(projectId));
-    if (explicit && /^https?:\/\//i.test(explicit)) return explicit;
+    if (explicit && /^https:\/\//i.test(explicit)) return explicit;
     const app = readProjectBase44(projectId);
-    if (app?.url && /^https?:\/\//i.test(app.url)) return app.url;
+    if (app?.url && /^https:\/\//i.test(app.url)) return app.url;
   } catch {
     // Storage is best effort; fall back to the Base44 home page.
   }
@@ -215,7 +215,7 @@ export function readBase44PageUrl(projectId: string): string {
 
 export function saveBase44PageUrl(projectId: string, url: string): string {
   const next = url.trim();
-  if (!/^https?:\/\//i.test(next)) return readBase44PageUrl(projectId);
+  if (!/^https:\/\//i.test(next)) return readBase44PageUrl(projectId);
   try {
     localStorage.setItem(base44PageKey(projectId), next);
   } catch {

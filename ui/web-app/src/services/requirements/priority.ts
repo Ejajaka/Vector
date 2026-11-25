@@ -64,13 +64,25 @@ export async function applyRequirementPriorities(
   );
 
   if (supabase) {
+    // Group identical decisions so a 300-requirement document costs a handful
+    // of requests instead of one round-trip per requirement.
+    const groups = new Map<string, { priority: RequirementRecord['priority']; reason: string; ids: string[] }>();
     for (const requirement of classified) {
-      const { error } = await supabase
-        .from('requirements')
-        .update({ priority: requirement.priority, priority_reason: requirement.priorityReason })
-        .eq('id', requirement.id)
-        .eq('project_id', projectId);
-      if (error) throw new Error(error.message);
+      const reason = requirement.priorityReason || '';
+      const key = `${requirement.priority}|${reason}`;
+      const group = groups.get(key) || { priority: requirement.priority, reason, ids: [] };
+      group.ids.push(requirement.id);
+      groups.set(key, group);
+    }
+    for (const group of groups.values()) {
+      for (let index = 0; index < group.ids.length; index += 100) {
+        const { error } = await supabase
+          .from('requirements')
+          .update({ priority: group.priority, priority_reason: group.reason })
+          .in('id', group.ids.slice(index, index + 100))
+          .eq('project_id', projectId);
+        if (error) throw new Error(error.message);
+      }
     }
   }
   return classified;
