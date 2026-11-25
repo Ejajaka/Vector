@@ -47,6 +47,8 @@ export const RequirementReviewPage: React.FC = () => {
   const [requirements, setRequirements] = useState<RequirementRecord[]>([]);
   const [suggestions, setSuggestions] = useState<RequirementSuggestion[]>([]);
   const [criteria, setCriteria] = useState<AcceptanceCriterion[]>([]);
+  const [visibleSuggestions, setVisibleSuggestions] = useState(50);
+  const [visibleCriteria, setVisibleCriteria] = useState(50);
   const [tab, setTab] = useState<Tab>('suggestions');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -54,6 +56,11 @@ export const RequirementReviewPage: React.FC = () => {
   const [selectedCriteria, setSelectedCriteria] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
   const [confirmReject, setConfirmReject] = useState<null | 'suggestions' | 'criteria'>(null);
+
+  useEffect(() => {
+    setVisibleSuggestions(50);
+    setVisibleCriteria(50);
+  }, [currentProject?.id]);
 
   const load = useCallback(async () => {
     if (!currentProject) {
@@ -322,7 +329,7 @@ export const RequirementReviewPage: React.FC = () => {
           {suggestions.length === 0 ? (
             <div className="bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl p-8 text-center text-xs text-[#737A72]">No suggestions generated.</div>
           ) : (
-            suggestions.map((suggestion) => (
+            suggestions.slice(0, visibleSuggestions).map((suggestion) => (
               <article key={suggestion.id} className="bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl p-4 shadow-xs">
                 <div className="flex flex-wrap items-center gap-2">
                   <input
@@ -356,13 +363,22 @@ export const RequirementReviewPage: React.FC = () => {
               </article>
             ))
           )}
+          {suggestions.length > visibleSuggestions && (
+            <button
+              type="button"
+              onClick={() => setVisibleSuggestions((count) => count + 50)}
+              className="w-full rounded-lg border border-[#E5E2D8] bg-white px-3 py-2 text-[11px] font-semibold text-[#49686C] hover:border-[#49686C]"
+            >
+              Show 50 more suggestions ({suggestions.length - visibleSuggestions} remaining)
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-3">
           {criteria.length === 0 ? (
             <div className="bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl p-8 text-center text-xs text-[#737A72]">No acceptance criteria generated.</div>
           ) : (
-            criteria.map((criterion) => (
+            criteria.slice(0, visibleCriteria).map((criterion) => (
               <article key={criterion.id} className="bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl p-4 shadow-xs">
                 <div className="flex flex-wrap items-center gap-2">
                   <input
@@ -393,6 +409,15 @@ export const RequirementReviewPage: React.FC = () => {
                 </div>
               </article>
             ))
+          )}
+          {criteria.length > visibleCriteria && (
+            <button
+              type="button"
+              onClick={() => setVisibleCriteria((count) => count + 50)}
+              className="w-full rounded-lg border border-[#E5E2D8] bg-white px-3 py-2 text-[11px] font-semibold text-[#49686C] hover:border-[#49686C]"
+            >
+              Show 50 more criteria ({criteria.length - visibleCriteria} remaining)
+            </button>
           )}
         </div>
       )}

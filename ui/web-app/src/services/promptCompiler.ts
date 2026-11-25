@@ -941,7 +941,9 @@ function splitProse(line: string): string[] {
     return `\u0000${quoted.length - 1}\u0000`;
   });
   return masked
-    .split(/,|;|\.|\n|\s+and\s+(?=[a-z])|\s+plus\s+/i)
+    // A period or comma is a clause boundary only when whitespace or the end of
+    // the line follows it: "2.5rem" and "10,000 rows" must stay intact.
+    .split(/,(?=\s)|;|\.(?=\s|$)|\n|\s+and\s+(?=[a-z])|\s+plus\s+/i)
     .map((part) => part.replace(/\u0000(\d+)\u0000/g, (_whole, index: string) => quoted[Number(index)]).trim())
     .filter(Boolean);
 }
@@ -985,6 +987,13 @@ function parsePrompt(prompt: string, lexicon: LearnedLexicon = {}): ParsedPrompt
     line = line.replace(/\*\*|__|`/g, '').trim();
     if (!line) continue;
 
+    // Typography specs ("Use font Inter 2.5rem for the title") describe tokens,
+    // not UI structure; reading "title" as a heading would create a ghost card.
+    const isTypographyOnly = (value: string) =>
+      /\b(font|typeface|font[- ]family|font[- ]size|letter[- ]spacing|line[- ]height)\b/i.test(value) &&
+      !/\b(button|input|field|table|card|navbar|footer|modal|chart|image|badge|checkbox|dropdown|sidebar|menu|heading|headline|avatar|form|list)\b/i.test(value);
+    if (isTypographyOnly(line)) continue;
+
     const colonSection = line.match(/^([A-Za-z][A-Za-z /&-]{1,28}):$/);
     if (colonSection && findAllKinds(line, lexicon).length === 0) {
       noteSection(colonSection[1]);
@@ -995,7 +1004,9 @@ function parsePrompt(prompt: string, lexicon: LearnedLexicon = {}): ParsedPrompt
     if (structured || tabList) {
       units.push({ text: line, section, line: originalLine });
     } else {
-      splitProse(line).forEach((text) => units.push({ text, section, line: originalLine }));
+      splitProse(line)
+        .filter((text) => !isTypographyOnly(text))
+        .forEach((text) => units.push({ text, section, line: originalLine }));
     }
   }
 

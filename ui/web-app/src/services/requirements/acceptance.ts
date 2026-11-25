@@ -51,7 +51,7 @@ function action(requirement: RequirementRecord): string {
   return text.length > 140 ? `${text.slice(0, 137)}…` : text;
 }
 
-export const ACCEPTANCE_LIMIT = 120;
+export const ACCEPTANCE_LIMIT = 2000;
 
 export function generateAcceptanceCriteria(
   requirements: RequirementRecord[],

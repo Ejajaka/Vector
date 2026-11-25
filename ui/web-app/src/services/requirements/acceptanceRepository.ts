@@ -125,19 +125,20 @@ export async function ensureAcceptanceCriteria(
   const existingIds = new Set((existing || []).map((row) => row.id));
   const missing = criteria.filter((criterion) => !existingIds.has(criterion.id));
   if (missing.length) {
-    const { error } = await supabase.from('acceptance_criteria').insert(
-      missing.map((criterion) => ({
-        id: criterion.id,
-        project_id: projectId,
-        requirement_id: criterion.requirementId,
-        given_text: criterion.given,
-        when_text: criterion.when,
-        then_text: criterion.then,
-        status: criterion.status,
-        source: criterion.source,
-      }))
-    );
-    if (error) throw new Error(error.message);
+    const rows = missing.map((criterion) => ({
+      id: criterion.id,
+      project_id: projectId,
+      requirement_id: criterion.requirementId,
+      given_text: criterion.given,
+      when_text: criterion.when,
+      then_text: criterion.then,
+      status: criterion.status,
+      source: criterion.source,
+    }));
+    for (let index = 0; index < rows.length; index += 200) {
+      const { error } = await supabase.from('acceptance_criteria').insert(rows.slice(index, index + 200));
+      if (error) throw new Error(error.message);
+    }
   }
   return [...criteria];
 }
@@ -181,9 +182,11 @@ export async function updateAcceptanceStatuses(
     );
   }
   if (!supabase) return;
-  const { error } = await supabase
-    .from('acceptance_criteria')
-    .update({ status })
-    .in('id', criterionIds);
-  if (error) throw new Error(error.message);
+  for (let index = 0; index < criterionIds.length; index += 100) {
+    const { error } = await supabase
+      .from('acceptance_criteria')
+      .update({ status })
+      .in('id', criterionIds.slice(index, index + 100));
+    if (error) throw new Error(error.message);
+  }
 }

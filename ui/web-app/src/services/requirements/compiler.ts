@@ -232,7 +232,7 @@ export interface CompileStats {
   limit: number;
 }
 
-export const REQUIREMENT_LIMIT = 300;
+export const REQUIREMENT_LIMIT = 1500;
 
 export function compileRequirementsWithStats(
   document: ExtractedDocument,

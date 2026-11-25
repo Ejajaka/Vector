@@ -225,16 +225,21 @@ async function uploadRequirementDocumentInner(
     metadata: draft.metadata,
   }));
 
-  const { data: requirementData, error: requirementError } = await client
-    .from('requirements')
-    .insert(requirementRows)
-    .select('*');
-  if (requirementError) {
-    await client
-      .from('requirement_documents')
-      .update({ status: 'failed', error_message: requirementError.message })
-      .eq('id', documentId);
-    throw new Error(requirementError.message);
+  const requirementData: any[] = [];
+  for (let index = 0; index < requirementRows.length; index += 200) {
+    const chunk = requirementRows.slice(index, index + 200);
+    const { data, error: requirementError } = await client
+      .from('requirements')
+      .insert(chunk)
+      .select('*');
+    if (requirementError) {
+      await client
+        .from('requirement_documents')
+        .update({ status: 'failed', error_message: requirementError.message })
+        .eq('id', documentId);
+      throw new Error(requirementError.message);
+    }
+    requirementData.push(...(data || []));
   }
 
   const { data: documentData, error: documentError } = await client

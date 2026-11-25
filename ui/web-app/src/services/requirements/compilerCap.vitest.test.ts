@@ -15,7 +15,7 @@ function documentFor(pages: string[]): ExtractedDocument {
 describe('requirement compile cap', () => {
   it('reports truncation when the document exceeds the cap', () => {
     const page = Array.from({ length: 320 }, (_, index) => `Requirement ${index + 1} must be visible.`).join('\n');
-    const stats = compileRequirementsWithStats(documentFor([page]), { codePrefix: 'REQ-CAP' });
+    const stats = compileRequirementsWithStats(documentFor([page]), { codePrefix: 'REQ-CAP', maxRequirements: 300 });
     expect(stats.drafts).toHaveLength(300);
     expect(stats.truncated).toBe(true);
     expect(stats.limit).toBe(300);

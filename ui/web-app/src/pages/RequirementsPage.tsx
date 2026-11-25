@@ -60,6 +60,7 @@ export const RequirementsPage: React.FC = () => {
   const [kindFilter, setKindFilter] = useState<KindFilter>('all');
   const [prioritizing, setPrioritizing] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [visibleCount, setVisibleCount] = useState(60);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [confirmBulkReject, setConfirmBulkReject] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<RequirementDocument | null>(null);
@@ -207,6 +208,12 @@ export const RequirementsPage: React.FC = () => {
     });
   }, [requirements, kindFilter, search]);
 
+  useEffect(() => {
+    setVisibleCount(60);
+  }, [kindFilter, search, currentProject?.id]);
+
+  const visibleRequirements = filtered.slice(0, visibleCount);
+
   if (!currentProject) {
     return (
       <div className="max-w-3xl mx-auto bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl p-10 text-center shadow-xs">
@@ -255,7 +262,7 @@ export const RequirementsPage: React.FC = () => {
           </div>
           <div className="flex-1">
             <h2 className="text-base font-semibold text-[#283638]">Upload a requirement document</h2>
-            <p className="text-xs text-[#737A72] mt-1">PDF, DOCX, TXT or Markdown · maximum 25 MB · 300 requirements per document.</p>
+            <p className="text-xs text-[#737A72] mt-1">PDF, DOCX, TXT or Markdown · maximum 25 MB · 1500 requirements per document.</p>
             <input
               ref={inputRef}
               type="file"
@@ -451,7 +458,7 @@ export const RequirementsPage: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-3">
-              {filtered.map((requirement) => (
+              {visibleRequirements.map((requirement) => (
                 <article key={requirement.id} className="bg-[#FFFFFF] border border-[#E5E2D8] rounded-xl p-4 shadow-xs">
                   <div className="flex flex-wrap items-center gap-2">
                     <input
@@ -507,6 +514,17 @@ export const RequirementsPage: React.FC = () => {
                   </div>
                 </article>
               ))}
+              {filtered.length > visibleRequirements.length && (
+                <div className="pt-1 text-center">
+                  <button
+                    type="button"
+                    onClick={() => setVisibleCount((count) => count + 60)}
+                    className="rounded-lg border border-[#E5E2D8] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#49686C] hover:border-[#49686C]"
+                  >
+                    Show 60 more ({filtered.length - visibleRequirements.length} remaining)
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

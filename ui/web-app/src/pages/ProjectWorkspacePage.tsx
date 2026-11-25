@@ -61,7 +61,7 @@ import { TYPE_TO_VARIANT, VARIANTS, variantById } from '../data/styles.ts';
 import { StyledElement } from '../components/editor/StyledElement.tsx';
 import { WireframePreview } from '../components/editor/WireframePreview.tsx';
 import { parseFigmaJson } from '../services/figma.ts';
-import { designSystemPrompt, getActiveDesignSystem, type DesignSystem } from '../services/designSystems.ts';
+import { applySystemToItems, designSystemPrompt, getActiveDesignSystem, type DesignSystem } from '../services/designSystems.ts';
 import { DesignSystemPickerDialog } from '../components/project/DesignSystemPickerDialog.tsx';
 import { readProjectSetup } from '../services/projectSeed.ts';
 import {
@@ -515,6 +515,30 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
       cancelled = true;
     };
   }, [project.id, project.name]);
+
+  // A canvas created before a design system was attached keeps the house
+  // violet. Reconcile it once per system version so the canvas, the prompt and
+  // the attached tokens agree without the person pressing Apply again.
+  useEffect(() => {
+    if (!doc || !designSystem) return;
+    const signature = `${designSystem.id}:${designSystem.updatedAt}`;
+    const key = `vector_project_ds_sync_${project.id}`;
+    try {
+      if (localStorage.getItem(key) === signature) return;
+    } catch {
+      return;
+    }
+    const pages = doc.pages.map((page) => ({
+      ...page,
+      items: applySystemToItems(page.items, designSystem),
+    }));
+    setDoc((current) => (current ? { ...current, pages, updatedAt: new Date().toISOString() } : current));
+    try {
+      localStorage.setItem(key, signature);
+    } catch {
+      // ignore quota errors
+    }
+  }, [doc, designSystem, project.id]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {

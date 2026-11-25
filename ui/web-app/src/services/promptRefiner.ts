@@ -41,6 +41,8 @@ export interface RefineOutcome {
   confidence: number;
   lines: number;
   added: number;
+  /** Total model spans seen across all lines. */
+  spans: number;
   ms: number;
   beforeRisk: number;
   afterRisk: number;
@@ -75,6 +77,22 @@ function usableLabel(text: string, kind: string): string | undefined {
   // "button" is the noun, not the copy.
   if (classifyText(value) === kind) return undefined;
   return value;
+}
+
+/**
+ * The tagger often marks the component noun rather than the copy. When an
+ * element has no label, a short noun phrase such as "dashboard" is still better
+ * copy than an unresolved placeholder.
+ */
+const OBJECT_LABEL_KINDS = new Set(['card', 'image', 'badge', 'avatar']);
+
+function modelLabel(text: string, kind: string): string | undefined {
+  if (!OBJECT_LABEL_KINDS.has(kind)) return undefined;
+  const value = tidy(text);
+  if (value.length < 2 || value.length > 40) return undefined;
+  if (value.split(/\s+/).length > 5) return undefined;
+  if (classifyText(value)) return undefined;
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function usableAction(text: string): string | undefined {
@@ -121,11 +139,14 @@ export function mergeLineSpans(
     const element = lineElements[0];
 
     if (!element.label && LABEL_KINDS.has(element.kind)) {
-      const span = spanFor(spans, 'LABEL');
-      const value = grounded(span, line) ? usableLabel(span.text, element.kind) : undefined;
+      const labelSpan = spanFor(spans, 'LABEL');
+      const labelValue = grounded(labelSpan, line) ? usableLabel(labelSpan.text, element.kind) : undefined;
+      const elementSpan = spanFor(spans, 'ELEMENT');
+      const fallback = grounded(elementSpan, line) ? modelLabel(elementSpan.text, element.kind) : undefined;
+      const value = labelValue || fallback;
       if (value) {
         element.label = value;
-        element.confidence = Math.max(element.confidence || 0, 0.72);
+        element.confidence = Math.max(element.confidence || 0, labelValue ? 0.72 : 0.62);
         applied.push(`label “${value}” for ${element.kind}`);
       }
     }
@@ -167,37 +188,41 @@ export function mergeLineSpans(
   // that component, not a new page-level element.
   if (lineElements.length > 0) return { applied, added };
 
-  const elementSpan = spanFor(spans, 'ELEMENT');
-  if (!grounded(elementSpan, line) || added >= maxAdded) return { applied, added };
-  const kind = classifyText(elementSpan.text);
-  if (!kind) return { applied, added };
+  const elementSpans = spans.filter((span) => span.label === 'ELEMENT' && grounded(span, line));
+  for (const elementSpan of elementSpans) {
+    if (added >= maxAdded) break;
+    const cleaned = tidy(elementSpan.text);
+    const kind = classifyText(cleaned);
+    if (!kind) continue;
+    if (elements.some((element) => element.kind === kind && element.sourceLine === line)) continue;
 
-  const created = elementFromText(elementSpan.text, archetype);
-  if (!created) return { applied, added };
+    const created = elementFromText(cleaned, archetype);
+    if (!created) continue;
 
-  const label = spanFor(spans, 'LABEL');
-  const value = grounded(label, line) ? usableLabel(label.text, created.kind) : undefined;
-  if (value) created.label = value;
+    const label = spanFor(spans, 'LABEL');
+    const value = grounded(label, line) ? usableLabel(label.text, created.kind) : modelLabel(cleaned, created.kind);
+    if (value) created.label = value;
 
-  const colour = spanFor(spans, 'COLOR');
-  const colourValue = grounded(colour, line) ? colourFromText(colour.text) : undefined;
-  if (colourValue) {
-    created.colour = colourValue;
-    created.colourInferred = false;
+    const colour = spanFor(spans, 'COLOR');
+    const colourValue = grounded(colour, line) ? colourFromText(colour.text) : undefined;
+    if (colourValue) {
+      created.colour = colourValue;
+      created.colourInferred = false;
+    }
+
+    if (INTERACTIVE.has(created.kind)) {
+      const action = spanFor(spans, 'ACTION');
+      const actionValue = grounded(action, line) ? usableAction(action.text) : undefined;
+      if (actionValue) created.action = actionValue;
+    }
+
+    created.id = `el_bert_${elements.length + 1}`;
+    created.sourceLine = line;
+    created.confidence = 0.55;
+    elements.push(created);
+    added += 1;
+    applied.push(`added ${created.kind} from a model span`);
   }
-
-  if (INTERACTIVE.has(created.kind)) {
-    const action = spanFor(spans, 'ACTION');
-    const actionValue = grounded(action, line) ? usableAction(action.text) : undefined;
-    if (actionValue) created.action = actionValue;
-  }
-
-  created.id = `el_bert_${elements.length + 1}`;
-  created.sourceLine = line;
-  created.confidence = 0.55;
-  elements.push(created);
-  added += 1;
-  applied.push(`added ${created.kind} from a model span`);
 
   return { applied, added };
 }
@@ -214,7 +239,7 @@ export async function refineWithBERT(
   if (!lines.length) {
     return {
       elements: result.elements, applied: [], confidence: 0, lines: 0,
-      added: 0, ms: 0, beforeRisk: 0, afterRisk: 0, rejected: false,
+      added: 0, spans: 0, ms: 0, beforeRisk: 0, afterRisk: 0, rejected: false,
     };
   }
 
@@ -254,6 +279,7 @@ export async function refineWithBERT(
   let confidenceSum = 0;
   let confidenceCount = 0;
   let added = 0;
+  let spanCount = 0;
 
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index];
@@ -279,6 +305,7 @@ export async function refineWithBERT(
 
     confidenceSum += cached.confidence;
     confidenceCount += 1;
+    spanCount += cached.spans.length;
 
     onProgress?.({
       percent: Math.round(((index + 1) / lines.length) * 92),
@@ -316,6 +343,7 @@ export async function refineWithBERT(
       confidence: confidenceCount ? Number((confidenceSum / confidenceCount).toFixed(3)) : 0,
       lines: lines.length,
       added: 0,
+      spans: spanCount,
       ms: Math.round(performance.now() - started),
       beforeRisk,
       afterRisk,
@@ -329,6 +357,7 @@ export async function refineWithBERT(
     confidence: confidenceCount ? Number((confidenceSum / confidenceCount).toFixed(3)) : 0,
     lines: lines.length,
     added,
+    spans: spanCount,
     ms: Math.round(performance.now() - started),
     beforeRisk,
     afterRisk,

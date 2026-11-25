@@ -875,7 +875,7 @@ export const PromptModePage: React.FC<Props> = ({
       const outcome = await refineWithBERT(compiled, (progress) =>
         setDeep({ running: true, percent: progress.percent, stage: progress.stage })
       );
-      const span = `${outcome.lines} lines · ${Math.round(outcome.confidence * 100)}% span confidence · ${outcome.ms}ms`;
+      const span = `${outcome.lines} lines · ${outcome.spans} spans · ${Math.round(outcome.confidence * 100)}% span confidence · ${outcome.ms}ms`;
 
       if (outcome.rejected) {
         setRefinedById((previous) => ({ ...previous, [screenId]: undefined }));
@@ -893,7 +893,7 @@ export const PromptModePage: React.FC<Props> = ({
         setDeep({
           running: false,
           percent: 100,
-          stage: `No grounded fixes found on ${screenName}. Deterministic result kept. ${span}`,
+          stage: `No grounded fixes on ${screenName} — the deterministic result already covers what the model tagged. Use AI parse for a stronger pass on prose. ${span}`,
         });
         return;
       }

@@ -22,4 +22,18 @@ describe('prompt contradictions', () => {
     const card = compiled.elements.find((element) => element.kind === 'card');
     expect(card?.label).toBe('KPIs');
   });
+
+  it('keeps decimals and thousands separators when splitting prose', () => {
+    const compiled = compilePrompt('Add a table with 10,000 rows and set the title font to 2.5rem.');
+    const table = compiled.elements.find((element) => element.kind === 'table');
+    expect(table).toBeTruthy();
+    expect(compiled.elements.some((element) => element.kind === 'heading')).toBe(false);
+    expect(compiled.meta.lines.join(' | ')).toContain('10,000 rows');
+  });
+
+  it('does not turn a typography spec into a heading element', () => {
+    const compiled = compilePrompt('Use font "Inter" 2.5rem for the title and 0.875rem for the body.');
+    expect(compiled.elements.some((element) => element.kind === 'heading')).toBe(false);
+    expect(compiled.meta.tokens.fontLabel).toBe('Inter');
+  });
 });
