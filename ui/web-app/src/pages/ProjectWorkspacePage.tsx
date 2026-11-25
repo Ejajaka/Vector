@@ -1740,27 +1740,18 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                   <div
                     data-base44-guard
                     aria-hidden="true"
-                    className="absolute z-20 flex flex-col items-center justify-center gap-2 rounded-xl border border-white/10 bg-[#0d0e10] px-4 text-center shadow-[0_18px_50px_-20px_rgba(0,0,0,0.85)]"
-                    style={{ left: '8%', right: '8%', top: '37%', height: '23%' }}
+                    className="absolute z-20 flex items-center justify-center gap-1.5 rounded-xl border border-[var(--v-line)] bg-[var(--v-surface)] px-2.5 py-2 shadow-[0_24px_60px_-26px_rgba(0,0,0,0.9)]"
+                    style={{ left: '2%', top: '63%', width: 'min(178px, 21%)' }}
                     onClick={(event) => {
                       event.preventDefault();
                       event.stopPropagation();
                     }}
                   >
-                    <p className="text-[12px] font-semibold tracking-wide text-white">Login using</p>
-                    <svg
-                      viewBox="0 0 20 26"
-                      aria-hidden="true"
-                      className="h-6 w-4 text-[#9d8cff]"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M10 2v19" />
-                      <path d="M3.5 15.5 10 22l6.5-6.5" />
-                    </svg>
+                    <Sparkles className="h-3 w-3 shrink-0 text-[var(--v-violet)]" />
+                    <p className="text-[11px] font-semibold leading-tight text-[var(--v-ink)]">Login using</p>
+                    <span className="v-guide-arrow absolute -right-3.5 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full border border-[#B9A8FF]/50 bg-[#1B1730]/95 text-[#C9BCFF] shadow-[0_8px_26px_rgba(124,92,255,.55)]">
+                      <ArrowRight className="h-4 w-4" strokeWidth={2.6} />
+                    </span>
                   </div>
                 )}
                 {base44Visible && (
