@@ -1741,7 +1741,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                     data-base44-guard
                     aria-hidden="true"
                     className="absolute z-20 flex items-center justify-center gap-1.5 rounded-xl border border-[var(--v-line)] bg-[var(--v-surface)] px-2.5 py-2 shadow-[0_24px_60px_-26px_rgba(0,0,0,0.9)]"
-                    style={{ left: '2%', top: '63%', width: 'min(178px, 21%)' }}
+                    style={{ left: '3%', top: '66%', width: 'min(178px, 21%)' }}
                     onClick={(event) => {
                       event.preventDefault();
                       event.stopPropagation();
