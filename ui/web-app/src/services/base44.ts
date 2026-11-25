@@ -177,6 +177,32 @@ function base44PageKey(projectId: string): string {
   return `vector_project_base44_page_${projectId}`;
 }
 
+function base44GuardKey(projectId: string): string {
+  return `vector_project_base44_guard_done_${projectId}`;
+}
+
+/**
+ * The embedded builder shows its own social buttons, so Vector covers them
+ * until the user starts the email sign-in. Once that has happened the guard
+ * must stay away for good — re-showing it on every frame navigation would sit
+ * on top of the password step.
+ */
+export function readBase44GuardDismissed(projectId: string): boolean {
+  try {
+    return localStorage.getItem(base44GuardKey(projectId)) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function saveBase44GuardDismissed(projectId: string): void {
+  try {
+    localStorage.setItem(base44GuardKey(projectId), '1');
+  } catch {
+    // ignore
+  }
+}
+
 /** The exact Base44 page this project should embed and open. */
 export function readBase44PageUrl(projectId: string): string {
   try {

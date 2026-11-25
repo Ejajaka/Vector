@@ -64,7 +64,12 @@ import { parseFigmaJson } from '../services/figma.ts';
 import { designSystemPrompt, getActiveDesignSystem, type DesignSystem } from '../services/designSystems.ts';
 import { DesignSystemPickerDialog } from '../components/project/DesignSystemPickerDialog.tsx';
 import { readProjectSetup } from '../services/projectSeed.ts';
-import { readBase44PageUrl, saveBase44PageUrl } from '../services/base44.ts';
+import {
+  readBase44GuardDismissed,
+  readBase44PageUrl,
+  saveBase44GuardDismissed,
+  saveBase44PageUrl,
+} from '../services/base44.ts';
 import { loadProjectMemory } from '../services/projectMemory.ts';
 import { MEMORY_KEYS } from '../services/generation/memory.ts';
 import { analyzeRequirements } from '../services/requirements/intelligence.ts';
@@ -447,9 +452,10 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   const [base44Loaded, setBase44Loaded] = useState(false);
   const [base44Visible, setBase44Visible] = useState(false);
   const [base44Fullscreen, setBase44Fullscreen] = useState(false);
-  const [base44Guard, setBase44Guard] = useState(true);
+  const [base44Guard, setBase44Guard] = useState(() => !readBase44GuardDismissed(project.id));
   const base44GuardSinceRef = useRef(0);
   const base44TouchedRef = useRef(false);
+  const base44GuardDoneRef = useRef(readBase44GuardDismissed(project.id));
   const base44FrameRef = useRef<HTMLDivElement | null>(null);
   const scrollSectionRef = useRef<HTMLElement | null>(null);
   const base44ScrollTopRef = useRef(0);
@@ -915,7 +921,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
 
   const reloadBase44 = () => {
     rememberBase44Scroll();
-    setBase44Guard(true);
+    setBase44Guard(!base44GuardDoneRef.current);
     base44GuardSinceRef.current = 0;
     base44TouchedRef.current = false;
     setBase44Loaded(false);
@@ -952,9 +958,9 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     try {
       await doc.requestStorageAccessFor(origin);
       rememberBase44Scroll();
-    setBase44Guard(true);
-    base44GuardSinceRef.current = 0;
-    base44TouchedRef.current = false;
+      setBase44Guard(!base44GuardDoneRef.current);
+      base44GuardSinceRef.current = 0;
+      base44TouchedRef.current = false;
       setBase44Loaded(false);
       setBase44Key((value) => value + 1);
       notificationService.push({
@@ -1003,6 +1009,17 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     base44ScrollTopRef.current = scrollSectionRef.current?.scrollTop ?? 0;
   };
 
+  /**
+   * Hides the social sign-in guard and remembers that this project no longer
+   * needs it. Base44 is cross-origin, so the first click into the frame is the
+   * earliest reliable signal that the user is on the email/password form.
+   */
+  const dismissBase44Guard = useCallback(() => {
+    base44GuardDoneRef.current = true;
+    saveBase44GuardDismissed(project.id);
+    setBase44Guard(false);
+  }, [project.id]);
+
   // The Base44 login page autofocuses its email field. A cross-origin frame
   // doing that below the fold can scroll its parent, so pin the workspace back
   // to where it was before the frame loaded.
@@ -1010,7 +1027,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     if (base44GuardSinceRef.current === 0) base44GuardSinceRef.current = Date.now();
     setBase44Loaded(true);
     if (base44Guard && base44TouchedRef.current && Date.now() - base44GuardSinceRef.current > 5000) {
-      setBase44Guard(false);
+      dismissBase44Guard();
     }
     const restore = () => {
       const section = scrollSectionRef.current;
@@ -1035,28 +1052,34 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   }, [base44Fullscreen]);
 
   // Cross-origin iframes cannot tell us when their login succeeds, so use the
-  // signals we do have: a later document load after the user has interacted, a
-  // return of focus to Vector, and a bounded fallback. None of these require a
-  // button press.
+  // signals we do have: the user clicking into the frame, a later document load
+  // after that click, a return of focus to Vector, and a bounded fallback.
   useEffect(() => {
     if (!base44Guard || !base44Visible || !base44Loaded) return;
+    const frameFocused = () => {
+      const frame = base44FrameRef.current?.querySelector('iframe');
+      return Boolean(frame) && document.activeElement === frame;
+    };
     const onBlur = () => {
       base44TouchedRef.current = true;
+      // Focus moving into the cross-origin frame means the email/password form
+      // is in use; from here on the guard must never cover it again.
+      if (frameFocused()) dismissBase44Guard();
     };
     const onFocus = () => {
       if (base44TouchedRef.current && Date.now() - base44GuardSinceRef.current > 8000) {
-        setBase44Guard(false);
+        dismissBase44Guard();
       }
     };
     window.addEventListener('blur', onBlur);
     window.addEventListener('focus', onFocus);
-    const timer = window.setTimeout(() => setBase44Guard(false), 45_000);
+    const timer = window.setTimeout(() => dismissBase44Guard(), 45_000);
     return () => {
       window.removeEventListener('blur', onBlur);
       window.removeEventListener('focus', onFocus);
       window.clearTimeout(timer);
     };
-  }, [base44Guard, base44Visible, base44Loaded]);
+  }, [base44Guard, base44Visible, base44Loaded, dismissBase44Guard]);
 
   // Load Base44 only when the section is actually on screen. Its sign-in page
   // autofocuses the email field, and a cross-origin frame loading below the
@@ -1093,7 +1116,7 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     setBase44PageDraft(saved);
     setBase44PageError('');
     rememberBase44Scroll();
-    setBase44Guard(true);
+    setBase44Guard(!base44GuardDoneRef.current);
     base44GuardSinceRef.current = 0;
     base44TouchedRef.current = false;
     setBase44Loaded(false);
@@ -1741,14 +1764,36 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                 {base44Visible && base44Loaded && base44Guard && (
                   <div
                     data-base44-guard
-                    aria-hidden="true"
-                    className="absolute z-20 rounded-lg bg-white/30 backdrop-blur-[6px]"
-                    style={{ left: '18%', right: '18%', top: '31%', height: '25%' }}
+                    className="absolute z-20 flex flex-col items-center justify-center gap-1 rounded-xl border border-white/10 bg-[#0d0e10] px-5 text-center shadow-[0_18px_50px_-20px_rgba(0,0,0,0.8)]"
+                    style={{ left: '5%', right: '5%', top: '27%', height: '37%' }}
                     onClick={(event) => {
                       event.preventDefault();
                       event.stopPropagation();
                     }}
-                  />
+                    title="Social sign-in is disabled inside the embedded builder. Use email and password."
+                  >
+                    <p className="text-[12px] font-semibold text-white">
+                      Sign in with your email and password
+                    </p>
+                    <p className="max-w-[360px] text-[10px] leading-relaxed text-white/65">
+                      Google, GitHub and Apple sign-in are disabled inside this embedded builder.
+                    </p>
+                    <p className="mt-0.5 text-[10px] font-semibold text-[#9d8cff]">
+                      ↓ Enter your Base44 email and password below
+                    </p>
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        dismissBase44Guard();
+                      }}
+                      className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-md text-white/60 hover:bg-white/10 hover:text-white"
+                      aria-label="Hide social sign-in guard"
+                      title="Hide this guard"
+                    >
+                      ×
+                    </button>
+                  </div>
                 )}
                 {base44Visible && (
                   <iframe
