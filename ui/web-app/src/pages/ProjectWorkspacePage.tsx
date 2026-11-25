@@ -452,10 +452,8 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   const [base44Loaded, setBase44Loaded] = useState(false);
   const [base44Visible, setBase44Visible] = useState(false);
   const [base44Fullscreen, setBase44Fullscreen] = useState(false);
-  const [base44Guard, setBase44Guard] = useState(() => !readBase44GuardDismissed(project.id));
-  const base44GuardSinceRef = useRef(0);
-  const base44TouchedRef = useRef(false);
-  const base44GuardDoneRef = useRef(readBase44GuardDismissed(project.id));
+  const [base44Guard, setBase44Guard] = useState(() => !readBase44GuardDismissed());
+  const base44GuardDoneRef = useRef(readBase44GuardDismissed());
   const base44LoadedAtRef = useRef(0);
   const base44FrameRef = useRef<HTMLDivElement | null>(null);
   const scrollSectionRef = useRef<HTMLElement | null>(null);
@@ -923,8 +921,6 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   const reloadBase44 = () => {
     rememberBase44Scroll();
     setBase44Guard(!base44GuardDoneRef.current);
-    base44GuardSinceRef.current = 0;
-    base44TouchedRef.current = false;
     setBase44Loaded(false);
     setBase44Key((value) => value + 1);
   };
@@ -960,8 +956,6 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
       await doc.requestStorageAccessFor(origin);
       rememberBase44Scroll();
       setBase44Guard(!base44GuardDoneRef.current);
-      base44GuardSinceRef.current = 0;
-      base44TouchedRef.current = false;
       setBase44Loaded(false);
       setBase44Key((value) => value + 1);
       notificationService.push({
@@ -1011,27 +1005,22 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   };
 
   /**
-   * Hides the social sign-in guard. `remember` is only set when the person has
-   * actually started using the Base44 form — the timed fallbacks must not hide
-   * it forever for a project that was never signed in to.
+   * The pointer says "Login using" the email form. The first click inside the
+   * Base44 frame is the point where the person has found that form, so the hint
+   * disappears and is never shown again.
    */
-  const hideBase44Guard = useCallback((remember: boolean) => {
+  const hideBase44Guard = useCallback(() => {
     setBase44Guard(false);
-    if (!remember) return;
     base44GuardDoneRef.current = true;
-    saveBase44GuardDismissed(project.id);
-  }, [project.id]);
+    saveBase44GuardDismissed();
+  }, []);
 
   // The Base44 login page autofocuses its email field. A cross-origin frame
   // doing that below the fold can scroll its parent, so pin the workspace back
   // to where it was before the frame loaded.
   const handleBase44Load = () => {
-    if (base44GuardSinceRef.current === 0) base44GuardSinceRef.current = Date.now();
     base44LoadedAtRef.current = Date.now();
     setBase44Loaded(true);
-    if (base44Guard && base44TouchedRef.current && Date.now() - base44GuardSinceRef.current > 5000) {
-      hideBase44Guard(true);
-    }
     const restore = () => {
       const section = scrollSectionRef.current;
       if (section && Math.abs(section.scrollTop - base44ScrollTopRef.current) > 2) {
@@ -1054,33 +1043,19 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     return () => window.removeEventListener('keydown', onKey);
   }, [base44Fullscreen]);
 
-  // Cross-origin iframes cannot tell us when their login succeeds, so use the
-  // Cross-origin iframes cannot tell us when their login succeeds, so use the
-  // signals we do have: focus moving into the frame once it has settled, a later
-  // document load after that, and a bounded fallback. Base44 autofocuses its
-  // email field on load, which blurs this window without any user action, so a
-  // blur only counts after the frame has settled.
+  // A cross-origin frame swallows its own clicks, but the first one moves focus
+  // into the frame. Base44 autofocuses its email field while loading, so ignore
+  // focus moves for the first moment and treat the next one as a real click.
   useEffect(() => {
     if (!base44Guard || !base44Visible || !base44Loaded) return;
-    const frameFocused = () => {
-      const frame = base44FrameRef.current?.querySelector('iframe');
-      return Boolean(frame) && document.activeElement === frame;
-    };
     const onBlur = () => {
-      base44TouchedRef.current = true;
-      const settled = Date.now() - base44LoadedAtRef.current > 1500;
-      // Base44 autofocuses its email field as it loads, which blurs this window
-      // without any user action. Only a blur after the frame has settled means
-      // the person clicked into the email/password form; from then on the guard
-      // must never cover it again.
-      if (settled && frameFocused()) hideBase44Guard(true);
+      const frame = base44FrameRef.current?.querySelector('iframe');
+      if (!frame || document.activeElement !== frame) return;
+      if (Date.now() - base44LoadedAtRef.current < 1000) return;
+      hideBase44Guard();
     };
     window.addEventListener('blur', onBlur);
-    const timer = window.setTimeout(() => hideBase44Guard(false), 45_000);
-    return () => {
-      window.removeEventListener('blur', onBlur);
-      window.clearTimeout(timer);
-    };
+    return () => window.removeEventListener('blur', onBlur);
   }, [base44Guard, base44Visible, base44Loaded, hideBase44Guard]);
 
   // Load Base44 only when the section is actually on screen. Its sign-in page
@@ -1119,8 +1094,6 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
     setBase44PageError('');
     rememberBase44Scroll();
     setBase44Guard(!base44GuardDoneRef.current);
-    base44GuardSinceRef.current = 0;
-    base44TouchedRef.current = false;
     setBase44Loaded(false);
     setBase44Key((value) => value + 1);
   };
@@ -1766,35 +1739,28 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
                 {base44Visible && base44Loaded && base44Guard && (
                   <div
                     data-base44-guard
-                    className="absolute z-20 flex flex-col items-center justify-center gap-1 rounded-xl border border-white/10 bg-[#0d0e10] px-5 text-center shadow-[0_18px_50px_-20px_rgba(0,0,0,0.8)]"
-                    style={{ left: '5%', right: '5%', top: '27%', height: '37%' }}
+                    aria-hidden="true"
+                    className="absolute z-20 flex flex-col items-center justify-center gap-2 rounded-xl border border-white/10 bg-[#0d0e10] px-4 text-center shadow-[0_18px_50px_-20px_rgba(0,0,0,0.85)]"
+                    style={{ left: '8%', right: '8%', top: '37%', height: '23%' }}
                     onClick={(event) => {
                       event.preventDefault();
                       event.stopPropagation();
                     }}
-                    title="Social sign-in is disabled inside the embedded builder. Use email and password."
                   >
-                    <p className="text-[12px] font-semibold text-white">
-                      Sign in with your email and password
-                    </p>
-                    <p className="max-w-[360px] text-[10px] leading-relaxed text-white/65">
-                      Google, GitHub and Apple sign-in are disabled inside this embedded builder.
-                    </p>
-                    <p className="mt-0.5 text-[10px] font-semibold text-[#9d8cff]">
-                      ↓ Enter your Base44 email and password below
-                    </p>
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        hideBase44Guard(true);
-                      }}
-                      className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-md text-white/60 hover:bg-white/10 hover:text-white"
-                      aria-label="Hide social sign-in guard"
-                      title="Hide this guard"
+                    <p className="text-[12px] font-semibold tracking-wide text-white">Login using</p>
+                    <svg
+                      viewBox="0 0 20 26"
+                      aria-hidden="true"
+                      className="h-6 w-4 text-[#9d8cff]"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
                     >
-                      ×
-                    </button>
+                      <path d="M10 2v19" />
+                      <path d="M3.5 15.5 10 22l6.5-6.5" />
+                    </svg>
                   </div>
                 )}
                 {base44Visible && (

@@ -177,27 +177,24 @@ function base44PageKey(projectId: string): string {
   return `vector_project_base44_page_${projectId}`;
 }
 
-function base44GuardKey(projectId: string): string {
-  return `vector_project_base44_guard_done_${projectId}`;
-}
+const BASE44_GUARD_KEY = 'vector_base44_guard_dismissed_v1';
 
 /**
- * The embedded builder shows its own social buttons, so Vector covers them
- * until the user starts the email sign-in. Once that has happened the guard
- * must stay away for good — re-showing it on every frame navigation would sit
- * on top of the password step.
+ * The embedded builder shows its own social buttons, so Vector points people at
+ * the email form first. Once the person clicks inside the frame the pointer has
+ * done its job and the hint is gone for good — on every project.
  */
-export function readBase44GuardDismissed(projectId: string): boolean {
+export function readBase44GuardDismissed(): boolean {
   try {
-    return localStorage.getItem(base44GuardKey(projectId)) === '1';
+    return localStorage.getItem(BASE44_GUARD_KEY) === '1';
   } catch {
     return false;
   }
 }
 
-export function saveBase44GuardDismissed(projectId: string): void {
+export function saveBase44GuardDismissed(): void {
   try {
-    localStorage.setItem(base44GuardKey(projectId), '1');
+    localStorage.setItem(BASE44_GUARD_KEY, '1');
   } catch {
     // ignore
   }
