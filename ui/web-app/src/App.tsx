@@ -893,6 +893,7 @@ function AppShell() {
           open={Boolean(setupProject)}
           project={setupProject ?? { id: '', name: '' }}
           onComplete={completeProjectSetup}
+          onDismiss={() => setSetupProject(null)}
         />
         <GuidedTour
           open={guideOpen}
@@ -962,6 +963,7 @@ function AppShell() {
           open={Boolean(setupProject)}
           project={setupProject ?? { id: '', name: '' }}
           onComplete={completeProjectSetup}
+          onDismiss={() => setSetupProject(null)}
         />
         <GuidedTour
           open={guideOpen}
@@ -1211,6 +1213,7 @@ function AppShell() {
         open={Boolean(setupProject)}
         project={setupProject ?? { id: '', name: '' }}
         onComplete={completeProjectSetup}
+        onDismiss={() => setSetupProject(null)}
       />
       <GuidedTour
         open={guideOpen}
@@ -1252,5 +1255,7 @@ export default function App() {
     </ThemeProvider>
   );
 }
+
+
 
 

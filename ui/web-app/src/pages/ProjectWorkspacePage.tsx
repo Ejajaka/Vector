@@ -471,6 +471,15 @@ export const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({
   const fileRef = useRef<HTMLInputElement>(null);
   const figmaRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    if (!documentPromptOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setDocumentPromptOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [documentPromptOpen]);
+
   const setup = useMemo(() => readProjectSetup(project.id), [project.id]);
   const [designSystem, setDesignSystem] = useState<DesignSystem | null>(() => getActiveDesignSystem());
 

@@ -19,6 +19,18 @@ LOGGER = logging.getLogger(__name__)
 
 _SENTENCE_END = {".", "!", "?"}
 
+#: Articles and determiners are not copy. The tagger sometimes marks "an" in
+#: "a retry banner" as a LABEL, which would then be rendered as the element copy.
+_EMPTY_LABELS = {
+    "a", "an", "the", "this", "that", "these", "those",
+    "it", "its", "their", "our", "your", "my",
+}
+
+
+def _is_empty_label(text: str) -> bool:
+    value = text.strip().strip(".,;:!?\"'“”‘’").lower()
+    return len(value) <= 1 or value in _EMPTY_LABELS
+
 
 def _sentence_ids(tokens_with_offsets: list[tuple[str, int, int]]) -> list[int]:
     """Return a sentence index for every token (punctuation ends a sentence)."""
@@ -95,6 +107,9 @@ def link_spans_to_elements(
     # 2. Link every attribute span.
     for span in ordered:
         if span.label == "ELEMENT":
+            continue
+        if span.label == "LABEL" and _is_empty_label(span.text):
+            LOGGER.debug("Dropping determiner-only label %r", span.text)
             continue
         sentence = sentence_of[span.start]
 

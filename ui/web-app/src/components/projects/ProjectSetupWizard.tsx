@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, ClipboardList, Layers, Sparkles, Upload } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ClipboardList, Layers, Sparkles, Upload, X } from 'lucide-react';
 import { TEMPLATES, type TemplateDefinition } from '../../data/templates.ts';
 
 export interface ProjectSetupChoice {
@@ -13,6 +13,8 @@ interface ProjectSetupWizardProps {
   open: boolean;
   project: { id: string; name: string };
   onComplete: (choice: ProjectSetupChoice) => void;
+  /** Close without seeding a canvas; the project itself already exists. */
+  onDismiss?: () => void;
 }
 
 const PURPOSES: Array<{ id: string; label: string; hint: string; categories: string[] }> = [
@@ -52,7 +54,7 @@ const FEATURE_TERMS: Record<string, string[]> = {
 };
 
 /** Mandatory project interview: purpose → features → how to start. */
-export const ProjectSetupWizard: React.FC<ProjectSetupWizardProps> = ({ open, project, onComplete }) => {
+export const ProjectSetupWizard: React.FC<ProjectSetupWizardProps> = ({ open, project, onComplete, onDismiss }) => {
   const [step, setStep] = useState(0);
   const [purposes, setPurposes] = useState<string[]>([]);
   const [features, setFeatures] = useState<string[]>([]);
@@ -113,6 +115,15 @@ export const ProjectSetupWizard: React.FC<ProjectSetupWizardProps> = ({ open, pr
     if (suggested[0]) setTemplateId(suggested[0].id);
   }, [step, start, templateId, suggested]);
 
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onDismiss?.();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onDismiss]);
+
   if (!open) return null;
 
   const toggle = (list: string[], value: string) =>
@@ -149,6 +160,15 @@ export const ProjectSetupWizard: React.FC<ProjectSetupWizardProps> = ({ open, pr
           <span className="rounded-full bg-[var(--v-surface-2)] px-2.5 py-1 text-[9.5px] font-semibold text-[var(--v-muted)]">
             {step + 1} of 3
           </span>
+          <button
+            type="button"
+            onClick={() => onDismiss?.()}
+            className="v-icon-btn shrink-0"
+            aria-label="Close project setup"
+            title="Close setup"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
         <div className="mt-3 h-1 overflow-hidden rounded-full bg-[var(--v-surface-2)]">
