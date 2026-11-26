@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { useMemo, useState } from 'react';
 import {
   ArrowUpRight,
   Clock3,
@@ -23,7 +23,7 @@ import {
 import { useAuth } from '../context/AuthContext.tsx';
 import { useProject } from '../context/ProjectContext.tsx';
 import { useToast } from '../components/ui/Toast.tsx';
-import { daysLeftInTrash, isTrashExpired } from '../services/trashRetention.ts';
+import { daysLeftInTrash } from '../services/trashRetention.ts';
 import { SpotlightHost } from '../components/onboarding/SpotlightHost.tsx';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog.tsx';
 import type { Project } from '../types/projects.ts';
@@ -82,34 +82,6 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
 
   const active = projects.filter((project) => project.status === 'active');
   const trashed = projects.filter((project) => project.status === 'archived');
-
-  // The trash promise is 30 days; enforce it when the workspace opens. Cloud
-  // projects cascade their documents, criteria and shared rooms on delete.
-  const purgeStartedRef = useRef(false);
-  useEffect(() => {
-    if (loading || purgeStartedRef.current) return;
-    const expired = projects.filter(
-      (project) => project.status === 'archived' && isTrashExpired(project.updatedAt),
-    );
-    if (!expired.length) return;
-    purgeStartedRef.current = true;
-    void (async () => {
-      let removed = 0;
-      for (const project of expired) {
-        try {
-          await deleteProject(project.id);
-          removed += 1;
-        } catch {
-          // Keep the rest; a failed delete is retried on the next visit.
-        }
-      }
-      purgeStartedRef.current = false;
-      if (removed) {
-        toast(`${removed} project${removed === 1 ? '' : 's'} deleted after 30 days in trash.`, 'info');
-        void refresh();
-      }
-    })();
-  }, [loading, projects, deleteProject, refresh, toast]);
 
   const visible = useMemo(() => {
     const base = tab === 'trash' ? trashed : active;

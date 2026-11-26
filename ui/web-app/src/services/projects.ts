@@ -1,4 +1,5 @@
 import type { Project, ProjectStatus } from '../types/projects.ts';
+import { isTrashExpired } from './trashRetention.ts';
 import { supabase } from './supabase/client.ts';
 import { recordProjectCreated } from './entitlements.ts';
 
@@ -46,13 +47,28 @@ function writeLocal(projects: Project[]): void {
 
 export const projectService = {
   async list(userId: string | null): Promise<Project[]> {
-    if (!supabase || !userId) return readLocal();
-    const { data, error } = await supabase
-      .from('projects')
-      .select('id, owner_id, name, description, status, created_at, updated_at')
-      .order('updated_at', { ascending: false });
-    if (error) throw new Error(error.message);
-    return (data || []).map((row) => fromRow(row as ProjectRow));
+    const list: Project[] = !supabase || !userId
+      ? readLocal()
+      : await supabase
+          .from('projects')
+          .select('id, owner_id, name, description, status, created_at, updated_at')
+          .order('updated_at', { ascending: false })
+          .then(({ data, error }) => {
+            if (error) throw new Error(error.message);
+            return (data || []).map((row) => fromRow(row as ProjectRow));
+          });
+
+    // The trash promises 30 days. Enforce it whenever projects load so the
+    // window holds even if nobody ever opens the Trash tab.
+    const expired = list.filter(
+      (project) => project.status === 'archived' && isTrashExpired(project.updatedAt),
+    );
+    if (!expired.length) return list;
+    for (const project of expired) {
+      await projectService.remove(userId, project.id).catch(() => undefined);
+    }
+    const expiredIds = new Set(expired.map((project) => project.id));
+    return list.filter((project) => !expiredIds.has(project.id));
   },
 
   async create(userId: string | null, name: string, description = ''): Promise<Project> {
