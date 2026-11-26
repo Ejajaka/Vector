@@ -20,3 +20,15 @@ def test_determiner_only_labels_are_dropped():
     elements = link_spans_to_elements(spans, tokens, text)
     labels = [attribute.text for element in elements for attribute in element.attributes.get("LABEL", [])]
     assert "an" not in labels
+
+
+def test_component_nouns_are_not_used_as_labels():
+    text = "Show a retry banner and an empty state"
+    tokens = tokenize_with_offsets(text)
+    spans = [
+        Span(label="ELEMENT", start=3, end=4, text="banner", char_start=11, char_end=17),
+        Span(label="LABEL", start=6, end=8, text="empty state", char_start=26, char_end=37),
+    ]
+    elements = link_spans_to_elements(spans, tokens, text)
+    labels = [attribute.text for element in elements for attribute in element.attributes.get("LABEL", [])]
+    assert labels == []

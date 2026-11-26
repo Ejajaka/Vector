@@ -111,6 +111,10 @@ def link_spans_to_elements(
         if span.label == "LABEL" and _is_empty_label(span.text):
             LOGGER.debug("Dropping determiner-only label %r", span.text)
             continue
+        if span.label == "LABEL" and NOUN_TO_TYPE(span.text) is not None:
+            # "empty state" / "retry banner" name a component, not its copy.
+            LOGGER.debug("Dropping component noun used as a label %r", span.text)
+            continue
         sentence = sentence_of[span.start]
 
         # Rule (a): a colour or label glued to the left of an element.
