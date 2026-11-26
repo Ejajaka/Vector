@@ -56,4 +56,13 @@ describe('acceptance criteria', () => {
     expect(given).not.toMatch(/\busers\b/);
     expect(given).not.toMatch(/on The\b/);
   });
+
+  it('writes an observable action instead of repeating the requirement', () => {
+    const record = requirement('r3', 'The portal must let owners manage invoices.');
+    record.metadata = { screens: [], components: [], roles: ['Owners'], behaviours: ['manage'] };
+    const criteria = generateAcceptanceCriteria([record], 'project-1');
+    const main = criteria.find((item) => /reflects the change/.test(item.then));
+    expect(main?.given).toMatch(/authenticated owner/);
+    expect(main?.when).toBe('When they manage invoices');
+  });
 });

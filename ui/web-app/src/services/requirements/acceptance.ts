@@ -46,9 +46,14 @@ function lowerFirst(text: string): string {
   return text ? text.charAt(0).toLowerCase() + text.slice(1) : text;
 }
 
-function action(requirement: RequirementRecord): string {
-  const text = requirement.normalizedText.replace(/\.$/, '');
-  return text.length > 140 ? `${text.slice(0, 137)}…` : text;
+/** The observable action in a requirement, after its modal verb. */
+function actionPhrase(requirement: RequirementRecord): string {
+  const text = requirement.normalizedText.replace(/\.$/, '').trim();
+  const match = text.match(/\b(?:must|shall|should|will|can|needs?\s+to)\s+(?:be\s+able\s+to\s+)?(.+)$/i);
+  let phrase = (match?.[1] || text).trim();
+  // "let workspace owners manage invoices" -> "manage invoices"
+  phrase = phrase.replace(/^(?:let|allow|enable|permit)\s+(?:the\s+|an?\s+)?[A-Za-z][A-Za-z -]{0,24}?\s+(?=[a-z])/i, '');
+  return phrase.length > 120 ? `${phrase.slice(0, 117)}…` : phrase;
 }
 
 export const ACCEPTANCE_LIMIT = 2000;
@@ -82,7 +87,6 @@ export function generateAcceptanceCriteria(
   for (const requirement of requirements) {
     const who = role(requirement);
     const where = subject(requirement);
-    const act = action(requirement);
     const text = requirement.normalizedText;
 
     if (/\b(form|input|field|submit|save)\b/i.test(text)) {
@@ -135,8 +139,8 @@ export function generateAcceptanceCriteria(
         requirement,
         'main-path',
         `Given an authenticated ${who} on ${where}`,
-        `When they use ${where}`,
-        `Then ${lowerFirst(act)}`,
+        `When they ${lowerFirst(actionPhrase(requirement))}`,
+        `Then the ${where} reflects the change and shows a clear confirmation`,
       );
     }
 
