@@ -487,7 +487,9 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
                   {query ? `No projects match “${query}”` : tab === 'trash' ? 'Trash is empty' : 'No projects yet'}
                 </p>
                 <p className="mt-1 text-[11.5px] text-[var(--v-muted)]">
-                  {tab === 'trash' ? 'Deleted projects can be restored for 30 days.' : 'Create one, or start from a template.'}
+                  {tab === 'trash'
+                    ? 'Projects you move here can be restored for 30 days. “Delete forever” cannot be undone.'
+                    : 'Create one, or start from a template.'}
                 </p>
                 {tab !== 'trash' && (
                   <button type="button" onClick={() => setCreateOpen(true)} className="mt-3 v-btn v-btn-primary h-9 px-4 text-[12px]">
