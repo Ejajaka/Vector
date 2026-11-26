@@ -1,5 +1,6 @@
 import type { Project, ProjectStatus } from '../types/projects.ts';
 import { isTrashExpired } from './trashRetention.ts';
+import { notificationService } from './notifications.ts';
 import { supabase } from './supabase/client.ts';
 import { recordProjectCreated } from './entitlements.ts';
 
@@ -64,8 +65,21 @@ export const projectService = {
       (project) => project.status === 'archived' && isTrashExpired(project.updatedAt),
     );
     if (!expired.length) return list;
+    let removed = 0;
     for (const project of expired) {
-      await projectService.remove(userId, project.id).catch(() => undefined);
+      try {
+        await projectService.remove(userId, project.id);
+        removed += 1;
+      } catch {
+        // Retry on the next load; a failed delete must not block the app.
+      }
+    }
+    if (removed) {
+      notificationService.push({
+        kind: 'system',
+        title: `${removed} project${removed === 1 ? '' : 's'} deleted from trash`,
+        body: 'Projects stay in trash for 30 days, then they are deleted automatically.',
+      });
     }
     const expiredIds = new Set(expired.map((project) => project.id));
     return list.filter((project) => !expiredIds.has(project.id));
