@@ -273,6 +273,18 @@ function AppShell() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projects, projectLoading]);
 
+  const dismissProjectSetup = () => {
+    const id = setupProject?.id;
+    if (id) {
+      try {
+        localStorage.removeItem(`vector_project_setup_pending_${id}`);
+      } catch {
+        // ignore
+      }
+    }
+    setSetupProject(null);
+  };
+
   const completeProjectSetup = (choice: ProjectSetupChoice) => {
     if (!setupProject) return;
     saveProjectSetup(setupProject.id, {
@@ -893,7 +905,7 @@ function AppShell() {
           open={Boolean(setupProject)}
           project={setupProject ?? { id: '', name: '' }}
           onComplete={completeProjectSetup}
-          onDismiss={() => setSetupProject(null)}
+          onDismiss={dismissProjectSetup}
         />
         <GuidedTour
           open={guideOpen}
@@ -963,7 +975,7 @@ function AppShell() {
           open={Boolean(setupProject)}
           project={setupProject ?? { id: '', name: '' }}
           onComplete={completeProjectSetup}
-          onDismiss={() => setSetupProject(null)}
+          onDismiss={dismissProjectSetup}
         />
         <GuidedTour
           open={guideOpen}
@@ -1213,7 +1225,7 @@ function AppShell() {
         open={Boolean(setupProject)}
         project={setupProject ?? { id: '', name: '' }}
         onComplete={completeProjectSetup}
-        onDismiss={() => setSetupProject(null)}
+        onDismiss={dismissProjectSetup}
       />
       <GuidedTour
         open={guideOpen}
@@ -1255,6 +1267,7 @@ export default function App() {
     </ThemeProvider>
   );
 }
+
 
 
 
