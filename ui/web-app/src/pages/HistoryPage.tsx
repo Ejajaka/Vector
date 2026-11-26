@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+﻿import React, { useMemo, useState } from 'react';
 import type { AnalysisResult, RiskLevel } from '../types/analysis.ts';
 import { historyStorage } from '../services/historyStorage.ts';
 import { RiskBadge } from '../components/ui/RiskBadge.tsx';
@@ -62,7 +62,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
 
   const handleClearAll = () => {
     if (!currentProject) return;
-    if (window.confirm(`Clear all analysis history for “${currentProject.name}”? Other projects are not affected.`)) {
+    if (window.confirm(`Clear all analysis history for â€œ${currentProject.name}â€? Other projects are not affected.`)) {
       historyStorage.clear(currentProject.id);
       setRefreshKey(k => k + 1);
       toast('Project analysis history cleared', 'info');
@@ -212,7 +212,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
               : 'You have not evaluated any UI prompts yet.'}
           </p>
           <button
-            onClick={onStartNewAnalysis}
+            onClick={() => onStartNewAnalysis()}
             className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-[#49686C] text-white text-xs font-semibold rounded-lg hover:bg-[#30494B] transition-colors"
           >
             <PlusCircle className="w-4 h-4" />
@@ -354,3 +354,4 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
     </div>
   );
 };
+

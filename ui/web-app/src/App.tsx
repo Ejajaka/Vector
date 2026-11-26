@@ -735,8 +735,10 @@ function AppShell() {
       requestAuth('new-analysis');
       return;
     }
+    // Click handlers pass the MouseEvent; only a real string is a prompt seed.
+    const seed = typeof prompt === 'string' ? prompt.trim() : '';
     setAnalysisToInspect(null);
-    setAnalysisPromptSeed(prompt?.trim() || null);
+    setAnalysisPromptSeed(seed || null);
     setActiveTab('new-analysis');
   };
 

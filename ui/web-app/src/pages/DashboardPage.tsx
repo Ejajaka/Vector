@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import {
   ArrowUpRight,
   Clock3,
@@ -87,7 +87,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onStar
               What will you <span className="text-[var(--v-muted)]">build</span> today?
             </h1>
             <p className="mt-2 max-w-[560px] text-[13px] leading-[1.6] text-[var(--v-muted)]">
-              Turn one vague sentence into a complete, scored prompt — with every label, action, colour and placement resolved before you generate.
+              Turn one vague sentence into a complete, scored prompt â€” with every label, action, colour and placement resolved before you generate.
             </p>
           </div>
           <div className="hidden shrink-0 items-center gap-1 rounded-md border border-[var(--v-line)] bg-[var(--v-surface-2)] p-0.5 sm:flex">
@@ -130,7 +130,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onStar
           </span>
           <button
             type="button"
-            onClick={onStartNewAnalysis}
+            onClick={() => onStartNewAnalysis()}
             className="inline-flex items-center gap-1.5 rounded-md border border-[var(--v-line)] bg-[var(--v-surface-2)] px-2.5 py-1 text-[var(--v-muted)] transition-colors hover:border-[var(--v-line-strong)] hover:text-[var(--v-ink)]"
           >
             <Wand2 className="h-3 w-3" /> Score a prompt
@@ -205,7 +205,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onStar
             <div className="v-card col-span-2 flex flex-col justify-center rounded-lg p-5 sm:col-span-2 xl:col-span-3">
               <p className="text-[14px] font-semibold text-[var(--v-ink)]">No projects yet</p>
               <p className="mt-1 text-[12px] text-[var(--v-muted)] max-w-md">
-                Start from a template — it pre-fills every required attribute so your first prompt is already complete.
+                Start from a template â€” it pre-fills every required attribute so your first prompt is already complete.
               </p>
               <button
                 type="button"
@@ -306,3 +306,4 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate, onStar
     </div>
   );
 };
+

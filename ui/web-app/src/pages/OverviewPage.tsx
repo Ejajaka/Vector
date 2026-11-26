@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import type { AnalysisResult, RiskLevel } from '../types/analysis.ts';
 import { historyStorage } from '../services/historyStorage.ts';
 import { RiskBadge } from '../components/ui/RiskBadge.tsx';
@@ -46,7 +46,7 @@ const FEATURES = [
   {
     icon: Network,
     title: 'Requirement Intelligence',
-    text: 'A live graph of dependencies, ambiguities and conflicts — surfaced before design starts.',
+    text: 'A live graph of dependencies, ambiguities and conflicts â€” surfaced before design starts.',
     tone: '#688E5E',
   },
   {
@@ -133,14 +133,14 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           <div className="max-w-3xl space-y-4 relative z-10">
             <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#E4EBDD] dark:bg-[#23301F] text-[#30494B] dark:text-[#B7D9B0] border border-[#CFE2C8] dark:border-[#3D5236]">
               <Sparkles className="w-3 h-3" />
-              Vector — Requirement engineering for UI teams
+              Vector â€” Requirement engineering for UI teams
             </div>
             <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-[#283638] dark:text-[#F2F5F3] leading-[1.15]">
               Everything between a document and a design.
             </h1>
             <p className="text-sm sm:text-base text-[#737A72] dark:text-[#9AA6A2] leading-relaxed max-w-2xl">
               Vector turns company requirements into traceable statements, reviewed edge cases,
-              audited acceptance criteria and a six-section brief — before a generator guesses.
+              audited acceptance criteria and a six-section brief â€” before a generator guesses.
             </p>
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <button
@@ -231,8 +231,8 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         <div className="max-w-2xl space-y-3 relative z-10">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-semibold bg-[#E4EBDD] dark:bg-[#23301F] text-[#30494B] dark:text-[#B7D9B0]">
             <span>Vector</span>
-            <span>·</span>
-              <span>Vector — Requirement engineering for UI teams</span>
+            <span>Â·</span>
+              <span>Vector â€” Requirement engineering for UI teams</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#283638] dark:text-[#F2F5F3]">
             {currentProject ? currentProject.name : 'Select a project to begin'}
@@ -247,7 +247,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
             {currentProject ? (
               <>
                 <button
-                  onClick={onStartNewAnalysis}
+                  onClick={() => onStartNewAnalysis()}
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#49686C] hover:bg-[#30494B] text-white text-xs font-semibold transition-all shadow-xs"
                 >
                   <PlusCircle className="w-4 h-4" />
@@ -302,7 +302,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           </div>
           <div>
             <div className="text-3xl font-semibold text-[#283638] dark:text-[#F2F5F3] font-mono tabular-nums">
-              {totalCount > 0 ? `${avgRisk}/100` : '—'}
+              {totalCount > 0 ? `${avgRisk}/100` : 'â€”'}
             </div>
             <div className="text-[11px] text-[#737A72] dark:text-[#8E9A93] mt-1">Across this project's prompts</div>
           </div>
@@ -317,7 +317,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           </div>
           <div>
             <div className="text-3xl font-semibold text-[#283638] dark:text-[#F2F5F3] font-mono tabular-nums">
-              {totalCount > 0 ? `${avgCoverage}%` : '—'}
+              {totalCount > 0 ? `${avgCoverage}%` : 'â€”'}
             </div>
             <div className="text-[11px] text-[#737A72] dark:text-[#8E9A93] mt-1">Required details stated</div>
           </div>
@@ -557,3 +557,4 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
     </div>
   );
 };
+
